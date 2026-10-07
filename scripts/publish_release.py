@@ -209,10 +209,53 @@ def legacy_first(feed, abi='arm64-v8a'):
             return release['tag_name']
     return None
 
+def repair_attribution(event):
+    """Re-upload unchanged historical assets with the bot, preserving URLs."""
+    payload = event['client_payload']
+    tag = payload['tag']
+    if not re.fullmatch(r'r\d+', tag):
+        raise ValueError('Historical repair requires a legacy application tag')
+    token = os.environ['GITHUB_TOKEN']
+    release = request(f'repos/{PUBLIC}/releases/tags/{tag}', token)
+    if release.get('immutable') or release['draft']:
+        raise ValueError('Historical release cannot be repaired')
+    requested = {int(value) for value in payload['asset_ids']}
+    assets = [asset for asset in release['assets'] if asset['id'] in requested]
+    if len(assets) != len(requested):
+        raise ValueError('Requested historical asset not found')
+    temp = Path(os.environ['RUNNER_TEMP']) / 'historical-attribution'
+    temp.mkdir()
+    for asset in assets:
+        name = asset['name']
+        if name != 'SHA256SUMS' and not re.fullmatch(r'app-(universal|arm64-v8a|armeabi-v7a|x86|x86_64)-preview\.apk', name):
+            raise ValueError('Unexpected historical asset')
+        if asset['uploader']['type'] != 'User':
+            continue
+        url = asset['browser_download_url']
+        if not url.startswith(f'https://github.com/{PUBLIC}/releases/download/{tag}/'):
+            raise ValueError('Unexpected download host')
+        file = temp / name
+        with urllib.request.urlopen(url, timeout=180) as response:
+            file.write_bytes(response.read())
+        digest = 'sha256:' + hashlib.sha256(file.read_bytes()).hexdigest()
+        if digest != asset['digest']:
+            raise ValueError('Historical asset hash mismatch')
+        subprocess.run(['gh', 'release', 'upload', tag, str(file), '--repo', PUBLIC, '--clobber'],
+                       check=True, env={**os.environ, 'GH_TOKEN': token})
+        updated = request(f'repos/{PUBLIC}/releases/tags/{tag}', token)
+        replacement = next(item for item in updated['assets'] if item['name'] == name)
+        if replacement['digest'] != digest or replacement['browser_download_url'] != url or replacement['uploader']['type'] != 'Bot':
+            raise ValueError('Historical repair did not preserve bytes, URL and bot ownership')
+    print('Historical assets retain their bytes and download URLs; attribution belongs to the bot.')
+
 def main():
     if os.environ['GITHUB_REPOSITORY'] != PUBLIC:
         raise SystemExit('Wrong public publication repository')
-    event = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())['client_payload']
+    full_event = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
+    if full_event['action'] == 'repair-historical-attribution':
+        repair_attribution(full_event)
+        return
+    event = full_event['client_payload']
     run_id, artifact_id = int(event['source_run']), int(event['artifact_id'])
     source_token = os.environ['SOURCE_ARTIFACT_TOKEN']
     run = request(f'repos/{SOURCE}/actions/runs/{run_id}', source_token)
