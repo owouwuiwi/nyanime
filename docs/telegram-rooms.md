@@ -69,6 +69,44 @@ another player; PiP restores the normal view.
 
 ## Verification and remaining checkpoints
 
+Chat setup is also exposed directly in watching and reading room controls. The
+player chat icon remains visible before group creation and opens that setup when
+the conversation is not ready. Account login, separate room consent, participant
+readiness and group preparation have explicit states. Direct chat navigation only
+accepts a conversation registered for the current consented account.
+
+The active session card exposes Close room for its owner and Leave room for other
+participants. Both require confirmation and use the existing room controller's
+leave operation. Closing the session does not leave or delete its Telegram group.
+Changing or ending the room dismisses an outstanding confirmation; the hub also
+rejects an action targeting a previous room identity.
+
+The signed 0.32.0.3 update was tested on a physical Galaxy Z Flip6 with a temporary
+single-participant room. The owner action was visible in the hub; its confirmation
+explained that Telegram messages remain available. Cancel kept the room active,
+and confirming Close room returned to the idle hub. Three existing controller
+regressions passed: owner closure, participant departure after disconnection, and
+late events from a previous session. No new application crash was recorded during
+the device check. This does not replace the pending two-account physical-device
+conversation tests.
+
+Preview 0.32.0.2 corrects the isolated Telegram application's configuration callback:
+rotation, locale and night-mode changes must not resolve the main process's theme
+dependencies. The real-device IPC probe has a configuration-change mode with four
+rotation rounds and 200 native responses, without requesting a login or sending
+messages. Local watching, reading, optional Telegram metadata, PiP geometry and
+voice-note tests passed (89 cases).
+
+The signed local 0.32.0.1 build was installed as an update on a physical Galaxy
+Z Flip6, preserving the existing account and room. Changing the system font scale
+reproduced the original `ThemeController` dependency crash in 0.32.0.0. The same
+change after the fix kept the Telegram process alive with the same PID; the original
+font scale was restored. The four-round configuration IPC probe also passed with
+200 confirmed native responses. The recovered room exposed the Chat setup card;
+the other participant was offline, so this test did not verify two-account group
+creation or message delivery. The publication version is 0.32.0.2, with a higher
+Android version code and the simplified “Watch together” title.
+
 Unit tests cover membership, current wire requests, join-result handling, spoiler
 ranges, update filtering, outbox interruption, media identifiers, row identity and
 voice-note resource ownership. Native screenshot previews cover light/dark themes and

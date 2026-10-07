@@ -14,6 +14,22 @@ distribuito come APK.
 - Il codice e la cronologia completa sono conservati nella repository privata; APK firmati, documentazione e changelog rimangono pubblici.
 - Gli aggiornamenti conservano gli indirizzi storici e le release compatibili con i primi updater, senza cambiare firma o identificativo dell'app.
 
+## 7 ottobre 2026 — 0.32.0.3: Chiusura della stanza dall’hub (anteprima)
+
+- Aggiunto il pulsante “Chiudi stanza” per il proprietario e “Esci dalla stanza”
+  per gli altri partecipanti direttamente nella scheda della stanza in corso.
+- Conferma prima della chiusura o dell’uscita, con indicazione che la conversazione
+  e i messaggi Telegram rimangono disponibili.
+
+## 7 ottobre 2026 — 0.32.0.2: Accesso alla chat e stabilità Telegram (anteprima)
+
+- Corretto un arresto del servizio Telegram durante rotazioni e cambi di
+  configurazione, che poteva interrompere la preparazione della chat.
+- Accesso Chat sempre visibile nel player quando si è in una stanza.
+- Conversazioni accessibili anche dai comandi della stanza e dalla lettura:
+  collegamento dell’account, attivazione e stato della preparazione nello stesso punto.
+- Titolo dell’hub semplificato in “Guarda insieme”.
+
 ## 7 ottobre 2026 — 0.32.0.0: Chat Telegram nelle stanze (anteprima)
 
 - Hub Stanze con sessione attiva, conversazioni recenti e messaggi non letti.
