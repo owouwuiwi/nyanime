@@ -14,6 +14,25 @@ distribuito come APK.
 - Il codice e la cronologia completa sono conservati nella repository privata; APK firmati, documentazione e changelog rimangono pubblici.
 - Gli aggiornamenti conservano gli indirizzi storici e le release compatibili con i primi updater, senza cambiare firma o identificativo dell'app.
 
+## 7 ottobre 2026 — 0.32.0.0: Chat Telegram nelle stanze (anteprima)
+
+- Hub Stanze con sessione attiva, conversazioni recenti e messaggi non letti.
+- Chat Telegram facoltativa con l’account già collegato a Cloud e consenso separato.
+  Le conversazioni riutilizzano gli stessi partecipanti; un gruppo diverso conserva
+  una cronologia separata.
+- Nuova interfaccia della chat con copertina del contenuto, avatar, messaggi,
+  risposte, reazioni rapide e spoiler nascosti fino al tocco.
+- Chat integrata nel player, lateralmente in orizzontale e sotto il video in
+  verticale, e disponibile anche durante la lettura condivisa.
+- Invio di foto e sticker recenti, apertura delle immagini con zoom e ascolto
+  dei messaggi vocali ricevuti. Le foto inviate vengono private dei metadati EXIF.
+- Bozze e coda degli invii conservate per account; gli invii incerti non vengono
+  ripetuti automaticamente e non risultano falsamente consegnati.
+- Layout adattato a schermi stretti, caratteri grandi, tastiera, temi chiaro e
+  scuro e preferenza per le animazioni ridotte.
+- Questa anteprima riceve messaggi mentre l’app è aperta. Chiamate vocali,
+  videocamera e notifiche ad app chiusa non sono ancora disponibili.
+
 ## 7 ottobre 2026 — 0.31.0.7: Continuità degli aggiornamenti
 
 - I vecchi updater continuano a trovare la versione più recente anche quando cresce lo storico delle release.
