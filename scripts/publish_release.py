@@ -289,9 +289,14 @@ def main():
     (legacy / 'SHA256SUMS').write_text(sums)
     legacy_commit = ensure_tag(metadata['legacyTag'], docs_commit, True)
     published(metadata['legacyTag'], legacy, notes, metadata, legacy_commit, False)
-    feed = request(f'repos/{PUBLIC}/releases?per_page=20', os.environ['GITHUB_TOKEN'])
-    if legacy_first(feed) != metadata['legacyTag']:
-        raise ValueError('Oldest OTA client does not see the latest compatibility release first')
+    deadline = time.monotonic() + 120
+    while True:
+        feed = request(f'repos/{PUBLIC}/releases?per_page=20', os.environ['GITHUB_TOKEN'])
+        if legacy_first(feed) == metadata['legacyTag']:
+            break
+        if time.monotonic() >= deadline:
+            raise ValueError('Oldest OTA client does not see the latest compatibility release first')
+        time.sleep(5)
     print('Published signed APKs, checksums and docs; verified the legacy OTA feed.')
 
 if __name__ == '__main__':
