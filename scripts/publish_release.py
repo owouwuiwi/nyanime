@@ -231,7 +231,7 @@ def archive_previous_alias_dates(current_tag):
         # history. The authorized ref token handles only this metadata update;
         # releases and APK uploads continue to belong to the public bot.
         request(f'repos/{PUBLIC}/git/refs/tags/{tag}', os.environ['PUBLIC_REF_TOKEN'], 'PATCH', {'sha': archived['sha'], 'force': False})
-        request(f'repos/{PUBLIC}/releases/{release["id"]}', token, 'PATCH', {'target_commitish': archived['sha']})
+        request(f'repos/{PUBLIC}/releases/{release["id"]}', os.environ['PUBLIC_REF_TOKEN'], 'PATCH', {'target_commitish': archived['sha']})
     return newest_tag
 
 def legacy_first(feed, abi='arm64-v8a'):
