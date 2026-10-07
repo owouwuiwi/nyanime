@@ -30,6 +30,12 @@ promozioni di canale riutilizzano gli stessi APK. I tag pubblici puntano a docum
 quindi gli archivi ZIP/TAR generati da GitHub non contengono sorgenti dell'app.
 I tag privati conservano i commit del codice corrispondente.
 
+Il publisher mantiene la release `rNNNN` più recente in cima anche per i primi
+updater. Per gestire l'ordinamento GitHub, i vecchi snapshot di documentazione
+pubblica ricevono una data di archivio; le date dei commit privati e quelle di
+pubblicazione delle release non cambiano. Promuovere una vecchia anteprima non
+riporta indietro i documenti, gli APK o la release proposta ai vecchi updater.
+
 La riscrittura rimuove il codice dai riferimenti pubblici. Vecchie copie, fork o
 oggetti precedentemente memorizzati da GitHub non possono essere cancellati
 con una normale riscrittura della cronologia.

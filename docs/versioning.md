@@ -59,14 +59,22 @@ title, per-release notes, checksums and compatible ABI/universal packages.
 
 **Every release also publishes a compatibility alias** using the previous `r<commit-count>`
 tag and fixed `app-<abi>-preview.apk` asset names. This is permanent, not a one-time
-migration window. An old client skips canonical numeric filenames it does not recognize
-and finds the newest compatible alias within its existing release-list query. Thus an
+migration window. The compatibility alias is kept first in the release feed for
+the earliest clients, including those that inspect only the first suitable release.
+Clients with stricter asset filters also find it within their existing query. Thus an
 old r-style installation can jump directly to the latest APK after hundreds of releases;
 intermediate APKs do not need to be installed.
 
 Numeric clients ignore these aliases. The app and APK filenames show only X.Y.Z.W;
 legacy tag identifiers are retained solely for compatibility with already shipped clients.
 The old application ID and signing identity are unchanged, preserving app data.
+
+Source builds run in the private `owouwuiwi/nyanime-source` repository with complete
+Git history. The original public `owouwuiwi/nyanime` repository retains its identity,
+historical redirects, APK download URLs and releases. Only documentation, signed APKs
+and verified checksums are transferred to its bot publisher. Public documentation
+snapshot dates may be normalized to preserve GitHub feed ordering; source history
+and release publication dates remain unchanged.
 
 ## The update screen
 

@@ -14,6 +14,11 @@ distribuito come APK.
 - Il codice e la cronologia completa sono conservati nella repository privata; APK firmati, documentazione e changelog rimangono pubblici.
 - Gli aggiornamenti conservano gli indirizzi storici e le release compatibili con i primi updater, senza cambiare firma o identificativo dell'app.
 
+## 7 ottobre 2026 — 0.31.0.7: Continuità degli aggiornamenti
+
+- I vecchi updater continuano a trovare la versione più recente anche quando cresce lo storico delle release.
+- Ripetere una pubblicazione o promuovere un'anteprima conserva APK e checksum già distribuiti, senza ripristinare documentazione più vecchia.
+
 ## 7 ottobre 2026 — 0.31.0.5: Accesso Cloud più comodo
 
 - Numero Telegram con selettore del paese e del prefisso, ricercabile per nome o codice.
