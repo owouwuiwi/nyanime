@@ -221,14 +221,16 @@ def archive_previous_alias_dates(current_tag):
         identity = {'name': 'owouwuiwi', 'email': 'owouwuiwi@users.noreply.github.com', 'date': date}
         archived = request(f'repos/{PUBLIC}/git/commits', token, 'POST', {
             'message': f'Archived compatibility documentation for {tag}',
-            # Retain the existing documentation snapshot as parent: no workflow
-            # files change, so the normal bot token can advance the tag without
-            # requiring permission to replace workflow history.
+            # Retain the existing documentation snapshot as parent. The tag
+            # advances without replacing its existing history or any files.
             'tree': commit['tree']['sha'], 'parents': [ref['object']['sha']], 'author': identity, 'committer': identity,
         })
         # Only public documentation metadata changes. APK bytes, release records,
         # download URLs and all private source tags remain untouched.
-        request(f'repos/{PUBLIC}/git/refs/tags/{tag}', token, 'PATCH', {'sha': archived['sha'], 'force': False})
+        # GitHub's bot token cannot update existing refs containing workflow
+        # history. The authorized ref token handles only this metadata update;
+        # releases and APK uploads continue to belong to the public bot.
+        request(f'repos/{PUBLIC}/git/refs/tags/{tag}', os.environ['PUBLIC_REF_TOKEN'], 'PATCH', {'sha': archived['sha'], 'force': False})
         request(f'repos/{PUBLIC}/releases/{release["id"]}', token, 'PATCH', {'target_commitish': archived['sha']})
     return newest_tag
 
