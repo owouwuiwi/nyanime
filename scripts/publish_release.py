@@ -197,6 +197,40 @@ def published(tag, directory, notes, metadata, commit, canonical):
         'body': notes, 'draft': False, 'prerelease': not canonical or metadata['channel'] == 'preview',
         'make_latest': str(latest).lower()})
 
+def archive_previous_alias_dates(current_tag):
+    """Keep one current-day compatibility alias, including r9999 -> r10000."""
+    token = os.environ['GITHUB_TOKEN']
+    today = datetime.now(timezone.utc).date()
+    date = (datetime.now(timezone.utc) - timedelta(days=1)).replace(hour=23, minute=59, second=59, microsecond=0).isoformat()
+    releases = []
+    for page in range(1, 21):
+        batch = request(f'repos/{PUBLIC}/releases?per_page=100&page={page}', token)
+        releases.extend(batch)
+        if len(batch) < 100:
+            break
+    else:
+        raise ValueError('Release history exceeds verified pagination boundary')
+    aliases = [item for item in releases if re.fullmatch(r'r\d+', item['tag_name'])]
+    if any(int(item['tag_name'][1:]) > int(current_tag[1:]) for item in aliases):
+        raise ValueError('Refusing to move legacy clients backwards')
+    for release in aliases:
+        tag = release['tag_name']
+        if tag == current_tag or datetime.fromisoformat(release['created_at'].replace('Z', '+00:00')).date() < today:
+            continue
+        ref = request(f'repos/{PUBLIC}/git/ref/tags/{tag}', token)
+        if ref['object']['type'] != 'commit':
+            raise ValueError('Unexpected legacy documentation tag type')
+        commit = request(f'repos/{PUBLIC}/git/commits/{ref["object"]["sha"]}', token)
+        identity = {'name': 'owouwuiwi', 'email': 'owouwuiwi@users.noreply.github.com', 'date': date}
+        archived = request(f'repos/{PUBLIC}/git/commits', token, 'POST', {
+            'message': f'Archived compatibility documentation for {tag}',
+            'tree': commit['tree']['sha'], 'parents': [], 'author': identity, 'committer': identity,
+        })
+        # Only public documentation metadata changes. APK bytes, release records,
+        # download URLs and all private source tags remain untouched.
+        request(f'repos/{PUBLIC}/git/refs/tags/{tag}', token, 'PATCH', {'sha': archived['sha'], 'force': True})
+        request(f'repos/{PUBLIC}/releases/{release["id"]}', token, 'PATCH', {'target_commitish': archived['sha']})
+
 def legacy_first(feed, abi='arm64-v8a'):
     # Exact selection of the first custom updater, before the stricter asset filter.
     build_types = ('arm64-v8a', 'armeabi-v7a', 'x86_64', 'x86')
@@ -282,13 +316,14 @@ def main():
     legacy = bundle / 'legacy'
     legacy.mkdir()
     sums = ''
-    for abi in ABIS:
+    for abi in sorted(ABIS):
         name = f'app-{abi}-preview.apk'
         shutil.copyfile(bundle / 'numeric' / f'Nyanime-{metadata["versionName"]}-{abi}.apk', legacy / name)
         sums += f'{hashlib.sha256((legacy / name).read_bytes()).hexdigest()}  {name}\n'
     (legacy / 'SHA256SUMS').write_text(sums)
     legacy_commit = ensure_tag(metadata['legacyTag'], docs_commit, True)
     published(metadata['legacyTag'], legacy, notes, metadata, legacy_commit, False)
+    archive_previous_alias_dates(metadata['legacyTag'])
     deadline = time.monotonic() + 120
     while True:
         feed = request(f'repos/{PUBLIC}/releases?per_page=20', os.environ['GITHUB_TOKEN'])
