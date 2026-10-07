@@ -113,14 +113,16 @@ def commit_docs(directory, metadata):
                 name in {'.github/workflows/publish.yml', 'scripts/publish_release.py', '.gitignore'}):
             raise ValueError('Public repository contains an unapproved file')
     documents = directory / 'public'
-    for name in git('ls-files').splitlines():
-        if document(name) and not (documents / name).exists():
-            Path(name).unlink()
-    for source in documents.rglob('*'):
-        if source.is_file():
-            target = Path(source.relative_to(documents))
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(source, target)
+    current_versions = [tuple(map(int, file.stem.split('.'))) for file in Path('releases').glob('*.json')]
+    if not current_versions or tuple(map(int, metadata['versionName'].split('.'))) >= max(current_versions):
+        for name in git('ls-files').splitlines():
+            if document(name) and not (documents / name).exists():
+                Path(name).unlink()
+        for source in documents.rglob('*'):
+            if source.is_file():
+                target = Path(source.relative_to(documents))
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(source, target)
     release_path = Path('releases') / (metadata['versionName'] + '.json')
     release_path.parent.mkdir(exist_ok=True)
     if release_path.exists():
@@ -202,20 +204,15 @@ def archive_previous_alias_dates(current_tag):
     token = os.environ['GITHUB_TOKEN']
     today = datetime.now(timezone.utc).date()
     date = (datetime.now(timezone.utc) - timedelta(days=1)).replace(hour=23, minute=59, second=59, microsecond=0).isoformat()
-    releases = []
-    for page in range(1, 21):
-        batch = request(f'repos/{PUBLIC}/releases?per_page=100&page={page}', token)
-        releases.extend(batch)
-        if len(batch) < 100:
-            break
-    else:
-        raise ValueError('Release history exceeds verified pagination boundary')
+    # Each publication archives the previous current-day alias. Consequently
+    # only the new alias and its predecessor occupy the current-day feed window;
+    # older history can grow without an ever-growing scan on every publication.
+    releases = request(f'repos/{PUBLIC}/releases?per_page=100', token)
     aliases = [item for item in releases if re.fullmatch(r'r\d+', item['tag_name'])]
-    if any(int(item['tag_name'][1:]) > int(current_tag[1:]) for item in aliases):
-        raise ValueError('Refusing to move legacy clients backwards')
+    newest_tag = max([current_tag] + [item['tag_name'] for item in aliases], key=lambda tag: int(tag[1:]))
     for release in aliases:
         tag = release['tag_name']
-        if tag == current_tag or datetime.fromisoformat(release['created_at'].replace('Z', '+00:00')).date() < today:
+        if tag == newest_tag or datetime.fromisoformat(release['created_at'].replace('Z', '+00:00')).date() < today:
             continue
         ref = request(f'repos/{PUBLIC}/git/ref/tags/{tag}', token)
         if ref['object']['type'] != 'commit':
@@ -230,6 +227,7 @@ def archive_previous_alias_dates(current_tag):
         # download URLs and all private source tags remain untouched.
         request(f'repos/{PUBLIC}/git/refs/tags/{tag}', token, 'PATCH', {'sha': archived['sha'], 'force': True})
         request(f'repos/{PUBLIC}/releases/{release["id"]}', token, 'PATCH', {'target_commitish': archived['sha']})
+    return newest_tag
 
 def legacy_first(feed, abi='arm64-v8a'):
     # Exact selection of the first custom updater, before the stricter asset filter.
@@ -323,11 +321,11 @@ def main():
     (legacy / 'SHA256SUMS').write_text(sums)
     legacy_commit = ensure_tag(metadata['legacyTag'], docs_commit, True)
     published(metadata['legacyTag'], legacy, notes, metadata, legacy_commit, False)
-    archive_previous_alias_dates(metadata['legacyTag'])
+    expected_alias = archive_previous_alias_dates(metadata['legacyTag'])
     deadline = time.monotonic() + 120
     while True:
         feed = request(f'repos/{PUBLIC}/releases?per_page=20', os.environ['GITHUB_TOKEN'])
-        if legacy_first(feed) == metadata['legacyTag']:
+        if legacy_first(feed) == expected_alias:
             break
         if time.monotonic() >= deadline:
             raise ValueError('Oldest OTA client does not see the latest compatibility release first')
