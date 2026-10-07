@@ -11,6 +11,7 @@ import urllib.request
 import urllib.error
 import urllib.parse
 import zipfile
+from datetime import datetime, timezone, timedelta
 from pathlib import Path, PurePosixPath
 
 PUBLIC = 'owouwuiwi/nyanime'
@@ -135,15 +136,21 @@ def commit_docs(directory, metadata):
         git('push', 'origin', 'HEAD:main')
     return git('rev-parse', 'HEAD')
 
-def ensure_tag(tag, commit, create_alias_commit=False):
+def ensure_tag(tag, commit, create_alias_commit=False, canonical_snapshot=False):
     refs = git('ls-remote', '--tags', 'origin', f'refs/tags/{tag}')
     if refs:
         # A published documentation tag is immutable after the one-time migration.
         return refs.split()[0]
-    if create_alias_commit:
-        # Separate commit dates keep the compatibility release ahead of its numeric
-        # counterpart for early clients which examine only the first release.
-        time.sleep(2)
+    if canonical_snapshot:
+        # GitHub groups the release feed by commit date before ordering tags.
+        # Documentation-only canonical snapshots occupy the previous UTC day;
+        # the current-day r alias is therefore visible to even first-release-only
+        # clients. Actual publication times and private source dates are unchanged.
+        date = (datetime.now(timezone.utc) - timedelta(days=1)).replace(hour=23, minute=59, second=59, microsecond=0).isoformat()
+        commit = subprocess.check_output(['git', 'commit-tree', git('rev-parse', 'HEAD^{tree}')],
+            input=f'Archived release documentation for {tag}\n', text=True,
+            env={**os.environ, 'GIT_AUTHOR_DATE': date, 'GIT_COMMITTER_DATE': date}).strip()
+    elif create_alias_commit:
         commit = subprocess.check_output(['git', 'commit-tree', git('rev-parse', 'HEAD^{tree}'), '-p', commit],
             input=f'Compatibility documentation for {tag}\n', text=True).strip()
     git('tag', tag, commit)
@@ -226,7 +233,7 @@ def main():
         raise ValueError('Dispatched version differs from verified bundle')
     docs_commit = commit_docs(bundle, metadata)
     canonical = 'v' + metadata['versionName']
-    tag_commit = ensure_tag(canonical, docs_commit)
+    tag_commit = ensure_tag(canonical, docs_commit, canonical_snapshot=True)
     notes = (bundle / 'notes.md').read_text(encoding='utf-8')
     published(canonical, bundle / 'numeric', notes, metadata, tag_commit, True)
     legacy = bundle / 'legacy'
