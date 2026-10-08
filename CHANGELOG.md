@@ -14,6 +14,14 @@ distribuito come APK.
 - Il codice e la cronologia completa sono conservati nella repository privata; APK firmati, documentazione e changelog rimangono pubblici.
 - Gli aggiornamenti conservano gli indirizzi storici e le release compatibili con i primi updater, senza cambiare firma o identificativo dell'app.
 
+## 8 ottobre 2026 — 0.32.0.9: Stanza compatta e integrata nel player (anteprima)
+
+- Una sola barra con partecipanti, Chat, Voce e Video, con comandi secondari nel menu.
+- Il video mantiene quasi tutto lo schermo finché la conversazione non è disponibile.
+- Anteprime dei messaggi sotto il video, senza sovrapposizioni; videocamere compatte.
+- Reazioni direttamente nel campo di scrittura, con selezione compatta; anteprime degli allegati ridotte.
+- Campo di scrittura semplificato e spazio della conversazione più pulito.
+
 ## 8 ottobre 2026 — 0.32.0.8: Comandi della stanza accessibili dal player (anteprima)
 
 - Pannello dei comandi della stanza sull’intero schermo, senza restringerlo alla nuova area del video.

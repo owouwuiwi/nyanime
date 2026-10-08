@@ -60,6 +60,14 @@ accent surface. Replies, masked spoilers, chosen reactions and delivery states b
 to each message. Long names wrap or truncate without displacing timestamps.
 
 The composer combines attachments, quick text reactions, reply context and a spoiler
+toggle. The player owns a single compact bar with room participants, Chat, Voice,
+Video and conversation options. A room without a prepared Telegram conversation
+reserves only that bar instead of a full empty chat panel. Collapsed message previews
+live below the film, not over its controls. Camera thumbnails and attachment drafts
+are bounded; quick reaction choices do not stretch to the window width. The shared
+composer has one surface and a directly accessible reaction button.
+
+The standalone composer retains attachments, reply context and a spoiler
 toggle. Photo captions exceeding the Telegram limit remain editable and cannot be
 sent. Selecting a sticker preserves the text draft. Images reserve their bounds during
 loading and can be viewed and zoomed without changing the movie or reading page.
