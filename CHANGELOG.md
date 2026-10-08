@@ -14,6 +14,13 @@ distribuito come APK.
 - Il codice e la cronologia completa sono conservati nella repository privata; APK firmati, documentazione e changelog rimangono pubblici.
 - Gli aggiornamenti conservano gli indirizzi storici e le release compatibili con i primi updater, senza cambiare firma o identificativo dell'app.
 
+## 8 ottobre 2026 — 0.32.0.10: Protezione opzionale degli aggiornamenti
+
+- Nuova capacità generica per addon di recupero, con autorizzazione esplicita e revocabile.
+- Copia completa verificata prima degli aggiornamenti installati nell’app, quando la protezione è abilitata.
+- Esportazione e ripristino isolati dall’avvio normale, con verifica di libreria, progressi e impostazioni.
+- Nessun processo di recupero o backup aggiuntivo in assenza di un addon autorizzato.
+
 ## 8 ottobre 2026 — 0.32.0.9: Stanza compatta e integrata nel player (anteprima)
 
 - Una sola barra con partecipanti, Chat, Voce e Video, con comandi secondari nel menu.

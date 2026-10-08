@@ -18,7 +18,8 @@ Declare the optional feature `nyanime.addon`. Application metadata declares
 `nyanime.addon.api=1`, a drawable resource `nyanime.addon.logo`,
 `nyanime.addon.activation=hold_logo`, and `nyanime.addon.hold_ms` in 500–3000.
 Exactly one enabled, exported activity with no permission must resolve the action
-`nyanime.addon.OPEN`. Do not add a launcher intent filter. A distribution manifest
+`nyanime.addon.OPEN`. A launcher intent is allowed only for API v2 addons explicitly declaring
+`nyanime.addon.standalone=true`; other addons keep the host task entry. A distribution manifest
 at `assets/nyanime/extension-v1.json` identifies the signer-bound distribution.
 Unknown versions or activation rules are incompatible, never executable scripts.
 
@@ -131,3 +132,45 @@ This runtime does not register arbitrary Android manifest components or provide
 native-library loading yet. Engines needing providers, accounts, deep-link entry
 activities or native code need explicit future generic contracts. A RIN must never
 silently install an APK to implement those capabilities.
+
+
+## Optional data recovery capability (API v2)
+
+`nyanime.addon.data_recovery=true` declares a sensitive, separately authorized
+capability. The host grants access only after a confirmation screen running in its
+isolated recovery process verifies the actual caller package, enabled addon,
+distribution and signer. Disabling the addon removes the grant. Shared UIDs do not
+bypass authorization. Grants are installation-local and are not portable backup data.
+
+The launch includes `nyanime.addon.host` and, only for recovery-capable addons,
+`nyanime.addon.recovery`. The public `describe` method returns protocol, portable
+backup format, package/version/signers, public release repository and service class
+names; it contains no library data, credentials or source rules. Private operations
+reauthorize the calling UID on every request.
+
+Export authority `<host>.recovery` runs in `:recovery`; import authority
+`<host>.recovery.restore` runs in `:recovery_restore`. Both bypass the normal
+Application graph. Export opens existing databases with `query_only`, refuses schema
+creation/migration and does not load source/addon code. Import uses a distinct graph
+and the existing portable backup restorers. The emergency path does not schedule
+library work or start extension installers. APK extensions normally remain installed.
+
+Methods: `access`, `backup`, `prepare_restore`, `status`, `restore`, `release`.
+File URIs use opaque UUID operation IDs, owner checks and fixed `backup` paths.
+No arbitrary paths, SQL or execution commands are accepted. Stream sizes are bounded
+at 512 MiB. Operations report failure instead of an unverified success. The addon
+binds the advertised service only while working. Completed temporary plaintext is
+released; it never resides in shared storage.
+
+Before supported in-app installation, an authorized recovery addon receives
+`prepare` with the descriptor, SHA-256 and size at its `<addon>.recovery` vault
+provider. The host binds `nyanime.recovery.VAULT_BIND`, streams to the returned URI,
+waits for an authenticated verified response, then releases the operation. No grant
+means no export, foreign process, network request or persistent job. Failures require
+retry, cancel or explicit confirmation to continue without protection.
+
+`nyanime.recovery.backup_format=1` in host APK metadata is the compatibility floor.
+A future incompatible portable schema must change this contract; older unknown APKs
+must not be treated as automatically safe downgrade targets. The independent addon
+owns the Doctor, encryption, APK selection and guided installation UI. The base host
+contains no addon package name, implementation, catalogue URL or recovery branding.
