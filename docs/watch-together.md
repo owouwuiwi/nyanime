@@ -1,5 +1,19 @@
 # Guarda insieme
 
+## Restoration in 0.33.0.1
+
+Room UI, content ownership and Nostr control flow use the pre-Telegram baseline
+3393fcb613bab3a5496e55e5f40e9f3a9d0e4454. Telegram chats, automatic groups, calls,
+native call libraries and their player/reader overlays are removed. Opening a room
+never acquires a Telegram lease or changes the player's audio route or viewport.
+Cloud backups and encrypted personal sync keep their shared account and scoped
+Telegram subscriptions. Existing remote groups are not deleted by this update.
+
+The newer gradual drift correction, paused-cache recovery, player lifetime guard
+and Back-button panel dismissal are retained. Tests cover room protocol compatibility,
+including ignoring old Telegram metadata, and isolate Cloud updates from call events.
+
+
 The Home group button and the player's More sheet open the same room interface.
 Create a code, share it, and let friends enter it in their Home. The creator chooses the title and
 episode. Guests resolve that catalog entry through their own installed, trusted extension and the

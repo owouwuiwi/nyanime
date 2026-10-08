@@ -14,6 +14,14 @@ distribuito come APK.
 - Il codice e la cronologia completa sono conservati nella repository privata; APK firmati, documentazione e changelog rimangono pubblici.
 - Gli aggiornamenti conservano gli indirizzi storici e le release compatibili con i primi updater, senza cambiare firma o identificativo dell'app.
 
+## 8 ottobre 2026 — 0.33.0.1: Tornano le stanze su Nostr (anteprima)
+
+- Ripristinate le schermate precedenti per creare, raggiungere e gestire le stanze video e manga.
+- Rimossi chat Telegram, gruppi automatici, chiamate e videocamere dalle stanze.
+- Il player torna a schermo intero con i suoi comandi abituali, senza pannelli sociali o modifiche audio legate alle chiamate.
+- Conservati codici stanza, inviti, lettura insieme e scarabocchi; mantenute le correzioni graduali dei piccoli ritardi e il recupero del buffer dopo una pausa.
+- Backup, accesso Telegram e sincronizzazione personale Cloud rimangono disponibili.
+
 ## 8 ottobre 2026 — 0.33.0.0: I tuoi dispositivi, collegati (anteprima)
 
 - Sincronizzazione Telegram facoltativa di librerie, categorie, cronologia, progressi video e manga, segnalibri e collegamenti ai tracker.

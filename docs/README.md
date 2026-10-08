@@ -43,7 +43,6 @@ I documenti tecnici in inglese conservano i nomi delle API e dei componenti.
 | [Dall'anime al manga](anime-manga-continuity.md) | Relazioni per ID, copie verificate, archi e limiti dei checkpoint. |
 | [Anime4K Smart](anime4k-smart.md) | Misure di rendering, preset, fallback e shader. |
 | [Guarda insieme](watch-together.md) | Stanze cifrate, sincronizzazione, inviti e verifiche. |
-| [Chat e chiamate nelle stanze](room-calls-engine.md) | Motore isolato, comandi condivisi, provenienza e verifiche dell'anteprima. |
 | [I miei dispositivi (disattivato)](personal-sync.md) | Sync rimosso dall’app e pulizia dei suoi dati sul dispositivo. |
 | [Protezione laterale del display](privacy-display.md) | Architettura, requisiti hardware e verifica fisica. |
 | [Community dormiente](community-protocol.md) | Codice social conservato, disabilitato nell’app. |
