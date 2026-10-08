@@ -14,6 +14,16 @@ distribuito come APK.
 - Il codice e la cronologia completa sono conservati nella repository privata; APK firmati, documentazione e changelog rimangono pubblici.
 - Gli aggiornamenti conservano gli indirizzi storici e le release compatibili con i primi updater, senza cambiare firma o identificativo dell'app.
 
+## 8 ottobre 2026 — 0.33.0.0: I tuoi dispositivi, collegati (anteprima)
+
+- Sincronizzazione Telegram facoltativa di librerie, categorie, cronologia, progressi video e manga, segnalibri e collegamenti ai tracker.
+- Preferenze condivise con la possibilità di mantenere aspetto, player o lettore diversi su ciascun telefono; conversione dei riferimenti locali per categorie, novità e titoli nascosti.
+- Associazione tramite QR monouso o codice di recupero, archivio cifrato e gestione dei dispositivi autorizzati.
+- Nuove sezioni Sync, Dispositivi e Backup in Nyanime Cloud; copia di sicurezza cifrata prima della prima unione e protezione dei successivi backup Cloud dei dispositivi associati.
+- “Continua a guardare/leggere” mostra il dispositivo di provenienza e permette di scegliere un punto conservato; i progressi remoti non spostano la riproduzione o la pagina già aperte.
+- Invii persistenti, recupero dopo interruzioni e modifiche offline; download, incognito, sessioni Telegram e impostazioni hardware restano locali.
+- Inventario RIN condiviso e supporto alle sole preferenze portabili dichiarate dalle estensioni, con consenso separato per le credenziali.
+
 ## 8 ottobre 2026 — 0.32.0.10: Protezione opzionale degli aggiornamenti
 
 - Nuova capacità generica per addon di recupero, con autorizzazione esplicita e revocabile.

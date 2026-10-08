@@ -1,9 +1,14 @@
 # Nyanime Cloud
 
 Nyanime Cloud collega un vero account Telegram attraverso TDLib, la libreria
-ufficiale. La sessione e il trasporto sono condivisi: future funzioni di messaggistica
-potranno usare lo stesso account senza aggiungere un secondo login. Questa versione
-gestisce soltanto i backup; non importa contatti e non pubblica un profilo.
+ufficiale. Backup, sincronizzazione personale e conversazioni delle stanze condividono
+lo stesso accesso. Cloud non importa contatti e non pubblica un profilo.
+
+La sincronizzazione personale è facoltativa e separata dai backup. In **Cloud → Sync**
+puoi associare i tuoi dispositivi con un QR temporaneo o il codice di recupero, scegliere
+quali gruppi di preferenze condividere e controllare gli invii in attesa. Libreria,
+progressi e preferenze supportate si uniscono senza spostare video o pagine già aperti.
+Il [protocollo e le verifiche](cloud-sync-protocol.md) descrivono dati inclusi e limiti.
 
 ## Usare Cloud
 
@@ -58,18 +63,26 @@ supportate, preferenze delle estensioni, RIN installate e relativi stati.
 File multimediali scaricati, file Ultra, sessione Telegram, chiavi del database
 Telegram, identificativi locali di Cloud e coda dei trasferimenti sono esclusi.
 Impostazioni portabili Cloud vengono conservate; attivazione e nome del telefono
-restano locali. Non è una sincronizzazione in tempo reale fra dispositivi.
+restano locali. Il backup completo rimane una copia ripristinabile, distinta dalla
+sincronizzazione incrementale facoltativa.
 
 Il canale usa la normale **cifratura Cloud di Telegram, non end-to-end**.
-Come scelto per questa versione, il backup non riceve una password aggiuntiva:
-può contenere preferenze private e credenziali già incluse nel backup completo.
+I dispositivi associati alla sincronizzazione cifrano anche i nuovi backup prima
+dell'invio, con le chiavi del proprio archivio. I precedenti backup e quelli creati
+senza configurare la sincronizzazione restano indicati come non cifrati da Nyanime.
+Il ripristino di una copia protetta richiede un dispositivo approvato o il codice
+di recupero; questo sblocco non attiva da solo la sincronizzazione automatica.
+Ogni backup completo può contenere preferenze private e credenziali incluse
+dal formato di esportazione.
 Non condividerlo o aggiungere altre persone al canale. Nyanime verifica nuovamente
 proprietario, membri e assenza di username pubblico prima di trasferire dati.
 
 Per il ripristino e l'esportazione, dimensione, SHA-256 e formato del file vengono
 verificati prima dell'uso. **Scollega Telegram** revoca la sessione tramite TDLib,
-elimina cache, file temporanei e chiavi locali dopo la conferma di chiusura; il
-canale e i backup su Telegram restano disponibili.
+elimina cache, file temporanei e chiavi della sessione Telegram dopo la conferma
+di chiusura. Le chiavi separate dell'archivio cifrato restano protette nel Keystore:
+uscire da Telegram non equivale a revocare un dispositivo dalla sincronizzazione.
+Il canale e i backup su Telegram restano disponibili.
 
 ## Configurazione di sviluppo
 

@@ -12,6 +12,7 @@ I documenti tecnici in inglese conservano i nomi delle API e dei componenti.
 | [Primi passi e FAQ](getting-started.md) | Installazione, aggiornamenti, estensioni, preferenze e problemi comuni. |
 | [Versioni e aggiornamenti](versioning.md) | Numerazione a quattro componenti, scelta dei canali e compatibilità OTA. |
 | [Nyanime Cloud](telegram-cloud.md) | Account Telegram condiviso, backup privati, ripristino e configurazione di sviluppo. |
+| [Sincronizzazione personale](cloud-sync-protocol.md) | Associazione dei dispositivi, dati portabili, cifratura, conflitti e verifiche. |
 | [Trasferimento del repository](repository-migration.md) | Nuovo proprietario, continuità degli aggiornamenti e dei collegamenti. |
 | [Aiuto](support.md) | Archiviazione, migrazione, tracker e risoluzione dei problemi. |
 | [Privacy](privacy.md) | Dati locali, connessioni esterne e controlli disponibili. |
