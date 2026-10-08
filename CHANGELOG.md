@@ -14,6 +14,24 @@ distribuito come APK.
 - Il codice e la cronologia completa sono conservati nella repository privata; APK firmati, documentazione e changelog rimangono pubblici.
 - Gli aggiornamenti conservano gli indirizzi storici e le release compatibili con i primi updater, senza cambiare firma o identificativo dell'app.
 
+## 9 ottobre 2026 — 0.34.0.0: Guide episodi, Atlante e nuovo logo
+
+- Nuova categoria «Guide» nello Store, con estensioni facoltative aggiornabili separatamente.
+- Guida nella scheda anime, badge discreti per filler e misti, associazione e numerazione correggibili.
+- Nascondere i filler e saltarli automaticamente sono scelte separate, disattivate inizialmente; il salto può seguire una preferenza globale o specifica del titolo.
+- Player, autoplay e Cast condividono la scelta del prossimo episodio; nelle stanze decide l'host. Gli episodi aperti esplicitamente vengono riprodotti e quelli saltati non diventano visti.
+- Dati salvati disponibili offline, richieste condivise e annullabili, classificazioni incerte lasciate sconosciute. Preferenze e correzioni sono incluse nei backup.
+- Nuova icona e logo della Home e di Altro vettoriali, con fori trasparenti e risorse separate per tema chiaro e scuro. La N ha più margine nell'icona, con sfondo bianco nell'aspetto chiaro e nero in quello scuro. Gli asset precedenti sono conservati per poterli ripristinare.
+
+### Atlante: risultati più pertinenti
+
+- Tutti i risultati restano nella stessa griglia: titoli completi e nomi alternativi verificati precedono corrispondenze parziali e risultati meno pertinenti.
+- L'ordine dipende dalla pertinenza e dalle fonti configurate, anche quando le risposte arrivano in momenti diversi o vengono caricate altre pagine.
+- Conservati gli alias già disponibili durante risposte incomplete e aggiornamenti della Home; le alternative di fonte rimangono apribili.
+- Riordino fuori dal percorso grafico, schede con identità stabile e transizioni brevi che rispettano le animazioni ridotte.
+- Ricerca esatta, filtri, limiti di richieste e protezioni per stagioni ed edizioni rimangono disponibili.
+- Con corrispondenze convincenti, i titoli estranei restano accessibili con «Mostra altri titoli»; nessun risultato viene perso. Il titolo principale precede i contenuti collegati con nomi più lunghi.
+
 ## 8 ottobre 2026 — 0.33.0.1: Tornano le stanze su Nostr (anteprima)
 
 - Ripristinate le schermate precedenti per creare, raggiungere e gestire le stanze video e manga.

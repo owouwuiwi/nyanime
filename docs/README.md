@@ -20,6 +20,7 @@ I documenti tecnici in inglese conservano i nomi delle API e dei componenti.
 | [Interfaccia](nyanime-ui.md) | ModernUI, ritorno alla legacy, tema manga e copertine. |
 | [Smart e timer](player-startup-and-sleep.md) | Avvio di Anime4K, timer, autoplay e stanze. |
 | [AniSkip](aniskip.md) | Attivazione, associazione del titolo e segmenti disponibili. |
+| [Guide episodi](episode-guides.md) | Classificazioni facoltative, associazione, numerazione, filtri e salto filler. |
 | [Novità Nyanime](../CHANGELOG.md) | Modifiche del fork e collegamento allo storico upstream. |
 
 ## Funzioni e architettura
