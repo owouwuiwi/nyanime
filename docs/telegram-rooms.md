@@ -3,7 +3,8 @@
 This checkpoint adds optional private Telegram conversations to the existing watching
 and reading rooms. It uses the same account and TDLib process as Cloud backups. Room
 consent is separate from Cloud login. Playback synchronization still uses the existing
-room transport; this checkpoint does not add Telegram calls or camera capture.
+room transport. Optional calls use the isolated adapter described in
+[Room call engine](room-calls-engine.md).
 
 ## Responsibilities
 
@@ -41,6 +42,9 @@ A definitive send failure and an interrupted request are different states. A req
 that may have crossed IPC is marked uncertain after restart or timeout and is not
 blindly resent. Rate-limited sends retain their retry deadline. The UI must not present
 either an uncertain or a locally queued message as delivered.
+Room sends use a local account/chat/send correlation key so a late TDLib response can
+still bind the real message ID to the durable outbox. Reconnect also reads known
+pending message IDs without resending them. A failure before dispatch may safely retry.
 
 Exact Telegram membership is hashed independently of names or member order. A changed
 membership creates a separate conversation. New members are not added automatically
@@ -75,9 +79,15 @@ the conversation is not ready. Account login, separate room consent, participant
 readiness and group preparation have explicit states. Direct chat navigation only
 accepts a conversation registered for the current consented account.
 
-The active session card exposes Close room for its owner and Leave room for other
-participants. Both require confirmation and use the existing room controller's
-leave operation. Closing the session does not leave or delete its Telegram group.
+The active session card exposes Close room to every admitted participant, with confirmation.
+The technical Nostr owner orders that command without giving different playback controls
+to guests. Closing the session queues removal of every conversation used during it.
+The Telegram group creator deletes the verified session group for everyone; other members
+leave and remove their local Telegram history. The account-scoped cleanup queue survives
+network loss and process restart. Only a private group with its expected membership
+marker is eligible; backup archives and unrelated chats are excluded.
+Ended groups are tombstoned and cannot be recovered as a new session's conversation.
+An explicit chat departure applies to the current session, not all future rooms.
 Changing or ending the room dismisses an outstanding confirmation; the hub also
 rejects an action targeting a previous room identity.
 
@@ -120,11 +130,23 @@ the three voice-note lifecycle cases. The three native chat previews also passed
 light theme, dark theme, and 320 dp width with 1.5 font scale. The planned two-account
 physical-device tests remain pending.
 
-The following approved checkpoints are still separate work: actionable uncertain-send
-recovery, voice-note recording, animated sticker playback, minute/page links, mute and
-participant controls, mixed Telegram room transport, and the official voice/video
-engine with Android Telecom. No call buttons claim these capabilities prematurely.
+Voice-note recording and animated sticker playback remain separate checkpoints.
+Minute/page links, mute and participant controls are implemented. Optional voice/video
+uses the isolated adapter documented above; playback synchronization remains on Nostr.
+An old uncertain send without a native message ID is never guessed to have been delivered.
 
 No Firebase dependency or closed-app push is included. `RoomMessageAlerts` provides
 the boundary for a later push adapter; current Telegram room reception requires the
 application to be open. Playback never depends on chat or notification availability.
+
+Preview 0.32.0.7 passed 1,172 app unit tests (7 excluded), 43 core Telegram tests and
+18 release/versioning tests. Its signed APK was installed on the physical Galaxy
+Z Flip6. Room playback resumed, and the landscape workspace appeared below the film.
+The second phone was no longer reachable; fresh two-account reaction delivery,
+call media quality and server-side group deletion remain part of the remote trial.
+
+Preview 0.32.0.8 was installed on the same physical phone. In landscape, room
+controls use a separate full-window modal instead of inheriting the smaller film
+viewport. Its close button stayed visible while the content scrolled, Back returned
+to ongoing playback, and Close room restored the inactive session controls.
+The preview retained all 1,179 app test cases, with 7 excluded and no failures.

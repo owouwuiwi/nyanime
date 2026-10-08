@@ -35,9 +35,11 @@ rotation, background camera suspension, reconnect and deterministic release.
 
 ## Chat and presentation
 
-The player keeps its existing native video surface. A compact room dock opens the conversation
-beside the video in landscape and below it in portrait. Keyboard insets do not change that
-choice. Message previews can be hidden independently of muting conversation notifications.
+The player keeps its existing native video surface above the room workspace, in both
+orientations. One action row contains chat, microphone, camera, reactions and session controls.
+In landscape, camera tiles share the lower workspace with messages; they do not displace the
+movie into a sidebar. Keyboard insets preserve the composer and reduce the workspace header.
+Message previews can be hidden independently of muting conversation notifications.
 The reader uses the same composer, previews, reactions and call controls without forcing a
 shared reading position. A scene or page link always requires an explicit navigation action.
 
@@ -57,11 +59,14 @@ Motion uses Nyanime's existing ModernMotion tokens and reduced-motion setting.
 - Both authorized accounts joined the same Telegram group call with their native engines.
   Each reported a connected transport, joined state and two participants. This test used no
   microphone, camera or audio playback device; it verifies signaling and transport, not media quality.
+- The following device iteration accepted microphone and camera changes on both phones.
+  Native playback audio uses the incoming call track, and speaker/headset selection is
+  requested through Telecom. A camera-only change no longer rebuilds the audio device.
 - Full conversation keyboard positioning, delivery status details, single-player playback and
   the existing PiP path were inspected on the connected phone without a fatal error.
-- Two-account voice/video, audio endpoints, camera background suspension, and the redesigned
-  player/reader panels during a live call remain pending. The second phone was locked during
-  these checks. The local native-service probe is not proof of a working media call.
+- Measured two-account voice/video quality, Bluetooth routing and camera background
+  suspension remain pending. A connected transport or accepted camera toggle alone
+  does not establish these results.
 
 This release is a preview. No claim of end-to-end media quality or measured frame-time
 improvement is made from unit tests or the isolated native probe.

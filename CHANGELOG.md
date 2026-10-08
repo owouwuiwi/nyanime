@@ -14,6 +14,23 @@ distribuito come APK.
 - Il codice e la cronologia completa sono conservati nella repository privata; APK firmati, documentazione e changelog rimangono pubblici.
 - Gli aggiornamenti conservano gli indirizzi storici e le release compatibili con i primi updater, senza cambiare firma o identificativo dell'app.
 
+## 8 ottobre 2026 — 0.32.0.8: Comandi della stanza accessibili dal player (anteprima)
+
+- Pannello dei comandi della stanza sull’intero schermo, senza restringerlo alla nuova area del video.
+- Pulsante Chiudi sempre raggiungibile e tasto Indietro che chiude i pannelli prima di passare in PiP.
+- Rimossi i comandi della chat duplicati nel pannello della stanza; avviso di chiusura aggiornato per i gruppi temporanei.
+
+## 8 ottobre 2026 — 0.32.0.7: Player condiviso, reazioni e chiusura delle stanze (anteprima)
+
+- Video in alto e un solo spazio sottostante per chat, anteprima messaggi, reazioni, voce e videocamera, anche in orizzontale.
+- Ogni partecipante può scegliere un episodio e usare Play, pausa e ricerca nella riproduzione; Nostr mantiene un unico ordine dei comandi.
+- Microfono e videocamera indipendenti: un errore della videocamera non disattiva più la voce.
+- Corretto l’avvio dell’uscita audio e rimossa la ricreazione dei dispositivi audio quando cambia soltanto la videocamera.
+- Chiusura corretta del pannello chiamata e messaggi di errore distinti per i dispositivi.
+- Conferme degli invii recuperate anche dopo un ritardo della connessione; gli invii incerti non vengono duplicati.
+- Gruppi temporanei eliminati alla chiusura della stanza, con coda di cancellazione conservata in caso di assenza di rete.
+- Correzioni della sincronizzazione più graduali e ripresa dal buffer disponibile dopo una pausa condivisa.
+
 ## 8 ottobre 2026 — 0.32.0.5: Chat nel player e chiamate nelle stanze (anteprima)
 
 - Chat accanto al video in orizzontale e sotto il video in verticale, con comandi rapidi dedicati e campo di scrittura compatto.
