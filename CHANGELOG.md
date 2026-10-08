@@ -14,6 +14,23 @@ distribuito come APK.
 - Il codice e la cronologia completa sono conservati nella repository privata; APK firmati, documentazione e changelog rimangono pubblici.
 - Gli aggiornamenti conservano gli indirizzi storici e le release compatibili con i primi updater, senza cambiare firma o identificativo dell'app.
 
+## 8 ottobre 2026 — 0.32.0.5: Chat nel player e chiamate nelle stanze (anteprima)
+
+- Chat accanto al video in orizzontale e sotto il video in verticale, con comandi rapidi dedicati e campo di scrittura compatto.
+- Corretto il posizionamento della conversazione quando si apre la tastiera.
+- Anteprime dei messaggi e reazioni con avatar durante la visione, disattivabili dal menu della conversazione.
+- “Guarda qui” condivide un minuto del video oppure capitolo e pagina del manga; ogni spostamento richiede un tocco esplicito.
+- Menu comune per silenziare, cercare messaggi, vedere i partecipanti e tornare alla sessione.
+- Comandi per voce e videocamera, con microfono e video inizialmente spenti; motore separato dal player e videocamera sospesa in background.
+- Chat e chiamata accessibili anche dal lettore, mantenendo posizione personale e strumenti per disegnare.
+- La sincronizzazione della visione continua a usare Nostr; gli errori della chat o della chiamata non comandano la riproduzione.
+
+## 7 ottobre 2026 — 0.32.0.4: Collegamento della conversazione (anteprima)
+
+- Corretto il recupero delle conversazioni rimaste incomplete durante la creazione.
+- Un aggiornamento precedente della stanza non cancella più il gruppo appena creato da un partecipante.
+- Preparazione con scadenza e nuova richiesta esplicita tramite “Riprova”, senza interferire con il video.
+
 ## 7 ottobre 2026 — 0.32.0.3: Chiusura della stanza dall’hub (anteprima)
 
 - Aggiunto il pulsante “Chiudi stanza” per il proprietario e “Esci dalla stanza”
