@@ -22,6 +22,13 @@ Source IDs, package aliases and preference keys remain unchanged; display names
 never establish shared identity or trust. Home and distribution contracts stay
 inside source-owned assets. No source-specific rules belong in the host.
 
+Live TV uses schema 2, `medium: "tv"`, TV API 1, one `TvSourceFactory` entry
+point and explicit `minHostVersionCode` / optional `maxHostVersionCode`.
+Its optional `rinTv: { version: 1, extensions: [...] }` catalogue is separate
+from the existing `rinList`; older clients keep their supported catalogue.
+Signature, payload hashes, exact source IDs and class-loading rules remain
+mandatory. The parent host owns the `nyanime.tv.api` ABI.
+
 Existing signed APK releases may be converted without recompiling: the publisher
 checks that every DEX file and original asset is byte-for-byte identical. The
 initial format conversion can retain the original version only when the previous

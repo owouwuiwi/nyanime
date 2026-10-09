@@ -14,6 +14,21 @@ distribuito come APK.
 - Il codice e la cronologia completa sono conservati nella repository privata; APK firmati, documentazione e changelog rimangono pubblici.
 - Gli aggiornamenti conservano gli indirizzi storici e le release compatibili con i primi updater, senza cambiare firma o identificativo dell'app.
 
+## 9 ottobre 2026 — 0.36.0.1: TV in diretta (consigliata)
+
+- Il player distingue problemi temporanei di rete, indirizzi non raggiungibili, accesso rifiutato e formati non supportati.
+- I collegamenti definitivamente falliti non vengono riprovati in continuazione: si provano le alternative dello stesso canale e un nuovo recupero dei collegamenti dall’estensione.
+- Quando una diretta resta indisponibile, il player mostra il motivo e permette di scegliere un altro canale; un catalogo non garantisce che ogni trasmissione sia raggiungibile.
+- La diagnostica del player live conserva soltanto il tipo di errore, senza indirizzi video, header o credenziali.
+- Home TV facoltativa, alimentata dalle estensioni compatibili: canali, preferiti ordinabili, recenti e programmi in onda.
+- Guida a lista o griglia, filtri di paese, lingua e categoria; palinsesti salvati e caricamenti progressivi per i canali aperti.
+- Canali ricercabili in Atlante e condivisibili con link Nyanime senza indirizzi di streaming o credenziali.
+- Player live dedicato con PiP, audio, sottotitoli e funzioni abilitate soltanto quando supportate; nessun episodio fittizio, tracking o AniSkip sui canali.
+- Cambio canale e riconnessione conservano il lettore live; il ritorno dal PiP al canale già in riproduzione evita un caricamento aggiuntivo.
+- Le stanze esistenti supportano la scelta del canale da parte dell’host; pausa e buffering restano locali. Il ritardo è verificato solo quando sono disponibili riferimenti temporali affidabili.
+- Cast live per ricevitori compatibili e telecomando verticale; preferiti e scelte TV inclusi nei backup delle impostazioni.
+- Contratto RIN TV separato e generico, con controlli di compatibilità e firma; nessun catalogo o parser di una fonte nell’app.
+
 ## 9 ottobre 2026 — 0.35.0.0: Lettura guidata (anteprima)
 
 - Nuova lettura guidata facoltativa, ricordata per titolo, per manga, fumetti e webtoon: focus sulle vignette, zoom libero e ritorno alla pagina intera.

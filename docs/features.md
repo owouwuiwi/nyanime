@@ -47,6 +47,12 @@ Android può ritardarlo. Le notizie restano separate dagli avvisi di episodi/cap
 
 ## Catalogo video e ricerca
 
+Le estensioni TV compatibili aggiungono una Home **TV** con canali, preferiti,
+programmi in onda e guida a lista o griglia. La diretta usa un player esplicito,
+senza episodi fittizi; ricerca, condivisione, backup delle preferenze e stanze
+riutilizzano i motori dell’app. Cataloghi e regole rimangono nelle estensioni.
+[Funzioni, capacità e limiti della TV](live-tv.md).
+
 | Area | Funzioni |
 | --- | --- |
 | Scoperta | Tendenze, stagioni, classifiche, ricerca, dettagli, immagini e collegamenti ai titoli. |

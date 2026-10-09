@@ -41,6 +41,10 @@ Il sito non risolve le fonti e non memorizza i contenuti condivisi.
 
 Il contratto precedente `nyanime://open/v1#…` viene ancora riconosciuto.
 
+I canali live usano il medium `tv` e un riferimento opaco senza episodio,
+capitolo, pagina o minutaggio. Il destinatario deve avere l’estensione TV
+compatibile. Il link non contiene lo stream risolto o le credenziali.
+
 Il frammento è un JSON codificato in Base64 URL-safe senza padding. Il contratto
 pubblico versionato contiene solo:
 

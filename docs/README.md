@@ -48,6 +48,7 @@ I documenti tecnici in inglese conservano i nomi delle API e dei componenti.
 | [Protezione laterale del display](privacy-display.md) | Architettura, requisiti hardware e verifica fisica. |
 | [Community dormiente](community-protocol.md) | Codice social conservato, disabilitato nell’app. |
 | [Cast](casting.md) | Google Cast, UPnP/DLNA, telecomando, relay locale e limiti. |
+| [TV in diretta](live-tv.md) | Home TV, guida, player live, ricerca, stanze e contratto generico delle estensioni. |
 | [Affidabilità](app-reliability.md) | Ricerca, download, backup, copertine e prestazioni. |
 | [Motore di download](download-components.md) | Accelerazione adattiva, ripresa verificata, esecuzione Android e componenti riutilizzati. |
 | [Aggiornamenti delle estensioni](extension-update-alerts.md) | Frequenza dei controlli e deduplicazione delle notifiche. |
