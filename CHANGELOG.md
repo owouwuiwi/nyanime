@@ -14,6 +14,16 @@ distribuito come APK.
 - Il codice e la cronologia completa sono conservati nella repository privata; APK firmati, documentazione e changelog rimangono pubblici.
 - Gli aggiornamenti conservano gli indirizzi storici e le release compatibili con i primi updater, senza cambiare firma o identificativo dell'app.
 
+## 9 ottobre 2026 — 0.36.0.2: Lettura guidata stabile e TV nello Store (anteprima)
+
+- Pagina intera e vignetta adattata allo schermo rimangono ferme; il trascinamento esplora l'immagine solo dopo un ingrandimento manuale.
+- Pinch e doppio tap permettono di ingrandire; tornando allo zoom iniziale, l'immagine recupera il focus senza mantenere spostamenti accidentali.
+- Il focus segue subito lo spazio disponibile dopo rotazione o comparsa e scomparsa delle barre, senza assestarsi al primo trascinamento.
+- Gli swipe cambiano vignetta senza trascinare prima la pagina e senza interrompere la transizione appena iniziata.
+- Il punto di lettura distingue il focus automatico dallo zoom personale, anche dopo rotazione o ripristino; conservati attivazione per titolo, correzioni e backup precedenti.
+- La build OTA libera gli intermedi dopo la verifica degli APK e prima della firma, riducendo lo spazio occupato senza eliminare gli APK o i controlli di integrità.
+- Le estensioni TV multilingua sono visibili nello Store anche sui telefoni dove non sono ancora installate, con i filtri italiano e inglese; invariati i filtri linguistici di anime e manga.
+
 ## 9 ottobre 2026 — 0.36.0.1: TV in diretta (consigliata)
 
 - Il player distingue problemi temporanei di rete, indirizzi non raggiungibili, accesso rifiutato e formati non supportati.

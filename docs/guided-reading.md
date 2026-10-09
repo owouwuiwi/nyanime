@@ -6,6 +6,20 @@ inquadratura delle vignette, zoom manuale e pagina intera usano lo stesso
 renderer a tasselli del lettore. Nell'editor gli angoli modificano i bordi;
 i numeri si possono trascinare per cambiare ordine.
 
+Pagina intera e vignetta adattata restano ferme durante i gesti a un dito.
+Il pinch o il doppio tap ingrandiscono; solo dopo lo zoom personale il trascinamento
+passa al renderer. Tornando al focus, scala e centro vengono recuperati con la
+transizione esistente. Lo swipe di navigazione viene elaborato dopo gli eventi
+del renderer, così l'evento di rilascio non interrompe la nuova transizione.
+Quando barre di sistema, rotazione o strumenti dell'editor cambiano lo spazio
+disponibile, il focus viene ricalcolato nello stesso layout, conservando soltanto
+lo zoom personale. Il primo gesto non deve correggere una posizione ormai superata.
+
+Le nuove posizioni includono `focusZoom`, facoltativo e relativo al focus della
+vignetta: lo zoom automatico non diventa uno zoom personale su schermi diversi.
+I record precedenti rimangono importabili; alla scala adattata i vecchi spostamenti
+sono normalizzati, mentre gli ingrandimenti effettivi vengono conservati.
+
 ## Separazione delle responsabilità
 
 - core/panels: modello, servizio isolato, client Binder, segmentazione Kotlin,
@@ -60,3 +74,29 @@ sono quindi parte dell'esperienza, non una promessa di riconoscimento infallibil
 La compatibilità dei backup è coperta dai test. Sincronizzazione Cloud e stanze
 con due partecipanti non sono state provate da capo su due dispositivi in questa
 verifica: è stata preservata l'integrazione con i rispettivi percorsi esistenti.
+
+## Verifiche dell'anteprima 0.36.0.2
+
+- Suite dell'app: 1.266 casi, di cui 7 saltati, nessun errore; 17 test panels,
+  lint release e formattazione superati. Ripetuti i test dei backup dopo la
+  correzione degli assestamenti del layout.
+- Galaxy Z Flip6 reale: pagina intera e vignette ferme alla scala adattata,
+  pinch e doppio tap, esplorazione dopo l'ingrandimento, ritorno al focus,
+  swipe e ripresa dello zoom personale dopo la riapertura.
+- Rotazione e barre di sistema: la nuova area viene adattata prima del gesto;
+  confronto delle immagini prima e dopo il trascinamento senza spostamenti.
+- Editor: aggiunta, rimozione e salvataggio delle vignette; il focus adattato
+  torna stabile dopo la chiusura dei controlli dell'editor.
+- Tavole a colori, in scala di grigi e verticali; configurazione di 320 dp,
+  caratteri al 130% e animazioni disattivate, senza sovrapposizioni dei controlli.
+- Arresto intenzionale del servizio isolato durante una nuova analisi: pagina
+  intera disponibile, processo principale invariato e riconoscimento nuovamente
+  operativo sulla pagina successiva. Nessun nuovo crash del lettore nelle prove.
+- Modalità disattivata e riapertura: lettore normale sulla stessa pagina,
+  senza processo di riconoscimento attivo. Rimossi i file di prova e ripristinate
+  le impostazioni temporanee del telefono.
+
+Queste prove riguardano la stabilità del focus e dei gesti. Non cambiano i limiti
+del modello descritti sopra e non costituiscono una nuova prova Cloud o una
+sessione manga con due partecipanti. Il codice dei relativi protocolli non è
+stato modificato.
