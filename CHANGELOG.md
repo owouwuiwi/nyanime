@@ -14,6 +14,16 @@ distribuito come APK.
 - Il codice e la cronologia completa sono conservati nella repository privata; APK firmati, documentazione e changelog rimangono pubblici.
 - Gli aggiornamenti conservano gli indirizzi storici e le release compatibili con i primi updater, senza cambiare firma o identificativo dell'app.
 
+## 9 ottobre 2026 — 0.35.0.0: Lettura guidata (anteprima)
+
+- Nuova lettura guidata facoltativa, ricordata per titolo, per manga, fumetti e webtoon: focus sulle vignette, zoom libero e ritorno alla pagina intera.
+- Navigazione tramite tocchi, scorrimento e tasti configurati; transizioni di posizione e zoom coordinate e rispettose delle animazioni ridotte.
+- Riconoscimento offline con modello incluso, elaborazione in un processo isolato e precaricamento della sola pagina successiva.
+- Editor delle vignette con modifica dei bordi, aggiunta, rimozione, riordino e ripristino del riconoscimento automatico.
+- Correzioni e punto di lettura inclusi nei backup e nella sincronizzazione Cloud; nessuna immagine o cache automatica nei backup.
+- Lettura insieme e scarabocchi conservano le coordinate originali; il capitolo si completa raggiungendo l'ultima vignetta dell'ultima pagina.
+- Se il riconoscimento non riesce, la pagina intera resta disponibile.
+
 ## 9 ottobre 2026 — 0.34.0.0: Guide episodi, Atlante e nuovo logo
 
 - Nuova categoria «Guide» nello Store, con estensioni facoltative aggiornabili separatamente.
