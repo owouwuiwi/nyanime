@@ -1,0 +1,133 @@
+# Nyanime versions and update channels
+
+Public versions use **X.Y.Z.W**, without an `r` revision or a commit suffix.
+The leading component stays **0** until a stable milestone is explicitly approved.
+The first release of this system is **0.19.0.0**.
+
+## Numbering
+
+`release.properties` is the single source of truth for the Android version name,
+version code and publication channel. Every published APK has an immutable version.
+
+| Component | Change | Example |
+| --- | --- | --- |
+| X | Explicitly approved major milestone | 1.0.0.0 |
+| Y | Significant new functionality | 0.20.0.0 |
+| Z | Substantial improvements to existing functionality | 0.19.1.0 |
+| W | Fixes and smaller refinements | 0.19.0.1 |
+
+Increasing a component resets every component to its right. Comparisons are numeric
+and stop at the first difference: 0.20.0.0 is newer than 0.19.99.999.
+Android `versionCode` increases separately for every publication, including previews.
+Changing channels never proposes a downgrade.
+
+Before a new publication, run one of these commands and include the changed file in
+the implementation commit. The helper defaults to the preview channel:
+
+```sh
+python3 scripts/release_version.py --bump fix
+python3 scripts/release_version.py --bump improvement
+python3 scripts/release_version.py --bump feature
+```
+
+Use `--channel recommended` for reviewed everyday releases. CI refuses to replace
+an existing version with different code or to publish a version/code that did not
+increase. Rerunning the same commit keeps already published APK bytes unchanged.
+
+## The one-time choice
+
+On first launch of a version with this system, new and existing installations choose:
+
+- **Recommended:** reviewed features and fixes for everyday use; selected initially.
+- **Include previews:** recommended releases plus more frequent features in testing.
+
+After confirmation the screen never appears again in that installation, including
+after later app updates. Closing the app without confirming leaves the choice pending.
+The channel can be changed in **Settings → Updates**. Selecting Recommended after a
+newer preview waits for a newer recommended release, preserving the current version.
+
+The choice works offline. Its channel preference is backed up, while the installation's
+confirmation state is excluded from portable backups. Launch links remain pending
+until the initial setup is complete.
+
+## Publication and permanent compatibility
+
+The main Android workflow builds the existing installable package and certificate.
+Canonical releases use `vX.Y.Z.W` tags and `Nyanime-X.Y.Z.W-<abi>.apk` assets.
+Recommended releases are not GitHub prereleases; previews are. Both have a numeric
+title, per-release notes, checksums and compatible ABI/universal packages.
+
+**Every release also publishes a compatibility alias** using the previous `r<commit-count>`
+tag and fixed `app-<abi>-preview.apk` asset names. This is permanent, not a one-time
+migration window. The compatibility alias is kept first in the release feed for
+the earliest clients, including those that inspect only the first suitable release.
+Clients with stricter asset filters also find it within their existing query. Thus an
+old r-style installation can jump directly to the latest APK after hundreds of releases;
+intermediate APKs do not need to be installed.
+
+Numeric clients ignore these aliases. The app and APK filenames show only X.Y.Z.W;
+legacy tag identifiers are retained solely for compatibility with already shipped clients.
+The old application ID and signing identity are unchanged, preserving app data.
+
+Source builds run in the private `owouwuiwi/nyanime-source` repository with complete
+Git history. The original public `owouwuiwi/nyanime` repository retains its identity,
+historical redirects, APK download URLs and releases. Only documentation, signed APKs
+and verified checksums are transferred to its bot publisher. Public documentation
+snapshot dates may be normalized to preserve GitHub feed ordering; source history
+and release publication dates remain unchanged.
+
+The private build transfers its verified APK/document bundle through a temporary
+draft Release in the private source repository. This transfer does not consume
+Actions artifact storage; deleting artifacts cannot erase storage usage already
+accrued during the billing month. The public bot checks the originating build,
+draft, exact asset, archive hash, allowed document paths and every APK checksum
+before publishing. Only the approved public documents and signed APKs are exposed.
+The temporary draft is removed after successful publication and confirmation of
+the private source tags. A failed publication retains it for investigation/retry.
+Already-prepared older Actions artifacts remain supported for historical retries.
+
+## The update screen
+
+The update page has a compact back/title/menu header. The available version, installed
+version and complete Markdown release notes share one scroll, without separate cards
+for each paragraph. A fixed **Update** action becomes download/verification progress;
+**Not now** becomes **Back to the app** during the download. Cancellation and the
+external release page are available in the overflow menu.
+
+The install action only appears after checking that the saved APK still exists, belongs
+to this application and is newer than the installed version. These checks run off the
+UI thread, shared with the ready-update reminder, and repeat on foreground return.
+Progress ticks never trigger package/file inspections. Missing or obsolete files can
+be downloaded again.
+
+With in-app installation enabled, **Update** downloads, checks the APK and opens the
+existing protected installation flow once while this page is resumed. Android still
+requires the user's confirmation; launching its installer is not proof of installation.
+If install permission is missing, granting it in Android settings continues the same
+operation. Denial or installer cancellation leaves a manual action, without reopening
+Android automatically. Rotation preserves the screen's one-shot intent.
+
+Closing the page abandons automatic installation but does not stop the WorkManager
+download. Its notification and the in-app **Install** reminder remain available.
+Reopening the page or restarting the process never restores an abandoned automatic
+intent. Disabling in-app installation preserves the notification route. The page
+respects theme/reduced motion, with Italian and English labels. Channel selection,
+version comparison, package identity, signing and OTA aliases are unchanged.
+
+The opt-in `-PupdateProbe=true` physical-device runner opens this same page with
+generic release notes and a supplied download URL. Its small target-side UI bridge
+is excluded from ordinary builds; Compose calls are optimized together with the
+application rather than calling removed runtime APIs from the test APK. A newer
+signed disposable fixture can verify download, permission return, protected backup
+and installer cancellation. Never confirm installation of a fixture; a successful
+installer launch is separate from a completed OTA update. The runner's `cleanup`
+option removes only its own cached download before removing the test APK.
+
+To promote a tested preview without rebuilding it, manually run **Nyanime releases and
+OTA** on the same commit with the Recommended channel. Existing public APK assets are
+not overwritten. Unfinished uploads stay drafts until all assets have been uploaded.
+
+The recommended checker uses GitHub's latest non-prerelease endpoint so that its last
+recommended release remains discoverable even after thousands of previews. Numeric
+clients validate the channel, four-part version, compatible assets and platform before
+comparing versions. Invalid tags, drafts and Android TV releases are excluded.
