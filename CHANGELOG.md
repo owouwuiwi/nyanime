@@ -14,6 +14,13 @@ distribuito come APK.
 - Il codice e la cronologia completa sono conservati nella repository privata; APK firmati, documentazione e changelog rimangono pubblici.
 - Gli aggiornamenti conservano gli indirizzi storici e le release compatibili con i primi updater, senza cambiare firma o identificativo dell'app.
 
+## 10 ottobre 2026 — 0.39.1.1: Passaggio rapido tra anime e manga (consigliata)
+
+- Il collegamento identifica l’opera e cerca automaticamente una copia nelle fonti abilitate, anche fuori dalla libreria; gli ID discordanti impediscono l’apertura automatica.
+- Le copie verificate compaiono senza aspettare i riferimenti sui capitoli. Un tocco durante la ricerca apre la destinazione appena pronta, senza dover ripetere il comando.
+- Cache privata delle copie già riconosciute, mantenuta anche al riavvio, e richieste limitate e annullabili in entrambe le direzioni.
+- Stato di ricerca discreto, scelta delle copie e messaggi in italiano e inglese; nessun capitolo o episodio viene stimato.
+
 ## 10 ottobre 2026 — 0.39.1.0: Aggiornamenti più semplici (consigliata)
 
 - Nuova pagina degli aggiornamenti: tutte le novità subito leggibili, versione installata a confronto e un solo pulsante sempre raggiungibile.
