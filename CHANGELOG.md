@@ -14,6 +14,12 @@ distribuito come APK.
 - Il codice e la cronologia completa sono conservati nella repository privata; APK firmati, documentazione e changelog rimangono pubblici.
 - Gli aggiornamenti conservano gli indirizzi storici e le release compatibili con i primi updater, senza cambiare firma o identificativo dell'app.
 
+## 10 ottobre 2026 — 0.39.1.0: Aggiornamenti più semplici (consigliata)
+
+- Nuova pagina degli aggiornamenti: tutte le novità subito leggibili, versione installata a confronto e un solo pulsante sempre raggiungibile.
+- «Aggiorna» mostra download e verifica, poi apre l’installazione protetta con la conferma di Android; permessi e annullamento restano gestibili senza aperture ripetute.
+- Il download continua uscendo dalla pagina. Quando è pronto, l’avviso nell’app permette di installarlo anche dopo un riavvio; file rimossi o superati possono essere scaricati di nuovo.
+
 ## 10 ottobre 2026 — 0.39.0.3: Vignette nel verso giusto (consigliata)
 
 - Ordine delle vignette indipendente dalla modalità di scorrimento: da destra a sinistra per i manga, con scelta per titolo fra destra a sinistra, sinistra a destra e dall’alto in basso.
