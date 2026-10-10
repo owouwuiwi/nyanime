@@ -2,7 +2,7 @@
   "schema": 1,
   "versionName": "0.39.0.1",
   "versionCode": 193,
-  "channel": "preview",
+  "channel": "recommended",
   "legacyTag": "r8571",
   "certificateSha256": "F99AD47F9286CE3D61345F65DD0F888F16AEBF53BFE75EFE5B6AB889041AB259",
   "sha256": {
