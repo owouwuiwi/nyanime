@@ -14,6 +14,11 @@ distribuito come APK.
 - Il codice e la cronologia completa sono conservati nella repository privata; APK firmati, documentazione e changelog rimangono pubblici.
 - Gli aggiornamenti conservano gli indirizzi storici e le release compatibili con i primi updater, senza cambiare firma o identificativo dell'app.
 
+## 10 ottobre 2026 — 0.39.0.2: Pubblicazione OTA affidabile (consigliata)
+
+- Pubblicazione OTA indipendente dalla quota degli artefatti Actions: trasferimento privato verificato, senza esporre il codice o cambiare gli APK già pubblicati.
+- Conservato il pacchetto temporaneo in caso di errore, con eliminazione dopo la conferma della release pubblica e dei riferimenti al codice privato.
+
 ## 10 ottobre 2026 — 0.39.0.1: Video dentro Nyanime (consigliata)
 
 - Pagina di visione con video in alto, titolo, prossimo episodio, ricerca e filtri degli episodi, contenuti correlati e consigliati disponibili.

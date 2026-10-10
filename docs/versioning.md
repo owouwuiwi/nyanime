@@ -76,6 +76,16 @@ and verified checksums are transferred to its bot publisher. Public documentatio
 snapshot dates may be normalized to preserve GitHub feed ordering; source history
 and release publication dates remain unchanged.
 
+The private build transfers its verified APK/document bundle through a temporary
+draft Release in the private source repository. This transfer does not consume
+Actions artifact storage; deleting artifacts cannot erase storage usage already
+accrued during the billing month. The public bot checks the originating build,
+draft, exact asset, archive hash, allowed document paths and every APK checksum
+before publishing. Only the approved public documents and signed APKs are exposed.
+The temporary draft is removed after successful publication and confirmation of
+the private source tags. A failed publication retains it for investigation/retry.
+Already-prepared older Actions artifacts remain supported for historical retries.
+
 ## The update screen
 
 The update page shows the installed and available versions, complete release notes in
