@@ -14,6 +14,13 @@ distribuito come APK.
 - Il codice e la cronologia completa sono conservati nella repository privata; APK firmati, documentazione e changelog rimangono pubblici.
 - Gli aggiornamenti conservano gli indirizzi storici e le release compatibili con i primi updater, senza cambiare firma o identificativo dell'app.
 
+## 10 ottobre 2026 — 0.39.0.3: Vignette nel verso giusto (consigliata)
+
+- Ordine delle vignette indipendente dalla modalità di scorrimento: da destra a sinistra per i manga, con scelta per titolo fra destra a sinistra, sinistra a destra e dall’alto in basso.
+- Lo scorrimento verticale continua ad avanzare verso l’alto; cambiare ordine conserva la vignetta inquadrata e lo zoom, senza riavviare il riconoscimento.
+- Dopo la rotazione il lettore ricrea la vista nella nuova schermata e ripristina la vignetta, senza riutilizzare componenti già distrutti.
+- Conservate le sequenze riordinate a mano e la compatibilità dei backup precedenti; la ripresa identifica il riquadro attraverso la sua posizione nella pagina.
+
 ## 10 ottobre 2026 — 0.39.0.2: Pubblicazione OTA affidabile (consigliata)
 
 - Pubblicazione OTA indipendente dalla quota degli artefatti Actions: trasferimento privato verificato, senza esporre il codice o cambiare gli APK già pubblicati.
