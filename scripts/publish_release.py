@@ -28,7 +28,9 @@ class SafeRedirect(urllib.request.HTTPRedirectHandler):
         return redirected
 
 def request(path, token, method='GET', data=None, binary=False):
-    headers = {'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json',
+    headers = {'Authorization': 'Bearer ' + token,
+               'Accept': 'application/octet-stream' if binary else 'application/vnd.github+json',
+               'Cache-Control': 'no-cache',
                'User-Agent': 'Nyanime-release', 'X-GitHub-Api-Version': '2022-11-28'}
     req = urllib.request.Request('https://api.github.com/' + path, headers=headers,
         data=json.dumps(data).encode() if data is not None else None, method=method)
@@ -246,6 +248,35 @@ def legacy_first(feed, abi='arm64-v8a'):
             return release['tag_name']
     return None
 
+
+def download_bundle(event, run, token):
+    """Accept verified private draft assets, retaining support for older artifact runs."""
+    run_id = int(event['source_run'])
+    if 'release_id' in event:
+        release_id, asset_id, attempt = (int(event[key]) for key in ('release_id', 'asset_id', 'source_attempt'))
+        if min(release_id, asset_id, attempt) <= 0 or attempt > int(run['run_attempt']):
+            raise ValueError('Invalid publication staging identifiers')
+        if not re.fullmatch('[a-f0-9]{64}', event['bundle_sha256']):
+            raise ValueError('Invalid publication archive hash')
+        release = request(f'repos/{SOURCE}/releases/{release_id}', token)
+        tag = f'ci-publication-{run_id}-{attempt}'
+        if not release['draft'] or release['tag_name'] != tag or release['target_commitish'] != run['head_sha']:
+            raise ValueError('Publication staging belongs to an unapproved source build')
+        asset = next((item for item in release['assets'] if item['id'] == asset_id), None)
+        if (not asset or asset['name'] != f'nyanime-publication-{run_id}-{attempt}.zip'
+                or asset['state'] != 'uploaded' or not 0 < asset['size'] <= 2_000_000_000):
+            raise ValueError('Missing, incomplete or unexpected staging asset')
+        data = request(f'repos/{SOURCE}/releases/assets/{asset_id}', token, binary=True)
+        if len(data) != asset['size'] or hashlib.sha256(data).hexdigest() != event['bundle_sha256']:
+            raise ValueError('Downloaded publication archive checksum mismatch')
+        return data
+    artifact_id = int(event['artifact_id'])
+    artifacts = request(f'repos/{SOURCE}/actions/runs/{run_id}/artifacts', token)['artifacts']
+    artifact = next(item for item in artifacts if item['id'] == artifact_id)
+    if artifact['expired'] or not artifact['name'].startswith('nyanime-publication-'):
+        raise ValueError('Expired or unexpected build artifact')
+    return request(f'repos/{SOURCE}/actions/artifacts/{artifact_id}/zip', token, binary=True)
+
 def repair_attribution(event):
     """Re-upload unchanged historical assets with the bot, preserving URLs."""
     payload = event['client_payload']
@@ -293,19 +324,15 @@ def main():
         repair_attribution(full_event)
         return
     event = full_event['client_payload']
-    run_id, artifact_id = int(event['source_run']), int(event['artifact_id'])
+    run_id = int(event['source_run'])
     source_token = os.environ['SOURCE_ARTIFACT_TOKEN']
     run = request(f'repos/{SOURCE}/actions/runs/{run_id}', source_token)
     if run['head_branch'] != 'main' or run['event'] not in {'push', 'workflow_dispatch'}:
         raise ValueError('Unapproved build branch or event')
-    artifacts = request(f'repos/{SOURCE}/actions/runs/{run_id}/artifacts', source_token)['artifacts']
-    artifact = next(item for item in artifacts if item['id'] == artifact_id)
-    if artifact['expired'] or not artifact['name'].startswith('nyanime-publication-'):
-        raise ValueError('Expired or unexpected build artifact')
     temp = Path(os.environ['RUNNER_TEMP']) / f'nyanime-publication-{run_id}'
     temp.mkdir()
     archive = temp / 'bundle.zip'
-    archive.write_bytes(request(f'repos/{SOURCE}/actions/artifacts/{artifact_id}/zip', source_token, binary=True))
+    archive.write_bytes(download_bundle(event, run, source_token))
     bundle = temp / 'bundle'
     unpack(archive, bundle)
     metadata = validate_bundle(bundle)
