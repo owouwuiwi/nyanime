@@ -88,17 +88,40 @@ Already-prepared older Actions artifacts remain supported for historical retries
 
 ## The update screen
 
-The update page shows the installed and available versions, complete release notes in
-separate cards, and a fixed action area. Only release notes scroll; the compact version
-header and download status remain visible. Download progress, waiting, cancellation and
-retry states stay visible without blocking navigation. Closing the page does not stop
-an active download; its notification and the existing ready-update cards remain available.
+The update page has a compact back/title/menu header. The available version, installed
+version and complete Markdown release notes share one scroll, without separate cards
+for each paragraph. A fixed **Update** action becomes download/verification progress;
+**Not now** becomes **Back to the app** during the download. Cancellation and the
+external release page are available in the overflow menu.
 
 The install action only appears after checking that the saved APK still exists, belongs
 to this application and is newer than the installed version. These checks run off the
-UI thread and repeat when returning from Android's installer. Missing or obsolete
-files can be downloaded again. The page respects the in-app installation preference,
-the chosen theme and reduced motion, with Italian and English labels.
+UI thread, shared with the ready-update reminder, and repeat on foreground return.
+Progress ticks never trigger package/file inspections. Missing or obsolete files can
+be downloaded again.
+
+With in-app installation enabled, **Update** downloads, checks the APK and opens the
+existing protected installation flow once while this page is resumed. Android still
+requires the user's confirmation; launching its installer is not proof of installation.
+If install permission is missing, granting it in Android settings continues the same
+operation. Denial or installer cancellation leaves a manual action, without reopening
+Android automatically. Rotation preserves the screen's one-shot intent.
+
+Closing the page abandons automatic installation but does not stop the WorkManager
+download. Its notification and the in-app **Install** reminder remain available.
+Reopening the page or restarting the process never restores an abandoned automatic
+intent. Disabling in-app installation preserves the notification route. The page
+respects theme/reduced motion, with Italian and English labels. Channel selection,
+version comparison, package identity, signing and OTA aliases are unchanged.
+
+The opt-in `-PupdateProbe=true` physical-device runner opens this same page with
+generic release notes and a supplied download URL. Its small target-side UI bridge
+is excluded from ordinary builds; Compose calls are optimized together with the
+application rather than calling removed runtime APIs from the test APK. A newer
+signed disposable fixture can verify download, permission return, protected backup
+and installer cancellation. Never confirm installation of a fixture; a successful
+installer launch is separate from a completed OTA update. The runner's `cleanup`
+option removes only its own cached download before removing the test APK.
 
 To promote a tested preview without rebuilding it, manually run **Nyanime releases and
 OTA** on the same commit with the Recommended channel. Existing public APK assets are
