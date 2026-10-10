@@ -121,12 +121,17 @@ l'incognito nasconde la cronologia personale nelle Home.
 | Audio | Tracce e lingue preferite, ritardo, canali, correzione del tono con variazione di velocità e amplificazione configurabile. |
 | Sottotitoli | Traccia principale/secondaria, file esterni, lingue, liste di inclusione/esclusione, ritardo, velocità, font, dimensioni, bordi, colori e posizione. |
 | Immagine | Decodifica hardware configurabile, renderer, debanding, luminosità del video, contrasto, saturazione, gamma e tonalità. |
-| Multitasking | Picture-in-Picture e relativi controlli, secondo le capacità e le impostazioni Android. |
+| Multitasking | Pagina di visione, mini player nell'app e nel lettore manga, schermo intero, audio in background e Picture-in-Picture con controlli di sistema. |
 | Strumenti | Cattura di immagini con sottotitoli facoltativi, statistiche, configurazione e script mpv, comandi e pulsanti personalizzati. |
 | Alternative | Player esterno configurabile e streaming torrent tramite l'integrazione esistente, dove supportato. |
 
 Le anteprime durante lo spostamento sulla timeline e i titoli correlati sono disponibili
 quando i dati necessari vengono forniti dall'estensione o dal contenuto.
+
+La [riproduzione integrata](integrated-playback.md) conserva una sola sessione:
+ridurre il video o cambiare schermata non lo ricarica. Il mini player si sposta e
+si ridimensiona; un tocco riapre la pagina con episodi e contenuti collegati.
+L'audio in background è abilitato inizialmente e configurabile nelle impostazioni.
 
 Il lettore interno usa mpv e FFmpeg. I collegamenti vengono risolti dall'estensione;
 codec, qualità e tracce dipendono dal contenuto. Il percorso HLS include la
@@ -259,6 +264,11 @@ possono impedire scoperta e riproduzione.
 ## Lettore manga e file locali
 
 La sezione manga conserva biblioteca, dettagli e lettore indipendenti dal restyling video.
+
+- [Due pagine affiancate](two-page-reading.md), anche in verticale, con coppie paginate
+  o scorrimento continuo. Offset per capitolo e predefinito per manga, anteprima degli
+  abbinamenti, panoramiche e pagine lunghe singole. Progressi e condivisione mantengono
+  le pagine originali; i backup completi includono la configurazione.
 
 - Lettura orizzontale in entrambe le direzioni, verticale, webtoon e continua.
 - [Lettura guidata](guided-reading.md) facoltativa: riconoscimento offline delle

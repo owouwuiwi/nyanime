@@ -14,6 +14,42 @@ distribuito come APK.
 - Il codice e la cronologia completa sono conservati nella repository privata; APK firmati, documentazione e changelog rimangono pubblici.
 - Gli aggiornamenti conservano gli indirizzi storici e le release compatibili con i primi updater, senza cambiare firma o identificativo dell'app.
 
+## 10 ottobre 2026 — 0.39.0.1: Video dentro Nyanime (anteprima)
+
+- Pagina di visione con video in alto, titolo, prossimo episodio, ricerca e filtri degli episodi, contenuti correlati e consigliati disponibili.
+- Avvio diretto nella pagina di visione o a schermo intero, selezionabile dalle impostazioni del player; un lettore manga in background non riduce il video appena aperto.
+- Mini player spostabile e ridimensionabile per continuare a navigare nell'app e leggere un manga durante la riproduzione.
+- Mini player senza comandi sovrapposti: un tocco riapre il video, un trascinamento deciso oltre il bordo inferiore lo chiude con una breve uscita animata.
+- Espansione e riduzione tramite gesti e pulsante Indietro, conservando la stessa sessione video, il punto di riproduzione e gli strumenti del player a schermo intero.
+- Trascinamento ancorato al dito: dalla pagina il video si riduce verso il bordo inferiore; dallo schermo intero scende senza cambiare dimensioni fino al rilascio, poi torna alla pagina verticale.
+- Superficie video stabile durante le animazioni, con un solo tempo di movimento e riposizionamento coerente quando cambia l'orientamento.
+- Linea sottile nella pagina di visione, con caricamento nella stessa linea e pallino che cresce durante il seek; a schermo intero torna la barra originale con segmenti, tempi e colori del tema.
+- Il trascinamento orizzontale del video per avanzare o tornare indietro funziona soltanto a schermo intero.
+- Il punto scelto resta stabile al rilascio della barra fino alla conferma del player, senza tornare al progresso precedente; minutaggio e pulsante schermo intero avvicinati alla linea, con aree di tocco distinte.
+- Play e pausa condividono una trasformazione continua tra pagina, schermo intero e stanze; feedback elastico dei pulsanti e del pallino, rispettando le animazioni ridotte.
+- Barra della pagina con gradiente arancione-rosso e colore distinto per il video già caricato; avanzamento ordinario interpolato senza ritardare il trascinamento o animare uno spostamento richiesto.
+- Il PiP mantiene le dimensioni del buffer nativo: cambia la finestra visibile senza esporre un vecchio fotogramma ritagliato durante il ridimensionamento.
+- Il ritorno in verticale conserva il fotogramma a schermo intero fino alla nuova disposizione della finestra, evitando un ridimensionamento intermedio prima della rotazione.
+- Durante la rotazione il fotogramma viene disegnato nella finestra prima del cambio di orientamento; la superficie video rimane collegata ma nascosta sotto di esso, senza esporre trasformazioni separate.
+- Il ritorno da schermo intero viene animato dal player nella nuova finestra verticale, evitando la rotazione del vecchio fotogramma da parte del sistema; barre di sistema ripristinate dopo il cambio.
+- Scheda di fine episodio compatibile con lo scorrimento della pagina di visione, senza arresti durante il conto alla rovescia.
+- Corretto il salvataggio ripetuto della cronologia con Cloud attivo: la coda conserva l'ultima revisione senza bloccare il progresso locale.
+- La nuova selezione viene preparata mentre il video attuale continua; selezioni superate vengono annullate e un errore di preparazione conserva il contenuto precedente.
+- Audio in background abilitato inizialmente, disattivabile nelle impostazioni del player, con notifica e controlli di sistema; PiP fuori dall'app quando abilitato.
+- Dirette interne nella stessa pagina di visione, con informazioni e scelta dei canali disponibili.
+- Nelle stanze aggiornate, chiudere il video locale mantiene la partecipazione come osservatore, senza fermare gli altri. Rientro esplicito dal pannello della stanza; limitazioni segnalate con partecipanti su versioni precedenti.
+- Proprietà della riproduzione separata dalle schermate, con protezioni per superfici sostituite, callback tardivi e chiusura delle risorse native.
+- Adattamento delle pagine affiancate alle dimensioni effettivamente decodificate, anche dopo il ritaglio dei bordi.
+
+## 9 ottobre 2026 — 0.38.0.0: Manga a due pagine (consigliata)
+
+- Opzione Spread nella scelta della modalità di lettura: due pagine affiancate e unite al centro, in verticale e orizzontale, con lettura paginata o scorrimento continuo a coppie.
+- Abbinamento regolabile per capitolo, con anteprima, pagine singole iniziali e un valore predefinito per tutto il manga.
+- Panoramiche, pagine lunghe e ultima pagina dispari restano singole; rispettata la direzione di lettura.
+- Zoom condiviso, navigazione e indicazione delle pagine originali, senza unire le immagini o cambiare i riferimenti di condivisione e stanze.
+- Una pagina ancora in caricamento o non visibile non completa il capitolo. Configurazione inclusa nei backup completi, con compatibilità dei backup precedenti.
+- Conservati lettura singola, lettura guidata e relative preferenze; corretti i controlli di separazione e inversione delle pagine nel lettore paginato.
+
 ## 9 ottobre 2026 — 0.36.0.2: Lettura guidata stabile e TV nello Store (anteprima)
 
 - Pagina intera e vignetta adattata allo schermo rimangono ferme; il trascinamento esplora l'immagine solo dopo un ingrandimento manuale.
