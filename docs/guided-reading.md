@@ -6,6 +6,27 @@ inquadratura delle vignette, zoom manuale e pagina intera usano lo stesso
 renderer a tasselli del lettore. Nell'editor gli angoli modificano i bordi;
 i numeri si possono trascinare per cambiare ordine.
 
+## Ordine delle vignette
+
+In Impostazioni del lettore → Modalità di lettura, con Lettura guidata attiva,
+«Ordine delle vignette» permette di scegliere destra→sinistra, sinistra→destra
+oppure dall'alto in basso. La scelta è indipendente dallo scorrimento delle pagine
+e viene ricordata per titolo. Destra→sinistra è il valore iniziale; una scelta
+esplicita precedente sinistra→destra viene conservata all'inizializzazione.
+
+Le modalità verticali mantengono il gesto verso l'alto per avanzare, anche quando
+le vignette seguono l'ordine manga. Le geometrie già riconosciute vengono riordinate
+senza eseguire nuovamente il modello. Cambiare ordine conserva la vignetta e lo
+zoom personale; l'ordine modificato manualmente nell'editor resta prioritario.
+«Automatico» nell'editor ripristina la sequenza della direzione attualmente scelta.
+
+La selezione usa i bit 0x180 dei viewerFlags, separati da lettura, orientamento e
+abilitazione guidata. I backup manga esistenti conservano questi bit. I nuovi
+segnalibri aggiungono il rettangolo focalizzato alla fine di GuidedLocation, senza
+cambiare i campi protobuf precedenti: l'indice può cambiare, la vignetta resta la
+stessa. I vecchi segnalibri vengono associati mediante il centro salvato; se
+l'associazione non è univoca, viene mostrata la pagina intera.
+
 Pagina intera e vignetta adattata restano ferme durante i gesti a un dito.
 Il pinch o il doppio tap ingrandiscono; solo dopo lo zoom personale il trascinamento
 passa al renderer. Tornando al focus, scala e centro vengono recuperati con la
