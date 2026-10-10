@@ -1,5 +1,56 @@
 # Passaggio tra anime e manga
 
+## Apertura progressiva
+
+L’identificazione dell’opera, la ricerca della copia e i riferimenti sui capitoli
+sono fasi indipendenti. Il collegamento compare dopo la risposta del catalogo;
+una copia verificata si può aprire subito, anche se i riferimenti editoriali
+stanno ancora caricando. Toccando durante la ricerca, la scheda apre la copia
+appena pronta; cambiare destinazione annulla l’apertura precedente.
+
+Si riutilizzano prima gli ID già forniti, senza ripetere la richiesta dei dettagli
+alla fonte. Se mancano gli ID, è ammesso soltanto un alias esatto e univoco del
+catalogo, mantenendo significativi i numeri di stagione ed edizione. Questo
+identifica l’opera nel catalogo, non la copia di un’estensione.
+
+Per la copia si controllano libreria, letture/visioni precedenti e identità
+verificate in cache. Seguono i resolver facoltativi per ID e la ricerca nativa
+dei candidati: i titoli restringono la ricerca, ma soltanto ID concordanti nei
+metadati della fonte permettono un’apertura automatica. Si rispettano fonti
+abilitate, lingue e priorità configurate. Il lookup prova sia AniList sia MAL.
+I dettagli non vengono richiesti una seconda volta quando gli ID sono già
+presenti nella risposta dell’estensione.
+
+Le due direzioni condividono un limite di tre ricerche di copie alle fonti e due ai
+metadati aggiuntivi. Errori di una fonte non cancellano le copie già trovate;
+le richieste obsolete vengono annullate. Le scelte mantengono il loro ordine
+durante gli aggiornamenti progressivi.
+
+La cache locale contiene al massimo 128 riferimenti fonte/URL con ID verificati,
+validi per sei ore. Non contiene stream, cookie o credenziali, non è trasferita
+nei backup e non viene letta né scritta durante sessioni in incognito. Una copia
+rimossa, una fonte disabilitata o ID in conflitto non vengono aperti tramite cache.
+
+Se non si trova una copia verificata, un foglio spiega il limite e permette una
+ricerca manuale esplicita. Non si sceglie silenziosamente il primo titolo simile.
+Stati e messaggi sono disponibili in italiano e inglese.
+
+## Verifica del flusso
+
+La suite completa dell’app comprende 1.355 test, tutti superati in questa verifica.
+I casi del collegamento usano soltanto opere fittizie e contratti generici:
+risultati progressivi con metadati lenti, copie con titoli uguali ma ID discordanti,
+resolver MAL, alias del catalogo, fonte offline, estensione rimossa, concorrenza,
+annullamento e cache limitata, privata e non trasferita nei backup.
+
+Un APK firmato, ottimizzato e non debuggabile è stato installato su un telefono reale.
+Sono state verificate apertura diretta del manga, scelta fra stagioni e copie anime,
+ritorno alla scheda precedente e apertura dopo il riavvio dell’app. Le prove non
+richiedono login al tracking e non avviano automaticamente lettura o riproduzione.
+I checkpoint mancanti restano mancanti; non sono sostituiti da capitoli stimati.
+
+## Relazioni e capitoli
+
 La scheda anime mostra i manga collegati attraverso gli ID di AniList. Se
 l'adattamento parte da una novel, viene seguito anche il rapporto tra quella
 novel e i suoi manga, distinguendolo dal collegamento diretto.
@@ -85,14 +136,14 @@ gli ID concordino con il manga collegato: un ID in conflitto impedisce
 l'associazione automatica. Un titolo uguale non prova da solo l'identità.
 
 Un'estensione può usare un indice locale di ID già incontrati quando il suo sito
-non offre una ricerca per ID. Non equivale a una ricerca remota universale:
-un titolo mai indicizzato può essere risolto soltanto se esiste un link diretto
-accettato dall'estensione o un altro meccanismo di lookup. Se nessuna copia
-verificata è disponibile, la scheda offre la ricerca per titolo come azione
-esplicita di recupero; non sceglie automaticamente un risultato simile.
+non offre una ricerca per ID. Un titolo mai indicizzato può comunque essere
+verificato attraverso un link accettato dall’estensione o i metadati dei candidati
+della ricerca nativa. Se la fonte non fornisce un ID verificabile, rimane la ricerca
+manuale esplicita; non si sceglie automaticamente un risultato simile.
 
 L'apertura di una copia non la aggiunge alla libreria e non modifica il progresso
-anime. I servizi di catalogo ricevono ID; non ricevono cookie della fonte,
+anime. I servizi di catalogo ricevono ID o, soltanto nel recupero dell’identità
+iniziale, il titolo; non ricevono cookie della fonte,
 credenziali del tracker o URL di riproduzione.
 
 Il risultato resta nello stato della scheda durante il passaggio al manga e il
