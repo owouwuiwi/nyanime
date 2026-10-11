@@ -1,0 +1,248 @@
+[
+  {
+    "crate": "asn1-rs-impl-0.2.0",
+    "name": "LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/rusticata/asn1-rs/a20e5f7319c896737ad0f2557037817b91ad854f/LICENSE-MIT",
+    "sha256": "a5c61b93b6ee1d104af9920cf020ff3c7efe818e31fe562c72261847a728f513"
+  },
+  {
+    "crate": "asn1-rs-impl-0.2.0",
+    "name": "LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/rusticata/asn1-rs/a20e5f7319c896737ad0f2557037817b91ad854f/LICENSE-APACHE",
+    "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+  },
+  {
+    "crate": "dlopen2-0.8.2",
+    "name": "LICENSE",
+    "url": "https://raw.githubusercontent.com/OpenByteDev/dlopen2/cc80e4a0a90d499b677fdf7743699b4b3a43a989/LICENSE",
+    "sha256": "39fa265207450e77c62e90c5594a06c085b655d8374c7ced4bf7894b6bd95dd2"
+  },
+  {
+    "crate": "iroh-base-1.3.0",
+    "name": "LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/n0-computer/iroh/0072d7d84b233f9e7185eb676f049beaf557ac03/LICENSE-MIT",
+    "sha256": "f169adb8124d3b005416d8485d00777c9a7bdd9099982c52a4493f9732e6d050"
+  },
+  {
+    "crate": "iroh-base-1.3.0",
+    "name": "LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/n0-computer/iroh/0072d7d84b233f9e7185eb676f049beaf557ac03/LICENSE-APACHE",
+    "sha256": "903131e2786f073a942fbf8fae122d9e576e4dad758c6da7f9f2ba58fd8611ab"
+  },
+  {
+    "crate": "iroh-dns-1.3.0",
+    "name": "LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/n0-computer/iroh/17c0612f80f78f5288e97b818b1360ae6ea0a51a/LICENSE-MIT",
+    "sha256": "f169adb8124d3b005416d8485d00777c9a7bdd9099982c52a4493f9732e6d050"
+  },
+  {
+    "crate": "iroh-dns-1.3.0",
+    "name": "LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/n0-computer/iroh/17c0612f80f78f5288e97b818b1360ae6ea0a51a/LICENSE-APACHE",
+    "sha256": "903131e2786f073a942fbf8fae122d9e576e4dad758c6da7f9f2ba58fd8611ab"
+  },
+  {
+    "crate": "iroh-metrics-derive-1.0.1",
+    "name": "LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/n0-computer/iroh-metrics/a9afb7cd49bb3804fffefec61647993851f9b8c8/LICENSE-MIT",
+    "sha256": "339060c99d5c80c2742cae417f765980afe6b0149a78f959bbf2a79f19ab3af5"
+  },
+  {
+    "crate": "iroh-metrics-derive-1.0.1",
+    "name": "LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/n0-computer/iroh-metrics/a9afb7cd49bb3804fffefec61647993851f9b8c8/LICENSE-APACHE",
+    "sha256": "7953ad8cebf4e01199521a5faa221ef59bec5cee0a9856b179590613a8560cbc"
+  },
+  {
+    "crate": "irpc-derive-0.17.0",
+    "name": "LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/n0-computer/irpc/0ed2b235d5c797b54d8263ecb3b0247272d055f9/LICENSE-MIT",
+    "sha256": "339060c99d5c80c2742cae417f765980afe6b0149a78f959bbf2a79f19ab3af5"
+  },
+  {
+    "crate": "irpc-derive-0.17.0",
+    "name": "LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/n0-computer/irpc/0ed2b235d5c797b54d8263ecb3b0247272d055f9/LICENSE-APACHE",
+    "sha256": "7953ad8cebf4e01199521a5faa221ef59bec5cee0a9856b179590613a8560cbc"
+  },
+  {
+    "crate": "jni-macros-0.22.4",
+    "name": "LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/jni-rs/jni-rs/33045a124105c939d1e2cbdcb5a39e5d868ffa03/LICENSE-MIT",
+    "sha256": "fea1d5bf3dd71605ce5d7d2ff695c1837e914c77195e523a86b5391716477960"
+  },
+  {
+    "crate": "jni-macros-0.22.4",
+    "name": "LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/jni-rs/jni-rs/33045a124105c939d1e2cbdcb5a39e5d868ffa03/LICENSE-APACHE",
+    "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+  },
+  {
+    "crate": "jni-sys-macros-0.4.1",
+    "name": "LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/jni-rs/jni-sys/64d77b7a5f119d7b55b4e2c169a4668067ff59e6/LICENSE-MIT",
+    "sha256": "1d85bd754b04ceec93e98e890edd1fa3c6a22e81bcb32135806beeccefa51cd1"
+  },
+  {
+    "crate": "jni-sys-macros-0.4.1",
+    "name": "LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/jni-rs/jni-sys/64d77b7a5f119d7b55b4e2c169a4668067ff59e6/LICENSE-APACHE",
+    "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08"
+  },
+  {
+    "crate": "jni-0.22.4",
+    "name": "LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/jni-rs/jni-rs/5ae9458a4ec44c5318f37ddc7569c1d4ae8a69e7/LICENSE-MIT",
+    "sha256": "fea1d5bf3dd71605ce5d7d2ff695c1837e914c77195e523a86b5391716477960"
+  },
+  {
+    "crate": "jni-0.22.4",
+    "name": "LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/jni-rs/jni-rs/5ae9458a4ec44c5318f37ddc7569c1d4ae8a69e7/LICENSE-APACHE",
+    "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+  },
+  {
+    "crate": "n0-error-macros-1.0.1",
+    "name": "LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/n0-computer/n0-error/596f4113918712d545cbb25b7fa12c7153706f54/LICENSE-MIT",
+    "sha256": "339060c99d5c80c2742cae417f765980afe6b0149a78f959bbf2a79f19ab3af5"
+  },
+  {
+    "crate": "n0-error-macros-1.0.1",
+    "name": "LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/n0-computer/n0-error/596f4113918712d545cbb25b7fa12c7153706f54/LICENSE-APACHE",
+    "sha256": "7953ad8cebf4e01199521a5faa221ef59bec5cee0a9856b179590613a8560cbc"
+  },
+  {
+    "crate": "ndk-context-0.1.1",
+    "name": "LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/rust-windowing/android-ndk-rs/10f2ba388fca20f7349996ebae26ccda7a6fda5c/LICENSE-MIT",
+    "sha256": "508a77d2e7b51d98adeed32648ad124b7b30241a8e70b2e72c99f92d8e5874d1"
+  },
+  {
+    "crate": "ndk-context-0.1.1",
+    "name": "LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/rust-windowing/android-ndk-rs/10f2ba388fca20f7349996ebae26ccda7a6fda5c/LICENSE-APACHE",
+    "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+  },
+  {
+    "crate": "netwatch-0.19.3",
+    "name": "LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/n0-computer/net-tools/0030e57fc70981895bb86212ff0f059cc41c8a4e/LICENSE-MIT",
+    "sha256": "33616ec4c88b6e00de66e6c06f1a55d80bb32a9d7939f3aa83d28e673a1adcae"
+  },
+  {
+    "crate": "netwatch-0.19.3",
+    "name": "LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/n0-computer/net-tools/0030e57fc70981895bb86212ff0f059cc41c8a4e/LICENSE-APACHE",
+    "sha256": "7986218ec4ea89de3511a843ae27fea2584a525036c220ff7b26589179f07888"
+  },
+  {
+    "crate": "portmapper-0.19.3",
+    "name": "LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/n0-computer/net-tools/0030e57fc70981895bb86212ff0f059cc41c8a4e/LICENSE-MIT",
+    "sha256": "33616ec4c88b6e00de66e6c06f1a55d80bb32a9d7939f3aa83d28e673a1adcae"
+  },
+  {
+    "crate": "portmapper-0.19.3",
+    "name": "LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/n0-computer/net-tools/0030e57fc70981895bb86212ff0f059cc41c8a4e/LICENSE-APACHE",
+    "sha256": "7986218ec4ea89de3511a843ae27fea2584a525036c220ff7b26589179f07888"
+  },
+  {
+    "crate": "rustls-platform-verifier-android-0.2.0",
+    "name": "LICENSE-MIT",
+    "url": "https://raw.githubusercontent.com/rustls/rustls-platform-verifier/252e25161a91af476cbea620e29d277592d27ec7/LICENSE-MIT",
+    "sha256": "1c7cf76689c837a68ed8d704994e52a0f2940c087958f860d17f3186afbdcc0c"
+  },
+  {
+    "crate": "rustls-platform-verifier-android-0.2.0",
+    "name": "LICENSE-APACHE",
+    "url": "https://raw.githubusercontent.com/rustls/rustls-platform-verifier/252e25161a91af476cbea620e29d277592d27ec7/LICENSE-APACHE",
+    "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+  },
+  {
+    "crate": "binary-merge-0.1.2",
+    "name": "Cargo.toml.orig",
+    "url": "https://crates.io/api/v1/crates/binary-merge/0.1.2/download",
+    "sha256": "c02f64402fda0e59e66bec9472fc6cedef2d3e9ae52467b446b6cf2ba45ec065",
+    "basis": "explicit package license declaration; standalone terms omitted upstream"
+  },
+  {
+    "crate": "binary-merge-0.1.2",
+    "name": "Declared-Apache-2.0.txt",
+    "url": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+    "sha256": "b2b6c5bee5cfc5e01fc9bb5d981b1aeebc32dcbced9b8ece8e94cbeca51e0625",
+    "basis": "explicit package license declaration; standalone terms omitted upstream"
+  },
+  {
+    "crate": "enum-assoc-1.4.1",
+    "name": "Cargo.toml.orig",
+    "url": "https://crates.io/api/v1/crates/enum-assoc/1.4.1/download",
+    "sha256": "ac76a8e989ded142df50e3b796c8926e90c7e0f42d2428ff9ef62a359d38f582",
+    "basis": "explicit package license declaration; standalone terms omitted upstream"
+  },
+  {
+    "crate": "enum-assoc-1.4.1",
+    "name": "Declared-Apache-2.0.txt",
+    "url": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+    "sha256": "b2b6c5bee5cfc5e01fc9bb5d981b1aeebc32dcbced9b8ece8e94cbeca51e0625",
+    "basis": "explicit package license declaration; standalone terms omitted upstream"
+  },
+  {
+    "crate": "genawaiter-0.99.1",
+    "name": "Cargo.toml.orig",
+    "url": "https://crates.io/api/v1/crates/genawaiter/0.99.1/download",
+    "sha256": "976e626e7931f71616d71a9affc97b297a1d55171e7c33bc5028b41c1726a6e4",
+    "basis": "explicit package license declaration; standalone terms omitted upstream"
+  },
+  {
+    "crate": "genawaiter-0.99.1",
+    "name": "Declared-MIT.txt",
+    "url": "https://raw.githubusercontent.com/spdx/license-list-data/v3.27.0/text/MIT.txt",
+    "sha256": "be302efc50ab63348f0dc4e1c54bf14ab015f7d2051ad3e1d66d6c3de7dc0020",
+    "basis": "explicit package license declaration; standalone terms omitted upstream"
+  },
+  {
+    "crate": "genawaiter-macro-0.99.1",
+    "name": "Cargo.toml.orig",
+    "url": "https://crates.io/api/v1/crates/genawaiter-macro/0.99.1/download",
+    "sha256": "a1c63a093f4df6472cb3fd912e5e94c22b13632963b95d444ecf491572be2c5b",
+    "basis": "explicit package license declaration; standalone terms omitted upstream"
+  },
+  {
+    "crate": "genawaiter-macro-0.99.1",
+    "name": "Declared-Apache-2.0.txt",
+    "url": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+    "sha256": "b2b6c5bee5cfc5e01fc9bb5d981b1aeebc32dcbced9b8ece8e94cbeca51e0625",
+    "basis": "explicit package license declaration; standalone terms omitted upstream"
+  },
+  {
+    "crate": "genawaiter-proc-macro-0.99.1",
+    "name": "Cargo.toml.orig",
+    "url": "https://crates.io/api/v1/crates/genawaiter-proc-macro/0.99.1/download",
+    "sha256": "33c1b98d152f8feb7580e75b675c319587385f42c38185bd85fac3271ea9086d",
+    "basis": "explicit package license declaration; standalone terms omitted upstream"
+  },
+  {
+    "crate": "genawaiter-proc-macro-0.99.1",
+    "name": "Declared-Apache-2.0.txt",
+    "url": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+    "sha256": "b2b6c5bee5cfc5e01fc9bb5d981b1aeebc32dcbced9b8ece8e94cbeca51e0625",
+    "basis": "explicit package license declaration; standalone terms omitted upstream"
+  },
+  {
+    "crate": "inplace-vec-builder-0.1.1",
+    "name": "Cargo.toml.orig",
+    "url": "https://crates.io/api/v1/crates/inplace-vec-builder/0.1.1/download",
+    "sha256": "5f4196808a6b06bb85ae6455ad5876acf5fee06ae4fef9c6b2702c07fb2d4520",
+    "basis": "explicit package license declaration; standalone terms omitted upstream"
+  },
+  {
+    "crate": "inplace-vec-builder-0.1.1",
+    "name": "Declared-Apache-2.0.txt",
+    "url": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+    "sha256": "b2b6c5bee5cfc5e01fc9bb5d981b1aeebc32dcbced9b8ece8e94cbeca51e0625",
+    "basis": "explicit package license declaration; standalone terms omitted upstream"
+  }
+]

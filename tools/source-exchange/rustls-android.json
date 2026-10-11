@@ -1,0 +1,13 @@
+{
+  "upstreamCommit": "1aa691352a5e0c215210dfc9a3c2f2078639dc91",
+  "version": "0.2.0",
+  "path": "org/rustls/rustls-platform-verifier/0.2.0/rustls-platform-verifier-0.2.0",
+  "aarSha256": "aa021794230fbc2f0be355999e2cf67398dd563de066a2e17001ffbd0b69101b",
+  "pomSha256": "78dcb69a1a20e91e72017de9a67104bba1874a7ecc8e6dcdfb2fe1a85de6b362",
+  "url": "https://raw.githubusercontent.com/rustls/rustls-platform-verifier/1aa691352a5e0c215210dfc9a3c2f2078639dc91/android-release-support/maven/org/rustls/rustls-platform-verifier/0.2.0/rustls-platform-verifier-0.2.0.aar",
+  "androidSourceCommit": "252e25161a91af476cbea620e29d277592d27ec7",
+  "androidSourceCommitEvidence": "rustls-platform-verifier-android 0.2.0 .cargo_vcs_info.json",
+  "sourceArchive": "vendor/maven/org/rustls/rustls-platform-verifier/0.2.0/rustls-platform-verifier-252e25161a91af476cbea620e29d277592d27ec7-source.tar.gz",
+  "sourceArchiveSha256": "a6242e422601108471b2a50fe2e9e2c66641173f49309c1499e9c7702a8bd0b3",
+  "sourceArchiveUrl": "https://codeload.github.com/rustls/rustls-platform-verifier/tar.gz/252e25161a91af476cbea620e29d277592d27ec7"
+}

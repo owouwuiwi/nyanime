@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "versionName": "0.39.1.0",
+  "versionCode": 198,
+  "channel": "recommended",
+  "legacyTag": "r8579",
+  "certificateSha256": "F99AD47F9286CE3D61345F65DD0F888F16AEBF53BFE75EFE5B6AB889041AB259",
+  "sha256": {
+    "Nyanime-0.39.1.0-arm64-v8a.apk": "d389dc332f63d9cbd6aa099a79d8cb410af34ff849b5fa1f2faa91fe51b85ffd",
+    "Nyanime-0.39.1.0-armeabi-v7a.apk": "cc616f68d875d3d83a06676146fa3e28ea35ff91bdc25bb37d2db28a05045591",
+    "Nyanime-0.39.1.0-universal.apk": "73468cc57da9840f9cd1c3a5199984e41ef01d2a3e9d1a3768d6462961b7993e",
+    "Nyanime-0.39.1.0-x86.apk": "75791f1d447c682b15a9501f241d3c5297fdeb34cb4c326cc81815017bee6a0d",
+    "Nyanime-0.39.1.0-x86_64.apk": "ce3afc9d536441c1df1c513bfaee874dbcded3a36a51ed95aa5e84d7e26857d0"
+  }
+}

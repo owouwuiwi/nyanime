@@ -1,0 +1,210 @@
+package tachiyomi.domain.release.interactor
+
+import io.kotest.matchers.shouldBe
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import tachiyomi.core.common.preference.Preference
+import tachiyomi.core.common.preference.PreferenceStore
+import tachiyomi.domain.release.model.Release
+import tachiyomi.domain.release.service.ReleaseService
+import java.time.Instant
+
+class GetApplicationReleaseTest {
+
+    private lateinit var getApplicationRelease: GetApplicationRelease
+    private lateinit var releaseService: ReleaseService
+    private lateinit var preference: Preference<Long>
+
+    @BeforeEach
+    fun beforeEach() {
+        val preferenceStore = mockk<PreferenceStore>()
+        preference = mockk()
+        every { preferenceStore.getLong(any(), any()) } returns preference
+        releaseService = mockk()
+
+        getApplicationRelease = GetApplicationRelease(releaseService, preferenceStore)
+    }
+
+    @Test
+    fun `When has update but is preview expect new update`() = runTest {
+        every { preference.get() } returns 0
+        every { preference.set(any()) }.answers { }
+
+        val release = Release(
+            "r2000",
+            "info",
+            "http://example.com/release_link",
+            "http://example.com/release_link.apk",
+        )
+
+        coEvery { releaseService.latest(any()) } returns release
+
+        val result = getApplicationRelease.await(
+            GetApplicationRelease.Arguments(
+                isPreview = true,
+                commitCount = 1000,
+                versionName = "",
+                repository = "test",
+            ),
+        )
+
+        (result as GetApplicationRelease.Result.NewUpdate).release shouldBe GetApplicationRelease.Result.NewUpdate(
+            release,
+        ).release
+    }
+
+    @Test
+    fun `When has update expect new update`() = runTest {
+        every { preference.get() } returns 0
+        every { preference.set(any()) }.answers { }
+
+        val release = Release(
+            "v2.0.0.0",
+            "info",
+            "http://example.com/release_link",
+            "http://example.com/release_link.apk",
+        )
+
+        coEvery { releaseService.latest(any()) } returns release
+
+        val result = getApplicationRelease.await(
+            GetApplicationRelease.Arguments(
+                isPreview = false,
+                commitCount = 0,
+                versionName = "v1.0.0.0",
+                repository = "test",
+            ),
+        )
+
+        (result as GetApplicationRelease.Result.NewUpdate).release shouldBe GetApplicationRelease.Result.NewUpdate(
+            release,
+        ).release
+    }
+
+    @Test
+    fun `When has no update expect no new update`() = runTest {
+        every { preference.get() } returns 0
+        every { preference.set(any()) }.answers { }
+
+        val release = Release(
+            "v1.0.0.0",
+            "info",
+            "http://example.com/release_link",
+            "http://example.com/release_link.apk",
+        )
+
+        coEvery { releaseService.latest(any()) } returns release
+
+        val result = getApplicationRelease.await(
+            GetApplicationRelease.Arguments(
+                isPreview = false,
+                commitCount = 0,
+                versionName = "v2.0.0.0",
+                repository = "test",
+            ),
+        )
+
+        result shouldBe GetApplicationRelease.Result.NoNewUpdate
+    }
+
+    @Test
+    fun `When preview release tag is not fork format expect no new update`() = runTest {
+        every { preference.get() } returns 0
+        every { preference.set(any()) }.answers { }
+
+        val release = Release(
+            "preview-2000",
+            "info",
+            "http://example.com/release_link",
+            "http://example.com/release_link.apk",
+        )
+
+        coEvery { releaseService.latest(any()) } returns release
+
+        val result = getApplicationRelease.await(
+            GetApplicationRelease.Arguments(
+                isPreview = true,
+                commitCount = 1000,
+                versionName = "",
+                repository = "test",
+            ),
+        )
+
+        result shouldBe GetApplicationRelease.Result.NoNewUpdate
+    }
+
+    @Test
+    fun `Changing publisher checks immediately even when the old channel was recently checked`() = runTest {
+        val store = mockk<PreferenceStore>()
+        val oldCheck = mockk<Preference<Long>>()
+        val newCheck = mockk<Preference<Long>>()
+        every { oldCheck.get() } returns Instant.now().toEpochMilli()
+        every { newCheck.get() } returns 0
+        every { newCheck.set(any()) } answers { }
+        every { store.getLong(Preference.appStateKey("last_app_check_previous/app_recommended_0.19.0.0"), 0) } returns
+            oldCheck
+        every { store.getLong(Preference.appStateKey("last_app_check_current/app_recommended_0.19.0.0"), 0) } returns
+            newCheck
+        val release = Release("0.19.0.1", "notes", "https://example.test/release", "https://example.test/app.apk")
+        coEvery { releaseService.latest(any()) } returns release
+        val checker = GetApplicationRelease(releaseService, store)
+        val arguments = GetApplicationRelease.Arguments(false, 0, "0.19.0.0", "previous/app")
+
+        checker.await(arguments) shouldBe GetApplicationRelease.Result.NoNewUpdate
+        checker.await(arguments.copy(repository = "current/app")) shouldBe
+            GetApplicationRelease.Result.NewUpdate(release)
+        coVerify(exactly = 1) { releaseService.latest(match { it.repository == "current/app" }) }
+    }
+
+    @Test
+    fun `Installing an intermediate checkpoint checks for later patches immediately`() = runTest {
+        val store = mockk<PreferenceStore>()
+        val previous = mockk<Preference<Long>>()
+        val current = mockk<Preference<Long>>()
+        every { previous.get() } returns Instant.now().toEpochMilli()
+        every { current.get() } returns 0
+        every { current.set(any()) } answers { }
+        every { store.getLong(Preference.appStateKey("last_app_check_test_recommended_1.0.0.0"), 0) } returns previous
+        every { store.getLong(Preference.appStateKey("last_app_check_test_recommended_1.0.0.1"), 0) } returns current
+        val release =
+            Release("1.0.0.2", "patch release", "https://example.test/release", "https://example.test/descriptor")
+        coEvery { releaseService.latest(any()) } returns release
+        val checker = GetApplicationRelease(releaseService, store)
+        val arguments = GetApplicationRelease.Arguments(false, 0, "1.0.0.0", "test")
+        checker.await(arguments) shouldBe GetApplicationRelease.Result.NoNewUpdate
+        checker.await(arguments.copy(versionName = "1.0.0.1")) shouldBe GetApplicationRelease.Result.NewUpdate(release)
+        coVerify(exactly = 1) { releaseService.latest(any()) }
+    }
+
+    @Test
+    fun `When now is before three days expect no new update`() = runTest {
+        every { preference.get() } returns Instant.now().toEpochMilli()
+        every { preference.set(any()) }.answers { }
+
+        val release = Release(
+            "v1.0.0.0",
+            "info",
+            "http://example.com/release_link",
+            "http://example.com/release_link.apk",
+        )
+
+        coEvery { releaseService.latest(any()) } returns release
+
+        val result = getApplicationRelease.await(
+            GetApplicationRelease.Arguments(
+                isPreview = false,
+                commitCount = 0,
+                versionName = "v2.0.0.0",
+                repository = "test",
+            ),
+        )
+
+        coVerify(exactly = 0) { releaseService.latest(any()) }
+        result shouldBe GetApplicationRelease.Result.NoNewUpdate
+    }
+}

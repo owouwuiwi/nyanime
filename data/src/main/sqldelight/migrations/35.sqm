@@ -1,0 +1,67 @@
+CREATE TABLE release_subscription (
+    entry_id INTEGER NOT NULL PRIMARY KEY REFERENCES mangas(_id) ON DELETE CASCADE,
+    mode TEXT NOT NULL DEFAULT 'AUTO',
+    availability INTEGER NOT NULL DEFAULT 1,
+    reminder INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE release_check (
+    entry_id INTEGER NOT NULL PRIMARY KEY REFERENCES mangas(_id) ON DELETE CASCADE,
+    last_attempt INTEGER NOT NULL DEFAULT 0,
+    last_success INTEGER NOT NULL DEFAULT 0,
+    next_check INTEGER NOT NULL DEFAULT 0,
+    failures INTEGER NOT NULL DEFAULT 0,
+    metadata_at INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE release_notice (
+    item_id INTEGER NOT NULL PRIMARY KEY REFERENCES chapters(_id) ON DELETE CASCADE,
+    entry_id INTEGER NOT NULL REFERENCES mangas(_id) ON DELETE CASCADE,
+    created_at INTEGER NOT NULL,
+    delivered_at INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX release_notice_pending ON release_notice(delivered_at, created_at);
+
+INSERT INTO release_check(entry_id, last_success) SELECT DISTINCT manga_id, 1 FROM chapters;
+
+CREATE TABLE chapter_schedule (
+    entry_id INTEGER NOT NULL REFERENCES mangas(_id) ON DELETE CASCADE,
+    number REAL NOT NULL,
+    release_at INTEGER NOT NULL,
+    name TEXT NOT NULL DEFAULT '',
+    PRIMARY KEY(entry_id, number)
+);
+
+INSERT OR IGNORE INTO release_notice(item_id, entry_id, created_at, delivered_at)
+SELECT i._id, i.manga_id, i.date_fetch, 1 FROM chapters i JOIN mangas p ON p._id = i.manga_id
+WHERE i.date_fetch > (strftime('%s','now') - 30 * 86400) * 1000
+AND p.favorite = 1 AND i.date_fetch > p.date_added;
+
+DROP VIEW updatesView;
+CREATE VIEW updatesView AS
+SELECT
+    mangas._id AS mangaId,
+    mangas.title AS mangaTitle,
+    chapters._id AS chapterId,
+    chapters.name AS chapterName,
+    chapters.scanlator,
+    chapters.read,
+    chapters.bookmark,
+    chapters.last_page_read,
+    mangas.source,
+    mangas.favorite,
+    mangas.thumbnail_url AS thumbnailUrl,
+    mangas.cover_last_modified AS coverLastModified,
+    chapters.date_upload AS dateUpload,
+    chapters.date_fetch AS datefetch
+FROM mangas JOIN chapters
+ON mangas._id = chapters.manga_id
+WHERE (mangas.favorite = 1 AND chapters.date_fetch > mangas.date_added)
+OR (mangas.favorite = 0 AND chapters.date_fetch > COALESCE((
+    SELECT MIN(history.last_read)
+    FROM history JOIN chapters followed ON followed._id = history.chapter_id
+    WHERE followed.manga_id = mangas._id AND history.last_read > 0
+), 9223372036854775807))
+OR EXISTS(SELECT 1 FROM release_notice r WHERE r.item_id = chapters._id)
+ORDER BY date_fetch DESC;
+
