@@ -1,0 +1,39 @@
+CREATE TABLE catalog_cache (
+    cache_key TEXT NOT NULL PRIMARY KEY,
+    payload TEXT NOT NULL,
+    fetched_at INTEGER NOT NULL,
+    is_detail INTEGER NOT NULL
+);
+
+CREATE TABLE source_links (
+    provider TEXT NOT NULL,
+    catalog_id INTEGER NOT NULL,
+    source_id INTEGER NOT NULL,
+    source_url TEXT NOT NULL,
+    PRIMARY KEY (provider, catalog_id)
+);
+
+findCache:
+SELECT * FROM catalog_cache WHERE cache_key = ?;
+
+putCache:
+INSERT OR REPLACE INTO catalog_cache(cache_key, payload, fetched_at, is_detail) VALUES (?, ?, ?, ?);
+
+trimDetails:
+DELETE FROM catalog_cache WHERE is_detail = 1 AND cache_key NOT IN (
+    SELECT cache_key FROM catalog_cache WHERE is_detail = 1 ORDER BY fetched_at DESC LIMIT 300
+);
+
+trimFeeds:
+DELETE FROM catalog_cache WHERE is_detail = 0 AND cache_key NOT IN (
+    SELECT cache_key FROM catalog_cache WHERE is_detail = 0 ORDER BY fetched_at DESC LIMIT 100
+);
+
+findLink:
+SELECT * FROM source_links WHERE provider = ? AND catalog_id = ?;
+
+putLink:
+INSERT OR REPLACE INTO source_links(provider, catalog_id, source_id, source_url) VALUES (?, ?, ?, ?);
+
+removeLink:
+DELETE FROM source_links WHERE provider = ? AND catalog_id = ?;

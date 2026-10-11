@@ -1,0 +1,24 @@
+{
+  "schema": 4,
+  "versionName": "0.42.0.3",
+  "versionCode": 227,
+  "channel": "recommended",
+  "applicationId": "it.owouwuiwi.nyanime",
+  "assetPrefix": "Nyanime-Production",
+  "certificateSha256": "7DD368792C4D94D1186CC4B0E2AD6C2F34FCE5DD37F19C6A1BAB45106FFC136B",
+  "sha256": {
+    "Nyanime-Production-0.42.0.3-arm64-v8a.apk": "62f4101341ec4dcd3fb50d14735eb7adc660e3bf723545c1e86ec55967a86cae",
+    "Nyanime-Production-0.42.0.3-armeabi-v7a.apk": "dbbca103e116642fe9dbc1a40c9021f3037c079851e3151a9fdc596f1c77f041",
+    "Nyanime-Production-0.42.0.3-universal.apk": "5640f2ea7352394d9b3590452d9c556f1cbf708586527d2edd66a02fe2abe99d",
+    "Nyanime-Production-0.42.0.3-x86.apk": "e90bed47c124f0e757206beeec1fc9731537a70bcaaec813bd20d6452bffc939",
+    "Nyanime-Production-0.42.0.3-x86_64.apk": "4db956f22ac8bcbbe2fa914ef512a04b1df88822c2ea9f41491e30a9f1068f89"
+  },
+  "sourceRevision": "1130d1d31bc2336554e345c8a240cf3d1a8efa92",
+  "sourceSha256": {
+    "Nyanime-Source-0.42.0.3.zip": "1e93c70f1ef4332177be5293c9dbc733b313bbff0c3f6b7f8aba047019866a14",
+    "Nyanime-Native-Manifest-0.42.0.3.json": "204b531417b7b9e7c198ccda3a06651a60ce5d94dc6f708666f9de259b691e7e",
+    "Nyanime-Native-0.42.0.2-player.tar.gz": "ab16c22de3da24595a38a8e94f05ea3a5c112f63e63d4a0df12b46625737cd3b",
+    "Nyanime-Native-0.42.0.2-supplemental.tar.gz": "c822fa8fe4e81f82d4135f1b8ea944fe8f6dad1f1a311ef92e354c58a16dc210"
+  },
+  "nativeManifest": "Nyanime-Native-Manifest-0.42.0.3.json"
+}
