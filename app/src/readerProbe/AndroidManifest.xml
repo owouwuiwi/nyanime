@@ -1,0 +1,6 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application android:testOnly="true">
+        <activity android:name="it.lorelore.nyanime.reader.ReaderUiProbeActivity"
+            android:exported="true" android:label="Fictional reader verification" />
+    </application>
+</manifest>

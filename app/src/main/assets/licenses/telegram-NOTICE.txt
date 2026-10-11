@@ -1,0 +1,16 @@
+Nyanime Cloud uses the official Telegram TDLib engine, including its original
+JSON/JNI Java client. Nyanime is an independent app using the Telegram API.
+
+TDLib: https://github.com/tdlib/td
+Source revision: 42e6a5259551178d1dab54a22ad96d14bd906e20
+Copyright (c) 2014-2026, Telegram Systems LLP.
+License: Boost Software License 1.0 (included separately).
+
+OpenSSL: https://github.com/openssl/openssl
+Version: 3.5.9
+Source tag object: d0ca66a1abe52545f14eca635c648932fcde5615
+Copyright (c) The OpenSSL Project Authors and contributors.
+License: Apache License 2.0 (included separately).
+
+The native libraries are built from pinned upstream source with Android NDK
+27.1.12297006 and static C++/OpenSSL linkage. No full Telegram client fork is bundled.
