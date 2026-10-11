@@ -1,0 +1,13 @@
+// Windows local builds: exporting these large class directories costs more than
+// compiling a small edit. Keep execution, output tracking and Kotlin IC intact.
+// JARs, resources, tests and other modules retain the normal task output cache.
+gradle.projectsEvaluated {
+    def app = rootProject.findProject(':app')
+    if (app != null) {
+        app.tasks.matching {
+            it.name in ['compilePreviewKotlin', 'transformPreviewClassesWithAsm']
+        }.configureEach { task ->
+            task.outputs.doNotCacheIf('Local Windows class directory export is expensive') { true }
+        }
+    }
+}
