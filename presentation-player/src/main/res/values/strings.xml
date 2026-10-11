@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="player_ui_back">Back</string>
+    <string name="player_ui_settings">Settings</string>
+    <string name="player_ui_lock">Lock controls</string>
+    <string name="player_ui_unlock">Unlock controls</string>
+    <string name="player_ui_quality">Quality</string>
+    <string name="player_ui_subtitles">Subtitles</string>
+    <string name="player_ui_subtitle_settings">Subtitle settings</string>
+    <string name="player_ui_exit_fullscreen">Exit full screen</string>
+    <string name="player_ui_fullscreen">Full screen</string>
+    <string name="player_ui_seek">Playback position</string>
+    <string name="player_ui_live">Live</string>
+    <string name="player_ui_previous">Previous</string>
+    <string name="player_ui_next">Next</string>
+    <string name="player_ui_pause">Pause</string>
+    <string name="player_ui_play">Play</string>
+    <string name="player_ui_more">More controls</string>
+    <string name="player_ui_chapters">Chapters</string>
+    <string name="player_ui_queue">Episodes</string>
+    <string name="player_ui_resize">Video fit</string>
+    <string name="player_ui_cast">Cast</string>
+    <string name="player_ui_pip">Picture-in-picture</string>
+    <string name="player_ui_autoplay_on">Autoplay: on</string>
+    <string name="player_ui_autoplay_off">Autoplay: off</string>
+    <string name="player_ui_sleep_timer">Sleep timer</string>
+    <string name="player_ui_close">Close</string>
+    <string name="player_ui_volume">Volume</string>
+    <string name="player_ui_brightness">Brightness</string>
+</resources>

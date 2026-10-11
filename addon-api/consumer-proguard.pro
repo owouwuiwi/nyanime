@@ -1,0 +1,1 @@
+-keep class nyanime.addon.api.** { *; }

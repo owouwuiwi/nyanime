@@ -1,0 +1,27 @@
+DROP VIEW animeupdatesView;
+CREATE VIEW animeupdatesView AS
+SELECT
+    animes._id AS animeId,
+    animes.title AS animeTitle,
+    episodes._id AS episodeId,
+    episodes.name AS episodeName,
+    episodes.scanlator,
+    episodes.seen,
+    episodes.bookmark,
+    episodes.fillermark,
+    episodes.last_second_seen,
+    episodes.total_seconds AS totalSeconds,
+    animes.source,
+    animes.favorite,
+    animes.thumbnail_url AS thumbnailUrl,
+    animes.cover_last_modified AS coverLastModified,
+    episodes.date_upload AS dateUpload,
+    episodes.date_fetch AS datefetch
+FROM animes JOIN episodes ON animes._id = episodes.anime_id
+WHERE (animes.favorite = 1 AND episodes.date_fetch > animes.date_added)
+OR (animes.favorite = 0 AND episodes.date_fetch > COALESCE((
+    SELECT MIN(history.last_seen)
+    FROM animehistory history JOIN episodes watched ON watched._id = history.episode_id
+    WHERE watched.anime_id = animes._id AND history.last_seen > 0
+), 9223372036854775807))
+ORDER BY date_fetch DESC;

@@ -1,0 +1,83 @@
+CREATE TABLE release_subscription (
+    entry_id INTEGER NOT NULL PRIMARY KEY REFERENCES animes(_id) ON DELETE CASCADE,
+    mode TEXT NOT NULL DEFAULT 'AUTO',
+    availability INTEGER NOT NULL DEFAULT 1,
+    reminder INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE release_check (
+    entry_id INTEGER NOT NULL PRIMARY KEY REFERENCES animes(_id) ON DELETE CASCADE,
+    last_attempt INTEGER NOT NULL DEFAULT 0,
+    last_success INTEGER NOT NULL DEFAULT 0,
+    next_check INTEGER NOT NULL DEFAULT 0,
+    failures INTEGER NOT NULL DEFAULT 0,
+    metadata_at INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE release_notice (
+    item_id INTEGER NOT NULL PRIMARY KEY REFERENCES episodes(_id) ON DELETE CASCADE,
+    entry_id INTEGER NOT NULL REFERENCES animes(_id) ON DELETE CASCADE,
+    created_at INTEGER NOT NULL,
+    delivered_at INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX release_notice_pending ON release_notice(delivered_at, created_at);
+
+INSERT INTO release_check(entry_id, last_success) SELECT DISTINCT anime_id, 1 FROM episodes;
+
+CREATE TABLE airing_event (
+    entry_id INTEGER NOT NULL REFERENCES animes(_id) ON DELETE CASCADE,
+    episode INTEGER NOT NULL,
+    airing_at INTEGER NOT NULL,
+    catalog_id INTEGER NOT NULL,
+    reminded_at INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY(entry_id, episode)
+);
+CREATE INDEX airing_event_date ON airing_event(airing_at);
+CREATE TABLE airing_cache (
+    entry_id INTEGER NOT NULL PRIMARY KEY REFERENCES animes(_id) ON DELETE CASCADE,
+    verified_at INTEGER NOT NULL DEFAULT 0,
+    attempted_at INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'UNRESOLVED',
+    total_episodes INTEGER NOT NULL DEFAULT 0,
+    finished INTEGER NOT NULL DEFAULT 0
+);
+
+INSERT OR IGNORE INTO release_notice(item_id, entry_id, created_at, delivered_at)
+SELECT i._id, i.anime_id, i.date_fetch, 1 FROM episodes i JOIN animes p ON p._id = i.anime_id
+WHERE i.date_fetch > (strftime('%s','now') - 30 * 86400) * 1000
+AND p.favorite = 1 AND i.date_fetch > p.date_added;
+
+DROP VIEW animeupdatesView;
+CREATE VIEW animeupdatesView AS
+SELECT
+    animes._id AS animeId,
+    animes.title AS animeTitle,
+    episodes._id AS episodeId,
+    episodes.name AS episodeName,
+    episodes.scanlator,
+    episodes.seen,
+    episodes.bookmark,
+    episodes.fillermark,
+    episodes.last_second_seen,
+    episodes.total_seconds AS totalSeconds,
+    animes.source,
+    animes.favorite,
+    animes.thumbnail_url AS thumbnailUrl,
+    animes.cover_last_modified AS coverLastModified,
+    episodes.date_upload AS dateUpload,
+    episodes.date_fetch AS datefetch
+FROM animes JOIN episodes
+ON animes._id = episodes.anime_id
+WHERE (animes.favorite = 1 AND episodes.date_fetch > animes.date_added)
+OR (animes.favorite = 0 AND episodes.date_fetch > COALESCE((
+    SELECT MIN(history.last_seen)
+    FROM animehistory history JOIN episodes watched ON watched._id = history.episode_id
+    WHERE watched.anime_id = animes._id AND history.last_seen > 0
+), 9223372036854775807))
+OR EXISTS(SELECT 1 FROM release_notice r WHERE r.item_id = episodes._id)
+ORDER BY date_fetch DESC;
+
+
+INSERT OR IGNORE INTO airing_event(entry_id,episode,airing_at,catalog_id)
+SELECT _id,(viewer >> 8) & 65535,((viewer >> 24) & 4294967295) * 1000,0 FROM animes
+WHERE ((viewer >> 8) & 65535) > 0 AND ((viewer >> 24) & 4294967295) > 0;

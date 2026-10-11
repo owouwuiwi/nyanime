@@ -1,0 +1,16 @@
+Nyanime Player Presentation
+Copyright (c) 2026 owouwuiwi and the respective Nyanime contributors.
+
+Original host contracts, adapters and helpers are licensed under Apache License,
+Version 2.0. The selected FLOW UI subtree and its scoped resources remain
+GPL-3.0-only; see FlowPlayerStyle-LICENSE.txt and FlowPlayerStyle-NOTICE.txt.
+This notice does not relicense the copied/modified upstream UI code.
+
+AndroidX Compose and Material3, including Material icon implementations,
+Copyright The Android Open Source Project and their respective contributors.
+Their Apache License 2.0 text is provided in PlayerPresentation-Apache-2.0.txt;
+the application dependency inventory retains applicable component notices.
+
+This notice does not change any other application or native-library license.
+Distribution of the combined application must also satisfy its applicable
+GPL and other third-party terms, including corresponding source requirements.

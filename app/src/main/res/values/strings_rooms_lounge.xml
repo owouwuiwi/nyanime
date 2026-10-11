@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="room_lounge_title">The lounge</string>
+    <string name="room_lounge_people">Participants · %1$d/8</string>
+    <string name="room_lounge_entry_hint">Create a room or join your friends. Watch, read and talk together.</string>
+    <string name="room_lounge_invite">Invite</string>
+    <string name="room_lounge_shared_hint">Friends can play, pause and seek together.</string>
+    <string name="room_lounge_wait_title">Wait for everyone</string>
+    <string name="room_lounge_wait_hint">Pause the room while someone loads. Leave off to keep interruptions local.</string>
+    <string name="room_lounge_connection">Connection</string>
+    <string name="room_lounge_close_hint">Everyone will leave this room. You can create another whenever you want.</string>
+    <string name="room_lounge_leave_hint">Your friends can stay. This room’s messages will disappear from your phone.</string>
+    <string name="room_lounge_now">Watching together</string>
+    <string name="room_lounge_live">Live together</string>
+    <string name="room_lounge_change_video">Choose a video</string>
+    <string name="room_lounge_empty_seat">A seat for a friend</string>
+    <string name="room_lounge_share_hint">Send the invitation or let your friend enter this code.</string>
+    <string name="room_lounge_host">Host</string>
+    <string name="room_lounge_annotations">Drawings and notes</string>
+    <string name="room_lounge_annotations_hint">Draw, leave a note or manage shared annotations.</string>
+    <string name="room_lounge_page_short">Page %1$d / %2$d</string>
+    <string name="room_lounge_reading_options">Reading options</string>
+    <string name="room_lounge_create_tab">Create</string>
+    <string name="room_lounge_join_tab">Join</string>
+</resources>
