@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="reader_back">Back</string>
+    <string name="reader_close">Close</string>
+    <string name="reader_bookmark">Bookmark this chapter</string>
+    <string name="reader_unbookmark">Remove chapter bookmark</string>
+    <string name="reader_read">Read</string>
+    <string name="reader_chapters">Chapters</string>
+    <string name="reader_mode">Mode</string>
+    <string name="reader_quality">Quality</string>
+    <string name="reader_more">More</string>
+    <string name="reader_current_chapter">Reading now</string>
+    <string name="reader_this_manga">This manga</string>
+    <string name="reader_all_manga">Default for all</string>
+    <string name="reader_use_global">Use the default setting</string>
+    <string name="reader_quality_off">Original image</string>
+    <string name="reader_quality_anime4k">Reconstruct lines and detail. Requires a compatible GPU.</string>
+    <string name="reader_quality_original_safe">Enhancement is optional. The original stays visible while processing; page position and zoom stay unchanged.</string>
+    <string name="reader_quality_cugan">Reconstruct lines and fine detail. Processes visible regions on the CPU.</string>
+    <string name="reader_quality_esrgan">Restore illustrated images. Processes visible regions on the CPU.</string>
+    <string name="reader_model_download">Download · %1$s</string>
+    <string name="reader_model_remove">Remove model</string>
+    <string name="reader_model_cancel">Cancel</string>
+    <string name="reader_model_progress">%1$s / %2$s</string>
+    <string name="reader_model_error">Could not download or verify the model. Check connection and free space, then try again. The original is still available.</string>
+    <string name="reader_quality_retry">Try enhancement again</string>
+    <string name="reader_color_settings">Colour and reader settings</string>
+    <string name="reader_quality_compare">Show the original for comparison</string>
+    <string name="reader_quality_original">Original</string>
+    <string name="reader_quality_show_enhanced">Return to the enhanced image</string>
+    <string name="reader_quality_working">Processing visible regions. The original remains available.</string>
+    <string name="reader_quality_ready">Enhanced regions are ready. Compare without changing page or zoom.</string>
+    <string name="reader_quality_unavailable">Enhancement is unavailable for this image or device. You are still reading the original.</string>
+    <string name="reader_quality_memory">There is not enough memory for enhancement. The original remains available.</string>
+</resources>

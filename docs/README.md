@@ -1,0 +1,127 @@
+# Documentazione Nyanime
+
+Le guide descrivono il codice presente nel repository. Alcune funzioni dipendono
+da un'estensione compatibile, da un servizio esterno o dalle capacità del dispositivo.
+I documenti tecnici in inglese conservano i nomi delle API e dei componenti.
+
+## Novità recenti
+
+La versione 0.55 rinnova [Libreria e schede anime/manga](library-and-details.md),
+con ripresa, tracking personale, categorie e indice dei contenuti, e il
+[lettore manga](reader-renewal.md), con controlli compatti e miglioramento
+facoltativo delle tavole. EPUB/TXT e fonti Romanzi appartengono alla [consegna successiva in lavorazione](novel-reader.md).
+L’importazione [Legado è rinviata](legado-roadmap.md) e non fa parte di questa consegna.
+
+La versione 0.53 aggiunge il [recupero compatto su Telegram](telegram-sync-packing.md):
+contenitori cifrati, accordo fra i dispositivi e accorpamento delle modifiche già sostituite.
+
+La versione 0.52.1.0 rende visibile il [lavoro del sync e della pulizia Telegram](telegram-sync-maintenance.md),
+con progressi persistenti e meno copie complete ridondanti.
+
+La transizione 0.52.0.1 prepara i [checkpoint e le catene di patch](ota-release-graph.md),
+preservando l’accesso agli APK completi per i vecchi aggiornatori. Le misure e i
+profili locali sono descritti nella [guida alle build](local-build-performance.md).
+
+La versione 0.51 aggiunge il [pannello di tracking](tracking-panel.md) e i
+[controlli delle notifiche per titolo](release-alert-controls.md), con avviso
+in Home quando Android blocca la consegna.
+
+La versione 0.50 aggiunge gli [aggiornamenti differenziali verificati](delta-updates.md),
+con download completo di ripiego e compatibilità con gli aggiornatori precedenti.
+
+- [Studio delle fonti e scambio](source-studio.md)
+- [Contratto opzionale delle fonti Romanzi](novel-sources.md)
+- [Consensi Telegram e componenti documenti delle fonti](source-telegram-access.md)
+- [Backup remoti](remote-backups.md)
+- [Compatibilità Syncplay](syncplay-compatibility.md)
+- [Attenzione alla visione](viewing-attention.md)
+- [Presentazione del player e attribuzioni](player-presentation.md)
+- [Migrazione dalla prova NyanimeB](normal-migration.md)
+
+## Per chi usa l'app
+
+| Guida | Contenuto |
+| --- | --- |
+| [Pannello di tracking](tracking-panel.md) | Stati, progresso, voti reali, dati personali senza account, salvataggio e Annulla. |
+| [Invii ai tracker](tracking-outbox.md) | Coda persistente, limiti dei servizi, conflitti e Annulla per campo. |
+| [Notifiche per titolo](release-alert-controls.md) | Silenziare singoli titoli, filtro Segui e controlli Android. |
+| [Condivisione in Nyanime](content-sharing.md) | Schede, episodi con minutaggio e capitoli con pagina, senza logica specifica delle fonti. |
+| [Primi passi e FAQ](getting-started.md) | Installazione, aggiornamenti, estensioni, preferenze e problemi comuni. |
+| [Guida di benvenuto](welcome.md) | Primo avvio, cartella automatica, permessi facoltativi e ripristino. |
+| [Versioni e aggiornamenti](versioning.md) | Numerazione a quattro componenti, scelta dei canali e compatibilità OTA. |
+| [Aggiornamenti e storico](update-history.md) | Versioni intermedie, note suddivise per categoria e cronologia completa anche offline. |
+| [Nyanime Cloud](telegram-cloud.md) | Account Telegram condiviso, backup privati, ripristino e configurazione di sviluppo. |
+| [Avanzamento e pulizia del sync](telegram-sync-maintenance.md) | Contatori verificati, attese, ripresa e conservazione dello storico. |
+| [Recupero compatto](telegram-sync-packing.md) | Formato a blocchi, migrazione dei dispositivi e verifiche della compattazione. |
+| [Sincronizzazione personale](cloud-sync-protocol.md) | Associazione dei dispositivi, dati portabili, cifratura, conflitti e verifiche. |
+| [Trasferimento del repository](repository-migration.md) | Nuovo proprietario, continuità degli aggiornamenti e dei collegamenti. |
+| [Aiuto](support.md) | Archiviazione, migrazione, tracker e risoluzione dei problemi. |
+| [Privacy](privacy.md) | Dati locali, connessioni esterne e controlli disponibili. |
+| [Tutte le funzionalità](features.md) | Catalogo delle funzioni video, manga, librerie, rete e dati. |
+| [Interfaccia](nyanime-ui.md) | ModernUI, ritorno alla legacy, tema manga e copertine. |
+| [Smart e timer](player-startup-and-sleep.md) | Avvio di Anime4K, timer, autoplay e stanze. |
+| [Manga a due pagine](two-page-reading.md) | Coppie in verticale e orizzontale, offset per capitolo, zoom e backup. |
+| [AniSkip](aniskip.md) | Attivazione, associazione del titolo e segmenti disponibili. |
+| [Guide episodi](episode-guides.md) | Classificazioni facoltative, associazione, numerazione, filtri e salto filler. |
+| [Novità Nyanime](../CHANGELOG.md) | Modifiche del fork e collegamento allo storico upstream. |
+
+## Funzioni e architettura
+
+Il nuovo codice segue la [migrazione graduale verso `it.lorelore.*`](package-migration.md),
+preservando aggiornamenti, dati e attribuzioni.
+
+Per creare un'estensione, usa il [template pubblico](https://github.com/owouwuiwi/nyanime-extension-template)
+e l'unica [guida completa in inglese](https://owouwuiwi.github.io/example/guide/): API, esempi, Home, compilazione, firma, installazione e verifica.
+Il progetto segue il modello [bring your own content](responsible-use.md).
+
+| Guida | Contenuto |
+| --- | --- |
+| [AnimeSchedule facoltativo](animeschedule.md) | Collegamento guidato, RAW/SUB/DUB, limiti e widget. |
+| [Uscite e calendario](release-monitor.md) | Segui, avvisi, controlli mirati, date annunciate e recupero. |
+| [Primo piano](title-details.md) | Schede anime e manga, ripresa, gestione di episodi e capitoli e transizioni. |
+| [Aggiornamento delle schede](detail-freshness.md) | Verifiche mirate, revisioni delle fonti, cache e protezione dalle risposte obsolete. |
+| [Informazioni sulle opere](work-information.md) | Approfondimenti facoltativi senza account, cataloghi, persone e associazioni. |
+| [Atlante](unified-search.md) | Ricerca unificata, categorie, filtri, navigazione e limiti condivisi. |
+| [Ricerca intelligente](smart-title-search.md) | Motore comune, suggerimenti, limiti, privacy e licenza SymSpellKt. |
+| [Home e scoperta](discovery-home.md) | Cataloghi, associazione alle fonti, calendario, cache e ripresa. |
+| [Home Panorama](home-discovery.md) | Carosello circolare, ripresa compatta, caricamento e interazioni. |
+| [Fluidità](ui-fluidity.md) | Rendering, immagini, aggiornamenti locali e prove di scorrimento su dispositivo. |
+| [Store](extension-store.md) | Inventario, Installa o Importa, fiducia e aggiornamenti delle estensioni. |
+| [Importazione manuale](rin-manual-import.md) | APK e vecchi archivi, senza catalogo obbligatorio. |
+| [Interoperabilità delle estensioni](extension-interoperability.md) | Contratti, capacità facoltative, SDK, identità e verifiche. |
+| [Estensioni Notizie](news-extensions.md) | Fonti separate, lettore nativo, articoli salvati e avvisi facoltativi. |
+| [Addon opzionali](addons.md) | Modalità installabili, logo e attivazione dichiarati, isolamento, tema e aggiornamenti. |
+| [API Home anime](extension-home-api.md) | Contratto dichiarativo generico delle estensioni. |
+| [API Home manga](manga-home-api.md) | Sezioni manga, capitoli, classifiche e identità degli elementi. |
+| [ID per il tracking](extension-tracking-metadata.md) | Contratto facoltativo e generico per identificare titoli senza indovinare la stagione. |
+| [Dall'anime al manga](anime-manga-continuity.md) | Relazioni per ID, copie verificate, archi e limiti dei checkpoint. |
+| [Anime4K Smart](anime4k-smart.md) | Misure di rendering, preset, fallback e shader. |
+| [Guarda insieme](watch-together.md) | Stanze cifrate, sincronizzazione, inviti e verifiche. |
+| [Protezione laterale del display](privacy-display.md) | Architettura, requisiti hardware e verifica fisica. |
+| [Cast](casting.md) | Google Cast, UPnP/DLNA, telecomando, relay locale e limiti. |
+| [TV in diretta](live-tv.md) | Home TV, guida, player live, ricerca, stanze e contratto generico delle estensioni. |
+| [Affidabilità](app-reliability.md) | Ricerca, download, backup, copertine e prestazioni. |
+| [Ripartenza dopo un crash](crash-recovery.md) | Riapertura, dettagli locali e condivisione volontaria del rapporto. |
+| [Motore di download](download-components.md) | Accelerazione adattiva, ripresa verificata, esecuzione Android e componenti riutilizzati. |
+| [Aggiornamenti delle estensioni](extension-update-alerts.md) | Frequenza dei controlli e deduplicazione delle notifiche. |
+| [Cataloghi delle estensioni](extension-catalogues.md) | Importazione e collegamento esplicito degli APK locali agli aggiornamenti. |
+| [Regressioni del player](stability-regressions.md) | Verifiche native e del ciclo di vita del player. |
+| [Verifica del 6 ottobre](regression-audit-2026-10-06.md) | Correzioni di Home, tracking e notifiche, controlli eseguiti e limiti della prova. |
+
+## Sviluppo e provenienza
+
+- [Contribuire e compilare](../CONTRIBUTING.md).
+- [Traduzioni](../i18n/README.md).
+- [Benchmark](../macrobenchmark/README.md): misurazioni dedicate.
+- [Dipendenze conservate localmente](../vendor/README.md).
+- [Manutenzione FFmpeg e build nativa](../tools/native/README.md).
+- [Crediti e licenze](credits.md).
+- [Integrazione Mihon](mihon-integration.md): riferimento stabile, adattamenti, compatibilità e verifiche.
+- [Licenza e copyright Nyanime](licensing.md).
+- [Verifica delle attribuzioni del 16 ottobre 2026](license-audit-2026-10-16.md): inventario, testi offline, sorgenti pubblicati e limiti dei controlli.
+- [Changelog storico AniYomi](history/aniyomi-changelog.md): archivio upstream,
+  non elenco delle release Nyanime.
+
+- [Distribuzioni e aggiornamenti delle estensioni](extension-distributions.md)
+
+- [Nyanime RIN: formato, migrazione e aggiornamenti](rin.md)

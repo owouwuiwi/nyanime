@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cloud_maintenance_title">Cura dello storico</string>
+    <string name="cloud_work_preparing">Preparazione dei dati</string>
+    <string name="cloud_work_receiving">Ricezione delle modifiche</string>
+    <string name="cloud_work_sending">Invio delle modifiche</string>
+    <string name="cloud_work_applying">Controllo delle voci locali</string>
+    <string name="cloud_work_checkpoint">Invio della copia di recupero</string>
+    <string name="cloud_work_restoring">Verifica delle parti di recupero</string>
+    <string name="cloud_unit_pages">pagine ricevute</string>
+    <string name="cloud_unit_packets">pacchetti confermati</string>
+    <string name="cloud_unit_parts">parti</string>
+    <string name="cloud_unit_items">voci controllate</string>
+    <string name="cloud_work_count_total">%1$d / %2$d %3$s</string>
+    <string name="cloud_work_count">%1$d %2$s · totale ancora sconosciuto</string>
+    <string name="cloud_maintenance_paused">Manutenzione in pausa. Lo stato della sincronizzazione è indicato sopra.</string>
+    <string name="cloud_maintenance_copies">In attesa di due copie di recupero complete.</string>
+    <string name="cloud_maintenance_rate">Telegram richiede di attendere. Le verifiche completate sono salvate.</string>
+    <string name="cloud_maintenance_network">In attesa della connessione. Le verifiche completate sono salvate.</string>
+    <string name="cloud_maintenance_proof">Un controllo di sicurezza non è terminato. I dati non verificati restano protetti.</string>
+    <string name="cloud_maintenance_none">Passaggio completato: nessun messaggio eliminabile.</string>
+    <string name="cloud_maintenance_parts">Parti di recupero verificate: %1$d / %2$d</string>
+    <string name="cloud_maintenance_anchors">Prove dei dispositivi verificate: %1$d / %2$d</string>
+    <string name="cloud_maintenance_devices">Dispositivi compatibili: %1$d / %2$d</string>
+    <string name="cloud_maintenance_changes">%1$d modifiche controllate</string>
+    <string name="cloud_maintenance_examined">Messaggi esaminati nel passaggio: %1$d</string>
+    <string name="cloud_maintenance_removed_pass">Rimozioni confermate nel passaggio: %1$d</string>
+    <string name="cloud_maintenance_protected">Protetti: %1$d · Con meno di 7 giorni: %2$d</string>
+    <string name="cloud_maintenance_activity">Ultima attività completata: %1$s</string>
+</resources>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- FLOW UI subset, GPL-3.0-only; modified for Nyanime. -->
+<resources>
+    <string name="flow_close">Chiudi</string>
+    <string name="flow_pause">Pausa</string>
+    <string name="flow_play">Riproduci</string>
+    <string name="flow_autoplay">Riproduzione automatica</string>
+    <string name="flow_comments">Commenti</string>
+    <string name="flow_settings">Impostazioni</string>
+    <string name="flow_description">Descrizione</string>
+    <string name="flow_filter_hd">HD</string>
+    <string name="flow_filter_4k">4K</string>
+    <string name="flow_sb_submit_dialog_title">Invia segmento</string>
+    <string name="flow_back">Indietro</string>
+    <string name="flow_sleep_timer">Timer di sospensione</string>
+    <string name="flow_btn_minimize">Riduci</string>
+    <string name="flow_captions">Sottotitoli</string>
+    <string name="flow_pip_mode">Picture-in-Picture</string>
+    <string name="flow_previous_video">Video precedente</string>
+    <string name="flow_next_video">Video successivo</string>
+    <string name="flow_fullscreen">Schermo intero</string>
+    <string name="flow_resize_to">Ridimensiona: %1$s</string>
+    <string name="flow_resize_fit">Adatta</string>
+    <string name="flow_resize_fill">Riempi</string>
+    <string name="flow_resize_zoom">Ingrandisci</string>
+    <string name="flow_playlist_queue">Coda della playlist</string>
+    <string name="flow_cast_to_tv">Trametti alla TV</string>
+    <string name="flow_player_live_label">LIVE</string>
+    <string name="flow_player_lock_controls">Blocca controlli</string>
+    <string name="flow_player_unlock_controls">Sblocca controlli</string>
+    <string name="flow_live_chat">Chat live</string>
+    <string name="flow_player_brightness_auto">Auto</string>
+    <string name="flow_player_gesture_level_percent">%1$d%%</string>
+    <string name="flow_player_replay">Ripeti</string>
+    <string name="flow_player_time_separator">/</string>
+    <string name="flow_quality_badge_qhd">QHD</string>
+    <string name="flow_quality_badge_fhd">FHD</string>
+    <string name="flow_quality_badge_sd">SD</string>
+    <string name="flow_quality_badge_height_template">%1$dp</string>
+    <string name="flow_player_seek_seconds_forward">+%1$d</string>
+    <string name="flow_player_seek_seconds_back">-%1$d</string>
+</resources>

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="playback_scrub_description">Vai a %1$s, spostamento %2$s</string>
+</resources>

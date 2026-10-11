@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cinema_title">Cinema in headphones</string>
+    <string name="cinema_description">Virtual surround for 5.1 and 7.1 tracks. Put on headphones and compare while listening.</string>
+    <string name="cinema_preference">Use virtual surround with headphones and compatible tracks. Switch back to Original in the player’s Audio menu.</string>
+    <string name="cinema_original">Original</string>
+    <string name="cinema_mode">Cinema</string>
+    <string name="cinema_active">Cinema is on. Dialogue stays in front; surround sounds are placed around you.</string>
+    <string name="cinema_preparing">Preparing headphone audio…</string>
+    <string name="cinema_connect">Connect headphones to use Cinema. The original audio is playing for now.</string>
+    <string name="cinema_unsupported">This track has no supported 5.1 or 7.1 layout. Original audio stays on; try another audio track.</string>
+    <string name="cinema_channels">Set audio channels to Automatic to use Cinema. Your current channel setting is unchanged.</string>
+    <string name="cinema_custom_filters">Custom audio filters are active. Turn them off before using Cinema; your filters stay unchanged.</string>
+    <string name="cinema_unavailable">Cinema could not start. Original audio is on. Select Cinema to try again.</string>
+</resources>

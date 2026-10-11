@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="novel_group_other">Altri capitoli</string>
+    <string name="novel_group_open">Espanso</string>
+    <string name="novel_group_closed">Chiuso</string>
+    <string name="novel_home_sources">Esplora le tue fonti</string>
+    <string name="novel_home_partial">Alcune sezioni non sono state aggiornate.</string>
+    <string name="novel_home_empty_section">Non ci sono ancora titoli in questa sezione.</string>
+</resources>
