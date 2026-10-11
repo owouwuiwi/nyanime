@@ -1,0 +1,147 @@
+CREATE TABLE community_capture(enabled INTEGER NOT NULL);
+INSERT INTO community_capture VALUES(0);
+CREATE TABLE community_changes(
+ seq INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+ source INTEGER NOT NULL, title_url TEXT NOT NULL, item_url TEXT NOT NULL,
+ title TEXT NOT NULL, item TEXT NOT NULL, artwork TEXT NOT NULL,
+ favorite INTEGER NOT NULL, seen INTEGER NOT NULL, bookmark INTEGER NOT NULL,
+ position INTEGER NOT NULL, duration INTEGER NOT NULL, number REAL NOT NULL,
+ history_at INTEGER NOT NULL, categories TEXT NOT NULL, deleted INTEGER NOT NULL,
+ fields TEXT NOT NULL DEFAULT 'all',
+ changed_at INTEGER NOT NULL DEFAULT (CAST(strftime('%s','now') AS INTEGER)*1000 + CAST(substr(strftime('%f','now'),4,3) AS INTEGER)),
+ UNIQUE(source,title_url,item_url)
+);
+CREATE TRIGGER community_title_update AFTER UPDATE OF favorite ON mangas
+WHEN (SELECT enabled FROM community_capture)=1 AND new.is_syncing=0 AND new.favorite!=old.favorite
+BEGIN INSERT OR REPLACE INTO community_changes(source, title_url, item_url, title, item, artwork, favorite, seen, bookmark, position, duration, number, history_at, categories, deleted) SELECT new.source, new.url, '', new.title, '', coalesce(new.thumbnail_url,''), new.favorite, 0, 0, 0, 0, -1.0, 0, coalesce((SELECT group_concat((SELECT min(id) FROM community_category_ids WHERE local_id=C._id) || ':' || hex(C.name), ',') FROM mangas_categories TC JOIN categories C ON C._id=TC.category_id WHERE TC.manga_id=new._id AND C._id>0), ''), 0; END;
+CREATE TRIGGER community_item_update AFTER UPDATE OF read,bookmark,last_page_read ON chapters
+WHEN (SELECT enabled FROM community_capture)=1 AND new.is_syncing=0 AND (new.read!=old.read OR new.bookmark!=old.bookmark OR new.last_page_read!=old.last_page_read)
+BEGIN INSERT OR REPLACE INTO community_changes(source,title_url,item_url,title,item,artwork,favorite,seen,bookmark,position,duration,number,history_at,categories,deleted,fields) SELECT titleRow.source,titleRow.url,itemRow.url,titleRow.title,itemRow.name,coalesce(titleRow.thumbnail_url,''),titleRow.favorite,itemRow.read,itemRow.bookmark,itemRow.last_page_read,0,itemRow.chapter_number,coalesce((SELECT last_read FROM history WHERE chapter_id=itemRow._id),0),'',0,coalesce((SELECT fields FROM community_changes WHERE source=titleRow.source AND title_url=titleRow.url AND item_url=itemRow.url),'') || (CASE WHEN new.read!=old.read THEN ',Seen' ELSE '' END || CASE WHEN new.bookmark!=old.bookmark THEN ',Bookmark' ELSE '' END || CASE WHEN new.last_page_read!=old.last_page_read THEN ',Progress' ELSE '' END) FROM chapters itemRow JOIN mangas titleRow ON titleRow._id=itemRow.manga_id WHERE itemRow._id=new._id; END;
+CREATE TRIGGER community_item_insert AFTER INSERT ON chapters
+WHEN (SELECT enabled FROM community_capture)=1 AND new.is_syncing=0 AND (new.read=1 OR new.bookmark=1 OR new.last_page_read>0)
+BEGIN INSERT OR REPLACE INTO community_changes(source,title_url,item_url,title,item,artwork,favorite,seen,bookmark,position,duration,number,history_at,categories,deleted,fields) SELECT titleRow.source,titleRow.url,itemRow.url,titleRow.title,itemRow.name,coalesce(titleRow.thumbnail_url,''),titleRow.favorite,itemRow.read,itemRow.bookmark,itemRow.last_page_read,0,itemRow.chapter_number,coalesce((SELECT last_read FROM history WHERE chapter_id=itemRow._id),0),'',0,coalesce((SELECT fields FROM community_changes WHERE source=titleRow.source AND title_url=titleRow.url AND item_url=itemRow.url),'') || (CASE WHEN new.read=1 THEN ',Seen' ELSE '' END || CASE WHEN new.bookmark=1 THEN ',Bookmark' ELSE '' END || CASE WHEN new.last_page_read>0 THEN ',Progress' ELSE '' END) FROM chapters itemRow JOIN mangas titleRow ON titleRow._id=itemRow.manga_id WHERE itemRow._id=new._id; END;
+CREATE TRIGGER community_title_delete BEFORE DELETE ON mangas
+WHEN (SELECT enabled FROM community_capture)=1
+BEGIN INSERT OR REPLACE INTO community_changes(source, title_url, item_url, title, item, artwork, favorite, seen, bookmark, position, duration, number, history_at, categories, deleted) SELECT old.source,old.url,'',old.title,'','',0,0,0,0,0,-1.0,0,'',1; END;
+CREATE TRIGGER community_category_insert AFTER INSERT ON mangas_categories
+WHEN (SELECT enabled FROM community_capture)=1
+BEGIN INSERT OR REPLACE INTO community_changes(source, title_url, item_url, title, item, artwork, favorite, seen, bookmark, position, duration, number, history_at, categories, deleted) SELECT T.source, T.url, '', T.title, '', coalesce(T.thumbnail_url,''), T.favorite, 0, 0, 0, 0, -1.0, 0, coalesce((SELECT group_concat((SELECT min(id) FROM community_category_ids WHERE local_id=C._id) || ':' || hex(C.name), ',') FROM mangas_categories TC JOIN categories C ON C._id=TC.category_id WHERE TC.manga_id=T._id AND C._id>0), ''), 0 FROM mangas T WHERE T._id=new.manga_id; END;
+CREATE TRIGGER community_category_delete AFTER DELETE ON mangas_categories
+WHEN (SELECT enabled FROM community_capture)=1
+BEGIN INSERT OR REPLACE INTO community_changes(source, title_url, item_url, title, item, artwork, favorite, seen, bookmark, position, duration, number, history_at, categories, deleted) SELECT T.source, T.url, '', T.title, '', coalesce(T.thumbnail_url,''), T.favorite, 0, 0, 0, 0, -1.0, 0, coalesce((SELECT group_concat((SELECT min(id) FROM community_category_ids WHERE local_id=C._id) || ':' || hex(C.name), ',') FROM mangas_categories TC JOIN categories C ON C._id=TC.category_id WHERE TC.manga_id=T._id AND C._id>0), ''), 0 FROM mangas T WHERE T._id=old.manga_id; END;
+CREATE TRIGGER community_category_rename AFTER UPDATE OF name ON categories
+WHEN (SELECT enabled FROM community_capture)=1
+BEGIN INSERT OR REPLACE INTO community_changes(source, title_url, item_url, title, item, artwork, favorite, seen, bookmark, position, duration, number, history_at, categories, deleted) SELECT T.source, T.url, '', T.title, '', coalesce(T.thumbnail_url,''), T.favorite, 0, 0, 0, 0, -1.0, 0, coalesce((SELECT group_concat((SELECT min(id) FROM community_category_ids WHERE local_id=C._id) || ':' || hex(C.name), ',') FROM mangas_categories TC JOIN categories C ON C._id=TC.category_id WHERE TC.manga_id=T._id AND C._id>0), ''), 0 FROM mangas T WHERE T._id IN (SELECT manga_id FROM mangas_categories WHERE category_id=new._id); END;
+
+CREATE TRIGGER community_title_insert AFTER INSERT ON mangas
+WHEN (SELECT enabled FROM community_capture)=1 AND new.is_syncing=0 AND new.favorite=1
+BEGIN INSERT OR REPLACE INTO community_changes(source, title_url, item_url, title, item, artwork, favorite, seen, bookmark, position, duration, number, history_at, categories, deleted) SELECT new.source, new.url, '', new.title, '', coalesce(new.thumbnail_url,''), new.favorite, 0, 0, 0, 0, -1.0, 0, coalesce((SELECT group_concat((SELECT min(id) FROM community_category_ids WHERE local_id=C._id) || ':' || hex(C.name), ',') FROM mangas_categories TC JOIN categories C ON C._id=TC.category_id WHERE TC.manga_id=new._id AND C._id>0), ''), 0; END;
+CREATE TRIGGER community_history_insert AFTER INSERT ON history
+WHEN (SELECT enabled FROM community_capture)=1
+BEGIN INSERT OR REPLACE INTO community_changes(source,title_url,item_url,title,item,artwork,favorite,seen,bookmark,position,duration,number,history_at,categories,deleted,fields) SELECT titleRow.source,titleRow.url,itemRow.url,titleRow.title,itemRow.name,coalesce(titleRow.thumbnail_url,''),titleRow.favorite,itemRow.read,itemRow.bookmark,itemRow.last_page_read,0,itemRow.chapter_number,coalesce(new.last_read,0),'',0,coalesce((SELECT fields FROM community_changes WHERE source=titleRow.source AND title_url=titleRow.url AND item_url=itemRow.url),'') || ',History' FROM chapters itemRow JOIN mangas titleRow ON titleRow._id=itemRow.manga_id WHERE itemRow._id=new.chapter_id AND itemRow.is_syncing=0; END;
+
+CREATE TRIGGER community_history_update AFTER UPDATE OF last_read ON history
+WHEN (SELECT enabled FROM community_capture)=1
+BEGIN INSERT OR REPLACE INTO community_changes(source,title_url,item_url,title,item,artwork,favorite,seen,bookmark,position,duration,number,history_at,categories,deleted,fields) SELECT titleRow.source,titleRow.url,itemRow.url,titleRow.title,itemRow.name,coalesce(titleRow.thumbnail_url,''),titleRow.favorite,itemRow.read,itemRow.bookmark,itemRow.last_page_read,0,itemRow.chapter_number,coalesce(new.last_read,0),'',0,coalesce((SELECT fields FROM community_changes WHERE source=titleRow.source AND title_url=titleRow.url AND item_url=itemRow.url),'') || ',History' FROM chapters itemRow JOIN mangas titleRow ON titleRow._id=itemRow.manga_id WHERE itemRow._id=new.chapter_id AND itemRow.is_syncing=0; END;
+
+CREATE TRIGGER community_history_delete AFTER DELETE ON history
+WHEN (SELECT enabled FROM community_capture)=1
+BEGIN INSERT OR REPLACE INTO community_changes(source,title_url,item_url,title,item,artwork,favorite,seen,bookmark,position,duration,number,history_at,categories,deleted,fields) SELECT titleRow.source,titleRow.url,itemRow.url,titleRow.title,itemRow.name,coalesce(titleRow.thumbnail_url,''),titleRow.favorite,itemRow.read,itemRow.bookmark,itemRow.last_page_read,0,itemRow.chapter_number,0,'',0,coalesce((SELECT fields FROM community_changes WHERE source=titleRow.source AND title_url=titleRow.url AND item_url=itemRow.url),'') || ',History' FROM chapters itemRow JOIN mangas titleRow ON titleRow._id=itemRow.manga_id WHERE itemRow._id=old.chapter_id AND itemRow.is_syncing=0; END;
+
+CREATE TABLE community_category_ids(id TEXT NOT NULL PRIMARY KEY, local_id INTEGER NOT NULL);
+INSERT INTO community_category_ids SELECT lower(hex(randomblob(16))),_id FROM categories WHERE _id>0;
+CREATE TRIGGER community_category_identity AFTER INSERT ON categories WHEN new._id>0
+BEGIN INSERT INTO community_category_ids SELECT lower(hex(randomblob(16))),new._id WHERE NOT EXISTS(SELECT 1 FROM community_category_ids WHERE local_id=new._id); END;
+CREATE TRIGGER community_category_create_record AFTER INSERT ON categories
+WHEN (SELECT enabled FROM community_capture)=1 AND new._id>0
+BEGIN INSERT INTO community_category_ids SELECT lower(hex(randomblob(16))),new._id WHERE NOT EXISTS(SELECT 1 FROM community_category_ids WHERE local_id=new._id);
+INSERT OR REPLACE INTO community_changes(source,title_url,item_url,title,item,artwork,favorite,seen,bookmark,position,duration,number,history_at,categories,deleted) SELECT 0,'nyanime:category:' || id,'',new.name,'','',0,0,new.hidden,new.sort,0,-1.0,0,'',0 FROM community_category_ids WHERE local_id=new._id;
+ END;
+CREATE TRIGGER community_category_change_record AFTER UPDATE OF name,sort,hidden ON categories
+WHEN (SELECT enabled FROM community_capture)=1 AND new._id>0
+BEGIN INSERT INTO community_category_ids SELECT lower(hex(randomblob(16))),new._id WHERE NOT EXISTS(SELECT 1 FROM community_category_ids WHERE local_id=new._id);
+INSERT OR REPLACE INTO community_changes(source,title_url,item_url,title,item,artwork,favorite,seen,bookmark,position,duration,number,history_at,categories,deleted) SELECT 0,'nyanime:category:' || id,'',new.name,'','',0,0,new.hidden,new.sort,0,-1.0,0,'',0 FROM community_category_ids WHERE local_id=new._id;
+ END;
+CREATE TRIGGER community_category_remove_record BEFORE DELETE ON categories
+WHEN (SELECT enabled FROM community_capture)=1 AND old._id>0
+BEGIN
+INSERT OR REPLACE INTO community_changes(source,title_url,item_url,title,item,artwork,favorite,seen,bookmark,position,duration,number,history_at,categories,deleted) SELECT 0,'nyanime:category:' || id,'',old.name,'','',0,0,old.hidden,old.sort,0,-1.0,0,'',1 FROM community_category_ids WHERE local_id=old._id;
+INSERT OR IGNORE INTO community_removed_categories SELECT id FROM community_category_ids WHERE local_id=old._id; END;
+
+CREATE TABLE community_removed_categories(id TEXT NOT NULL PRIMARY KEY);
+CREATE TRIGGER community_category_identity_cleanup AFTER DELETE ON categories
+BEGIN
+INSERT OR IGNORE INTO community_removed_categories SELECT id FROM community_category_ids WHERE local_id=old._id;
+DELETE FROM community_category_ids WHERE local_id=old._id;
+END;
+
+capture:
+UPDATE community_capture SET enabled=:enabled;
+drain:
+SELECT * FROM community_changes ORDER BY CASE WHEN fields='all' THEN 1 ELSE 0 END, history_at DESC, seq LIMIT 128;
+acknowledge:
+DELETE FROM community_changes WHERE seq=:seq;
+discard:
+DELETE FROM community_changes;
+seedTitles:
+INSERT OR REPLACE INTO community_changes(source, title_url, item_url, title, item, artwork, favorite, seen, bookmark, position, duration, number, history_at, categories, deleted) SELECT T.source, T.url, '', T.title, '', coalesce(T.thumbnail_url,''), T.favorite, 0, 0, 0, 0, -1.0, 0, coalesce((SELECT group_concat((SELECT min(id) FROM community_category_ids WHERE local_id=C._id) || ':' || hex(C.name), ',') FROM mangas_categories TC JOIN categories C ON C._id=TC.category_id WHERE TC.manga_id=T._id AND C._id>0), ''), 0 FROM mangas T WHERE T.favorite=1;
+seedItems:
+INSERT OR REPLACE INTO community_changes(source, title_url, item_url, title, item, artwork, favorite, seen, bookmark, position, duration, number, history_at, categories, deleted) SELECT T.source, T.url, entryRow.url, T.title, entryRow.name, coalesce(T.thumbnail_url,''), T.favorite, entryRow.read, entryRow.bookmark, entryRow.last_page_read, 0, entryRow.chapter_number, coalesce((SELECT H.last_read FROM history H WHERE H.chapter_id=entryRow._id),0), '', 0 FROM chapters entryRow JOIN mangas T ON T._id=entryRow.manga_id WHERE entryRow.read=1 OR entryRow.bookmark=1 OR entryRow.last_page_read>0 OR EXISTS(SELECT 1 FROM history WHERE chapter_id=entryRow._id);
+findTitle:
+SELECT _id FROM mangas WHERE source=:source AND url=:url;
+applyTitle:
+UPDATE mangas SET favorite=:favorite, is_syncing=1 WHERE source=:source AND url=:url;
+applyItem:
+UPDATE chapters SET read=coalesce(:seen,read),bookmark=coalesce(:bookmark,bookmark),last_page_read=coalesce(:position,last_page_read),is_syncing=1 WHERE url=:url AND manga_id IN (SELECT _id FROM mangas WHERE source=:source AND url=:titleUrl);
+findItem:
+SELECT entryRow._id FROM chapters entryRow JOIN mangas T ON T._id=entryRow.manga_id WHERE T.source=:source AND T.url=:titleUrl AND entryRow.url=:itemUrl;
+restoreFlags:
+UPDATE mangas SET is_syncing=0 WHERE is_syncing=1;
+restoreItemFlags:
+UPDATE chapters SET is_syncing=0 WHERE is_syncing=1;
+
+importTitle:
+INSERT INTO mangas(source,url,title,status,thumbnail_url,favorite,initialized,viewer,chapter_flags,cover_last_modified,date_added)
+SELECT :source,:url,:title,0,:artwork,:favorite,0,0,0,0,:added WHERE NOT EXISTS(SELECT 1 FROM mangas WHERE source=:source AND url=:url);
+
+importItem:
+INSERT INTO chapters(manga_id,url,name,read,bookmark,last_page_read,chapter_number,source_order,date_fetch,date_upload)
+SELECT :parentId,:url,:name,0,0,0,:number,0,0,0 WHERE NOT EXISTS(SELECT 1 FROM chapters WHERE manga_id=:parentId AND url=:url);
+
+setHistory:
+INSERT INTO history(chapter_id,last_read,time_read) VALUES(:itemId,:at,0) ON CONFLICT(chapter_id) DO UPDATE SET last_read=:at;
+
+clearCategories:
+DELETE FROM mangas_categories WHERE manga_id=:parentId;
+
+findCategory:
+SELECT _id FROM categories WHERE name=:name ORDER BY _id LIMIT 1;
+
+attachCategory:
+INSERT INTO mangas_categories(manga_id,category_id) VALUES(:parentId,:categoryId);
+
+
+captureEnabled:
+SELECT enabled FROM community_capture;
+
+seedCategories:
+INSERT OR REPLACE INTO community_changes(source,title_url,item_url,title,item,artwork,favorite,seen,bookmark,position,duration,number,history_at,categories,deleted) SELECT 0,'nyanime:category:' || ids.id,'',categoryRow.name,'','',0,0,categoryRow.hidden,categoryRow.sort,0,-1.0,0,'',0 FROM categories categoryRow JOIN community_category_ids ids ON ids.local_id=categoryRow._id WHERE categoryRow._id>0;
+findCategoryIdentity:
+SELECT local_id FROM community_category_ids WHERE id=:id;
+attachCategoryIdentity:
+INSERT OR REPLACE INTO community_category_ids(id,local_id) VALUES(:id,:localId);
+applyCategory:
+UPDATE categories SET name=:name,sort=:position,hidden=:hidden WHERE _id=:id AND _id>0;
+removeCategoryIdentity:
+DELETE FROM community_category_ids WHERE local_id=:id;
+
+removedCategoryIdentity:
+SELECT id FROM community_removed_categories WHERE id=:id;
+markRemovedCategoryIdentity:
+INSERT OR IGNORE INTO community_removed_categories(id) VALUES(:id);
+getCommunityTitles:
+SELECT source, url, title, thumbnail_url, favorite
+FROM mangas
+WHERE favorite = 1 OR initialized = 1
+ORDER BY favorite DESC, last_modified_at DESC, _id DESC
+LIMIT 2000;
