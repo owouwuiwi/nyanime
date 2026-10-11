@@ -1,0 +1,4 @@
+<resources>
+    <string name="cast_audio_next_error">Non è stato possibile preparare il prossimo brano. Riprova.</string>
+    <string name="cast_audio_unavailable">Avvia prima la musica da trasmettere.</string>
+</resources>

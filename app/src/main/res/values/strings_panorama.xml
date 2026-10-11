@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_panorama_featured">Featured</string>
+    <string name="home_panorama_sources">Choose a source</string>
+    <string name="home_panorama_options">Options for %1$s</string>
+    <string name="home_panorama_episode_progress">%1$s · %2$s / %3$s</string>
+    <string name="home_panorama_new_episode">New episode</string>
+    <string name="home_panorama_new_chapter">New chapter</string>
+    <string name="home_panorama_read_chapter">Chapter %1$s</string>
+    <string name="home_panorama_watch_progress">%1$s / %2$s</string>
+</resources>

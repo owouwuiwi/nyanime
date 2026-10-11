@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_assist">Assisted</string>
+    <string name="studio_assist_start">Create with assistance</string>
+    <string name="studio_assist_editor">Node editor</string>
+    <string name="studio_assist_intro_title">Show it what to look for</string>
+    <string name="studio_assist_intro">Open your site, choose real examples and review the results. Every approved step creates editable nodes. No site is preconfigured.</string>
+    <string name="studio_assist_required_step">Choose an example → Preview → Approve</string>
+    <string name="studio_assist_optional_step">Optional · Add only what you need</string>
+    <string name="studio_assist_draft">Your source stays a draft. Finish the four content steps, then activate it in the editor. You can refine every rule there.</string>
+    <string name="studio_assist_preview">Preview</string>
+    <string name="studio_assist_approve">Approve step</string>
+    <string name="studio_assist_search_hint">Search the site for the example below. Select one result card, then its title, link and cover. Use Navigate to browse; switch to Select when ready.</string>
+    <string name="studio_assist_details_hint">Open a title on the site. Select its title and, optionally, cover and description.</string>
+    <string name="studio_assist_entries_hint">Open a title and select one episode or chapter link. Similar links will form the list; check the preview carefully.</string>
+    <string name="studio_assist_pages_hint">Open a chapter and select a page image. Check that the preview contains the pages in reading order.</string>
+    <string name="studio_assist_video_hint">Open an episode and select the video. This step supports video/source elements with a direct address. Embedded players and protected streams may need the node editor.</string>
+    <string name="studio_assist_home_hint">Name a Home section, browse to the category you want, then select a card and its fields. Only this approved section will be added.</string>
+    <string name="studio_assist_filter_hint">Start with a working search. Keep its unfiltered address below, then select one genre/filter link that changes a single URL parameter. Give the group and option readable names. Repeat to add more options to the same group.</string>
+    <string name="studio_assist_filter_option">Option name</string>
+    <string name="studio_assist_search_example">Unfiltered search address</string>
+    <string name="studio_assist_filter_pick">Choose a filter option on the site</string>
+    <string name="studio_assist_entry_pick">Choose an episode or chapter link</string>
+    <string name="studio_assist_page_pick">Choose a page image</string>
+    <string name="studio_assist_media_pick">Choose the video</string>
+    <string name="studio_assist_card_pick">Choose a result card</string>
+    <string name="studio_assist_next_pick">Next page · Optional</string>
+    <string name="studio_assist_browser_hint">Navigate to your example. Tap Select, then the element you want. Review the highlighted matches before saving.</string>
+    <string name="studio_assist_failed">This example could not be reproduced reliably. Check the selected elements and address, then retry. Search must use a visible GET parameter; pagination must link page 1 to page 2. JavaScript-only content, POST requests or complex filters need the node editor.</string>
+    <string name="studio_assist_review">Check these results before approving</string>
+    <string name="studio_assist_limits">Preview sends an explicit request using the proposed rules. Approving only saves this step to the draft; it never activates the source automatically.</string>
+    <string name="studio_assist_all">Any</string>
+    <string name="studio_navigate">Navigate</string>
+    <string name="studio_navigation_blocked">This address is outside the source’s allowed sites. Add its origin in the editor before opening it.</string>
+    <string name="studio_assist_home_title">Home section name</string>
+    <string name="studio_assist_values">Request values for each option</string>
+    <string name="studio_assist_same_page">Choose these fields on the same page as your example. To change title or category, select a new example first.</string>
+</resources>

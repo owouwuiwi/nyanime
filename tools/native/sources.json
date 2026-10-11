@@ -1,0 +1,79 @@
+{
+  "schema": 2,
+  "currentDistribution": {
+    "fromVersion": "0.42.0.2",
+    "playerSources": "player/sources.lock.json",
+    "nativeManifest": "distribution.json",
+    "imageDecoderSources": "image-decoder.sources.json",
+    "telegramArtifact": "telegram-artifact.json",
+    "buildRecipe": "player/build-linux.sh"
+  },
+  "historicalProvenanceLimitations": [
+    "The original MPV build scripts fetch dav1d, libass and libplacebo from moving branches. Their exact commits are not recoverable from the AAR identity alone. Do not claim a fully pinned native rebuild solely from this index. Upstream build scripts and original notices must also be retained."
+  ],
+  "historicalArtifacts": {
+    "mpvAndroid": {
+      "repository": "https://github.com/jmir1/mpv-android",
+      "revision": "484373b7cb772d43405c4312af1ad4f508f6dbd0",
+      "archive": "https://github.com/jmir1/mpv-android/archive/484373b7cb772d43405c4312af1ad4f508f6dbd0.zip",
+      "license": "MIT (bridge); GPL-3.0 requirements for linked native player",
+      "aarSha256": "a08c2d3345fb1f46f7ffe2f68999f244666de4a1ed1f90a0cef6c1c761a6d793"
+    },
+    "libmpv": {
+      "repository": "https://github.com/mpv-player/mpv",
+      "revision": "d82701962f99051a18d65c215b70d41ebadd9a22",
+      "archive": "https://github.com/mpv-player/mpv/archive/d82701962f99051a18d65c215b70d41ebadd9a22.zip",
+      "license": "GPL-2.0-or-later; GPL-3.0 combined build"
+    },
+    "ffmpegKit": {
+      "repository": "https://github.com/jmir1/ffmpeg-kit",
+      "revision": "0f1bfb5d9ca2711e723406b25f0aa6a0c1500826",
+      "archive": "https://github.com/jmir1/ffmpeg-kit/archive/0f1bfb5d9ca2711e723406b25f0aa6a0c1500826.zip",
+      "license": "LGPL-3.0 (wrapper); GPL-3.0-or-later (FFmpeg build)",
+      "aarSha256": "f3cfbd97f85ba25bcd6c594227d10df612f69ad4499576b65a4aa01190be21d9"
+    },
+    "ffmpeg": {
+      "repository": "https://github.com/FFmpeg/FFmpeg",
+      "revision": "b08d7969c550a804a59511c7b83f2dd8cc0499b8",
+      "archive": "https://github.com/FFmpeg/FFmpeg/archive/b08d7969c550a804a59511c7b83f2dd8cc0499b8.zip",
+      "license": "GPL-3.0-or-later (configured build)",
+      "changes": [
+        "ffmpeg-7359.patch",
+        "ffmpeg-force-mpegts.patch"
+      ],
+      "build": "Build-PatchedAvformat.ps1"
+    },
+    "mbedtls": {
+      "repository": "https://github.com/Mbed-TLS/mbedtls",
+      "revision": "107ea89daaefb9867ea9121002fbbdf926780e98",
+      "archive": "https://github.com/Mbed-TLS/mbedtls/archive/107ea89daaefb9867ea9121002fbbdf926780e98.zip",
+      "license": "Apache-2.0 OR GPL-2.0-or-later"
+    },
+    "libxml2": {
+      "repository": "https://github.com/GNOME/libxml2",
+      "revision": "de918d45e1b2276a28a4cd32bcf556bef65284e4",
+      "archive": "https://github.com/GNOME/libxml2/archive/de918d45e1b2276a28a4cd32bcf556bef65284e4.zip",
+      "license": "MIT"
+    },
+    "torrserver": {
+      "repository": "https://gitlab.com/Secozzi/torrserver",
+      "revision": "0b03be8e9cbd6330a5f75397d8856efc1bd35376",
+      "archive": "https://gitlab.com/Secozzi/torrserver/-/archive/0b03be8e9cbd6330a5f75397d8856efc1bd35376/torrserver-0b03be8e9cbd6330a5f75397d8856efc1bd35376.zip",
+      "license": "GPL-3.0-only"
+    },
+    "tdlib": {
+      "repository": "https://github.com/tdlib/td",
+      "revision": "42e6a5259551178d1dab54a22ad96d14bd906e20",
+      "archive": "https://github.com/tdlib/td/archive/42e6a5259551178d1dab54a22ad96d14bd906e20.zip",
+      "license": "BSL-1.0",
+      "build": "../../scripts/build_telegram_native.py"
+    },
+    "openssl": {
+      "repository": "https://github.com/openssl/openssl",
+      "revision": "d0ca66a1abe52545f14eca635c648932fcde5615",
+      "archive": "https://github.com/openssl/openssl/archive/d0ca66a1abe52545f14eca635c648932fcde5615.zip",
+      "license": "Apache-2.0",
+      "build": "../../scripts/build_telegram_native.py"
+    }
+  }
+}

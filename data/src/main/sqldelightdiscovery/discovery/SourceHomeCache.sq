@@ -1,0 +1,25 @@
+CREATE TABLE source_home_cache (
+    home_key TEXT NOT NULL,
+    source_id INTEGER NOT NULL,
+    revision TEXT NOT NULL,
+    section_id TEXT NOT NULL,
+    page INTEGER NOT NULL,
+    payload TEXT NOT NULL,
+    fetched_at INTEGER NOT NULL,
+    PRIMARY KEY (home_key, source_id, revision, section_id, page)
+);
+
+find:
+SELECT payload, fetched_at FROM source_home_cache
+WHERE home_key = ? AND source_id = ? AND revision = ? AND section_id = ? AND page = ?;
+
+put:
+INSERT OR REPLACE INTO source_home_cache VALUES (?, ?, ?, ?, ?, ?, ?);
+
+trim:
+DELETE FROM source_home_cache WHERE rowid NOT IN (
+    SELECT rowid FROM source_home_cache ORDER BY fetched_at DESC, rowid DESC LIMIT 128
+);
+
+discardExpired:
+DELETE FROM source_home_cache WHERE fetched_at < ?;

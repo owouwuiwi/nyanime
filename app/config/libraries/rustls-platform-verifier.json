@@ -1,0 +1,6 @@
+{
+  "uniqueId": "org.rustls:rustls-platform-verifier",
+  "name": "Rustls platform verifier — Android certificate trust",
+  "website": "https://github.com/rustls/rustls-platform-verifier/tree/v/0.7.1",
+  "licenses": ["Apache-2.0", "MIT"]
+}
