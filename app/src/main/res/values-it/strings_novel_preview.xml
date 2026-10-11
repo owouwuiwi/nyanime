@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="novel_preview_heading">Anteprima · %1$s</string>
+    <string name="novel_preview_expired">Questa anteprima è terminata. Aprine una nuova dallo Studio delle fonti.</string>
+    <string name="novel_preview_reader">Anteprima nel lettore</string>
+    <string name="novel_preview_temporary">È un’anteprima temporanea. Progressi, note e impostazioni di lettura non verranno aggiunti alla libreria o sincronizzati.</string>
+</resources>

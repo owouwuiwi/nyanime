@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="novel_preview_heading">Preview · %1$s</string>
+    <string name="novel_preview_expired">This preview has ended. Open a new preview from Source Studio.</string>
+    <string name="novel_preview_reader">Preview in reader</string>
+    <string name="novel_preview_temporary">This is a temporary preview. Progress, notes and reading settings won’t be added to your library or synced.</string>
+</resources>

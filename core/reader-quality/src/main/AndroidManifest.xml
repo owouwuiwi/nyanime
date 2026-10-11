@@ -1,0 +1,9 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <service
+            android:name="it.lorelore.nyanime.reader.quality.QualityWorkerService"
+            android:exported="false"
+            android:process=":reader_quality"
+            android:stopWithTask="true" />
+    </application>
+</manifest>

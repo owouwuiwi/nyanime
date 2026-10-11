@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="novel_group_other">Other chapters</string>
+    <string name="novel_group_open">Expanded</string>
+    <string name="novel_group_closed">Collapsed</string>
+    <string name="novel_home_sources">Explore your sources</string>
+    <string name="novel_home_partial">Some sections could not be updated.</string>
+    <string name="novel_home_empty_section">No titles in this section yet.</string>
+</resources>

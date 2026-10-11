@@ -1,0 +1,15 @@
+Lightning P2P
+Copyright 2025-2026 Kerim Sabic
+
+Lightning P2P is a peer-to-peer file transfer application built with Rust,
+Tauri, React, TypeScript, iroh, QUIC, iroh-blobs, and BLAKE3.
+
+This product includes software developed by the Lightning P2P project.
+If you distribute a derivative work, preserve this NOTICE where the
+Apache License, Version 2.0 requires attribution notices to be preserved.
+
+NyanimeB source-exchange adaptation (2026): bounded Lightning fd2/blob ticket compatibility,
+ephemeral scoped providers, capped verified streaming, on-demand Android JNI worker,
+native source selection/review UI. The Tauri application, chat and updater are not included.
+iroh-blobs 0.103.1 get_blob_ranges_impl informed the bounded Bao streaming loop;
+its original MIT OR Apache-2.0 notices are retained in THIRD-PARTY-LICENSES.txt.
