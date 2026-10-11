@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="store_mine">Le mie</string>
+    <string name="store_discover">Scopri</string>
+    <string name="store_all">Tutte</string>
+    <string name="store_video">Video</string>
+    <string name="store_active">Attiva</string>
+    <string name="store_inactive">Disattivata</string>
+    <string name="store_active_plural">Attive</string>
+    <string name="store_inactive_plural">Disattivate</string>
+    <string name="store_activate">Attiva</string>
+    <string name="store_activation_filter">Stato delle estensioni</string>
+    <string name="store_owned_summary">%1$d attive · %2$d disattivate</string>
+    <string name="store_discover_summary">Le RIN si aggiornano automaticamente</string>
+    <string name="store_rin_heading">Estensioni RIN</string>
+    <string name="store_other_extensions">Altre estensioni</string>
+    <string name="store_clear_search">Cancella ricerca</string>
+    <string name="store_reset_filters">Rimuovi i filtri</string>
+    <string name="store_rin_description">Si installa dentro Nyanime e si aggiorna automaticamente. Gli aggiornamenti attendono la fine della riproduzione o lettura.</string>
+    <string name="store_disable_hint">Disattivarla conserva preferenze, libreria e progressi.</string>
+    <string name="store_session_busy">Chiudi la riproduzione, il lettore o la sessione Cast prima di modificare le estensioni.</string>
+    <string name="store_activation_error">Non è stato possibile cambiare lo stato. La versione installata è conservata; riprova.</string>
+    <string name="store_package_installed">Installata</string>
+    <string name="store_sources_unavailable">Le fonti non sono disponibili. Controlla i filtri dei contenuti, oppure disattiva e riattiva l’estensione per riprovare il caricamento.</string>
+    <string name="store_empty_owned">Installa un’estensione da Scopri: la ritroverai qui, pronta da usare.</string>
+    <string name="store_empty_catalogue">Nessuna estensione disponibile</string>
+    <string name="store_empty_catalogue_hint">Controlla i filtri delle lingue e dei contenuti, oppure aggiungi un catalogo.</string>
+    <string name="store_installed_notice">%1$s è installata e pronta</string>
+    <string name="store_update_others">Aggiorna le altre estensioni (%1$d)</string>
+</resources>

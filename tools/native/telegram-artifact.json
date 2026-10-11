@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "artifact": "vendor/native/telegram-42e6a525.zip",
+  "sha256": "1fed72dea20329a65536d6b8f5868ccf62b443be835e879d3a68005c942b8469",
+  "tdlib": "42e6a5259551178d1dab54a22ad96d14bd906e20",
+  "openssl": "d0ca66a1abe52545f14eca635c648932fcde5615",
+  "opensslCommit": "45e844fa2a14ec92d146bd8f5778ac130b6625fb",
+  "ndk": "27.1.12297006",
+  "files": {
+    "arm64-v8a/libtdjsonjava.so": "a832b1b4207d731cd150466ab5b00211fa113932a5de774c0158a20a9c755ca2",
+    "arm64-v8a/provenance.json": "f0a09d4491570c622d2ef0ab7330866fe6e2a5f02d9434056e323052dde3d788",
+    "armeabi-v7a/libtdjsonjava.so": "b129a34c27497054f2101598f9cefc01dcd9b3308d6b37040139a64844961641",
+    "armeabi-v7a/provenance.json": "3718b07cf6ef12f7900246b999c54bcd80d7509b969a95dccaef6e8cb133e35c",
+    "x86/libtdjsonjava.so": "f24ac961ac5248b36f148b79e12e83c1bd0cb4c0157d0279c21f378f1e90153b",
+    "x86/provenance.json": "a032703ce13a94685a7ea7ded934a5f03ccc61968b5270000cce38e5ecc7536e",
+    "x86_64/libtdjsonjava.so": "95028a233af7cde3a972509f0f0af76b247219d3ab1c8eed085da8d5d2baf9c4",
+    "x86_64/provenance.json": "2fabd34c90832d4334b4c3b6c17d4569b9fde6c5bbb935eca0b0e3bcab9d3635"
+  },
+  "sourceRecipe": "scripts/build_telegram_native.py"
+}

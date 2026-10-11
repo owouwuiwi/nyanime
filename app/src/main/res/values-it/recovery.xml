@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="recovery_authorize_title">Proteggi i dati di Nyanime</string>
+    <string name="recovery_authorize_body">Consenti a %1$s di creare copie cifrate prima degli aggiornamenti in-app e recuperare libreria, progressi e impostazioni dopo un crash.</string>
+    <string name="recovery_private_warning">I backup completi possono contenere credenziali. I download sono esclusi. L’accesso termina quando disabiliti questo addon.</string>
+    <string name="recovery_authorize">Abilita protezione</string>
+    <string name="recovery_not_now">Non ora</string>
+    <string name="recovery_unavailable">Questo addon non può utilizzare il recupero dati.</string>
+    <string name="recovery_update_title">Proteggiamo i tuoi dati</string>
+    <string name="recovery_update_body">Verifichiamo la copia di sicurezza prima di aprire l’installazione Android.</string>
+    <string name="recovery_update_failed">La copia di sicurezza non è stata verificata. L’app attuale non è stata rimossa.</string>
+    <string name="recovery_retry">Riprova</string>
+    <string name="recovery_update_unprotected">Aggiorna senza protezione</string>
+    <string name="recovery_update_unprotected_warning">Se la nuova versione non si avvia, l’addon di recupero potrebbe avere soltanto una copia precedente. Proseguire senza un nuovo backup verificato?</string>
+    <string name="recovery_continue">Prosegui</string>
+    <string name="recovery_phase_prepare">Preparazione del backup</string>
+    <string name="recovery_phase_save">Salvataggio della copia cifrata</string>
+    <string name="recovery_phase_verify">Verifica della copia di sicurezza</string>
+    <string name="recovery_installer_unavailable">Android non ha aperto il programma di installazione. Puoi riprovare dall’aggiornamento scaricato.</string>
+</resources>
