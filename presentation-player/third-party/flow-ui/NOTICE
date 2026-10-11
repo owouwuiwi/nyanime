@@ -1,0 +1,9 @@
+FLOW player UI subset
+Upstream: https://github.com/Flow-Tube/Flow
+Revision: 14afdf9e9426fb8b67e5fcbc76bf4e81af492d16
+License: GPL-3.0-only; original upstream copyrights remain applicable.
+Nyanime modifications, October 2026: isolated UI namespace, injected host values and
+callbacks, removed playback singletons, preference storage, extraction/account/network
+code, storyboard/heatmap service metadata, scoped resources and host scrub ownership.
+The complete retained and modified subset is included in application corresponding source.
+This does not include the FLOW YouTube application or MELD.

@@ -1,0 +1,49 @@
+{
+  "schema": 4,
+  "versionName": "0.81.1.6",
+  "versionCode": 303,
+  "channel": "recommended",
+  "applicationId": "it.owouwuiwi.nyanime",
+  "assetPrefix": "Nyanime-Production",
+  "certificateSha256": "7DD368792C4D94D1186CC4B0E2AD6C2F34FCE5DD37F19C6A1BAB45106FFC136B",
+  "sha256": {
+    "Nyanime-Production-0.81.1.6-arm64-v8a.apk": "ec05bf8f73fe3f31550f824d79c2c65ebb3acd4e4a00893136216949e76963e0",
+    "Nyanime-Production-0.81.1.6-armeabi-v7a.apk": "b3684ea975034ec68b1a60013b1064f2bc3ec8b186965e558a6a364dded7bd3d",
+    "Nyanime-Production-0.81.1.6-universal.apk": "eedcd1cb0a60106e8ebfee1cee01733952d9d6a2d8666fac7052886508a31638",
+    "Nyanime-Production-0.81.1.6-x86.apk": "249be936be9b63388e76ec5c827f07cca9b571957991f6159a59ed09a265b7b5",
+    "Nyanime-Production-0.81.1.6-x86_64.apk": "833f6f2473019364063dd9ceddc81c55ce5e8fee7a83a8ea25ea63d7fcc427ae"
+  },
+  "sourceRevision": "3d8808eed5a4d9ce8e4f1c06e296ef41da399348",
+  "sourceSha256": {
+    "Nyanime-Source-0.81.1.6.zip": "6046bf536b7b001348639b1c8145996628a3adc17660b8f22a6bb2590af05970",
+    "Nyanime-Native-Manifest-0.81.1.6.json": "70700dbdf3769722ee85888d0ddbef288d7b705ebae92415a300fe95a3d2369c",
+    "Nyanime-Native-0.42.0.2-player.tar.gz": "ab16c22de3da24595a38a8e94f05ea3a5c112f63e63d4a0df12b46625737cd3b",
+    "Nyanime-Native-0.42.0.2-supplemental.tar.gz": "c822fa8fe4e81f82d4135f1b8ea944fe8f6dad1f1a311ef92e354c58a16dc210",
+    "Nyanime-Native-0.47.0.2-webrtc.tar.gz": "1b3cb47f9c287b8b7b88eda45bb733c2f8c829410b146a25f42d80bd19900139",
+    "Nyanime-Native-0.49.0.0-camera-inference.tar.gz": "6c84f9c3cf5aa6e0f2ce434404f04520d51f606dfe1075fadb66b87cb195d3da",
+    "Nyanime-Native-0.55.0.0-reader-quality.tar.gz": "88364dbb888846bd238f44a210e14695421af77b0c5338fba2f4abdd486919bc"
+  },
+  "deltaSha256": {
+    "Nyanime-Delta-5883387a3eee5dee-0.81.1.6-arm64-v8a.nyadelta": "0a04acda8143150e80d68573c725e299433af065034c3290fd7f8e5a80c3a677",
+    "Nyanime-Delta-9404339fd8704cd5-0.81.1.6-armeabi-v7a.nyadelta": "3d81b356c4c03bccfac10a56d858eccd4efa86e40c636fc935a91c0ac79a3e6b",
+    "Nyanime-Delta-e1b21b0e3b3b222d-0.81.1.6-universal.nyadelta": "8fa35b7814716a4bb582ed88eafee5605b9903eee029a3dc9dc3a291c0f04e3b",
+    "Nyanime-Delta-afc11a282fa207ae-0.81.1.6-x86.nyadelta": "26b7e09394f5729180ed65168f45770ffd2514c8d90c0349004ac4852c1b5dd3",
+    "Nyanime-Delta-c3edf3fa037fdadd-0.81.1.6-x86_64.nyadelta": "f4138a3dd8442f4e67f508591a885fa2c6dc21f968f746baaf408e3213180797",
+    "Nyanime-Delta-64623d189b92bab2-0.81.1.6-arm64-v8a.nyadelta": "a6d44ad665c406b53f33c80944001ed3de8cbc14953f0d04633f3a7525c8ca47",
+    "Nyanime-Delta-6a72a36cc7765136-0.81.1.6-armeabi-v7a.nyadelta": "f5cfa7678930f7ddd1b161e7921565eaf48ed05c9b6b19da1bd4adb2d9bbf0dc",
+    "Nyanime-Delta-1fe47375dd4886e0-0.81.1.6-universal.nyadelta": "c133764dbb9b5bf21bd6bc5e8d8b4a50437122c55c183523346b951b3cf48a78",
+    "Nyanime-Delta-8181f78fe19ee206-0.81.1.6-x86.nyadelta": "fbac6f708887bd11aafaf134d98ca163f44a854f5fc5b57bb8db35100392f123",
+    "Nyanime-Delta-4eadcff752bd6fdb-0.81.1.6-x86_64.nyadelta": "206fa7b3780f0fd0408aa22be1daeebcbbb192eab8efe2ecc1df20c5b66ff000",
+    "Nyanime-Delta-ad9c0b4bde3696d0-0.81.1.6-arm64-v8a.nyadelta": "a2dc820c30963b6b8385f9daa5a9a99cee80c1618d0b44d5eb810eb238a3ecec",
+    "Nyanime-Delta-6e7e92d87d611769-0.81.1.6-armeabi-v7a.nyadelta": "0c6666126737acb3ffe50ddab23761013e70eec284263a00c8e2304185da56e9",
+    "Nyanime-Delta-2c1cb018d8ae4120-0.81.1.6-universal.nyadelta": "c490b5b7c916f26b380f303219c6fddc3543439c9110e39bfd62e703c1bd5a6e",
+    "Nyanime-Delta-62aad0f879333181-0.81.1.6-x86.nyadelta": "a7dba6fce7cd7361453038c75ad890e27627e0bf7da735c6b0d847652914653d",
+    "Nyanime-Delta-3b03b72f6146250b-0.81.1.6-x86_64.nyadelta": "5e21073d8767d9b8a3e15a4e272396d0d91989892d2eb2d0ab90833916b58ee0",
+    "Nyanime-Delta-v1.json": "2b6f54f39262872dd73da6741e761f8caf49495509701f305f991d2abe87c9f5"
+  },
+  "nativeManifest": "Nyanime-Native-Manifest-0.81.1.6.json",
+  "delivery": "patches",
+  "graphSha256": {
+    "Nyanime-Release-v2.json": "3a65825523a83fba896380df7ca0784b571fa45d0fc957052bc140c96c1a6a08"
+  }
+}

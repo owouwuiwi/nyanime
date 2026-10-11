@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="reader_back">Indietro</string>
+    <string name="reader_close">Chiudi</string>
+    <string name="reader_bookmark">Aggiungi il capitolo ai segnalibri</string>
+    <string name="reader_unbookmark">Rimuovi il segnalibro del capitolo</string>
+    <string name="reader_read">Letto</string>
+    <string name="reader_chapters">Capitoli</string>
+    <string name="reader_mode">Modalità</string>
+    <string name="reader_quality">Qualità</string>
+    <string name="reader_more">Altro</string>
+    <string name="reader_current_chapter">Stai leggendo questo</string>
+    <string name="reader_this_manga">Questo manga</string>
+    <string name="reader_all_manga">Predefinita per tutti</string>
+    <string name="reader_use_global">Usa l’impostazione predefinita</string>
+    <string name="reader_quality_off">Immagine originale</string>
+    <string name="reader_quality_anime4k">Ricostruisce linee e dettagli. Richiede una GPU compatibile.</string>
+    <string name="reader_quality_original_safe">Il miglioramento è facoltativo. L’originale resta visibile durante l’elaborazione; pagina e zoom rimangono al loro posto.</string>
+    <string name="reader_quality_cugan">Ricostruisce linee e dettagli fini. Elabora le aree visibili sulla CPU.</string>
+    <string name="reader_quality_esrgan">Ricostruisce le immagini illustrate. Elabora le aree visibili sulla CPU.</string>
+    <string name="reader_model_download">Scarica · %1$s</string>
+    <string name="reader_model_remove">Rimuovi modello</string>
+    <string name="reader_model_cancel">Annulla</string>
+    <string name="reader_model_progress">%1$s / %2$s</string>
+    <string name="reader_model_error">Download o verifica del modello non riusciti. Controlla connessione e spazio libero, poi riprova. L’originale resta disponibile.</string>
+    <string name="reader_quality_retry">Riprova il miglioramento</string>
+    <string name="reader_color_settings">Colori e impostazioni del lettore</string>
+    <string name="reader_quality_compare">Mostra l’originale per confrontare</string>
+    <string name="reader_quality_original">Originale</string>
+    <string name="reader_quality_show_enhanced">Torna all’immagine migliorata</string>
+    <string name="reader_quality_working">Elaborazione delle aree visibili. L’originale resta disponibile.</string>
+    <string name="reader_quality_ready">Le aree elaborate sono pronte. Confrontale senza cambiare pagina o zoom.</string>
+    <string name="reader_quality_unavailable">Il miglioramento non è disponibile per questa immagine o questo dispositivo. Stai continuando a leggere l’originale.</string>
+    <string name="reader_quality_memory">La memoria non basta per il miglioramento. L’originale resta disponibile.</string>
+</resources>

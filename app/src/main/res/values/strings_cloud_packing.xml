@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cloud_packing_ready">All devices support compact recovery</string>
+    <string name="cloud_packing_waiting">Waiting for device updates: %1$d/%2$d support compact recovery</string>
+    <string name="cloud_packing_copy">Last recovery copy: %1$d documents · %2$d blocks</string>
+    <string name="cloud_packing_retention">Earlier copies remain protected for at least seven days. They are removed only after two complete recovery copies have been verified.</string>
+</resources>
