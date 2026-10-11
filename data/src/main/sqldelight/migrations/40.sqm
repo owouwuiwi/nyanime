@@ -1,0 +1,23 @@
+-- Remove retired social journal only; Cloud, library and progress remain intact.
+
+DROP TRIGGER IF EXISTS community_title_update;
+DROP TRIGGER IF EXISTS community_item_update;
+DROP TRIGGER IF EXISTS community_item_insert;
+DROP TRIGGER IF EXISTS community_title_delete;
+DROP TRIGGER IF EXISTS community_category_insert;
+DROP TRIGGER IF EXISTS community_category_delete;
+DROP TRIGGER IF EXISTS community_category_rename;
+DROP TRIGGER IF EXISTS community_title_insert;
+DROP TRIGGER IF EXISTS community_history_insert;
+DROP TRIGGER IF EXISTS community_history_update;
+DROP TRIGGER IF EXISTS community_history_delete;
+DROP TRIGGER IF EXISTS community_category_identity;
+DROP TRIGGER IF EXISTS community_category_create_record;
+DROP TRIGGER IF EXISTS community_category_change_record;
+DROP TRIGGER IF EXISTS community_category_remove_record;
+DROP TRIGGER IF EXISTS community_category_identity_cleanup;
+
+DROP TABLE IF EXISTS community_changes;
+DROP TABLE IF EXISTS community_category_ids;
+DROP TABLE IF EXISTS community_removed_categories;
+DROP TABLE IF EXISTS community_capture;
