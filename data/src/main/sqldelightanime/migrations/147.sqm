@@ -1,0 +1,6 @@
+CREATE TABLE episode_ending_cue (
+    episode_id INTEGER NOT NULL PRIMARY KEY REFERENCES episodes(_id) ON DELETE CASCADE,
+    duration_ms INTEGER NOT NULL,
+    start_ms INTEGER NOT NULL,
+    end_ms INTEGER NOT NULL
+);

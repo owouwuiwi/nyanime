@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cinema_title">Cinema in cuffia</string>
+    <string name="cinema_description">Suono avvolgente per le tracce 5.1 e 7.1. Indossa le cuffie e confronta il risultato mentre ascolti.</string>
+    <string name="cinema_preference">Usa il suono avvolgente con cuffie e tracce compatibili. Puoi tornare a Originale dal menu Audio del player.</string>
+    <string name="cinema_original">Originale</string>
+    <string name="cinema_mode">Cinema</string>
+    <string name="cinema_active">Cinema attivo. Dialoghi davanti a te e suoni d’ambiente distribuiti nello spazio.</string>
+    <string name="cinema_preparing">Preparazione dell’audio in cuffia…</string>
+    <string name="cinema_connect">Collega le cuffie per usare Cinema. Per ora ascolti l’audio originale.</string>
+    <string name="cinema_unsupported">Questa traccia non ha una disposizione 5.1 o 7.1 supportata. L’audio resta originale; puoi provare un’altra traccia.</string>
+    <string name="cinema_channels">Imposta i canali audio su Automatico per usare Cinema. La tua configurazione attuale resta invariata.</string>
+    <string name="cinema_custom_filters">Ci sono filtri audio personalizzati attivi. Disattivali prima di usare Cinema; i tuoi filtri restano invariati.</string>
+    <string name="cinema_unavailable">Non è stato possibile attivare Cinema. L’audio è originale. Seleziona Cinema per riprovare.</string>
+</resources>

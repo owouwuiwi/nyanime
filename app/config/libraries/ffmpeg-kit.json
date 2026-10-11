@@ -1,0 +1,9 @@
+{
+  "uniqueId": "it.owouwuiwi.native:nyanime-ffmpeg",
+  "name": "FFmpegKit \u2014 Android wrapper and GPL native build",
+  "website": "https://github.com/jmir1/ffmpeg-kit/tree/1.18",
+  "licenses": [
+    "LGPL-3.0-only",
+    "GPL-3.0-or-later"
+  ]
+}
