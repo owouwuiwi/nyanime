@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rin_load">Carica RIN</string>
+    <string name="rin_verifying">Verifico il file e la firma…</string>
+    <string name="rin_version">Versione %1$s</string>
+    <string name="rin_previous_version">Versione installata: %1$s</string>
+    <string name="rin_verified_signature">Firma del file verificata · Impronta dell’editore</string>
+    <string name="rin_import_hint">Non serve un catalogo. Caricando questo file autorizzi questa estensione a funzionare con i permessi di Nyanime. Prosegui solo se ti fidi dell’editore. Libreria e progressi restano intatti.</string>
+    <string name="rin_install">Autorizza e carica estensione</string>
+    <string name="rin_update">Aggiorna RIN</string>
+    <string name="rin_import_done">L’estensione è disponibile nel tuo Store.</string>
+    <string name="rin_invalid">Il file non è un RIN firmato valido o non è leggibile. Scegli il file .rin originale.</string>
+    <string name="rin_incompatible">Questo RIN richiede un’altra versione di Nyanime. Aggiorna l’app o scegli un file compatibile.</string>
+    <string name="rin_legacy">È ancora presente la versione APK di questa estensione. Usa la procedura di migrazione delle estensioni prima di caricare il RIN.</string>
+    <string name="rin_changed">Non è stato possibile sostituire l’estensione. Controlla editore, versione e identità delle fonti, poi scegli nuovamente il file. La versione precedente resta intatta.</string>
+    <string name="rin_busy">Chiudi riproduzione, lettura e addon attivi prima di aggiornare un’estensione.</string>
+    <string name="catalogue_link_address">Link del catalogo</string>
+</resources>

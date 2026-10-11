@@ -1,0 +1,32 @@
+CREATE TABLE schedule_cache (
+    entry_id INTEGER NOT NULL PRIMARY KEY REFERENCES animes(_id) ON DELETE CASCADE,
+    reference TEXT NOT NULL,
+    payload TEXT NOT NULL DEFAULT '',
+    verified_at INTEGER NOT NULL DEFAULT 0,
+    attempted_at INTEGER NOT NULL DEFAULT 0,
+    error TEXT NOT NULL DEFAULT ''
+);
+CREATE TABLE schedule_week (
+    week TEXT NOT NULL PRIMARY KEY,
+    payload TEXT NOT NULL,
+    fetched_at INTEGER NOT NULL
+);
+
+getCaches:
+SELECT * FROM schedule_cache;
+getCache:
+SELECT * FROM schedule_cache WHERE entry_id = ?;
+saveCache:
+INSERT INTO schedule_cache VALUES (?, ?, ?, ?, ?, ?)
+ON CONFLICT(entry_id) DO UPDATE SET reference = excluded.reference, payload = excluded.payload, verified_at = excluded.verified_at, attempted_at = excluded.attempted_at, error = excluded.error;
+getWeek:
+SELECT * FROM schedule_week WHERE week = ?;
+saveWeek:
+INSERT INTO schedule_week VALUES (?, ?, ?)
+ON CONFLICT(week) DO UPDATE SET payload = excluded.payload, fetched_at = excluded.fetched_at;
+pruneWeeks:
+DELETE FROM schedule_week WHERE fetched_at < ?;
+markReminded:
+UPDATE schedule_cache SET payload = ? WHERE entry_id = ?;
+clear:
+DELETE FROM schedule_cache;
