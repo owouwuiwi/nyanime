@@ -1,0 +1,260 @@
+-- Explicit replacement keeps journal revisions fresh even when an outer UPSERT
+-- overrides trigger conflict handling. Both writes remain in the user transaction.
+-- Only dirty references are journaled here; serialization and encryption run outside user writes.
+CREATE TABLE cloud_sync_control (
+    singleton INTEGER NOT NULL PRIMARY KEY CHECK (singleton = 1),
+    enabled INTEGER NOT NULL DEFAULT 0,
+    suppressed INTEGER NOT NULL DEFAULT 0,
+    incognito INTEGER NOT NULL DEFAULT 0
+);
+INSERT INTO cloud_sync_control(singleton) VALUES(1);
+
+CREATE TABLE cloud_sync_excluded_sources (source INTEGER NOT NULL PRIMARY KEY);
+
+CREATE TABLE cloud_sync_category_ids (
+    local_id INTEGER NOT NULL PRIMARY KEY,
+    shared_id TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE cloud_sync_dirty (
+    revision INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    kind TEXT NOT NULL,
+    source INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    item TEXT NOT NULL DEFAULT '',
+    removed INTEGER NOT NULL DEFAULT 0,
+    changed_at INTEGER NOT NULL DEFAULT (CAST(strftime('%s', 'now') AS INTEGER) * 1000),
+    UNIQUE(kind, source, title, item)
+);
+
+CREATE TRIGGER cloud_sync_title_insert AFTER INSERT ON mangas
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND (new.favorite = 1 AND new.is_syncing = 0 AND new.source NOT IN (SELECT source FROM cloud_sync_excluded_sources))
+BEGIN
+    DELETE FROM cloud_sync_dirty WHERE kind = 'title' AND source = new.source AND title = new.url AND item = '';
+    INSERT INTO cloud_sync_dirty(kind, source, title, item, removed) VALUES('title', new.source, new.url, '', 0);
+END;
+
+CREATE TRIGGER cloud_sync_title_update AFTER UPDATE OF favorite, viewer, chapter_flags, date_added, title, author, artist, description, genre, status, thumbnail_url ON mangas
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND (new.is_syncing = 0 AND new.source NOT IN (SELECT source FROM cloud_sync_excluded_sources) AND (old.favorite IS NOT new.favorite OR old.viewer IS NOT new.viewer OR old.chapter_flags IS NOT new.chapter_flags OR old.date_added IS NOT new.date_added OR old.title IS NOT new.title OR old.author IS NOT new.author OR old.artist IS NOT new.artist OR old.description IS NOT new.description OR old.genre IS NOT new.genre OR old.status IS NOT new.status OR old.thumbnail_url IS NOT new.thumbnail_url) AND (new.favorite = 1 OR old.favorite = 1 OR EXISTS(SELECT 1 FROM chapters WHERE manga_id = new._id AND (read = 1 OR bookmark = 1 OR last_page_read > 0))))
+BEGIN
+    DELETE FROM cloud_sync_dirty WHERE kind = 'title' AND source = new.source AND title = new.url AND item = '';
+    INSERT INTO cloud_sync_dirty(kind, source, title, item, removed) VALUES('title', new.source, new.url, '', 0);
+END;
+
+CREATE TRIGGER cloud_sync_title_delete BEFORE DELETE ON mangas
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND (old.source NOT IN (SELECT source FROM cloud_sync_excluded_sources))
+BEGIN
+    DELETE FROM cloud_sync_dirty WHERE kind = 'title' AND source = old.source AND title = old.url AND item = '';
+    INSERT INTO cloud_sync_dirty(kind, source, title, item, removed) VALUES('title', old.source, old.url, '', 1);
+END;
+
+CREATE TRIGGER cloud_sync_item_insert AFTER INSERT ON chapters
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND (new.is_syncing = 0 AND (SELECT source FROM mangas WHERE _id = new.manga_id) NOT IN (SELECT source FROM cloud_sync_excluded_sources) AND (new.read = 1 OR new.bookmark = 1 OR new.last_page_read > 0))
+BEGIN
+    DELETE FROM cloud_sync_dirty WHERE (kind, source, title, item) IN (SELECT 'item', source, url, new.url FROM mangas WHERE _id = new.manga_id);
+    INSERT INTO cloud_sync_dirty(kind, source, title, item) SELECT 'item', source, url, new.url FROM mangas WHERE _id = new.manga_id;
+END;
+
+CREATE TRIGGER cloud_sync_item_update AFTER UPDATE OF read, bookmark, last_page_read ON chapters
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND (new.is_syncing = 0 AND (SELECT source FROM mangas WHERE _id = new.manga_id) NOT IN (SELECT source FROM cloud_sync_excluded_sources) AND (old.read IS NOT new.read OR old.bookmark IS NOT new.bookmark OR old.last_page_read IS NOT new.last_page_read))
+BEGIN
+    DELETE FROM cloud_sync_dirty WHERE (kind, source, title, item) IN (SELECT 'item', source, url, new.url FROM mangas WHERE _id = new.manga_id);
+    INSERT INTO cloud_sync_dirty(kind, source, title, item) SELECT 'item', source, url, new.url FROM mangas WHERE _id = new.manga_id;
+END;
+
+CREATE TRIGGER cloud_sync_history_insert AFTER INSERT ON history
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND ((SELECT T.source FROM mangas T JOIN chapters I ON I.manga_id=T._id WHERE I._id=new.chapter_id) NOT IN (SELECT source FROM cloud_sync_excluded_sources))
+BEGIN
+    DELETE FROM cloud_sync_dirty WHERE (kind, source, title, item) IN (SELECT 'history', T.source, T.url, I.url FROM mangas T JOIN chapters I ON I.manga_id=T._id WHERE I._id=new.chapter_id);
+    INSERT INTO cloud_sync_dirty(kind, source, title, item, removed) SELECT 'history', T.source, T.url, I.url, 0 FROM mangas T JOIN chapters I ON I.manga_id=T._id WHERE I._id=new.chapter_id;
+END;
+
+CREATE TRIGGER cloud_sync_category_insert AFTER INSERT ON categories
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND (new._id > 0)
+BEGIN
+    DELETE FROM cloud_sync_dirty WHERE kind = 'category' AND source = 0 AND title = '' AND item = CAST(new._id AS TEXT);
+    INSERT INTO cloud_sync_dirty(kind, source, title, item, removed) VALUES('category', 0, '', CAST(new._id AS TEXT), 0);
+END;
+
+CREATE TRIGGER cloud_sync_membership_insert AFTER INSERT ON mangas_categories
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND ((SELECT source FROM mangas WHERE _id=new.manga_id) NOT IN (SELECT source FROM cloud_sync_excluded_sources))
+BEGIN
+    DELETE FROM cloud_sync_dirty WHERE (kind, source, title, item) IN (SELECT 'membership', source, url, '' FROM mangas WHERE _id=new.manga_id);
+    INSERT INTO cloud_sync_dirty(kind, source, title, item, removed) SELECT 'membership', source, url, '', 0 FROM mangas WHERE _id=new.manga_id;
+END;
+
+CREATE TRIGGER cloud_sync_tracking_insert AFTER INSERT ON manga_sync
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND ((SELECT source FROM mangas WHERE _id=new.manga_id) NOT IN (SELECT source FROM cloud_sync_excluded_sources))
+BEGIN
+    DELETE FROM cloud_sync_dirty WHERE (kind, source, title, item) IN (SELECT 'tracking', source, url, CAST(new.sync_id AS TEXT) FROM mangas WHERE _id=new.manga_id);
+    INSERT INTO cloud_sync_dirty(kind, source, title, item, removed) SELECT 'tracking', source, url, CAST(new.sync_id AS TEXT), 0 FROM mangas WHERE _id=new.manga_id;
+END;
+
+CREATE TRIGGER cloud_sync_history_update AFTER UPDATE OF last_read ON history
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND ((SELECT T.source FROM mangas T JOIN chapters I ON I.manga_id=T._id WHERE I._id=new.chapter_id) NOT IN (SELECT source FROM cloud_sync_excluded_sources))
+BEGIN
+    DELETE FROM cloud_sync_dirty WHERE (kind, source, title, item) IN (SELECT 'history', T.source, T.url, I.url FROM mangas T JOIN chapters I ON I.manga_id=T._id WHERE I._id=new.chapter_id);
+    INSERT INTO cloud_sync_dirty(kind, source, title, item, removed) SELECT 'history', T.source, T.url, I.url, 0 FROM mangas T JOIN chapters I ON I.manga_id=T._id WHERE I._id=new.chapter_id;
+END;
+
+CREATE TRIGGER cloud_sync_category_update AFTER UPDATE ON categories
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND (new._id > 0)
+BEGIN
+    DELETE FROM cloud_sync_dirty WHERE kind = 'category' AND source = 0 AND title = '' AND item = CAST(new._id AS TEXT);
+    INSERT INTO cloud_sync_dirty(kind, source, title, item, removed) VALUES('category', 0, '', CAST(new._id AS TEXT), 0);
+END;
+
+CREATE TRIGGER cloud_sync_membership_update AFTER UPDATE ON mangas_categories
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND ((SELECT source FROM mangas WHERE _id=new.manga_id) NOT IN (SELECT source FROM cloud_sync_excluded_sources))
+BEGIN
+    DELETE FROM cloud_sync_dirty WHERE (kind, source, title, item) IN (SELECT 'membership', source, url, '' FROM mangas WHERE _id=new.manga_id);
+    INSERT INTO cloud_sync_dirty(kind, source, title, item, removed) SELECT 'membership', source, url, '', 0 FROM mangas WHERE _id=new.manga_id;
+END;
+
+CREATE TRIGGER cloud_sync_tracking_update AFTER UPDATE ON manga_sync
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND ((SELECT source FROM mangas WHERE _id=new.manga_id) NOT IN (SELECT source FROM cloud_sync_excluded_sources))
+BEGIN
+    DELETE FROM cloud_sync_dirty WHERE (kind, source, title, item) IN (SELECT 'tracking', source, url, CAST(new.sync_id AS TEXT) FROM mangas WHERE _id=new.manga_id);
+    INSERT INTO cloud_sync_dirty(kind, source, title, item, removed) SELECT 'tracking', source, url, CAST(new.sync_id AS TEXT), 0 FROM mangas WHERE _id=new.manga_id;
+END;
+
+CREATE TRIGGER cloud_sync_history_delete BEFORE DELETE ON history
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND ((SELECT T.source FROM mangas T JOIN chapters I ON I.manga_id=T._id WHERE I._id=old.chapter_id) NOT IN (SELECT source FROM cloud_sync_excluded_sources))
+BEGIN
+    DELETE FROM cloud_sync_dirty WHERE (kind, source, title, item) IN (SELECT 'history', T.source, T.url, I.url FROM mangas T JOIN chapters I ON I.manga_id=T._id WHERE I._id=old.chapter_id);
+    INSERT INTO cloud_sync_dirty(kind, source, title, item, removed) SELECT 'history', T.source, T.url, I.url, 1 FROM mangas T JOIN chapters I ON I.manga_id=T._id WHERE I._id=old.chapter_id;
+END;
+
+CREATE TRIGGER cloud_sync_category_delete BEFORE DELETE ON categories
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND (old._id > 0)
+BEGIN
+    DELETE FROM cloud_sync_dirty WHERE kind = 'category' AND source = 0 AND title = '' AND item = CAST(old._id AS TEXT);
+    INSERT INTO cloud_sync_dirty(kind, source, title, item, removed) VALUES('category', 0, '', CAST(old._id AS TEXT), 1);
+END;
+
+CREATE TRIGGER cloud_sync_membership_delete BEFORE DELETE ON mangas_categories
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND ((SELECT source FROM mangas WHERE _id=old.manga_id) NOT IN (SELECT source FROM cloud_sync_excluded_sources))
+BEGIN
+    DELETE FROM cloud_sync_dirty WHERE (kind, source, title, item) IN (SELECT 'membership', source, url, '' FROM mangas WHERE _id=old.manga_id);
+    INSERT INTO cloud_sync_dirty(kind, source, title, item, removed) SELECT 'membership', source, url, '', 0 FROM mangas WHERE _id=old.manga_id;
+END;
+
+CREATE TRIGGER cloud_sync_tracking_delete BEFORE DELETE ON manga_sync
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND ((SELECT source FROM mangas WHERE _id=old.manga_id) NOT IN (SELECT source FROM cloud_sync_excluded_sources))
+BEGIN
+    DELETE FROM cloud_sync_dirty WHERE (kind, source, title, item) IN (SELECT 'tracking', source, url, CAST(old.sync_id AS TEXT) FROM mangas WHERE _id=old.manga_id);
+    INSERT INTO cloud_sync_dirty(kind, source, title, item, removed) SELECT 'tracking', source, url, CAST(old.sync_id AS TEXT), 1 FROM mangas WHERE _id=old.manga_id;
+END;
+
+CREATE TRIGGER cloud_sync_subscription_insert AFTER INSERT ON release_subscription
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND ((SELECT source FROM mangas WHERE _id=new.entry_id) NOT IN (SELECT source FROM cloud_sync_excluded_sources))
+BEGIN
+    DELETE FROM cloud_sync_dirty WHERE (kind, source, title, item) IN (SELECT 'subscription', source, url, '' FROM mangas WHERE _id=new.entry_id);
+    INSERT INTO cloud_sync_dirty(kind, source, title, item, removed)
+    SELECT 'subscription', source, url, '', 0 FROM mangas WHERE _id=new.entry_id;
+END;
+
+CREATE TRIGGER cloud_sync_subscription_update AFTER UPDATE ON release_subscription
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND ((SELECT source FROM mangas WHERE _id=new.entry_id) NOT IN (SELECT source FROM cloud_sync_excluded_sources))
+BEGIN
+    DELETE FROM cloud_sync_dirty WHERE (kind, source, title, item) IN (SELECT 'subscription', source, url, '' FROM mangas WHERE _id=new.entry_id);
+    INSERT INTO cloud_sync_dirty(kind, source, title, item, removed)
+    SELECT 'subscription', source, url, '', 0 FROM mangas WHERE _id=new.entry_id;
+END;
+
+CREATE TRIGGER cloud_sync_subscription_delete BEFORE DELETE ON release_subscription
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND ((SELECT source FROM mangas WHERE _id=old.entry_id) NOT IN (SELECT source FROM cloud_sync_excluded_sources))
+BEGIN
+    DELETE FROM cloud_sync_dirty WHERE (kind, source, title, item) IN (SELECT 'subscription', source, url, '' FROM mangas WHERE _id=old.entry_id);
+    INSERT INTO cloud_sync_dirty(kind, source, title, item, removed)
+    SELECT 'subscription', source, url, '', 1 FROM mangas WHERE _id=old.entry_id;
+END;
+
+configure:
+UPDATE cloud_sync_control SET enabled = :enabled, incognito = :incognito WHERE singleton = 1;
+
+suppress:
+UPDATE cloud_sync_control SET suppressed = :suppressed WHERE singleton = 1;
+
+excludeSource:
+INSERT OR IGNORE INTO cloud_sync_excluded_sources(source) VALUES(:source);
+
+clearExcludedSources:
+DELETE FROM cloud_sync_excluded_sources;
+
+pending:
+SELECT * FROM cloud_sync_dirty ORDER BY revision LIMIT :count;
+
+acknowledge:
+DELETE FROM cloud_sync_dirty WHERE revision = :revision;
+
+pendingCount:
+SELECT count(*) FROM cloud_sync_dirty;
+
+historyEntry:
+SELECT * FROM history WHERE chapter_id = :id;
+
+categoryKey:
+SELECT shared_id FROM cloud_sync_category_ids WHERE local_id = :localId;
+
+localCategory:
+SELECT local_id FROM cloud_sync_category_ids WHERE shared_id = :sharedId;
+
+bindCategory:
+INSERT OR REPLACE INTO cloud_sync_category_ids(local_id, shared_id) VALUES(:localId, :sharedId);
+
+reset:
+DELETE FROM cloud_sync_dirty;
+
+applyTitle:
+UPDATE mangas SET title = :name, artist = :artist, author = :author, description = :description,
+    genre = :genres, status = :status, thumbnail_url = :cover, favorite = :favorite,
+    date_added = :added, viewer = :viewer, chapter_flags = :flags,
+    is_syncing = 1, version = version + 1 WHERE _id = :id;
+
+applyItem:
+UPDATE chapters SET name = :name, scanlator = :scanlator, chapter_number = :number,
+    source_order = :sourceOrder, read = :completed, bookmark = :bookmark,
+    last_page_read = :position, date_upload = :dateUpload,
+    is_syncing = 1, version = version + 1 WHERE _id = :id;
+
+
+seedReferences:
+SELECT T.source, T.url FROM mangas T
+WHERE T.favorite = 1
+OR EXISTS(SELECT 1 FROM chapters I WHERE I.manga_id=T._id AND (I.read=1 OR I.bookmark=1 OR I.last_page_read>0))
+OR EXISTS(SELECT 1 FROM chapters I JOIN history H ON H.chapter_id=I._id WHERE I.manga_id=T._id)
+OR EXISTS(SELECT 1 FROM manga_sync S WHERE S.manga_id=T._id)
+OR EXISTS(SELECT 1 FROM release_subscription S WHERE S.entry_id=T._id);
+
+noticeReference:
+SELECT T.source, T.url AS title_url, I.url AS item_url, N.created_at
+FROM release_notice N JOIN chapters I ON I._id=N.item_id JOIN mangas T ON T._id=N.entry_id
+WHERE N.item_id=:id;
+
+deleteSubscription:
+DELETE FROM release_subscription WHERE entry_id=:id;
+
+updateReferences:
+SELECT T.source, T.url AS title_url, I.url AS item_url, I.date_fetch, T.title, I.name
+FROM chapters I JOIN mangas T ON T._id=I.manga_id WHERE I.date_fetch>=:after;

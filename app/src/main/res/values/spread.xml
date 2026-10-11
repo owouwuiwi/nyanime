@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="spread_mode">Spread</string>
+    <string name="reading_mode_use_default">Use default</string>
+    <string name="spread_heading">Page layout</string>
+    <string name="spread_single">Single page</string>
+    <string name="spread_pairs">Two pages</string>
+    <string name="spread_vertical">Continuous pairs</string>
+    <string name="spread_offset">Pairing offset</string>
+    <string name="spread_offset_pages">Leading single pages</string>
+    <string name="spread_offset_less">Decrease offset</string>
+    <string name="spread_offset_more">Increase offset</string>
+    <string name="spread_offset_hint">These first pages stay single. The remaining pages are paired in reading order.</string>
+    <string name="spread_chapter_custom">Custom offset for this chapter</string>
+    <string name="spread_chapter_inherits">Using this manga’s default offset</string>
+    <string name="spread_reset">Reset chapter</string>
+    <string name="spread_apply_manga">Use for this manga</string>
+    <string name="spread_continue">Continue</string>
+    <string name="spread_page">Page %1$d</string>
+</resources>

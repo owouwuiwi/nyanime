@@ -1,0 +1,9 @@
+{
+  "uniqueId": "it.owouwuiwi.native:nyanime-mpv",
+  "name": "mpv Android bridge and GPL native player",
+  "website": "https://github.com/owouwuiwi/nyanime/tree/main/tools/native",
+  "licenses": [
+    "GPL-3.0-or-later",
+    "MIT"
+  ]
+}

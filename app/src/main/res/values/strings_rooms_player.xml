@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="room_player_button">Room · %1$d</string>
+    <string name="room_player_title">Together</string>
+    <string name="room_player_lounge">Lounge</string>
+    <string name="room_player_details">Invites and room settings</string>
+    <string name="room_player_unread">Unread messages: %1$d</string>
+    <string name="room_player_open_chat">Open room chat</string>
+    <string name="room_player_open_lounge">Open the room, participants and invites</string>
+    <string name="room_player_participants">%1$d in the room</string>
+    <string name="room_player_remove_confirm">Remove %1$s from this room?</string>
+</resources>
