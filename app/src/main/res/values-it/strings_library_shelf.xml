@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="library_shelf_mode">Scaffale</string>
+    <string name="library_shelf_new_episode">Nuovo episodio %1$s</string>
+    <string name="library_shelf_new_chapter">Nuovo capitolo %1$s</string>
+    <plurals name="library_shelf_new_episodes">
+        <item quantity="one">%d nuovo episodio</item>
+        <item quantity="other">%d nuovi episodi</item>
+    </plurals>
+    <plurals name="library_shelf_new_chapters">
+        <item quantity="one">%d nuovo capitolo</item>
+        <item quantity="other">%d nuovi capitoli</item>
+    </plurals>
+    <string name="library_shelf_next_episode">Episodio %1$s %2$s</string>
+    <string name="library_shelf_next_chapter">Capitolo %1$s %2$s</string>
+    <plurals name="library_shelf_to_watch">
+        <item quantity="one">%d episodio da vedere</item>
+        <item quantity="other">%d episodi da vedere</item>
+    </plurals>
+    <plurals name="library_shelf_to_read">
+        <item quantity="one">%d capitolo da leggere</item>
+        <item quantity="other">%d capitoli da leggere</item>
+    </plurals>
+    <string name="library_shelf_download_all">Scarica tutti i nuovi elementi</string>
+    <string name="library_shelf_open">Apri scheda</string>
+    <string name="library_shelf_continue_watching">Continua a guardare</string>
+    <string name="library_shelf_continue_reading">Continua a leggere</string>
+    <string name="library_shelf_mark_seen">Segna tutto come visto</string>
+    <string name="library_shelf_mark_unseen">Segna come non visto</string>
+    <string name="library_shelf_mark_read">Segna tutto come letto</string>
+    <string name="library_shelf_mark_unread">Segna come non letto</string>
+    <string name="library_shelf_update">Aggiorna categoria</string>
+    <string name="library_shelf_change_category">Cambia categoria</string>
+    <string name="library_shelf_select">Seleziona</string>
+    <string name="library_shelf_download_started">Download aggiunti alla coda</string>
+    <string name="library_shelf_downloaded">Scaricati: %1$d</string>
+    <string name="library_shelf_caught_up">Sei in pari</string>
+    <string name="library_shelf_episode_progress">Ep. %1$d/%2$d</string>
+    <string name="library_shelf_chapter_progress">Cap. %1$d/%2$d</string>
+    <string name="library_shelf_news">Novità</string>
+    <string name="library_shelf_collection">La tua libreria</string>
+    <string name="library_medium_all">Tutti</string>
+    <string name="library_all_refresh">Aggiorna tutta la libreria</string>
+    <string name="library_all_refresh_started">Aggiornamento della libreria avviato</string>
+    <string name="library_all_refresh_running">La libreria si sta già aggiornando</string>
+    <string name="library_all_empty_title">La tua libreria aspetta il primo titolo</string>
+    <string name="library_empty_hint">Aggiungi un titolo alla libreria e apparirà qui, pronto da continuare.</string>
+    <string name="library_empty_category_hint">Questa categoria è pronta per i tuoi prossimi titoli.</string>
+    <string name="library_empty_search_hint">Prova un altro titolo oppure continua la ricerca in tutte le estensioni installate.</string>
+    <string name="library_empty_filter_hint">Modifica i filtri attivi per riportare in vista i tuoi titoli.</string>
+    <string name="library_header_subtitle">Le tue storie, i progressi e le prossime uscite in un solo posto.</string>
+    <string name="library_search_action">Cerca nella libreria</string>
+    <string name="library_more_actions">Altre azioni della libreria</string>
+    <string name="library_updates_action">Novità</string>
+    <string name="library_shelf_remove">Rimuovi dalla libreria</string>
+</resources>

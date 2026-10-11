@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="search_smart_settings">Smart title search</string>
+    <string name="search_tolerant">Tolerate spelling and punctuation</string>
+    <string name="search_tolerant_summary">Find titles with typos, joined words and alternative names. Your original search is preserved.</string>
+    <string name="search_catalog_assistance">Online title suggestions</string>
+    <string name="search_catalog_summary">Consult public catalogs when local titles are insufficient. Suggestions do not mean a title is available in an extension.</string>
+    <string name="search_clear_cache">Clear title search cache</string>
+    <string name="search_clear_cache_summary">Remove remembered titles and aliases. Your library and tracking are unchanged.</string>
+    <string name="search_cache_cleared">Title cache cleared</string>
+    <string name="search_recovered">Also found using “%1$s”</string>
+    <string name="search_perhaps">Perhaps you meant… · title suggestions</string>
+    <string name="search_finding_titles">Looking for matching titles…</string>
+    <string name="search_no_suggestions">No matching title suggestions</string>
+    <string name="search_assistance_unavailable">Title assistance unavailable. Original search preserved.</string>
+    <string name="search_exact">Exact search</string>
+    <string name="search_exact_active">Exact search: spelling assistance is off for this query.</string>
+    <string name="search_smart_resume">Use smart search</string>
+    <string name="search_original_preserved">Your original search is preserved.</string>
+</resources>

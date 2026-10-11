@@ -1,0 +1,20 @@
+MediaPipe Face Landmarker, SDK 0.10.35 and model bundle version 1.
+Copyright The MediaPipe Authors / Google LLC. Apache License, Version 2.0.
+
+SDK: https://github.com/google-ai-edge/mediapipe/tree/v0.10.35
+Model: https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task
+Model SHA-256: 64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff
+Model bytes: 3758596
+Model cards:
+https://storage.googleapis.com/mediapipe-assets/Model%20Card%20MediaPipe%20Face%20Mesh%20V2.pdf
+https://storage.googleapis.com/mediapipe-assets/Model%20Card%20Blendshape%20V2.pdf
+
+Nyanime modification: at build time, the Java TasksStatsLoggerFactory.create
+method is replaced with a local no-op TasksStatsLogger implementation. This
+prevents MediaPipe statistics transport initialization and reporting. The model,
+vision graphs, native library and inference implementation are unchanged.
+Recipe: buildSrc/src/main/kotlin/it/lorelore/nyanime/buildlogic/LocalMediaPipeLogging.kt
+
+Original Maven artifacts and their SHA-256 are listed in provenance.json.
+The model is verified before every build. Third-party Android libraries remain
+listed in the application's generated dependency licenses.

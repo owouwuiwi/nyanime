@@ -1,0 +1,31 @@
+<resources>
+    <string name="secret_game_title">Sandspiel</string>
+    <string name="secret_game_back">Indietro</string>
+    <string name="secret_game_loading">Preparazione del gioco…</string>
+    <string name="secret_game_play">Avvia</string>
+    <string name="secret_game_pause">Pausa</string>
+    <string name="secret_game_paused">In pausa · puoi ancora disegnare</string>
+    <string name="secret_game_drawing">Scegli un elemento e disegna</string>
+    <string name="secret_game_undo">Annulla</string>
+    <string name="secret_game_clear">Ricomincia</string>
+    <string name="secret_game_clear_title">Creare un nuovo mondo?</string>
+    <string name="secret_game_clear_description">La creazione attuale verrà cancellata.</string>
+    <string name="secret_game_cancel">Annulla</string>
+    <string name="secret_game_brush">Pennello</string>
+    <string name="secret_game_brush_size">Dimensione pennello %1$d di 5</string>
+    <string name="secret_game_materials">Elementi</string>
+    <string name="secret_game_credits">Crediti</string>
+    <string name="secret_game_credits_body">Sandspiel di Max Bittker, licenza MIT. Simulazione dei fluidi di Pavel Dobryakov, licenza MIT. La simulazione originale viene eseguita localmente sul telefono. Gli avvisi completi sono inclusi nelle licenze delle librerie dell’app.</string>
+    <string name="secret_game_done">Chiudi</string>
+    <string name="secret_game_graphics_error">Il motore grafico del gioco non è disponibile. Puoi riprovare; la creazione salvata è stata conservata.</string>
+    <string name="secret_game_restore_error">Non è stato possibile leggere la creazione salvata. Puoi riprovare oppure creare un nuovo mondo.</string>
+    <string name="secret_game_save_error">Non è stato possibile salvare le ultime modifiche. La creazione salvata in precedenza resta disponibile.</string>
+    <string name="secret_game_retry">Riprova</string>
+    <string name="secret_game_board">Area di disegno</string>
+    <string name="secret_game_leave_title">Uscire senza salvare le ultime modifiche?</string>
+    <string name="secret_game_leave">Esci</string>
+    <string name="secret_game_stay">Resta qui</string>
+    <string-array name="secret_game_elements">
+        <item>Sabbia</item><item>Acqua</item><item>Muro</item><item>Pietra</item><item>Ghiaccio</item><item>Gas</item><item>Fuoco</item><item>Lava</item><item>Legno</item><item>Pianta</item><item>Seme</item><item>Fungo</item><item>Acido</item><item>Polvere</item><item>Olio</item><item>Acaro</item><item>Razzo</item><item>Clonatore</item><item>Gomma</item>
+    </string-array>
+</resources>

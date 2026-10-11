@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="music_coming_title">Musica</string>
+    <string name="music_coming_heading">La musica sta arrivando</string>
+    <string name="music_coming_description">Questa funzione arriverà nel corso delle prossime settimane.</string>
+    <string name="anime_themes_external_search">Cerca nel browser</string>
+    <string name="anime_themes_external_note">I video e la ricerca si aprono nel browser o in un’app compatibile.</string>
+</resources>

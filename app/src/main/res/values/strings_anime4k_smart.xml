@@ -1,0 +1,11 @@
+<resources>
+    <string name="smart_analysis_toggle">Image analysis · experimental</string>
+    <string name="smart_analysis_description">Applies the next time Smart starts. Analysis stays on this device; images are never saved.</string>
+    <string name="smart_status_analysing">Smart · choosing image treatment…</string>
+    <string name="smart_status_preparing">Smart · preparing…</string>
+    <string name="smart_status_active">Smart · %1$s</string>
+    <string name="smart_status_recovering">Smart · testing higher quality</string>
+    <string name="smart_status_original">Smart · original image for smooth playback</string>
+    <string name="smart_analysis_applied">Treatment adapted to the image</string>
+    <string name="smart_analysis_fallback">Using video characteristics; image analysis was inconclusive.</string>
+</resources>

@@ -1,0 +1,11 @@
+<resources>
+    <string name="smart_analysis_toggle">Analisi immagine · sperimentale</string>
+    <string name="smart_analysis_description">Dal prossimo avvio di Smart. Analisi solo sul dispositivo; nessuna immagine viene salvata.</string>
+    <string name="smart_status_analysing">Smart · scelta del trattamento…</string>
+    <string name="smart_status_preparing">Smart · preparazione…</string>
+    <string name="smart_status_active">Smart · %1$s</string>
+    <string name="smart_status_recovering">Smart · prova di qualità superiore</string>
+    <string name="smart_status_original">Smart · immagine originale per mantenere la fluidità</string>
+    <string name="smart_analysis_applied">Trattamento adattato all’immagine</string>
+    <string name="smart_analysis_fallback">Uso delle caratteristiche del video: analisi immagine non conclusiva.</string>
+</resources>

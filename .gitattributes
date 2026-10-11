@@ -1,0 +1,49 @@
+* text=auto
+* text eol=lf
+
+# Windows forced line-endings
+/.idea/* text eol=crlf
+
+# Gradle wrapper
+*.jar binary
+*.aar binary
+*.so binary
+vendor/maven/**/*.pom -text
+*.tflite binary
+*.task binary
+*.wasm binary
+core/source-exchange/native/** text eol=lf
+core/source-exchange/src/main/assets/** -text
+feature/secret-game/src/main/assets/** -text
+
+# Images
+*.webp binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.gz binary
+*.zip binary
+*.7z binary
+*.ttf binary
+*.eot binary
+*.woff binary
+*.pyc binary
+*.swp binary
+# Preserve exact generated shaders and third-party notice bytes.
+feature/secret-game/src/main/assets/secret-game/sandspiel/* whitespace=-blank-at-eol,-blank-at-eof
+
+# Retain original third-party licence bytes, including upstream whitespace.
+core/source-exchange/src/main/assets/** -whitespace
+
+# Exact original licence/model provenance and upstream UI snapshots.
+core/attention/src/main/assets/attention/** -text -whitespace
+core/source-exchange/native/Lightning-LICENSE -text
+presentation-player/third-party/** -text -whitespace
+app/src/main/assets/licenses/CameraX-LICENSE.txt -text -whitespace
+tools/source-exchange/extra-notices/**/LICENSE-* -text -whitespace
+# Preserve the exact locked native source inputs retained in the source bundle.
+core/source-exchange/native/Cargo.toml whitespace=-blank-at-eof
+core/source-exchange/native/src/error.rs whitespace=-blank-at-eof
+core/source-exchange/native/src/lib.rs whitespace=-blank-at-eof
