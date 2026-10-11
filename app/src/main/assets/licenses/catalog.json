@@ -1,0 +1,280 @@
+[
+  {
+    "name": "Nyanime — copyright and attribution",
+    "website": "https://github.com/owouwuiwi/nyanime",
+    "licenseName": "Apache-2.0 · third-party licenses apply separately",
+    "asset": "licenses/Nyanime-LICENSE.txt",
+    "notice": "licenses/Nyanime-NOTICE.txt"
+  },
+  {
+    "name": "FFmpeg — native media libraries",
+    "website": "https://github.com/owouwuiwi/nyanime/tree/main/tools/native",
+    "licenseName": "GPL-3.0-or-later",
+    "asset": "licenses/GPL-3.0.txt",
+    "notice": "licenses/player-NOTICE.txt"
+  },
+  {
+    "name": "libmpv — native video player",
+    "website": "https://github.com/mpv-player/mpv",
+    "licenseName": "GPL-2.0-or-later · combined player: GPL-3.0",
+    "asset": "licenses/GPL-2.0.txt",
+    "notice": "licenses/player-NOTICE.txt"
+  },
+  {
+    "name": "mpv-android — Android player bridge",
+    "website": "https://github.com/aniyomiorg/aniyomi-mpv-lib",
+    "licenseName": "MIT",
+    "asset": "licenses/mpv-android-LICENSE.txt",
+    "notice": "licenses/player-NOTICE.txt"
+  },
+  {
+    "name": "FFmpegKit — Android media bridge",
+    "website": "https://github.com/jmir1/ffmpeg-kit/tree/1.18",
+    "licenseName": "LGPL-3.0 · bundled FFmpeg: GPL-3.0-or-later",
+    "asset": "licenses/LGPL-3.0.txt",
+    "notice": "licenses/player-NOTICE.txt"
+  },
+  {
+    "name": "Anime4K — image processing shaders",
+    "website": "https://github.com/bloc97/Anime4K",
+    "licenseName": "MIT",
+    "asset": "anime4k/LICENSE"
+  },
+  {
+    "name": "Kototoro — adapted image shader compiler",
+    "website": "https://github.com/Kototoro-app/Kototoro/tree/21aee6a94f9c9367434d4922c6247b66d881c3b1",
+    "licenseName": "Apache-2.0",
+    "asset": "licenses/Kototoro-Image-LICENSE.txt",
+    "notice": "licenses/reader-quality-NOTICE.txt"
+  },
+  {
+    "name": "Cinema — audio processing",
+    "website": "https://github.com/owouwuiwi/nyanime",
+    "licenseName": "License and credits included with the component",
+    "asset": "audio/cinema/LICENSE.txt"
+  },
+  {
+    "name": "SymSpellKt — adapted search correction",
+    "website": "https://github.com/wavesonics/SymSpellKt",
+    "licenseName": "MIT",
+    "asset": "licenses/SymSpellKt-LICENSE.txt"
+  },
+  {
+    "name": "Transitions.dev — motion reference",
+    "website": "https://transitions.dev",
+    "licenseName": "Transitions.dev License",
+    "asset": "licenses/Transitions-dev-LICENSE.txt"
+  },
+  {
+    "name": "DeepPanel — panel recognition model",
+    "website": "https://github.com/pedrovgs/DeepPanelAndroid",
+    "licenseName": "Apache-2.0",
+    "asset": "deeppanel/LICENSE.txt",
+    "notice": "deeppanel/NOTICE.txt"
+  },
+  {
+    "name": "Piik — lounge and connection recovery inspiration",
+    "website": "https://github.com/TNTcraftHIM/Piik",
+    "licenseName": "MIT",
+    "asset": "licenses/Piik-LICENSE.txt"
+  },
+  {
+    "name": "WebRTC — optional room voice",
+    "website": "https://github.com/webrtc-sdk/webrtc/tree/30d5e63ae91da483e06577b5c35ee91cc5e5c3db",
+    "licenseName": "BSD-3-Clause and third-party licenses",
+    "asset": "licenses/WebRTC-LICENSE.txt",
+    "notice": "licenses/WebRTC-ThirdParty.md"
+  },
+  {
+    "name": "WebRTC SDKs — Android binding",
+    "website": "https://github.com/webrtc-sdk/android",
+    "licenseName": "MIT",
+    "asset": "licenses/WebRTC-SDK-LICENSE.txt",
+    "notice": "licenses/WebRTC-PATENTS.txt"
+  },
+  {
+    "name": "Downpour — adapted connection tuner",
+    "website": "https://github.com/AlirezaJavan/Downpour",
+    "licenseName": "Apache-2.0",
+    "asset": "licenses/Downpour-LICENSE.txt",
+    "notice": "licenses/download-NOTICE.txt"
+  },
+  {
+    "name": "Fetch — adapted speed average",
+    "website": "https://github.com/tonyofrancis/Fetch",
+    "licenseName": "Apache-2.0",
+    "asset": "licenses/Fetch-LICENSE.txt",
+    "notice": "licenses/download-NOTICE.txt"
+  },
+  {
+    "name": "TDLib — official Telegram engine",
+    "website": "https://github.com/tdlib/td",
+    "licenseName": "BSL-1.0",
+    "asset": "licenses/TDLib-LICENSE.txt",
+    "notice": "licenses/telegram-NOTICE.txt"
+  },
+  {
+    "name": "OpenSSL — Telegram native transport",
+    "website": "https://github.com/openssl/openssl",
+    "licenseName": "Apache-2.0",
+    "asset": "licenses/OpenSSL-LICENSE.txt",
+    "notice": "licenses/telegram-NOTICE.txt"
+  },
+  {
+    "name": "Sandspiel — offline secret game",
+    "website": "https://github.com/MaxBittker/sandspiel/tree/9936e06b07a583aedfba9589c0cead2917f405fb",
+    "licenseName": "MIT",
+    "asset": "secret-game/sandspiel/Sandspiel-LICENSE.txt"
+  },
+  {
+    "name": "WebGL Fluid Simulation — secret game fluid solver",
+    "website": "https://github.com/PavelDoGreat/WebGL-Fluid-Simulation",
+    "licenseName": "MIT",
+    "asset": "secret-game/sandspiel/Fluid-LICENSE.txt"
+  },
+  {
+    "name": "Sandspiel rendering dependencies — regl, GLSL noise and random",
+    "website": "https://github.com/regl-project/regl",
+    "licenseName": "MIT / BSD-3-Clause",
+    "asset": "secret-game/sandspiel/DEPENDENCIES.txt"
+  },
+  {
+    "name": "Sandspiel WebAssembly — Rust and dependency notices",
+    "website": "https://github.com/rust-lang/rust/tree/1.85.1",
+    "licenseName": "MIT / Apache-2.0 and individual component terms",
+    "asset": "secret-game/sandspiel/RUST-NOTICES.txt"
+  },
+  {
+    "name": "Nyanime Player Presentation",
+    "website": "https://github.com/owouwuiwi/nyanime",
+    "licenseName": "Apache-2.0",
+    "asset": "licenses/PlayerPresentation-LICENSE.txt",
+    "notice": "licenses/PlayerPresentation-NOTICE.txt"
+  },
+  {
+    "name": "MediaPipe — optional viewing attention",
+    "website": "https://github.com/google-ai-edge/mediapipe/tree/v0.10.35",
+    "licenseName": "Apache-2.0",
+    "asset": "attention/LICENSE.txt",
+    "notice": "attention/NOTICE.txt"
+  },
+  {
+    "name": "RE2/J",
+    "website": "https://github.com/google/re2j/tree/re2j-1.7",
+    "licenseName": "BSD-3-Clause (Go License)",
+    "asset": "licenses/re2j.txt",
+    "assetSha256": "26a6133577cc8e48d7c002ac4d4a554786e7c0e1732e10f2db205e5e494c411b",
+    "evidence": [
+      "https://raw.githubusercontent.com/google/re2j/re2j-1.7/LICENSE"
+    ],
+    "coordinate": "com.google.re2j:re2j",
+    "version": "1.7"
+  },
+  {
+    "name": "Lightning P2P — source exchange ticket compatibility",
+    "website": "https://github.com/Kerim-Sabic/lightning-p2p/tree/6960642a46f549c53d53abef3f2db7327857e488",
+    "licenseName": "Apache-2.0",
+    "asset": "source-exchange/Lightning-LICENSE.txt",
+    "notice": "source-exchange/NOTICE.txt"
+  },
+  {
+    "name": "Source exchange — iroh and native dependency notices",
+    "website": "https://github.com/n0-computer/iroh/tree/v1.0.0",
+    "licenseName": "MIT / Apache-2.0 and individual component terms",
+    "asset": "source-exchange/THIRD-PARTY-LICENSES.txt",
+    "notice": "source-exchange/NOTICE.txt"
+  },
+  {
+    "name": "Rust standard library — source exchange runtime",
+    "website": "https://github.com/rust-lang/rust/tree/58cf8f9c35b355199727627d07ae34a4e2846d67/library",
+    "licenseName": "MIT / Apache-2.0 and embedded component notices",
+    "asset": "source-exchange/rust/licenses/MIT.txt",
+    "notice": "source-exchange/rust/COPYRIGHT-library.html"
+  },
+  {
+    "name": "FLOW player UI subset",
+    "licenseName": "GPL-3.0-only",
+    "asset": "licenses/FlowPlayerStyle-LICENSE.txt",
+    "notice": "licenses/FlowPlayerStyle-NOTICE.txt",
+    "website": "https://github.com/Flow-Tube/Flow/tree/14afdf9e9426fb8b67e5fcbc76bf4e81af492d16"
+  },
+  {
+    "name": "AndroidX CameraX native helpers",
+    "licenseName": "Apache-2.0 and BSD notices",
+    "asset": "licenses/CameraX-LICENSE.txt",
+    "website": "https://developer.android.com/jetpack/androidx/releases/camera"
+  },
+  {
+    "name": "NCNN image inference",
+    "licenseName": "BSD-3-Clause and embedded notices",
+    "asset": "licenses/reader-quality/NCNN.txt",
+    "notice": "licenses/reader-quality-NOTICE.txt",
+    "website": "https://github.com/Tencent/ncnn/tree/56775de50990ab7f16627efdcf5529b49541206f"
+  },
+  {
+    "name": "RealCUGAN model",
+    "licenseName": "MIT",
+    "asset": "licenses/reader-quality/RealCUGAN-Model.txt",
+    "notice": "licenses/reader-quality-NOTICE.txt",
+    "website": "https://github.com/bilibili/ailab/tree/main/Real-CUGAN"
+  },
+  {
+    "name": "RealCUGAN NCNN conversion",
+    "licenseName": "MIT",
+    "asset": "licenses/reader-quality/RealCUGAN-Converter.txt",
+    "notice": "licenses/reader-quality-NOTICE.txt",
+    "website": "https://github.com/nihui/realcugan-ncnn-vulkan/tree/395302c5c70f1bff604c974e92e0a87e45c9f9ee"
+  },
+  {
+    "name": "Real-ESRGAN model",
+    "licenseName": "BSD-3-Clause",
+    "asset": "licenses/reader-quality/RealESRGAN-Model.txt",
+    "notice": "licenses/reader-quality-NOTICE.txt",
+    "website": "https://github.com/xinntao/Real-ESRGAN/tree/v0.2.5.0"
+  },
+  {
+    "name": "Real-ESRGAN NCNN conversion",
+    "licenseName": "MIT",
+    "asset": "licenses/reader-quality/RealESRGAN-Converter.txt",
+    "notice": "licenses/reader-quality-NOTICE.txt",
+    "website": "https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan/tree/37026f49824c5cf84062e7c6a5dd71445dcf610f"
+  },
+  {
+    "name": "ruapu CPU feature detection (NCNN image worker)",
+    "licenseName": "MIT",
+    "asset": "licenses/reader-quality/Ruapu.txt",
+    "website": "https://github.com/Tencent/ncnn/blob/56775de50990ab7f16627efdcf5529b49541206f/src/ruapu.h"
+  },
+  {
+    "name": "Readium — EPUB navigation",
+    "website": "https://github.com/readium/kotlin-toolkit/tree/3.4.0",
+    "licenseName": "BSD-3-Clause",
+    "asset": "novel/licenses/Readium-BSD-3-Clause.txt",
+    "notice": "novel/licenses/Readium-NOTICE.txt"
+  },
+  {
+    "name": "PhotoView — embedded in Readium navigator",
+    "website": "https://github.com/Baseflow/PhotoView/tree/2.3.0",
+    "licenseName": "Apache-2.0",
+    "asset": "novel/licenses/PhotoView-Apache-2.0.txt",
+    "notice": "novel/licenses/Readium-NOTICE.txt"
+  },
+  {
+    "name": "OpenDyslexic — legacy embedded font",
+    "website": "https://github.com/antijingoist/open-dyslexic",
+    "licenseName": "Bitstream Vera + CC BY3.0",
+    "asset": "novel/licenses/OpenDyslexic-Legacy-License.txt"
+  },
+  {
+    "name": "iA Writer Duospace / IBM Plex — Readium font",
+    "website": "https://github.com/readium/kotlin-toolkit/tree/3.4.0",
+    "licenseName": "OFL-1.1",
+    "asset": "novel/licenses/LICENSE-IaWriterDuospace.md"
+  },
+  {
+    "name": "Accessible-Dfa — Readium font",
+    "website": "https://github.com/readium/kotlin-toolkit/tree/3.4.0",
+    "licenseName": "OFL-1.1",
+    "asset": "novel/licenses/LICENSE-AccessibleDfa"
+  }
+]

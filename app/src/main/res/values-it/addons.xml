@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="addon_optional_action">Cosa offre questo addon</string>
+    <string name="addon_more_hint">Dopo averlo abilitato, apri Altro → %1$s. Disabilitandolo nascondi questo accesso; le altre funzioni dell’app restano disponibili.</string>
+    <string name="store_addon">Addon</string>
+    <string name="addon_open">Apri addon</string>
+    <string name="addon_choose">Scegli un addon</string>
+    <string name="addon_optional_mode">Una modalità in più, quando vuoi</string>
+    <string name="addon_enabled">Abilita addon</string>
+    <string name="addon_hold_hint">Tieni premuto il logo della Home per aprire un addon abilitato.</string>
+    <string name="addon_incompatible">Questo addon richiede un aggiornamento compatibile.</string>
+    <string name="addon_appearance_hint">Il tema segue Nyanime. Le modifiche fatte qui si applicano anche all’app.</string>
+    <string name="addon_sources">Codice sorgente e licenze</string>
+    <string name="addon_intro_title">Scopri gli addon</string>
+    <string name="addon_intro_subtitle">Funzioni in più da aggiungere a Nyanime, quando ti servono.</string>
+    <string name="addon_intro_choice_title">Scegli cosa aggiungere</string>
+    <string name="addon_intro_choice">Li trovi nello Store, nella sezione Addon. Installa quello che ti interessa e abilitalo. Puoi disabilitarlo o disinstallarlo quando vuoi.</string>
+    <string name="addon_intro_beta_title">Uno spazio per le novità</string>
+    <string name="addon_intro_beta">Gli addon possono includere funzioni in alpha o beta: sono ancora in sviluppo e possono cambiare.</string>
+    <string name="addon_intro_future_title">Cosa succede dopo?</string>
+    <string name="addon_intro_future">Una funzione potrà entrare in Nyanime, restare un addon oppure essere scartata e rimossa completamente.</string>
+    <string name="addon_intro_continue">Continua</string>
+    <string name="addon_host_build">build %1$d</string>
+    <string name="addon_host_minimum">Richiede Nyanime %1$s o successiva.</string>
+    <string name="addon_host_maximum">Supporta Nyanime fino alla %1$s.</string>
+    <string name="addon_host_range">Supporta Nyanime dalla %1$s alla %2$s.</string>
+    <string name="addon_host_too_old">Aggiorna Nyanime alla %1$s o successiva per usare questo addon. La tua versione: %2$s.</string>
+    <string name="addon_host_too_new">Questo addon supporta Nyanime fino alla %1$s. Hai la %2$s: cerca una versione aggiornata dell’addon.</string>
+    <string name="addon_host_unavailable">Versione Nyanime incompatibile</string>
+</resources>

@@ -1,0 +1,13 @@
+Nyanime download components
+
+Downpour, Alireza Javan — Apache License 2.0
+ConnectionTuner adapted from revision 1dc14db51697d275789a8e82d32f90e73a040fa6.
+https://github.com/AlirezaJavan/Downpour
+Changes: shared per-source throughput sampling, connection ceilings and server-error cooldown.
+
+Fetch, Tony Francis — Apache License 2.0
+AverageCalculator adapted from revision 11c2c45f6be1cfe034fb2b32dea7c14660ff6961.
+https://github.com/tonyofrancis/Fetch
+Changes: fixed-size weighted sample ring, monotonic time and bounded progress updates.
+
+The source files are adaptations, not unmodified copies of the upstream components.

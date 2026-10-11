@@ -1,0 +1,6 @@
+CREATE TABLE reminder_receipt (
+    reminder_key TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    delivered_at INTEGER NOT NULL,
+    PRIMARY KEY(reminder_key, kind)
+);

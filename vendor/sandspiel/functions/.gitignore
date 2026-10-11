@@ -1,0 +1,10 @@
+## Compiled JavaScript files
+**/*.js
+**/*.js.map
+
+# Typescript v1 declaration files
+typings/
+
+# legacy functions.config() dump, contains secrets
+.runtimeconfig.json
+.env.local

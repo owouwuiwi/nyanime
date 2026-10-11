@@ -1,0 +1,3 @@
+[submodule "vendor/sandspiel"]
+	path = vendor/sandspiel
+	url = https://github.com/MaxBittker/sandspiel.git

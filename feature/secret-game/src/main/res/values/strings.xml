@@ -1,0 +1,31 @@
+<resources>
+    <string name="secret_game_title">Sandspiel</string>
+    <string name="secret_game_back">Back</string>
+    <string name="secret_game_loading">Preparing the game…</string>
+    <string name="secret_game_play">Play</string>
+    <string name="secret_game_pause">Pause</string>
+    <string name="secret_game_paused">Paused · you can still draw</string>
+    <string name="secret_game_drawing">Choose an element and draw</string>
+    <string name="secret_game_undo">Undo</string>
+    <string name="secret_game_clear">Start over</string>
+    <string name="secret_game_clear_title">Start a new world?</string>
+    <string name="secret_game_clear_description">This clears the current creation.</string>
+    <string name="secret_game_cancel">Cancel</string>
+    <string name="secret_game_brush">Brush</string>
+    <string name="secret_game_brush_size">Brush size %1$d of 5</string>
+    <string name="secret_game_materials">Elements</string>
+    <string name="secret_game_credits">Credits</string>
+    <string name="secret_game_credits_body">Sandspiel by Max Bittker, MIT license. Fluid simulation by Pavel Dobryakov, MIT license. The original simulation runs locally on your phone. Full notices are included in the app’s library licenses.</string>
+    <string name="secret_game_done">Done</string>
+    <string name="secret_game_graphics_error">The game graphics engine is unavailable. You can try again; your saved creation has been kept.</string>
+    <string name="secret_game_restore_error">Your saved creation could not be read. You can try again or start a new world.</string>
+    <string name="secret_game_save_error">Your latest changes could not be saved. The previous saved creation is still available.</string>
+    <string name="secret_game_retry">Try again</string>
+    <string name="secret_game_board">Drawing area</string>
+    <string name="secret_game_leave_title">Leave without saving the latest changes?</string>
+    <string name="secret_game_leave">Leave</string>
+    <string name="secret_game_stay">Stay here</string>
+    <string-array name="secret_game_elements">
+        <item>Sand</item><item>Water</item><item>Wall</item><item>Stone</item><item>Ice</item><item>Gas</item><item>Fire</item><item>Lava</item><item>Wood</item><item>Plant</item><item>Seed</item><item>Fungus</item><item>Acid</item><item>Dust</item><item>Oil</item><item>Mite</item><item>Rocket</item><item>Cloner</item><item>Eraser</item>
+    </string-array>
+</resources>

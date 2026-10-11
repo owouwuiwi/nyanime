@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="catalogue_understood">Got it</string>
+    <string name="catalogue_link_title">Add a catalogue</string>
+    <string name="catalogue_link_instruction">Open the publisher’s website and tap “Add to Nyanime”, or open its Nyanime catalogue link.</string>
+    <string name="catalogue_link_confirmation">You can also paste its HTTPS catalogue link here. Review the catalogue and its permissions before confirming.</string>
+    <string name="catalogue_reset_title">Add your catalogues again</string>
+    <string name="catalogue_reset_description">This update has removed previously configured catalogues once. You can add them again using a catalogue link.</string>
+    <string name="catalogue_reset_preserved">Your installed extensions, library and progress are still here.</string>
+    <string name="catalogue_authority_consent_title">Transition to RIN extensions</string>
+    <string name="catalogue_authority_consent">Allow this publisher to provide RIN versions of compatible installed extensions. Guided migration verifies the packages before asking you to remove the previous APKs. The signing fingerprint is shown below.</string>
+    <string name="store_authority_title">Recommended versions</string>
+    <string name="store_authority_count">%1$d installed extensions have a different signature. Review the catalogue’s recommendations before replacing them.</string>
+    <string name="store_authority_review">Review</string>
+    <string name="store_signature_different">Different signature</string>
+    <string name="store_current_version">Installed version</string>
+    <string name="store_catalogue_version">Catalogue version</string>
+    <string name="store_authority_switch_title">Use the recommended version</string>
+    <string name="store_authority_recommends">%1$s recommends its signed version for this extension. Installed: %2$s. Proposed: %3$s. You can keep the current version.</string>
+    <string name="catalogue_open_store">Open the Store</string>
+</resources>

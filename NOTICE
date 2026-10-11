@@ -1,0 +1,57 @@
+Nyanime
+Copyright (c) 2026 owouwuiwi and Nyanime contributors.
+
+This copyright notice applies to original Nyanime contributions only.
+Each contributor retains the rights to their own contributions. It does not
+claim ownership of inherited code, dependencies, artwork or third-party data.
+
+Nyanime's original application contributions are licensed under the Apache
+License, Version 2.0. The license text is provided in LICENSE. Separately
+licensed components retain their own licenses and distribution requirements.
+
+The distributed APK combines these application contributions with GPL-licensed
+native components. Distribution of the combined work is subject to the
+applicable GNU GPL version 3 requirements, in addition to the original
+licenses retained by its constituent parts. Corresponding source, build
+recipes and license texts accompany the release. This does not reassign
+copyright or remove Apache-2.0 from the original application sources.
+
+Nyanime is derived from AniYomi, Mihon and Tachiyomi. Original attribution
+notices are preserved, including:
+
+Copyright (c) 2015 Javier Tomás
+Copyright (c) 2024 Mihon Open Source Project
+Copyright (c) 2024 Aniyomi Open Source Project
+
+Inherited file headers, the project history and component-specific notices
+identify further contributors and copyright holders. See docs/credits.md
+and docs/licensing.md for attribution and distribution information.
+
+This NOTICE provides attribution; it does not modify any license, grant
+additional trademark rights or replace third-party license texts.
+
+Room lounge and bounded connection-recovery design inspired by Piik,
+Copyright (c) 2026 TNTcraft and Piik contributors, MIT License. Its desktop
+backend and host-video transmission are not included. Full MIT license in
+app/src/main/assets/licenses/Piik-LICENSE.txt.
+
+Optional audio-only WebRTC binding: WebRTC SDKs, Copyright (c) 2023, MIT.
+WebRTC project authors, BSD-3-Clause, with separately licensed third-party
+components and patent grant. Version 144.7559.15, source revision
+30d5e63ae91da483e06577b5c35ee91cc5e5c3db. Full notices and licenses are bundled
+in core/room-voice/src/main/assets/licenses and accessible in the app.
+
+FLOW player presentation subset, adapted from Flow-Tube/Flow revision
+14afdf9e9426fb8b67e5fcbc76bf4e81af492d16, GPL-3.0-only. Only graphical
+controls, sheets, gesture indicators and presentation utilities are included;
+its YouTube client, extraction engine, accounts, service and storage are not.
+Full original licence, selected original snapshots and modification notice are
+in presentation-player/third-party/flow-ui. Original Nyanime bridge code in
+presentation-player retains Apache-2.0. No upstream trademark rights are granted.
+
+Optional MediaPipe Face Landmarker and CameraX, Apache-2.0 with the original
+CameraX embedded BSD notices; model identity and local statistics-factory
+modification are documented in core/attention. Source exchange ticket parsing
+adapted from Lightning P2P revision 6960642a46f549c53d53abef3f2db7327857e488,
+Copyright 2025-2026 Kerim Sabic, Apache-2.0; its original NOTICE is retained in
+core/source-exchange/native and bundled offline with native dependency notices.
