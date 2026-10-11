@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="guided_page_counter">Page %1$d of %2$d</string>
+    <string name="guided_save_failed">We could not save guided reading changes. Your original page is still available.</string>
+    <string name="guided_reading">Guided reading</string>
+    <string name="guided_panel_order">Panel order</string>
+    <string name="guided_order_rtl">← Right to left</string>
+    <string name="guided_order_ltr">Left to right →</string>
+    <string name="guided_order_vertical">↓ Top to bottom</string>
+    <string name="guided_custom_order_hint">This page uses a custom order. Choose Automatic in Edit panels to reorder it.</string>
+    <string name="guided_introduction">Read one panel at a time, entirely offline. Tap or swipe to continue, or use your navigation keys. Pinch to explore. You can always return to the full page or correct the detected panels.</string>
+    <string name="guided_start">Start reading</string>
+    <string name="guided_whole_page">Full page</string>
+    <string name="guided_counter">Panel %1$d of %2$d</string>
+    <string name="guided_analyzing">Finding panels…</string>
+    <string name="guided_fallback">Full page available · edit panels</string>
+    <string name="guided_focus">Focus panel</string>
+    <string name="guided_edit">Edit panels</string>
+    <string name="guided_editor_hint">Drag corners to resize. Hold a number and drag to reorder.</string>
+    <string name="guided_add">Add panel</string>
+    <string name="guided_delete">Remove panel</string>
+    <string name="guided_reset">Automatic</string>
+    <string name="guided_save">Save</string>
+    <string name="guided_next">Next panel</string>
+    <string name="guided_previous">Previous panel</string>
+    <string name="guided_retry">Retry page</string>
+    <string name="guided_compact_counter">%1$d / %2$d</string>
+    <string name="guided_compact_page_counter">Page %1$d / %2$d</string>
+    <string name="guided_compact_page">Full page</string>
+    <string name="guided_compact_analyzing">Analyzing…</string>
+</resources>
