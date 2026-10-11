@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="unified_search_search">Cerca</string>
+    <string name="unified_search_close">Chiudi ricerca</string>
+    <string name="unified_search_hint">Cerca…</string>
+    <string name="unified_search_clear">Cancella testo</string>
+    <string name="unified_search_all">Tutti</string>
+    <string name="unified_search_explore">Esplora</string>
+    <string name="unified_search_results">Risultati</string>
+    <string name="unified_search_categories">Scegli una categoria</string>
+    <string name="unified_search_query_scope">“%1$s” · %2$s</string>
+    <string name="unified_search_search_help">Suggerimenti e ricerca esatta</string>
+    <string name="unified_search_discover">Scopri nelle tue fonti</string>
+    <string name="unified_search_found">Titoli disponibili</string>
+    <string name="unified_search_searching">Cerco nelle tue fonti… I risultati appaiono appena arrivano.</string>
+    <string name="unified_search_offline">La ricerca online non è disponibile in modalità Solo scaricati.</string>
+    <string name="unified_search_begin">Inizia con un titolo o scegli un genere.</string>
+    <string name="unified_search_confirm">Premi Cerca per vedere i risultati.</string>
+    <string name="unified_search_empty">Nessun titolo trovato con queste scelte.</string>
+    <string name="unified_search_clear_filters">Rimuovi i filtri di genere</string>
+    <string name="unified_search_retry_sources">Riprova %1$d fonti non disponibili</string>
+    <string name="unified_search_more">Carica altri risultati</string>
+    <string name="unified_search_other_results">Mostra altri titoli (%1$d)</string>
+    <string name="unified_search_sources">%1$d fonti</string>
+    <string name="unified_search_filters">Filtri</string>
+    <string name="unified_search_supported_sources">Ricerca in %1$d fonti compatibili. Le fonti che non possono applicare i generi scelti sono escluse.</string>
+    <string name="unified_search_advanced">Filtri avanzati delle fonti</string>
+    <string name="unified_search_settings">Impostazioni di ricerca</string>
+    <string name="unified_search_remember">Ricorda l’ultima ricerca</string>
+    <string name="unified_search_remember_summary">Ripristina testo, categoria e generi quando apri Cerca. Disattivato in incognito.</string>
+    <string name="unified_search_keyboard">Apri subito la tastiera</string>
+    <string name="unified_search_live">Cerca mentre scrivi</string>
+    <string name="unified_search_live_summary">Attende brevemente mentre scrivi; Cerca avvia sempre la ricerca subito.</string>
+    <string name="unified_search_filters_removed">Alcuni generi non sono disponibili in questa categoria e sono stati rimossi.</string>
+    <string name="unified_search_video">Anime</string>
+    <string name="unified_search_manga">Manga</string>
+    <string name="unified_search_preparing_help">Verifico i titoli corrispondenti…</string>
+    <string name="unified_search_stale_filters">Questi filtri non sono più disponibili. Aggiorna l’estensione e selezionali di nuovo.</string>
+    <string name="unified_search_intro_title">La ricerca si è rinnovata</string>
+    <string name="unified_search_intro_description">Cerca ha preso il posto di Sfoglia nella barra in basso.</string>
+    <string name="unified_search_intro_search_title">Anime e manga, insieme</string>
+    <string name="unified_search_intro_search_body">Trova titoli con categorie e filtri.</string>
+    <string name="unified_search_intro_browse_title">Ti serve Sfoglia?</string>
+    <string name="unified_search_intro_browse_body">Lo trovi in Altro, oppure tieni premuto Cerca.</string>
+    <string name="unified_search_intro_try">Prova Cerca</string>
+    <string name="unified_search_intro_done">Ho capito</string>
+</resources>

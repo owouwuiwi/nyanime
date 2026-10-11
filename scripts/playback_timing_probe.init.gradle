@@ -1,0 +1,13 @@
+// Opt-in only: -I scripts/playback_timing_probe.init.gradle :app:assemblePreviewAndroidTest
+gradle.beforeProject { project ->
+    if (project.path != ':app') return
+    project.plugins.withId('com.android.application') {
+        project.extensions.getByName('androidComponents').finalizeDsl { android ->
+            android.defaultConfig.testInstrumentationRunner = 'eu.kanade.tachiyomi.player.PlaybackTimingDeviceProbe'
+            android.testBuildType = 'preview'
+            def probeSources = ['src/androidTest/java/eu/kanade/tachiyomi/player']
+            android.sourceSets.getByName('androidTest').java.setSrcDirs(probeSources)
+            project.extensions.getByName('kotlin').sourceSets.getByName('androidTest').kotlin.setSrcDirs(probeSources)
+        }
+    }
+}
