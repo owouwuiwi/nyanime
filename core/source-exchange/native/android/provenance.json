@@ -1,0 +1,23 @@
+{
+  "binaries": {
+    "arm64-v8a": "b2927eb48f894d9b374f7c2a33e3a5206d8e9dcece2dcb6d9294f36940de2966",
+    "armeabi-v7a": "83a4eb6df98bc00371e6e1c10dde6cf31138b1fe02f74f7689050c22df465690",
+    "x86": "9dddd2498782e15bbbc3b5969dbf531daa1898c3c0d568621af2b70a914b0bbe",
+    "x86_64": "3e4cc14ca95d95b45f861d47e8b03ffdb7f00e94b8b08a0a60ec57337f1f025b"
+  },
+  "inputs": {
+    "Cargo.lock": "93c7c7abaeafa75a2edb259da5af840157ee63349cce53af3f3673dae8bb916d",
+    "Cargo.toml": "1a84fbc39bffd320eea8d296c272a1dde15119f72bdd4d6f229a7db0b0908dae",
+    "src/android.rs": "5ebdacf41ffbf7653106a625c8b7a253984a58bfea75d0aee665936783d91d8b",
+    "src/error.rs": "4282592e4dd0c3fa5bd65fea33d1ab21c94e5acf3ce72d771cd31926b8531e31",
+    "src/lib.rs": "901ed97b082a450230dc81775ad3c98c212da99a70c610ea42a9c8e54bff3974",
+    "src/ticket.rs": "5a6222855d342edc620771e6f3ef1190ab7b40be4dbb57d56737a7914f371527",
+    "src/transport.rs": "2c807bf067f58de60cf4cee0320a8cffb535afb3a4f3232a1fbcff29d2084c48"
+  },
+  "iroh": "1.0.0",
+  "iroh-blobs": "0.103.1",
+  "ndk": "r27c",
+  "rustc": "1.99.1",
+  "schema": 1,
+  "upstream": "6960642a46f549c53d53abef3f2db7327857e488"
+}

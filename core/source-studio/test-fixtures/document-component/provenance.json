@@ -1,0 +1,11 @@
+{
+  "description": "Synthetic provider DEX only; no Android manifest, signer, network endpoint or real content.",
+  "compiler": "Kotlin2.4.10/JDK17; AndroidD8/R8 9.1.29 minAPI26",
+  "sources": {
+    "source-api\\src\\commonMain\\kotlin\\it\\lorelore\\nyanime\\source\\novel\\NovelSource.kt": "1982a62b087dee79b7bce8fe8c29a86cf8188fae3db64f259e58daf063c613e3",
+    "source-api\\src\\commonMain\\kotlin\\it\\lorelore\\nyanime\\source\\document\\SourceDocumentReader.kt": "f0bf3b2e91d3a8049f77af19ef3389b90149c23579bc9182a536ffb11ea41602",
+    "source-api\\src\\commonMain\\kotlin\\it\\lorelore\\nyanime\\source\\document\\SourceDocumentResolver.kt": "972445e15017b3da43cf1423e40dabd9884089721b1d98119a9b645fade2cf4f",
+    "core\\source-studio\\test-fixtures\\document-component\\FictionalDocumentFactory.kt": "bc1439b2d59416a71dceae35743d69db5fad9395773329308464da025d5eb4f6"
+  },
+  "assetSha256": "9c857c9b49b13d887f3dc0db8f8a5f08107692ce35a42aded813add9d26a37c5"
+}

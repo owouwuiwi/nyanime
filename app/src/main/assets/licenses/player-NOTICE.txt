@@ -1,0 +1,19 @@
+Nyanime native player
+
+The native MPV/FFmpeg closure is rebuilt from the immutable revisions in
+tools/native/player/sources.lock.json, with GPL/version3 enabled and nonfree
+disabled. FFmpegKit callbacks, SAF support, the Android JNI bridge, subtitles,
+user shaders and the generic HLS seek patches are retained.
+
+Original upstream notices and full license documents are included in
+licenses/native-player and licenses/native. The original Java/Kotlin APIs are
+retained from the pinned upstream AARs; their source snapshots are included in
+the supplemental source archive. GPL applies to distribution of the combined
+player; the MIT/LGPL licenses of the bridge sources remain intact.
+
+The release page provides the application and native source archives,
+configuration records, patches, dependency snapshots and checksums:
+https://github.com/owouwuiwi/nyanime/releases
+
+See tools/native/README.md and docs/licensing.md for rebuilding and attribution.
+Production signing credentials are not needed to build a modified application.

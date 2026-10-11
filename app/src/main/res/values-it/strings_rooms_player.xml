@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="room_player_button">Stanza · %1$d</string>
+    <string name="room_player_title">Insieme</string>
+    <string name="room_player_lounge">Sala</string>
+    <string name="room_player_details">Inviti e impostazioni della stanza</string>
+    <string name="room_player_unread">Messaggi non letti: %1$d</string>
+    <string name="room_player_open_chat">Apri la chat della stanza</string>
+    <string name="room_player_open_lounge">Apri salotto, partecipanti e inviti</string>
+    <string name="room_player_participants">%1$d nella stanza</string>
+    <string name="room_player_remove_confirm">Vuoi rimuovere %1$s dalla stanza?</string>
+</resources>
