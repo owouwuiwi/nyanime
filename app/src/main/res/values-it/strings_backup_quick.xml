@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="quick_backup_title">Crea backup</string>
+    <string name="quick_backup_subtitle">Tutto in Download/Nyanime, con un tocco</string>
+    <string name="quick_backup_warning">Include password e token. Il file non è cifrato.</string>
+    <string name="quick_backup_preparing">Prepariamo il backup…</string>
+    <string name="quick_backup_saving">Salviamo in Download/Nyanime…</string>
+    <string name="quick_backup_verifying">Verifichiamo il backup…</string>
+    <string name="quick_backup_waiting">Avvio del backup…</string>
+    <string name="quick_backup_done">Backup salvato in Download/Nyanime</string>
+    <string name="quick_backup_failed">Backup non riuscito. Tocca per riprovare.</string>
+    <string name="quick_backup_permission">Consenti l’accesso ai file per salvare in Download/Nyanime.</string>
+    <string name="quick_backup_share">Condividi</string>
+    <string name="quick_backup_restore_action">Ripristina</string>
+    <string name="quick_backup_view">Vedi backup</string>
+    <string name="quick_backup_customize">Personalizza contenuto</string>
+    <string name="quick_backup_restore">Ripristina un backup</string>
+    <string name="quick_backup_browser_title">I tuoi backup</string>
+    <string name="quick_backup_browser_intro">Scegli un backup per controllarne il contenuto prima di ripristinarlo.</string>
+    <string name="quick_backup_searching">Cerchiamo i backup sul dispositivo…</string>
+    <string name="quick_backup_latest_title">ULTIMO BACKUP</string>
+    <string name="quick_backup_inspect">Controlla il contenuto</string>
+    <string name="quick_backup_external_title">Hai un backup da un altro dispositivo?</string>
+    <string name="quick_backup_previous_title">Backup precedenti</string>
+    <string name="quick_backup_other_file">Scegli un altro file</string>
+    <string name="quick_backup_empty">Qui non ci sono ancora backup.</string>
+    <string name="quick_backup_automatic">Automatico</string>
+    <string name="quick_backup_manual">Download/Nyanime</string>
+    <string name="quick_backup_checking">Controlliamo il contenuto del backup…</string>
+    <string name="quick_backup_contents">%1$d anime · %2$d manga · %3$d episodi · %4$d capitoli · %5$d estensioni</string>
+    <string name="quick_backup_downloads_excluded">Video e capitoli scaricati non sono inclusi.</string>
+    <string name="quick_backup_extensions_note">L’installazione delle estensioni richiede una conferma di Android. Seleziona “Estensioni” qui sotto per includerle.</string>
+    <string name="quick_backup_settings_contents">%1$d impostazioni · Dati di accesso: %2$s</string>
+    <string name="quick_backup_yes">inclusi</string>
+    <string name="quick_backup_no">non inclusi</string>
+</resources>

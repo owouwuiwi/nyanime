@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="crash_recovery_title">Nyanime stopped unexpectedly</string>
+    <string name="crash_recovery_description">Something went wrong. Reopen the app, or share a report to help us understand what happened.</string>
+    <string name="crash_recovery_restart">Reopen Nyanime</string>
+    <string name="crash_recovery_share">Share report</string>
+    <string name="crash_recovery_preparing">Preparing report…</string>
+    <string name="crash_recovery_close">Close app</string>
+    <string name="crash_recovery_details">Error details</string>
+    <string name="crash_recovery_expand">Show details</string>
+    <string name="crash_recovery_collapse">Hide details</string>
+    <string name="crash_recovery_no_details">Error details are unavailable. You can still share a report.</string>
+    <string name="crash_recovery_truncated">This is a preview. The shared report includes the full error details.</string>
+    <string name="crash_recovery_version">Nyanime %1$s · Android %2$s</string>
+    <string name="crash_recovery_report_failed">The report could not be prepared or shared. Please try again.</string>
+    <string name="crash_recovery_privacy">The report may contain personal information. It is shared only when you choose a recipient.</string>
+</resources>
