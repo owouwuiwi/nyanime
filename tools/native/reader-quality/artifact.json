@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "artifact": "vendor/native/reader-quality-56775de5-v1.zip",
+  "sha256": "fb6ead53f28baba66ec33565c845374eee7ae27a1f975c3f73d59f0b9f9e8d2c",
+  "ncnn": "56775de50990ab7f16627efdcf5529b49541206f",
+  "ncnnArchiveSha256": "25d1a616bb3a598535545e217eb6fc5df98c4ba04344b48dbb141bbb108801ef",
+  "ndk": "28.2.13676358",
+  "files": {
+    "arm64-v8a/libnyanime_reader_quality.so": "8bc98810fb180d431ab0b52d5f92e2c02d7ca6b9ae08de8b8d95ce2e3e011299",
+    "arm64-v8a/provenance.json": "285dfcfac06d87d40c60bceac0a574f9448351c45b620f3a7e86a3aa27235a3f",
+    "armeabi-v7a/libnyanime_reader_quality.so": "288722618fbf0145e8dcff2633319bd17805a9834f5d550da800e5485a30f192",
+    "armeabi-v7a/provenance.json": "1a445038de76fe6d06d7b72259a706f849cb49295ee50adbe658cb48bc5a53c9",
+    "x86/libnyanime_reader_quality.so": "5cd7c89a01f0e7a47c7aa39db6ea0b0b6135845693b671c6fa3be173083dff05",
+    "x86/provenance.json": "797aa62853be2b4f0672fa0734fca2d31c2092cd4138cbc408c7317068c6d92c",
+    "x86_64/libnyanime_reader_quality.so": "7a1045c2ad0f09ec11adc658332ce9c794e0e9f461e50598a64556fd1dec6970",
+    "x86_64/provenance.json": "ba96dd33d147a53734de185d273dfed9b19ef085dd8f4cf5de87c939cf5be802"
+  },
+  "sourceRecipe": "scripts/build_reader_quality_native.py"
+}

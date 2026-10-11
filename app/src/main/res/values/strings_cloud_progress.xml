@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cloud_maintenance_title">Archive care</string>
+    <string name="cloud_work_preparing">Preparing the data</string>
+    <string name="cloud_work_receiving">Receiving changes</string>
+    <string name="cloud_work_sending">Sending changes</string>
+    <string name="cloud_work_applying">Checking local items</string>
+    <string name="cloud_work_checkpoint">Uploading a recovery copy</string>
+    <string name="cloud_work_restoring">Verifying recovery parts</string>
+    <string name="cloud_unit_pages">pages received</string>
+    <string name="cloud_unit_packets">packets confirmed</string>
+    <string name="cloud_unit_parts">parts</string>
+    <string name="cloud_unit_items">items checked</string>
+    <string name="cloud_work_count_total">%1$d / %2$d %3$s</string>
+    <string name="cloud_work_count">%1$d %2$s · total not yet known</string>
+    <string name="cloud_maintenance_paused">History work is paused. Data sync has its own status above.</string>
+    <string name="cloud_maintenance_copies">Waiting for two complete recovery copies.</string>
+    <string name="cloud_maintenance_rate">Telegram asked us to wait. Verified progress is saved.</string>
+    <string name="cloud_maintenance_network">Waiting for the connection. Verified progress is saved.</string>
+    <string name="cloud_maintenance_proof">A safety check could not finish. Nothing unverified is removed.</string>
+    <string name="cloud_maintenance_none">Pass complete: no eligible messages to remove.</string>
+    <string name="cloud_maintenance_parts">Recovery parts verified: %1$d / %2$d</string>
+    <string name="cloud_maintenance_anchors">Device proofs verified: %1$d / %2$d</string>
+    <string name="cloud_maintenance_devices">Compatible devices: %1$d / %2$d</string>
+    <string name="cloud_maintenance_changes">%1$d changes checked</string>
+    <string name="cloud_maintenance_examined">Messages examined in this pass: %1$d</string>
+    <string name="cloud_maintenance_removed_pass">Confirmed removals in this pass: %1$d</string>
+    <string name="cloud_maintenance_protected">Protected: %1$d · Under 7 days old: %2$d</string>
+    <string name="cloud_maintenance_activity">Last completed work: %1$s</string>
+</resources>
