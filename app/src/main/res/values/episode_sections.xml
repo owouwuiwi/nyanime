@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="episode_section_other">Other episodes</string>
+    <string name="episode_section_progress">%1$d of %2$d watched</string>
+    <string name="episode_section_not_loaded">Open to load episodes</string>
+    <string name="episode_section_failed">Episodes could not be updated</string>
+    <string name="episode_section_retry">Try again</string>
+    <string name="episode_section_load">Load episodes</string>
+    <string name="episode_section_open">Open season details</string>
+    <string name="episode_section_expanded">Expanded</string>
+    <string name="episode_section_collapsed">Collapsed</string>
+    <string name="episode_section_empty">No episodes match the current filters</string>
+    <string name="episode_section_loading">Loading episodes</string>
+    <plurals name="episode_section_count">
+        <item quantity="one">%d episode</item>
+        <item quantity="other">%d episodes</item>
+    </plurals>
+</resources>

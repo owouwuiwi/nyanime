@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="store_android_migration_title">Cambia editore dell’estensione Android</string>
+    <string name="store_android_migration_resume">Riprendi o ripristina un’estensione Android</string>
+    <string name="store_android_migration_empty">Non ci sono migrazioni di estensioni Android salvate.</string>
+    <string name="store_android_migration_intro">Scegli un APK dell’editore autorizzato dai layer approvati. Nyanime verificherà e salverà entrambi gli APK prima di proporti la rimozione.</string>
+    <string name="store_android_migration_versions">Codici versione Android: %1$d → %2$d</string>
+    <string name="store_android_migration_verify_hint">Entrambi gli APK sono salvati. Verifica che il sostituto fornisca esattamente gli stessi ID delle fonti. Il controllo avvia la factory delle nuove fonti.</string>
+    <string name="store_android_migration_verify">Verifica gli ID delle fonti</string>
+    <string name="store_android_migration_remove_hint">Entrambi gli APK e tutti gli ID delle fonti sono verificati. Android ti chiederà di rimuovere l’estensione attuale. La copia contiene solo l’APK. Android elimina i dati propri dell’estensione.</string>
+    <string name="store_android_migration_remove_original">Rimuovi l’APK attuale in Android</string>
+    <string name="store_android_migration_clear">Chiudi e cancella le copie salvate</string>
+    <string name="store_android_migration_install_hint">Il pacchetto è assente. Usa Android per installare il nuovo APK verificato o ripristinare la copia dell’originale.</string>
+    <string name="store_android_migration_install_new">Installa il nuovo APK in Android</string>
+    <string name="store_android_migration_restore_original">Ripristina l’APK originale in Android</string>
+    <string name="store_android_migration_installed_hint">Il nuovo APK è installato e l’originale è ancora salvato. Per ripristinarlo, rimuovi prima il nuovo APK in Android.</string>
+    <string name="store_android_migration_remove_candidate">Rimuovi il nuovo APK per ripristinare l’originale</string>
+    <string name="store_android_migration_other">Un APK diverso usa questo nome di pacchetto. Le copie restano disponibili per il ripristino.</string>
+    <string name="store_android_migration_split">Questa estensione usa APK suddivisi. Nyanime non può salvarne una copia completa e ripristinabile, quindi la rimozione non è disponibile.</string>
+    <string name="store_android_migration_failed">Impossibile verificare o aprire questo passaggio. Gli eventuali APK di ripristino restano disponibili.</string>
+</resources>

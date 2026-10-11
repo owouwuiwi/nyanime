@@ -1,0 +1,40 @@
+<resources>
+    <plurals name="release_notice_episode_today">
+        <item quantity="one">Oggi esce un nuovo episodio di «%1$s»</item>
+        <item quantity="other">Oggi escono %2$d nuovi episodi di «%1$s»</item>
+    </plurals>
+    <plurals name="release_notice_episode_tomorrow">
+        <item quantity="one">Domani esce un nuovo episodio di «%1$s»</item>
+        <item quantity="other">Domani escono %2$d nuovi episodi di «%1$s»</item>
+    </plurals>
+    <plurals name="release_notice_episode_upcoming">
+        <item quantity="one">In arrivo un nuovo episodio di «%1$s»</item>
+        <item quantity="other">In arrivo %2$d nuovi episodi di «%1$s»</item>
+    </plurals>
+    <plurals name="release_notice_episode_available">
+        <item quantity="one">È disponibile un nuovo episodio di «%1$s»</item>
+        <item quantity="other">Sono disponibili %2$d nuovi episodi di «%1$s»</item>
+    </plurals>
+    <plurals name="release_notice_chapter_today">
+        <item quantity="one">Oggi esce un nuovo capitolo di «%1$s»</item>
+        <item quantity="other">Oggi escono %2$d nuovi capitoli di «%1$s»</item>
+    </plurals>
+    <plurals name="release_notice_chapter_available">
+        <item quantity="one">È disponibile un nuovo capitolo di «%1$s»</item>
+        <item quantity="other">Sono disponibili %2$d nuovi capitoli di «%1$s»</item>
+    </plurals>
+    <plurals name="release_notice_episode_number">
+        <item quantity="one">Episodio %1$s</item>
+        <item quantity="other">Episodi %1$s</item>
+    </plurals>
+    <string name="release_notice_today">Oggi</string>
+    <string name="release_notice_tomorrow">Domani</string>
+    <string name="release_notice_day_time">%1$s, ore %2$s</string>
+    <string name="release_notice_announced_at">Orario annunciato: %1$s, ore %2$s</string>
+    <string name="release_notice_platforms">Piattaforme: %1$s</string>
+    <string name="release_notice_source_may_differ">La disponibilità nella tua fonte può essere diversa.</string>
+    <string name="release_notice_available_source">Disponibile nella tua fonte.</string>
+    <string name="release_notice_published_on">Pubblicato il %1$s</string>
+    <string name="release_notice_detected_at">Rilevato: %1$s, ore %2$s</string>
+    <string name="release_notice_private">Ci sono novità per i titoli che segui.</string>
+</resources>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="source_layers_empty">Abilita e approva il bridge per vedere le funzioni che può aggiungere.</string>
+    <string name="source_layers_active">Attivo</string>
+    <string name="source_layers_unselected">Disponibile</string>
+    <string name="source_layers_incompatible">Richiede una versione compatibile della fonte</string>
+    <string name="source_layers_dependency">Manca una funzione necessaria</string>
+    <string name="source_layers_failed">Sospeso per incompatibilità</string>
+    <string name="source_layers_original">Usa originale</string>
+    <string name="source_layers_choose">Usa bridge</string>
+    <string name="source_layers_playback">Riproduzione</string>
+    <string name="source_layers_feed">Feed</string>
+    <string name="source_layers_article">Articoli</string>
+    <string name="source_layers_search">Ricerca</string>
+    <string name="source_layers_guide">Guida programmi</string>
+</resources>

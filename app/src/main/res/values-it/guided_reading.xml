@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="guided_page_counter">Pagina %1$d di %2$d</string>
+    <string name="guided_save_failed">Non siamo riusciti a salvare le modifiche. La pagina originale resta disponibile.</string>
+    <string name="guided_reading">Lettura guidata</string>
+    <string name="guided_panel_order">Ordine delle vignette</string>
+    <string name="guided_order_rtl">← Destra a sinistra</string>
+    <string name="guided_order_ltr">Sinistra a destra →</string>
+    <string name="guided_order_vertical">↓ Dall’alto in basso</string>
+    <string name="guided_custom_order_hint">Questa pagina usa un ordine personalizzato. Usa «Automatico» in Correggi vignette per riordinarla.</string>
+    <string name="guided_introduction">Leggi una vignetta alla volta, anche offline. Tocca o scorri per continuare, oppure usa i tasti di navigazione. Puoi ingrandire liberamente, tornare alla pagina intera e correggere le vignette riconosciute.</string>
+    <string name="guided_start">Inizia a leggere</string>
+    <string name="guided_whole_page">Pagina intera</string>
+    <string name="guided_counter">Vignetta %1$d di %2$d</string>
+    <string name="guided_analyzing">Riconosciamo le vignette…</string>
+    <string name="guided_fallback">Pagina intera disponibile · correggi vignette</string>
+    <string name="guided_focus">Mostra vignetta</string>
+    <string name="guided_edit">Correggi vignette</string>
+    <string name="guided_editor_hint">Trascina gli angoli. Tieni premuto un numero per riordinare.</string>
+    <string name="guided_add">Aggiungi vignetta</string>
+    <string name="guided_delete">Rimuovi vignetta</string>
+    <string name="guided_reset">Automatico</string>
+    <string name="guided_save">Salva</string>
+    <string name="guided_next">Vignetta successiva</string>
+    <string name="guided_previous">Vignetta precedente</string>
+    <string name="guided_retry">Riprova a caricare la pagina</string>
+    <string name="guided_compact_counter">%1$d / %2$d</string>
+    <string name="guided_compact_page_counter">Pag. %1$d / %2$d</string>
+    <string name="guided_compact_page">Pagina</string>
+    <string name="guided_compact_analyzing">Analisi…</string>
+</resources>

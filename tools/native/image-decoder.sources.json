@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "ndkVersion": "26.2.11394342",
+  "api": 21,
+  "sources": [
+    {
+      "path": "decoder",
+      "url": "https://github.com/tachiyomiorg/image-decoder.git",
+      "commit": "41c059e5405c1d982c937767707270ee96c32614",
+      "license": "MPL-2.0"
+    },
+    {
+      "path": "deps/lcms2",
+      "url": "https://github.com/mm2/Little-CMS.git",
+      "commit": "453bafeb85b4ef96498866b7a8eadcc74dff9223",
+      "license": "MIT"
+    },
+    {
+      "path": "deps/libjpeg-turbo",
+      "url": "https://github.com/libjpeg-turbo/libjpeg-turbo.git",
+      "commit": "fd93d98a959ac3700e2da07310a44867c9c46f03",
+      "license": "BSD-3-Clause / IJG / Zlib"
+    },
+    {
+      "path": "deps/libpng",
+      "url": "https://github.com/glennrp/libpng.git",
+      "commit": "35d9f5ea523cb4f9d677af4705e00ddd185ed10e",
+      "license": "Libpng-2.0"
+    },
+    {
+      "path": "deps/libwebp",
+      "url": "https://chromium.googlesource.com/webm/libwebp",
+      "commit": "ca332209cb5567c9b249c86788cb2dbf8847e760",
+      "license": "BSD-3-Clause"
+    },
+    {
+      "path": "deps/libheif",
+      "url": "https://github.com/strukturag/libheif.git",
+      "commit": "5fb52b6134d5e034b51637a86c6e8a7418b35df1",
+      "license": "LGPL-3.0-or-later"
+    },
+    {
+      "path": "deps/libde265",
+      "url": "https://github.com/strukturag/libde265.git",
+      "commit": "b578ae56eb2eb257e19158282c2af9d552565c1c",
+      "license": "LGPL-3.0-or-later"
+    },
+    {
+      "path": "deps/dav1d",
+      "url": "https://github.com/videolan/dav1d.git",
+      "commit": "bb645893f374ab694b10a79f1205a728e010f2c9",
+      "license": "BSD-2-Clause"
+    },
+    {
+      "path": "deps/libjxl",
+      "url": "https://github.com/libjxl/libjxl.git",
+      "commit": "19bcd827dbf44bdc7ef30af8925696a5b82dcdf2",
+      "license": "BSD-3-Clause plus pinned submodule licences"
+    }
+  ],
+  "note": "Original unmodified image-decoder build, including static codec dependencies. Build with library/build.gradle; dependency source revisions below are the tags selected by its CMake recipe."
+}
