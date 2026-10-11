@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="package_install">Install</string>
+    <string name="package_import">Import</string>
+    <string name="package_modes_hint">Install for compatible apps, or import into Nyanime with automatic updates.</string>
+    <string name="package_imported">Imported</string>
+    <string name="package_system">Android</string>
+    <string name="package_system_required">This extension needs Android components. Use Install.</string>
+    <string name="package_publisher">Publisher fingerprint</string>
+    <string name="package_auto_updates">Automatic updates</string>
+    <string name="package_manual_updates">Manual updates · no catalogue associated</string>
+    <string name="package_catalogue_trust">Trust extensions from this catalogue</string>
+    <string name="package_catalogue_trust_hint">Applies to current and future extensions you choose to add. Does not install anything automatically. You can revoke it.</string>
+    <string name="package_update_failed">Update failed. The previous version remains available.</string>
+    <string name="package_ready">Extension ready</string>
+    <string name="package_associate_origin">Associate an update catalogue</string>
+    <string name="package_associate_hint">Choose a catalogue offering this extension with the same publisher signature. Association does not change its publisher.</string>
+    <string name="package_no_origin">No compatible catalogue is configured. You can still update by importing the file manually.</string>
+    <string name="package_inventory_unavailable">Android is temporarily unable to verify installed extensions. Saved data is retained; Nyanime will try again automatically.</string>
+</resources>

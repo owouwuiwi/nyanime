@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="store_guide">Guide</string>
+    <string name="guide_title">Guida episodi</string>
+    <string name="guide_count">%1$d episodi filler identificati</string>
+    <string name="guide_loading">Verifica della guida…</string>
+    <string name="guide_ready">Classificazioni disponibili</string>
+    <string name="guide_optional">Classificazioni e controlli filler facoltativi</string>
+    <string name="guide_canon">Canon</string>
+    <string name="guide_anime_canon">Anime canon</string>
+    <string name="guide_mixed">Misto</string>
+    <string name="guide_filler">Filler</string>
+    <string name="guide_unknown">Non classificato</string>
+    <string name="guide_install">Installa un provider di guide episodi dallo Store per vedere le classificazioni. Non serve un account.</string>
+    <string name="guide_store">Apri Store</string>
+    <string name="guide_confirm_hint">Verifica quale episodio della guida corrisponde alla numerazione di questa edizione. Gli speciali restano non classificati.</string>
+    <string name="guide_offset">Numero da aggiungere agli episodi dell’app</string>
+    <string name="guide_mapping">Episodio %1$d nell’app → episodio %2$d nella guida</string>
+    <string name="guide_coverage">La guida copre gli episodi %1$d–%2$d</string>
+    <string name="guide_back">Indietro</string>
+    <string name="guide_confirm">Conferma numerazione</string>
+    <string name="guide_unavailable">Il provider non è raggiungibile. Le classificazioni salvate restano disponibili.</string>
+    <string name="guide_removed">Associazione rimossa. Nessuna associazione automatica per questo titolo.</string>
+    <string name="guide_choose_hint">Scegli l’opera corretta, poi conferma la numerazione.</string>
+    <string name="guide_find">Trova una guida</string>
+    <string name="guide_correct">Correggi associazione</string>
+    <string name="guide_attribution">Classificazione: %1$s</string>
+    <string name="guide_updated">Guida aggiornata: %1$s</string>
+    <string name="guide_incomplete">Gli episodi assenti dalla guida restano non classificati e non vengono saltati automaticamente.</string>
+    <string name="guide_numbers">Correggi numerazione</string>
+    <string name="guide_remove">Rimuovi associazione</string>
+    <string name="guide_filler_meaning">Un episodio classificato come filler puro. Il salto automatico è facoltativo.</string>
+    <string name="guide_mixed_meaning">Contiene parti canoniche e filler. Non viene saltato dal salto automatico dei filler.</string>
+    <string name="guide_other_meaning">Questa classificazione non attiva il salto automatico dei filler.</string>
+    <string name="guide_mark_filler">Segna come filler</string>
+    <string name="guide_mark_canon">Mantieni come canon</string>
+    <string name="guide_reset">Usa la guida</string>
+    <string name="guide_hide">Nascondi episodi filler</string>
+    <string name="guide_skip">Salta automaticamente i filler</string>
+    <string name="guide_global">Predefinito per tutti gli anime</string>
+    <string name="guide_skip_hint">Salta soltanto filler puri confermati. Un episodio aperto direttamente viene sempre riprodotto. Nelle stanze decide l’host.</string>
+    <string name="guide_on">Attivo</string>
+    <string name="guide_off">Disattivo</string>
+    <string name="guide_skipped">Saltati %1$d episodi filler</string>
+    <string name="guide_view_skipped">Vedi episodi</string>
+</resources>

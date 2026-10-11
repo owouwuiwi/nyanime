@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="episode_section_other">Altri episodi</string>
+    <string name="episode_section_progress">%1$d di %2$d visti</string>
+    <string name="episode_section_not_loaded">Apri per caricare gli episodi</string>
+    <string name="episode_section_failed">Impossibile aggiornare gli episodi</string>
+    <string name="episode_section_retry">Riprova</string>
+    <string name="episode_section_load">Carica episodi</string>
+    <string name="episode_section_open">Apri la scheda della stagione</string>
+    <string name="episode_section_expanded">Espansa</string>
+    <string name="episode_section_collapsed">Chiusa</string>
+    <string name="episode_section_empty">Nessun episodio corrisponde ai filtri attivi</string>
+    <string name="episode_section_loading">Caricamento degli episodi</string>
+    <plurals name="episode_section_count">
+        <item quantity="one">%d episodio</item>
+        <item quantity="other">%d episodi</item>
+    </plurals>
+</resources>
