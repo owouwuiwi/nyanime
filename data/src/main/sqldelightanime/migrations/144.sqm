@@ -1,0 +1,13 @@
+CREATE TABLE schedule_cache (
+    entry_id INTEGER NOT NULL PRIMARY KEY REFERENCES animes(_id) ON DELETE CASCADE,
+    reference TEXT NOT NULL,
+    payload TEXT NOT NULL DEFAULT '',
+    verified_at INTEGER NOT NULL DEFAULT 0,
+    attempted_at INTEGER NOT NULL DEFAULT 0,
+    error TEXT NOT NULL DEFAULT ''
+);
+CREATE TABLE schedule_week (
+    week TEXT NOT NULL PRIMARY KEY,
+    payload TEXT NOT NULL,
+    fetched_at INTEGER NOT NULL
+);

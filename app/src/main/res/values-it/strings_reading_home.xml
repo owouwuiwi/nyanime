@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="reading_home_open_title">Apri scheda</string>
+    <string name="reading_home_opening">Apertura…</string>
+    <string name="reading_home_new">Nuovo</string>
+    <string name="reading_home_explore_category">Esplora %1$s</string>
+    <string name="reading_home_explore">Esplora</string>
+</resources>
