@@ -1,0 +1,43 @@
+{
+  "schema": 4,
+  "versionName": "0.83.0.1",
+  "versionCode": 318,
+  "channel": "recommended",
+  "applicationId": "it.owouwuiwi.nyanime",
+  "assetPrefix": "Nyanime-Production",
+  "certificateSha256": "7DD368792C4D94D1186CC4B0E2AD6C2F34FCE5DD37F19C6A1BAB45106FFC136B",
+  "sha256": {
+    "Nyanime-Production-0.83.0.1-arm64-v8a.apk": "d2d929007d8fe64cdc7f0c2a18769c9530ab5abb270d745b9f75dcf7e77fe243",
+    "Nyanime-Production-0.83.0.1-armeabi-v7a.apk": "bc67f7e3e951fa9dec44c110dbf7fda7e004cdff166d76eb11c953ef25eb5a41",
+    "Nyanime-Production-0.83.0.1-universal.apk": "eadaf80f89a8de39f00b0c1ac1a80ec3df48212fd8d7a546f4509ed99b4b9ae4",
+    "Nyanime-Production-0.83.0.1-x86.apk": "2491c390e3982b136edd7e720d8864080652bbf91bf7503eb95a8c371fac8115",
+    "Nyanime-Production-0.83.0.1-x86_64.apk": "9940410d263d0ddfa96840f678985e9b0c5a39c3e06179da8901cae8cbaa9941"
+  },
+  "sourceRevision": "c13eeaa078e1d4fca9a3c6d58a140cdde0ad82b6",
+  "sourceSha256": {
+    "Nyanime-Source-0.83.0.1.zip": "32a6d349f3cb925d238a44b5a5737aacd7487f1fe0a367d6f26100b3407e86f1",
+    "Nyanime-Native-Manifest-0.83.0.1.json": "3dddd95582fa1f94ecc6751c409b28c21391ab5b278d7176e60ace10bc0a8bcd",
+    "Nyanime-Native-0.42.0.2-player.tar.gz": "ab16c22de3da24595a38a8e94f05ea3a5c112f63e63d4a0df12b46625737cd3b",
+    "Nyanime-Native-0.82.0.0-supplemental.tar.gz": "222f1cdfc569c04e5b456acc5a6efdb692868830612925c8a458cfe4b8f6454a",
+    "Nyanime-Native-0.47.0.2-webrtc.tar.gz": "1b3cb47f9c287b8b7b88eda45bb733c2f8c829410b146a25f42d80bd19900139",
+    "Nyanime-Native-0.49.0.0-camera-inference.tar.gz": "6c84f9c3cf5aa6e0f2ce434404f04520d51f606dfe1075fadb66b87cb195d3da",
+    "Nyanime-Native-0.55.0.0-reader-quality.tar.gz": "88364dbb888846bd238f44a210e14695421af77b0c5338fba2f4abdd486919bc"
+  },
+  "nativeManifest": "Nyanime-Native-Manifest-0.83.0.1.json",
+  "deltaSha256": {
+    "Nyanime-Delta-ff10a6bb80e0fe9e-0.83.0.1-arm64-v8a.vcdiff": "ad5b6a2e5a76b1e14212ade0630a1285a4001ea2e7a7fc351d46a172e820fcd4",
+    "Nyanime-Delta-126ad354ef13b98e-0.83.0.1-armeabi-v7a.vcdiff": "201f991727f221a2252e14915c499c460eb8eb71d6ddc3b4906c59c42abe4209",
+    "Nyanime-Delta-c0d4e0828b424415-0.83.0.1-universal.vcdiff": "d7b4dcd22e43e5457ba8b4d8ccc285bace7f9b63d8a5a028ff9ebbe7a0e4418e",
+    "Nyanime-Delta-75cde8c9eace03e5-0.83.0.1-x86.vcdiff": "11a9fcbd4ec01899b0136b07eb5e24b8d6bdb4479c7bb7fc735900ec16cc47bd",
+    "Nyanime-Delta-015d95086fcdb1e8-0.83.0.1-x86_64.vcdiff": "dbdcbe99d233ad5931c7cf24cb4970be6fc5a1065b849a42b3ca28baa837b5fd",
+    "Nyanime-Delta-c9234b56ab7ad345-0.83.0.1-arm64-v8a.vcdiff": "5daaa397a8994e1362c3ba926c2281ac3abd171a8021a6d75af1ff3c9abca6cb",
+    "Nyanime-Delta-30100b1cf29dc9cb-0.83.0.1-armeabi-v7a.vcdiff": "fd5cf5e574690a8becbb26e576397de9a3fc805c92405755786e213a16379a19",
+    "Nyanime-Delta-6b11d330bd833587-0.83.0.1-universal.vcdiff": "8554b8ba3f348a3abd6bb6353cebaea74e1bdaf19713c3a06449a695eb9eef10",
+    "Nyanime-Delta-124920726b0ad936-0.83.0.1-x86.vcdiff": "ea7cea6b812ff459fa0355a3ebbe2d9042b4a4bee7442d3e64ca1619f89e433d",
+    "Nyanime-Delta-9ceb52b2c49f4dc4-0.83.0.1-x86_64.vcdiff": "7e03b176a5ed96d280110d1cd3e8a52715733256348867067c20d9d45be8bd50"
+  },
+  "delivery": "patches",
+  "graphSha256": {
+    "Nyanime-Release-v3.json": "6314214ec305e0c001c2034fd6ad3f66c3b5d524174da9632299369f41c11212"
+  }
+}

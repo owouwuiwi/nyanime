@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="player_ui_back">Indietro</string>
+    <string name="player_ui_settings">Impostazioni</string>
+    <string name="player_ui_lock">Blocca controlli</string>
+    <string name="player_ui_unlock">Sblocca controlli</string>
+    <string name="player_ui_quality">Qualità</string>
+    <string name="player_ui_subtitles">Sottotitoli</string>
+    <string name="player_ui_subtitle_settings">Impostazioni sottotitoli</string>
+    <string name="player_ui_exit_fullscreen">Esci da schermo intero</string>
+    <string name="player_ui_fullscreen">Schermo intero</string>
+    <string name="player_ui_seek">Posizione di riproduzione</string>
+    <string name="player_ui_live">Diretta</string>
+    <string name="player_ui_previous">Precedente</string>
+    <string name="player_ui_next">Successivo</string>
+    <string name="player_ui_pause">Pausa</string>
+    <string name="player_ui_play">Riproduci</string>
+    <string name="player_ui_more">Altri controlli</string>
+    <string name="player_ui_chapters">Capitoli</string>
+    <string name="player_ui_queue">Episodi</string>
+    <string name="player_ui_resize">Adattamento video</string>
+    <string name="player_ui_cast">Trasmetti</string>
+    <string name="player_ui_pip">Picture-in-picture</string>
+    <string name="player_ui_autoplay_on">Riproduzione automatica: attiva</string>
+    <string name="player_ui_autoplay_off">Riproduzione automatica: disattiva</string>
+    <string name="player_ui_sleep_timer">Timer di spegnimento</string>
+    <string name="player_ui_close">Chiudi</string>
+    <string name="player_ui_volume">Volume</string>
+    <string name="player_ui_brightness">Luminosità</string>
+</resources>
