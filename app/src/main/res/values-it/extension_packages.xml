@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="package_install">Installa</string>
+    <string name="package_import">Importa</string>
+    <string name="package_modes_hint">Installa per usarla nelle app compatibili, oppure importa in Nyanime con aggiornamenti automatici.</string>
+    <string name="package_imported">Importata</string>
+    <string name="package_system">Android</string>
+    <string name="package_system_required">Questa estensione richiede componenti Android. Usa Installa.</string>
+    <string name="package_publisher">Impronta della firma</string>
+    <string name="package_auto_updates">Aggiornamenti automatici</string>
+    <string name="package_manual_updates">Aggiornamento manuale · nessun catalogo associato</string>
+    <string name="package_catalogue_trust">Considera attendibili le estensioni di questo catalogo</string>
+    <string name="package_catalogue_trust_hint">Vale per le estensioni presenti e future che scegli di aggiungere. Non installa nulla automaticamente. Puoi revocarlo.</string>
+    <string name="package_update_failed">Aggiornamento non riuscito. La versione precedente resta disponibile.</string>
+    <string name="package_ready">Estensione pronta</string>
+    <string name="package_associate_origin">Collega un catalogo per gli aggiornamenti</string>
+    <string name="package_associate_hint">Puoi scegliere un catalogo che offre questa estensione con la stessa firma. L’associazione non cambia l’editore.</string>
+    <string name="package_no_origin">Nessun catalogo compatibile configurato. Puoi continuare ad aggiornare importando il file manualmente.</string>
+    <string name="package_inventory_unavailable">Android non riesce temporaneamente a verificare le estensioni installate. I dati salvati restano disponibili; Nyanime riprova automaticamente.</string>
+</resources>

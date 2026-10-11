@@ -1,0 +1,1823 @@
+{
+  "abis": [
+    "arm64-v8a",
+    "armeabi-v7a",
+    "x86",
+    "x86_64"
+  ],
+  "allAbis": true,
+  "artifacts": {
+    "mpv": {
+      "file": "nyanime-mpv-1.0.0.aar",
+      "sha256": "0cd7d99b2f8717925f52e30f784c3b406cca967f11e4c9a205b3068e0e2bdcef"
+    },
+    "ffmpeg": {
+      "file": "nyanime-ffmpeg-1.0.0.aar",
+      "sha256": "c271f16e9923b0ed107d33b3abe0d0231fe3acdf0176eff4e1f91716a3ea254a"
+    }
+  },
+  "libraries": {
+    "arm64-v8a": {
+      "libass.so": {
+        "sha256": "0bfcfd080b4662ce994974cd3134e3adde64005f0c15eb27ea7e20c3feea90e1",
+        "bytes": 517112,
+        "needed": [
+          "libm.so",
+          "libfreetype.so",
+          "libfribidi.so",
+          "libharfbuzz.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "soname": "libass.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libavcodec.so": {
+        "sha256": "774cf5df494469473ebe4fd2c6c839d3a81a3a455006c149414bad4ca206b429",
+        "bytes": 12789264,
+        "needed": [
+          "libswresample.so",
+          "libavutil.so",
+          "libm.so",
+          "libdav1d.so",
+          "libandroid.so",
+          "libmediandk.so",
+          "libz.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "soname": "libavcodec.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libavdevice.so": {
+        "sha256": "839d10a1dac2a5ad3509922856550f2f8e7029e5d86e689167198d377b4f89ab",
+        "bytes": 9264,
+        "needed": [
+          "libavformat.so",
+          "libavutil.so",
+          "libc.so"
+        ],
+        "soname": "libavdevice.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libavfilter.so": {
+        "sha256": "a981db7b0416f05e8e6aa30aa6c5af066178e13026ca519b9b6b5249e562565c",
+        "bytes": 4257240,
+        "needed": [
+          "libswscale.so",
+          "libpostproc.so",
+          "libavformat.so",
+          "libavcodec.so",
+          "libswresample.so",
+          "libavutil.so",
+          "libm.so",
+          "libc.so"
+        ],
+        "soname": "libavfilter.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libavformat.so": {
+        "sha256": "9976b10c35cf0062450673c4fbbb0c3e01426d7ff730147f65dbee3885bda4b9",
+        "bytes": 3316112,
+        "needed": [
+          "libavcodec.so",
+          "libavutil.so",
+          "libm.so",
+          "libxml2.so",
+          "libz.so",
+          "libc.so"
+        ],
+        "soname": "libavformat.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libavutil.so": {
+        "sha256": "9a0467847163cad6409ef828b06793756bcc36761b5152007027cc4d687d9e86",
+        "bytes": 726912,
+        "needed": [
+          "libm.so",
+          "libandroid.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "soname": "libavutil.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": [
+          "av_get_saf_close",
+          "av_get_saf_open",
+          "av_set_saf_close",
+          "av_set_saf_open"
+        ]
+      },
+      "libc++_shared.so": {
+        "sha256": "cd61762848882a16c8244c964a6f396c0caa0b440588a210ce9cc4ab0e6d9f0c",
+        "bytes": 1253544,
+        "needed": [
+          "libc.so",
+          "libm.so",
+          "libdl.so"
+        ],
+        "soname": "libc++_shared.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": false,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libdav1d.so": {
+        "sha256": "ca795fbc2c9266c20289d56334da64f0d2e9c11d20ab7a90050a542b55d3e902",
+        "bytes": 712992,
+        "needed": [
+          "libc.so"
+        ],
+        "soname": "libdav1d.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libffmpegkit.so": {
+        "sha256": "9cd3531694b4402773c01531db32cd587a30c1a554ed7267f7d2d35861cb8048",
+        "bytes": 463512,
+        "needed": [
+          "libavfilter.so",
+          "libavformat.so",
+          "libavcodec.so",
+          "libavutil.so",
+          "libswresample.so",
+          "libavdevice.so",
+          "libswscale.so",
+          "liblog.so",
+          "libz.so",
+          "libandroid.so",
+          "libc.so",
+          "libm.so",
+          "libdl.so"
+        ],
+        "soname": "libffmpegkit.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": [
+          "JNI_OnLoad"
+        ]
+      },
+      "libffmpegkit_abidetect.so": {
+        "sha256": "7e25291949d948974423269cebb2f001246ecb2fc530520fcb5ee55baa193792",
+        "bytes": 29304,
+        "needed": [
+          "liblog.so",
+          "libz.so",
+          "libandroid.so",
+          "libc.so",
+          "libm.so",
+          "libdl.so"
+        ],
+        "soname": "libffmpegkit_abidetect.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": [
+          "JNI_OnLoad"
+        ]
+      },
+      "libfreetype.so": {
+        "sha256": "6f89a13e95f329e4a23d1524f0c1b6332c428c98068edc32295e1916949fe6d7",
+        "bytes": 746096,
+        "needed": [
+          "libz.so",
+          "libc.so"
+        ],
+        "soname": "libfreetype.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libfribidi.so": {
+        "sha256": "be63d5ae8d20ada5d7b6c244784fe9d6ec7402b3b511cd6b56c52c5e248d4ac0",
+        "bytes": 117944,
+        "needed": [
+          "libc.so"
+        ],
+        "soname": "libfribidi.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libharfbuzz-subset.so": {
+        "sha256": "5a327b82793c6edc7ed0ba5e3649aa77d5e6eddc3107344de546da7ff1019da5",
+        "bytes": 1339032,
+        "needed": [
+          "libharfbuzz.so",
+          "libc.so"
+        ],
+        "soname": "libharfbuzz-subset.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libharfbuzz.so": {
+        "sha256": "e8a4259cf7d0d180b6d03b7ae9de78e95167d35a1107421b00aa9a62ab93e148",
+        "bytes": 1198000,
+        "needed": [
+          "libm.so",
+          "libfreetype.so",
+          "libc.so"
+        ],
+        "soname": "libharfbuzz.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libmpv.so": {
+        "sha256": "16e23f5b6709d9bdaa2b3b3a89988454f4307743d52c6647dc303d20e8fdd563",
+        "bytes": 2498352,
+        "needed": [
+          "libass.so",
+          "libavcodec.so",
+          "libavfilter.so",
+          "libavformat.so",
+          "libavutil.so",
+          "libplacebo.so",
+          "libswresample.so",
+          "libswscale.so",
+          "libandroid.so",
+          "libavdevice.so",
+          "libm.so",
+          "libz.so",
+          "libOpenSLES.so",
+          "libEGL.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "soname": "libmpv.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": [
+          "mpv_command",
+          "mpv_command_node",
+          "mpv_create",
+          "mpv_error_string",
+          "mpv_free",
+          "mpv_free_node_contents",
+          "mpv_get_property",
+          "mpv_initialize",
+          "mpv_observe_property",
+          "mpv_render_context_create",
+          "mpv_render_context_update",
+          "mpv_request_log_messages",
+          "mpv_set_option",
+          "mpv_set_option_string",
+          "mpv_set_property",
+          "mpv_terminate_destroy",
+          "mpv_wait_event",
+          "mpv_wakeup"
+        ]
+      },
+      "libplacebo.so": {
+        "sha256": "9a65f4a3e314f4e1a51c5b3628fb69650006ee4dc3a3ec136bb47f4c47620ab7",
+        "bytes": 893664,
+        "needed": [
+          "libm.so",
+          "libdl.so",
+          "libc++_shared.so",
+          "libc.so"
+        ],
+        "soname": "libplacebo.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libplayer.so": {
+        "sha256": "10ba1e25d3bc0dc878e3fb40b44ca594bb20be301b3b2b4018ab4cd96bb3a7fa",
+        "bytes": 23928,
+        "needed": [
+          "libswscale.so",
+          "libavcodec.so",
+          "libmpv.so",
+          "liblog.so",
+          "libGLESv3.so",
+          "libEGL.so",
+          "libc.so",
+          "libm.so",
+          "libc++_shared.so",
+          "libdl.so"
+        ],
+        "soname": "libplayer.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": [
+          "Java_is_xyz_mpv_MPVLib_attachSurface",
+          "Java_is_xyz_mpv_MPVLib_command",
+          "Java_is_xyz_mpv_MPVLib_create",
+          "Java_is_xyz_mpv_MPVLib_destroy",
+          "Java_is_xyz_mpv_MPVLib_detachSurface",
+          "Java_is_xyz_mpv_MPVLib_getPropertyBoolean",
+          "Java_is_xyz_mpv_MPVLib_getPropertyDouble",
+          "Java_is_xyz_mpv_MPVLib_getPropertyInt",
+          "Java_is_xyz_mpv_MPVLib_getPropertyString",
+          "Java_is_xyz_mpv_MPVLib_grabThumbnail",
+          "Java_is_xyz_mpv_MPVLib_init",
+          "Java_is_xyz_mpv_MPVLib_observeProperty",
+          "Java_is_xyz_mpv_MPVLib_setOptionString",
+          "Java_is_xyz_mpv_MPVLib_setPropertyBoolean",
+          "Java_is_xyz_mpv_MPVLib_setPropertyDouble",
+          "Java_is_xyz_mpv_MPVLib_setPropertyInt",
+          "Java_is_xyz_mpv_MPVLib_setPropertyString"
+        ]
+      },
+      "libpostproc.so": {
+        "sha256": "3f1f908aa4523fdddd4e05cbda77b15c92e0fb5cdde7e3e1112e19061ffbe354",
+        "bytes": 37792,
+        "needed": [
+          "libavutil.so",
+          "libc.so"
+        ],
+        "soname": "libpostproc.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libswresample.so": {
+        "sha256": "33ba3dbeaa88c673377db8f340a90f9d573c7cadd7d75718fd21c8cf83bf024c",
+        "bytes": 97600,
+        "needed": [
+          "libavutil.so",
+          "libm.so",
+          "libc.so"
+        ],
+        "soname": "libswresample.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libswscale.so": {
+        "sha256": "0c755e421ee635565eac87fce7d852aa458b29448e831a60cb45ab0ff03efe7d",
+        "bytes": 757816,
+        "needed": [
+          "libavutil.so",
+          "libm.so",
+          "libc.so"
+        ],
+        "soname": "libswscale.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libxml2.so": {
+        "sha256": "aac9801b997a0cf91186a13d848181739e21751930556d0fc8dd279c6ac4c721",
+        "bytes": 1370400,
+        "needed": [
+          "libm.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "soname": "libxml2.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      }
+    },
+    "armeabi-v7a": {
+      "libass.so": {
+        "sha256": "74a62d070c301eaabd9f12dec29b618a109d42b661fc78b664985d5164a838ca",
+        "bytes": 278012,
+        "needed": [
+          "libm.so",
+          "libfreetype.so",
+          "libfribidi.so",
+          "libharfbuzz.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "soname": "libass.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libavcodec.so": {
+        "sha256": "353a188461bd99fa1edbfc2087519a5146823a92a8ed3fe6413a0fc174f96de2",
+        "bytes": 12179816,
+        "needed": [
+          "libswresample.so",
+          "libavutil.so",
+          "libm.so",
+          "libdav1d.so",
+          "libandroid.so",
+          "libmediandk.so",
+          "libz.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "soname": "libavcodec.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libavdevice.so": {
+        "sha256": "d33d5e84e79981fcf2e8c95f2a324cd3e94bad790637eb660022f4c206991b75",
+        "bytes": 7268,
+        "needed": [
+          "libavformat.so",
+          "libavutil.so",
+          "libc.so"
+        ],
+        "soname": "libavdevice.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libavfilter.so": {
+        "sha256": "866597f103ae6fa449360e60b1027b857aa580b39ea4fc0682b9b7842f426a42",
+        "bytes": 3424060,
+        "needed": [
+          "libswscale.so",
+          "libpostproc.so",
+          "libavformat.so",
+          "libavcodec.so",
+          "libswresample.so",
+          "libavutil.so",
+          "libm.so",
+          "libc.so"
+        ],
+        "soname": "libavfilter.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libavformat.so": {
+        "sha256": "7333e562cf50545ef08a85efebc3244ba9290b183d41525cd308706c54f7326f",
+        "bytes": 3064820,
+        "needed": [
+          "libavcodec.so",
+          "libavutil.so",
+          "libm.so",
+          "libxml2.so",
+          "libz.so",
+          "libc.so"
+        ],
+        "soname": "libavformat.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libavutil.so": {
+        "sha256": "8dd8e936044709d9985c56b9fb302aa4767d8a43afeedbd34767d67d5cff5d3c",
+        "bytes": 643096,
+        "needed": [
+          "libm.so",
+          "libandroid.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "soname": "libavutil.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": [
+          "av_get_saf_close",
+          "av_get_saf_open",
+          "av_set_saf_close",
+          "av_set_saf_open"
+        ]
+      },
+      "libc++_shared.so": {
+        "sha256": "e7e20f6e0f3f181e853cea50373ecee2ccfe95c668dce72d0999b2469c92d0e1",
+        "bytes": 850380,
+        "needed": [
+          "libc.so",
+          "libm.so",
+          "libdl.so"
+        ],
+        "soname": "libc++_shared.so",
+        "minimumLoadAlignment": 4096,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": false,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libdav1d.so": {
+        "sha256": "516b66cd9751d5be2c36433f3da477fdff659be338ed0afce7f048246f0e8d02",
+        "bytes": 677608,
+        "needed": [
+          "libc.so"
+        ],
+        "soname": "libdav1d.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libffmpegkit.so": {
+        "sha256": "38c1dee13b747a4ba419b5745b156abf9c29990b2a265ecccb0dea936a2c4066",
+        "bytes": 460016,
+        "needed": [
+          "libavfilter.so",
+          "libavformat.so",
+          "libavcodec.so",
+          "libavutil.so",
+          "libswresample.so",
+          "libavdevice.so",
+          "libswscale.so",
+          "liblog.so",
+          "libz.so",
+          "libandroid.so",
+          "libc.so",
+          "libm.so",
+          "libdl.so"
+        ],
+        "soname": "libffmpegkit.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": [
+          "JNI_OnLoad"
+        ]
+      },
+      "libffmpegkit_abidetect.so": {
+        "sha256": "6b6279807780374b808928140ad65a49edf8072d8e45d6727b5fee525985c463",
+        "bytes": 15944,
+        "needed": [
+          "liblog.so",
+          "libz.so",
+          "libandroid.so",
+          "libc.so",
+          "libm.so",
+          "libdl.so"
+        ],
+        "soname": "libffmpegkit_abidetect.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": [
+          "JNI_OnLoad"
+        ]
+      },
+      "libfreetype.so": {
+        "sha256": "98400151ea1be6f537fec4c8e1f696ba52234119ecf47c4c53666e7ba44d51c9",
+        "bytes": 659964,
+        "needed": [
+          "libz.so",
+          "libc.so"
+        ],
+        "soname": "libfreetype.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libfribidi.so": {
+        "sha256": "496c60347120c7682eea91f0c2d4ae00b3613b223bdee1edb5a894a4bcdae669",
+        "bytes": 115668,
+        "needed": [
+          "libc.so"
+        ],
+        "soname": "libfribidi.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libharfbuzz-subset.so": {
+        "sha256": "ff055000c4a14bc4d2401590b07ba7d2c3ce3fad65c3ea2c765ae69ad69ac228",
+        "bytes": 1341440,
+        "needed": [
+          "libharfbuzz.so",
+          "libm.so",
+          "libc.so"
+        ],
+        "soname": "libharfbuzz-subset.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libharfbuzz.so": {
+        "sha256": "27a1f6546be667ecb1684c616584f614bce5a5b1020ae1c4bc212b4597559ac2",
+        "bytes": 1117608,
+        "needed": [
+          "libm.so",
+          "libfreetype.so",
+          "libc.so"
+        ],
+        "soname": "libharfbuzz.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libmpv.so": {
+        "sha256": "44b7dc66fc2995520627d6417c0bb6da05b2c57f5e2033569d9de7a936645783",
+        "bytes": 2150500,
+        "needed": [
+          "libass.so",
+          "libavcodec.so",
+          "libavfilter.so",
+          "libavformat.so",
+          "libavutil.so",
+          "libplacebo.so",
+          "libswresample.so",
+          "libswscale.so",
+          "libandroid.so",
+          "libavdevice.so",
+          "libm.so",
+          "libz.so",
+          "libOpenSLES.so",
+          "libEGL.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "soname": "libmpv.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": [
+          "mpv_command",
+          "mpv_command_node",
+          "mpv_create",
+          "mpv_error_string",
+          "mpv_free",
+          "mpv_free_node_contents",
+          "mpv_get_property",
+          "mpv_initialize",
+          "mpv_observe_property",
+          "mpv_render_context_create",
+          "mpv_render_context_update",
+          "mpv_request_log_messages",
+          "mpv_set_option",
+          "mpv_set_option_string",
+          "mpv_set_property",
+          "mpv_terminate_destroy",
+          "mpv_wait_event",
+          "mpv_wakeup"
+        ]
+      },
+      "libplacebo.so": {
+        "sha256": "2ff553dd450ffce6096a67fc7eb43f24f30f8a83c2dc2c39f02cc13a10f88b22",
+        "bytes": 844440,
+        "needed": [
+          "libm.so",
+          "libdl.so",
+          "libc++_shared.so",
+          "libc.so"
+        ],
+        "soname": "libplacebo.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libplayer.so": {
+        "sha256": "f72410d593f9805c6187bd8dbb1cd4fe419b9f12fd56e5996272271df60b9e9d",
+        "bytes": 16476,
+        "needed": [
+          "libswscale.so",
+          "libavcodec.so",
+          "libmpv.so",
+          "liblog.so",
+          "libGLESv3.so",
+          "libEGL.so",
+          "libc.so",
+          "libm.so",
+          "libc++_shared.so",
+          "libdl.so"
+        ],
+        "soname": "libplayer.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": [
+          "Java_is_xyz_mpv_MPVLib_attachSurface",
+          "Java_is_xyz_mpv_MPVLib_command",
+          "Java_is_xyz_mpv_MPVLib_create",
+          "Java_is_xyz_mpv_MPVLib_destroy",
+          "Java_is_xyz_mpv_MPVLib_detachSurface",
+          "Java_is_xyz_mpv_MPVLib_getPropertyBoolean",
+          "Java_is_xyz_mpv_MPVLib_getPropertyDouble",
+          "Java_is_xyz_mpv_MPVLib_getPropertyInt",
+          "Java_is_xyz_mpv_MPVLib_getPropertyString",
+          "Java_is_xyz_mpv_MPVLib_grabThumbnail",
+          "Java_is_xyz_mpv_MPVLib_init",
+          "Java_is_xyz_mpv_MPVLib_observeProperty",
+          "Java_is_xyz_mpv_MPVLib_setOptionString",
+          "Java_is_xyz_mpv_MPVLib_setPropertyBoolean",
+          "Java_is_xyz_mpv_MPVLib_setPropertyDouble",
+          "Java_is_xyz_mpv_MPVLib_setPropertyInt",
+          "Java_is_xyz_mpv_MPVLib_setPropertyString"
+        ]
+      },
+      "libpostproc.so": {
+        "sha256": "95c8b02a50ba35f65c33d8989b145f922f77a61355cb21cfe7b5f7194a204402",
+        "bytes": 32268,
+        "needed": [
+          "libavutil.so",
+          "libc.so"
+        ],
+        "soname": "libpostproc.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libswresample.so": {
+        "sha256": "5b55fdba1f8573564f4fb27583821af4fba54109a6218d9e9242e4b1bc23f753",
+        "bytes": 89668,
+        "needed": [
+          "libavutil.so",
+          "libm.so",
+          "libc.so"
+        ],
+        "soname": "libswresample.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libswscale.so": {
+        "sha256": "114078c427be35176ec238b2afb533f5b7fdd05e9aa377d9d31d0d3c59dbbd7e",
+        "bytes": 480964,
+        "needed": [
+          "libavutil.so",
+          "libm.so",
+          "libc.so"
+        ],
+        "soname": "libswscale.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libxml2.so": {
+        "sha256": "7130e8835942acee440085ffc0c7f8951010db99acc47a277e69adae8047b932",
+        "bytes": 1252380,
+        "needed": [
+          "libm.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "soname": "libxml2.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      }
+    },
+    "x86": {
+      "libass.so": {
+        "sha256": "87706d48e199f393412d42d97ae88878be97fb61a3a4306b9ce268bb645a8ed7",
+        "bytes": 318884,
+        "needed": [
+          "libm.so",
+          "libfreetype.so",
+          "libfribidi.so",
+          "libharfbuzz.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "soname": "libass.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libavcodec.so": {
+        "sha256": "794c89fb46d10dd7a25a6bdbc31c8e6e810a08a017f79ee34a754904f6d33b32",
+        "bytes": 14405844,
+        "needed": [
+          "libswresample.so",
+          "libavutil.so",
+          "libm.so",
+          "libdav1d.so",
+          "libandroid.so",
+          "libmediandk.so",
+          "libz.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "soname": "libavcodec.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libavdevice.so": {
+        "sha256": "d309881e035e0b5989b7622e5baa2abd5d29a54c3c8bbe1ff64b528c9de0b597",
+        "bytes": 8044,
+        "needed": [
+          "libavformat.so",
+          "libavutil.so",
+          "libc.so"
+        ],
+        "soname": "libavdevice.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libavfilter.so": {
+        "sha256": "97c6a0c082c22f160e3deb6e7a7c5a1a693172536667d23e1c48b9a2c227cf96",
+        "bytes": 4743648,
+        "needed": [
+          "libswscale.so",
+          "libpostproc.so",
+          "libavformat.so",
+          "libavcodec.so",
+          "libswresample.so",
+          "libavutil.so",
+          "libm.so",
+          "libc.so"
+        ],
+        "soname": "libavfilter.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libavformat.so": {
+        "sha256": "bd9ce5618ec9f74bd1947f049d4f76b74fbedf5ad7296322d803541bbba25c6a",
+        "bytes": 3361268,
+        "needed": [
+          "libavcodec.so",
+          "libavutil.so",
+          "libm.so",
+          "libxml2.so",
+          "libz.so",
+          "libc.so"
+        ],
+        "soname": "libavformat.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libavutil.so": {
+        "sha256": "c53f594fd615fb49f8cfb8341ae7fbd4d6ed7ec1eb5c249a697c84ee8cb54f3e",
+        "bytes": 746328,
+        "needed": [
+          "libm.so",
+          "libandroid.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "soname": "libavutil.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": [
+          "av_get_saf_close",
+          "av_get_saf_open",
+          "av_set_saf_close",
+          "av_set_saf_open"
+        ]
+      },
+      "libc++_shared.so": {
+        "sha256": "23ff3b208a61693deda577e381a7da775b104b6c5e997465802037ab8952d9f1",
+        "bytes": 1143240,
+        "needed": [
+          "libc.so",
+          "libm.so",
+          "libdl.so"
+        ],
+        "soname": "libc++_shared.so",
+        "minimumLoadAlignment": 4096,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": false,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libdav1d.so": {
+        "sha256": "d827e4e36530f357c35a3f7809118666fe6daa2974c564292f9dd9e3b86ed69a",
+        "bytes": 980200,
+        "needed": [
+          "libc.so"
+        ],
+        "soname": "libdav1d.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libffmpegkit.so": {
+        "sha256": "4ebeb02e6841c38c0c5d290cb4c2930cf6aca8666b4ff7eae0b6f5c325d977e1",
+        "bytes": 463592,
+        "needed": [
+          "libavfilter.so",
+          "libavformat.so",
+          "libavcodec.so",
+          "libavutil.so",
+          "libswresample.so",
+          "libavdevice.so",
+          "libswscale.so",
+          "liblog.so",
+          "libz.so",
+          "libandroid.so",
+          "libc.so",
+          "libm.so",
+          "libdl.so"
+        ],
+        "soname": "libffmpegkit.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": [
+          "JNI_OnLoad"
+        ]
+      },
+      "libffmpegkit_abidetect.so": {
+        "sha256": "69463f42d7684573cc67eec133023889db13b6df068019dc259577a7aafa049c",
+        "bytes": 43328,
+        "needed": [
+          "liblog.so",
+          "libz.so",
+          "libandroid.so",
+          "libc.so",
+          "libm.so",
+          "libdl.so"
+        ],
+        "soname": "libffmpegkit_abidetect.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": [
+          "JNI_OnLoad"
+        ]
+      },
+      "libfreetype.so": {
+        "sha256": "38b2ae77366ad35128bde73ea157edf5a327eaf9c8e33405997638cfa5ef4cc2",
+        "bytes": 764764,
+        "needed": [
+          "libz.so",
+          "libc.so"
+        ],
+        "soname": "libfreetype.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libfribidi.so": {
+        "sha256": "27170be051441f49780e5db869e8a8b3bd28e6f0f4abb578be4b519a9480ba5f",
+        "bytes": 121988,
+        "needed": [
+          "libc.so"
+        ],
+        "soname": "libfribidi.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libharfbuzz-subset.so": {
+        "sha256": "13c69e287018f2870415d51523c710f05ecde7ed4f40e29c83f98735c652c43b",
+        "bytes": 1516436,
+        "needed": [
+          "libharfbuzz.so",
+          "libm.so",
+          "libc.so"
+        ],
+        "soname": "libharfbuzz-subset.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libharfbuzz.so": {
+        "sha256": "1a1b4a2593bab61e1f587bd4d6674f9f019b5f5ceaf39938494a46273f584c04",
+        "bytes": 1259700,
+        "needed": [
+          "libm.so",
+          "libfreetype.so",
+          "libc.so"
+        ],
+        "soname": "libharfbuzz.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libmpv.so": {
+        "sha256": "6d9089a8d9c4e6c953c5e5cdad48ab05020c5b94e7e50e9631e9757e38c6e237",
+        "bytes": 2429304,
+        "needed": [
+          "libass.so",
+          "libavcodec.so",
+          "libavfilter.so",
+          "libavformat.so",
+          "libavutil.so",
+          "libplacebo.so",
+          "libswresample.so",
+          "libswscale.so",
+          "libandroid.so",
+          "libavdevice.so",
+          "libm.so",
+          "libz.so",
+          "libOpenSLES.so",
+          "libEGL.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "soname": "libmpv.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": [
+          "mpv_command",
+          "mpv_command_node",
+          "mpv_create",
+          "mpv_error_string",
+          "mpv_free",
+          "mpv_free_node_contents",
+          "mpv_get_property",
+          "mpv_initialize",
+          "mpv_observe_property",
+          "mpv_render_context_create",
+          "mpv_render_context_update",
+          "mpv_request_log_messages",
+          "mpv_set_option",
+          "mpv_set_option_string",
+          "mpv_set_property",
+          "mpv_terminate_destroy",
+          "mpv_wait_event",
+          "mpv_wakeup"
+        ]
+      },
+      "libplacebo.so": {
+        "sha256": "1df557958fd2214cd89104cf6eb9a41dadb4c52fd7fe73d61a56d33556faa80c",
+        "bytes": 929284,
+        "needed": [
+          "libm.so",
+          "libdl.so",
+          "libc++_shared.so",
+          "libc.so"
+        ],
+        "soname": "libplacebo.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libplayer.so": {
+        "sha256": "e4f193610c5a96d26152625f9c73083de2ee9aa76f001fe1d653dcd18c262bff",
+        "bytes": 19976,
+        "needed": [
+          "libswscale.so",
+          "libavcodec.so",
+          "libmpv.so",
+          "liblog.so",
+          "libGLESv3.so",
+          "libEGL.so",
+          "libc.so",
+          "libm.so",
+          "libc++_shared.so",
+          "libdl.so"
+        ],
+        "soname": "libplayer.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": [
+          "Java_is_xyz_mpv_MPVLib_attachSurface",
+          "Java_is_xyz_mpv_MPVLib_command",
+          "Java_is_xyz_mpv_MPVLib_create",
+          "Java_is_xyz_mpv_MPVLib_destroy",
+          "Java_is_xyz_mpv_MPVLib_detachSurface",
+          "Java_is_xyz_mpv_MPVLib_getPropertyBoolean",
+          "Java_is_xyz_mpv_MPVLib_getPropertyDouble",
+          "Java_is_xyz_mpv_MPVLib_getPropertyInt",
+          "Java_is_xyz_mpv_MPVLib_getPropertyString",
+          "Java_is_xyz_mpv_MPVLib_grabThumbnail",
+          "Java_is_xyz_mpv_MPVLib_init",
+          "Java_is_xyz_mpv_MPVLib_observeProperty",
+          "Java_is_xyz_mpv_MPVLib_setOptionString",
+          "Java_is_xyz_mpv_MPVLib_setPropertyBoolean",
+          "Java_is_xyz_mpv_MPVLib_setPropertyDouble",
+          "Java_is_xyz_mpv_MPVLib_setPropertyInt",
+          "Java_is_xyz_mpv_MPVLib_setPropertyString"
+        ]
+      },
+      "libpostproc.so": {
+        "sha256": "37bc29f712198579447a11e913a016de0f80cf5fe759858f4a77391b1981ee05",
+        "bytes": 39280,
+        "needed": [
+          "libavutil.so",
+          "libc.so"
+        ],
+        "soname": "libpostproc.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libswresample.so": {
+        "sha256": "2ab96e22f771dd6da875576dffb6cd7ee8dcf325055e4eb0865f114eff2ec407",
+        "bytes": 109336,
+        "needed": [
+          "libavutil.so",
+          "libm.so",
+          "libc.so"
+        ],
+        "soname": "libswresample.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libswscale.so": {
+        "sha256": "040769334feeb7dfdec07165197f0a869f519e47b0166aa46836cd0a319b4143",
+        "bytes": 866624,
+        "needed": [
+          "libavutil.so",
+          "libm.so",
+          "libc.so"
+        ],
+        "soname": "libswscale.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libxml2.so": {
+        "sha256": "4732c720909b6247152728c67baf511dcedbc6b3ea7e66a140f44a152632bfa4",
+        "bytes": 1336620,
+        "needed": [
+          "libm.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "soname": "libxml2.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 4096,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      }
+    },
+    "x86_64": {
+      "libass.so": {
+        "sha256": "dc04fabad90c817e53f818452f1764c7c6f30ef2f430fa051d69ac804a95fc7c",
+        "bytes": 334040,
+        "needed": [
+          "libm.so",
+          "libfreetype.so",
+          "libfribidi.so",
+          "libharfbuzz.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "soname": "libass.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libavcodec.so": {
+        "sha256": "af359adf4427ea77bc5378f3fe3b18786535bce81893f9e13441ad4e7af24e3d",
+        "bytes": 16334240,
+        "needed": [
+          "libswresample.so",
+          "libavutil.so",
+          "libm.so",
+          "libdav1d.so",
+          "libandroid.so",
+          "libmediandk.so",
+          "libz.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "soname": "libavcodec.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libavdevice.so": {
+        "sha256": "c1fa80d880864f54fc7f5a2d3f533dab37685dd9540a23ec29ce642f8c3dcc43",
+        "bytes": 9296,
+        "needed": [
+          "libavformat.so",
+          "libavutil.so",
+          "libc.so"
+        ],
+        "soname": "libavdevice.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libavfilter.so": {
+        "sha256": "4bd847bae831ba38fb16083c86463d3ec5dad8e06ea7a040fd3c266a51d85cec",
+        "bytes": 5289080,
+        "needed": [
+          "libswscale.so",
+          "libpostproc.so",
+          "libavformat.so",
+          "libavcodec.so",
+          "libswresample.so",
+          "libavutil.so",
+          "libm.so",
+          "libc.so"
+        ],
+        "soname": "libavfilter.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libavformat.so": {
+        "sha256": "7dce37a005799a6497b0a6cedc815b2d127fb80c489a0356e4c9465752a4c747",
+        "bytes": 3420512,
+        "needed": [
+          "libavcodec.so",
+          "libavutil.so",
+          "libm.so",
+          "libxml2.so",
+          "libz.so",
+          "libc.so"
+        ],
+        "soname": "libavformat.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libavutil.so": {
+        "sha256": "aeceeaf1a7b5c6db522c82ba25a24679e15ae4c32f5db4a0e87340cbbcfeed14",
+        "bytes": 913424,
+        "needed": [
+          "libm.so",
+          "libandroid.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "soname": "libavutil.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": [
+          "av_get_saf_close",
+          "av_get_saf_open",
+          "av_set_saf_close",
+          "av_set_saf_open"
+        ]
+      },
+      "libc++_shared.so": {
+        "sha256": "2e855857f80819737d25a663109fedf816a5e996a85423166806014a06593256",
+        "bytes": 1229808,
+        "needed": [
+          "libc.so",
+          "libm.so",
+          "libdl.so"
+        ],
+        "soname": "libc++_shared.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libdav1d.so": {
+        "sha256": "98b0a9efddb06d8f602a728d2957d359f5661cdd3b6a715de7df6a8271b5b496",
+        "bytes": 1639224,
+        "needed": [
+          "libc.so"
+        ],
+        "soname": "libdav1d.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libffmpegkit.so": {
+        "sha256": "fcb8534374e16fd79ecce592f2a63c5dafee1c37532a7ce6c4d47cc218c17063",
+        "bytes": 480304,
+        "needed": [
+          "libavfilter.so",
+          "libavformat.so",
+          "libavcodec.so",
+          "libavutil.so",
+          "libswresample.so",
+          "libavdevice.so",
+          "libswscale.so",
+          "liblog.so",
+          "libz.so",
+          "libandroid.so",
+          "libc.so",
+          "libm.so",
+          "libdl.so"
+        ],
+        "soname": "libffmpegkit.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": [
+          "JNI_OnLoad"
+        ]
+      },
+      "libffmpegkit_abidetect.so": {
+        "sha256": "fe0228fd746b21ba8e656fc7538a12f50568be3e6d1d4ac4460e18f0cbf0d8c4",
+        "bytes": 42536,
+        "needed": [
+          "liblog.so",
+          "libz.so",
+          "libandroid.so",
+          "libc.so",
+          "libm.so",
+          "libdl.so"
+        ],
+        "soname": "libffmpegkit_abidetect.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": [
+          "JNI_OnLoad"
+        ]
+      },
+      "libfreetype.so": {
+        "sha256": "60e0a5da515e5d037ef5f7724efa669b9f2564a229310a453e0b08c4c01a4231",
+        "bytes": 784712,
+        "needed": [
+          "libz.so",
+          "libc.so"
+        ],
+        "soname": "libfreetype.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libfribidi.so": {
+        "sha256": "71a17bd47250002209e43fed179e6a0599b8207fcb1d01f50a42a7769efe13d3",
+        "bytes": 121168,
+        "needed": [
+          "libc.so"
+        ],
+        "soname": "libfribidi.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libharfbuzz-subset.so": {
+        "sha256": "ea9c685c987c7cd67cc52aeb4dd95c1b3b5aef4f455d12f45f7d53747d3b2f10",
+        "bytes": 1386344,
+        "needed": [
+          "libharfbuzz.so",
+          "libc.so"
+        ],
+        "soname": "libharfbuzz-subset.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libharfbuzz.so": {
+        "sha256": "a65032e511cca985665676720bbf7ab9a703aa9dfa1b9ab63f90000227d1767a",
+        "bytes": 1194784,
+        "needed": [
+          "libm.so",
+          "libfreetype.so",
+          "libc.so"
+        ],
+        "soname": "libharfbuzz.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libmpv.so": {
+        "sha256": "8233e34c9827b574c22ad1d8248656547afa73fa13069eee68f75bd25fe7fced",
+        "bytes": 2540096,
+        "needed": [
+          "libass.so",
+          "libavcodec.so",
+          "libavfilter.so",
+          "libavformat.so",
+          "libavutil.so",
+          "libplacebo.so",
+          "libswresample.so",
+          "libswscale.so",
+          "libandroid.so",
+          "libavdevice.so",
+          "libm.so",
+          "libz.so",
+          "libOpenSLES.so",
+          "libEGL.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "soname": "libmpv.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": [
+          "mpv_command",
+          "mpv_command_node",
+          "mpv_create",
+          "mpv_error_string",
+          "mpv_free",
+          "mpv_free_node_contents",
+          "mpv_get_property",
+          "mpv_initialize",
+          "mpv_observe_property",
+          "mpv_render_context_create",
+          "mpv_render_context_update",
+          "mpv_request_log_messages",
+          "mpv_set_option",
+          "mpv_set_option_string",
+          "mpv_set_property",
+          "mpv_terminate_destroy",
+          "mpv_wait_event",
+          "mpv_wakeup"
+        ]
+      },
+      "libplacebo.so": {
+        "sha256": "f1506e7cd89d015baaecb0fa30ef1c028a247893337505b21e6e2e1fe595d3f6",
+        "bytes": 921552,
+        "needed": [
+          "libm.so",
+          "libdl.so",
+          "libc++_shared.so",
+          "libc.so"
+        ],
+        "soname": "libplacebo.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libplayer.so": {
+        "sha256": "9ee947146ffc8f22fc49591e715178770ebf2359f9d06957478b408c28548de4",
+        "bytes": 23320,
+        "needed": [
+          "libswscale.so",
+          "libavcodec.so",
+          "libmpv.so",
+          "liblog.so",
+          "libGLESv3.so",
+          "libEGL.so",
+          "libc.so",
+          "libm.so",
+          "libc++_shared.so",
+          "libdl.so"
+        ],
+        "soname": "libplayer.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": [
+          "Java_is_xyz_mpv_MPVLib_attachSurface",
+          "Java_is_xyz_mpv_MPVLib_command",
+          "Java_is_xyz_mpv_MPVLib_create",
+          "Java_is_xyz_mpv_MPVLib_destroy",
+          "Java_is_xyz_mpv_MPVLib_detachSurface",
+          "Java_is_xyz_mpv_MPVLib_getPropertyBoolean",
+          "Java_is_xyz_mpv_MPVLib_getPropertyDouble",
+          "Java_is_xyz_mpv_MPVLib_getPropertyInt",
+          "Java_is_xyz_mpv_MPVLib_getPropertyString",
+          "Java_is_xyz_mpv_MPVLib_grabThumbnail",
+          "Java_is_xyz_mpv_MPVLib_init",
+          "Java_is_xyz_mpv_MPVLib_observeProperty",
+          "Java_is_xyz_mpv_MPVLib_setOptionString",
+          "Java_is_xyz_mpv_MPVLib_setPropertyBoolean",
+          "Java_is_xyz_mpv_MPVLib_setPropertyDouble",
+          "Java_is_xyz_mpv_MPVLib_setPropertyInt",
+          "Java_is_xyz_mpv_MPVLib_setPropertyString"
+        ]
+      },
+      "libpostproc.so": {
+        "sha256": "8c32aec09b017366fc0a4b96ae57fcbb25de53a4db1322d917cf0038510d7c9b",
+        "bytes": 69416,
+        "needed": [
+          "libavutil.so",
+          "libc.so"
+        ],
+        "soname": "libpostproc.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libswresample.so": {
+        "sha256": "a4a639af14c1620c4c8efd593f45e5b02dbb7b2d01197e5573402a43210c4520",
+        "bytes": 137496,
+        "needed": [
+          "libavutil.so",
+          "libm.so",
+          "libc.so"
+        ],
+        "soname": "libswresample.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libswscale.so": {
+        "sha256": "fa21b7accbaca34e10986533b7f62f8dd84dfcb94ed568967444390635cd0826",
+        "bytes": 1023688,
+        "needed": [
+          "libavutil.so",
+          "libm.so",
+          "libc.so"
+        ],
+        "soname": "libswscale.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      },
+      "libxml2.so": {
+        "sha256": "8303de861c2f2149d4a9eb5a1be4f830c8d68539eae8da80bce4ab8b9c093948",
+        "bytes": 1372408,
+        "needed": [
+          "libm.so",
+          "libdl.so",
+          "libc.so"
+        ],
+        "soname": "libxml2.so",
+        "minimumLoadAlignment": 16384,
+        "verifiedPageSize": 16384,
+        "hasRelro": true,
+        "relroEnds16KiBAligned": true,
+        "relroPageLayoutCompatible": true,
+        "relroProblems": [],
+        "requiredExportedFunctions": []
+      }
+    }
+  }
+}

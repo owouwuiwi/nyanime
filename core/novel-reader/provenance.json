@@ -1,0 +1,19 @@
+{
+  "version": "3.4.0",
+  "repository": "https://github.com/readium/kotlin-toolkit/tree/3.4.0",
+  "runtimeValidationPending": true,
+  "files": {
+    "readium-shared-3.4.0.aar": "cdace078c2310699486f53fe95bc1b7d9da0f377228fc8d3e432599be8a4d1ea",
+    "readium-shared-3.4.0.pom": "3c362a97478ca3cac056a0b816eb0ef5e02c9540d5f965007a2e6e56df937be5",
+    "readium-streamer-3.4.0.aar": "dbf4e417495105abe6b7558d17577c826799fb0eba2bd9d0c4ae85bcfc98059d",
+    "readium-streamer-3.4.0.pom": "0778005c89ef6a03ba7c840d55af63043bf703477f7d20c95e9a47715856bdf9",
+    "readium-navigator-3.4.0.aar": "74b25a7cfe7c456272d5dfce2d56ba1ccea0fe8ee9115afe2c9241ff2232b9b1",
+    "readium-navigator-3.4.0.pom": "cf6f0fefa7bcb813c233c44b6b0a0bb9ba8c7703cc0e6103c2b5c04214fb5213"
+  },
+  "embeddedOpenDyslexic": {
+    "sha256": "e2da53e6ae0d57455acaecf9151769780f875f17ce0aed72d90a7be3edf98b57",
+    "license": "Bitstream-Vera + CC-BY-3.0 (embedded name table, legacy build)",
+    "bitstreamLicenseSource": "https://raw.githubusercontent.com/antijingoist/open-dyslexic/b290e1f081e9175eba457130964c4f32a4e0b64b/README.md"
+  },
+  "integrationAdjustment": "Readium 3.3 mutates response header maps supplied read-only by the existing host WebKit 1.17.1. Stock 3.4 copies the map. The host already used compile SDK37 and Kotlin2.4.10; no Gradle or player update is part of this change."
+}

@@ -1,0 +1,21 @@
+<resources>
+    <string name="explore_install_hint">Activate a feed add-on in the Store to watch trailers here.</string>
+    <string name="explore_watchlist">Watchlist</string>
+    <string name="explore_favorites">Favorites</string>
+    <string name="explore_like">Like</string>
+    <string name="explore_hide">Not interested</string>
+    <string name="explore_open_details">Open details</string>
+    <string name="explore_episodes">Episodes</string>
+    <string name="explore_open_youtube">Open trailer on YouTube</string>
+    <string name="explore_mute_trailer">Mute trailer</string>
+    <string name="explore_unmute_trailer">Unmute trailer</string>
+    <string name="explore_retry">Try again</string>
+    <string name="explore_load_failed">Couldn’t load trailers.</string>
+    <string name="explore_no_trailers">No more trailers available.</string>
+    <string name="explore_downloads_only">Trailers are paused in Downloaded only mode.</string>
+    <string name="explore_saved_empty">Your watchlist and favorites will appear here.</string>
+    <string name="explore_remove_saved">Remove</string>
+    <string name="explore_metric_ratings">%1$s ratings</string>
+    <string name="explore_metric_popularity">%1$s popularity</string>
+    <string name="explore_switch_provider">Switch to %1$s</string>
+</resources>

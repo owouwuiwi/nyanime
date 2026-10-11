@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="search_smart_settings">Ricerca intelligente dei titoli</string>
+    <string name="search_tolerant">Tollera refusi e punteggiatura</string>
+    <string name="search_tolerant_summary">Trova titoli con errori di scrittura, parole unite e nomi alternativi. La ricerca originale viene mantenuta.</string>
+    <string name="search_catalog_assistance">Suggerimenti dai cataloghi online</string>
+    <string name="search_catalog_summary">Consulta i cataloghi pubblici quando i titoli locali non bastano. Un suggerimento non indica che il titolo sia disponibile in un’estensione.</string>
+    <string name="search_clear_cache">Cancella cache dei titoli</string>
+    <string name="search_clear_cache_summary">Rimuove titoli e alias memorizzati. Libreria e tracking restano invariati.</string>
+    <string name="search_cache_cleared">Cache dei titoli cancellata</string>
+    <string name="search_recovered">Trovati anche cercando “%1$s”</string>
+    <string name="search_perhaps">Forse cercavi… · suggerimenti di titolo</string>
+    <string name="search_finding_titles">Cerco titoli corrispondenti…</string>
+    <string name="search_no_suggestions">Nessun suggerimento di titolo corrispondente</string>
+    <string name="search_assistance_unavailable">Aiuto sui titoli non disponibile. Ricerca originale mantenuta.</string>
+    <string name="search_exact">Ricerca esatta</string>
+    <string name="search_exact_active">Ricerca esatta: aiuto disattivato per questo testo.</string>
+    <string name="search_smart_resume">Usa ricerca intelligente</string>
+    <string name="search_original_preserved">Il testo originale viene cercato senza sostituzioni.</string>
+</resources>
