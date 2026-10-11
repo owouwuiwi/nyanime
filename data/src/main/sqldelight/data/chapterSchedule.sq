@@ -1,0 +1,14 @@
+CREATE TABLE chapter_schedule (
+    entry_id INTEGER NOT NULL REFERENCES mangas(_id) ON DELETE CASCADE,
+    number REAL NOT NULL,
+    release_at INTEGER NOT NULL,
+    name TEXT NOT NULL DEFAULT '',
+    PRIMARY KEY(entry_id, number)
+);
+
+getSchedule:
+SELECT * FROM chapter_schedule ORDER BY release_at;
+removeSchedule:
+DELETE FROM chapter_schedule WHERE entry_id = ?;
+insertRelease:
+INSERT INTO chapter_schedule(entry_id, number, release_at, name) VALUES (?, ?, ?, ?);

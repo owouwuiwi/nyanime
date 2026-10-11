@@ -1,0 +1,1 @@
+-keep class nyanime.news.api.** { *; }
