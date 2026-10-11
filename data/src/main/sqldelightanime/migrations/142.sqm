@@ -1,0 +1,2 @@
+DELETE FROM release_notice WHERE delivered_at = 1;
+ALTER TABLE release_notice ADD COLUMN source_at INTEGER NOT NULL DEFAULT 0;

@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "homes": [
+    {
+      "id": "cartoons",
+      "title": "Cartoni",
+      "source": {
+        "name": "TestSource",
+        "lang": "it"
+      },
+      "defaults": {
+        "Ordina": "Più visti",
+        "Mostra": "Tutti",
+        "Categoria": "Tutte"
+      },
+      "sections": [
+        {
+          "id": "popular",
+          "title": "Più visti"
+        },
+        {
+          "id": "new-episodes",
+          "title": "Nuovi episodi",
+          "filters": {
+            "Ordina": "Più recenti",
+            "Mostra": "Nuovi episodi"
+          }
+        },
+        {
+          "id": "recent",
+          "title": "Aggiunti di recente",
+          "filters": {
+            "Ordina": "Più recenti"
+          }
+        },
+        {
+          "id": "recommended",
+          "title": "Consigliati",
+          "filters": {
+            "Ordina": "Consigliati"
+          }
+        },
+        {
+          "id": "films",
+          "title": "Film",
+          "filters": {
+            "Mostra": "Film"
+          }
+        },
+        {
+          "id": "rare",
+          "title": "Classici",
+          "filters": {
+            "Mostra": "Classici"
+          }
+        }
+      ],
+      "search": {
+        "id": "search",
+        "title": "Cerca cartoni",
+        "filters": {
+          "Ordina": "A–Z"
+        }
+      },
+      "categories": {
+        "filter": "Categoria",
+        "exclude": [
+          "Tutte"
+        ]
+      }
+    }
+  ]
+}
