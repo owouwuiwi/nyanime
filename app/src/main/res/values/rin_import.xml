@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rin_load">Load RIN</string>
+    <string name="rin_verifying">Checking file and signature…</string>
+    <string name="rin_version">Version %1$s</string>
+    <string name="rin_previous_version">Installed version: %1$s</string>
+    <string name="rin_verified_publisher">Publisher verified against your catalogue</string>
+    <string name="rin_import_hint">This extension will run inside Nyanime. Its signature and compatibility have been checked. Your library and progress stay intact.</string>
+    <string name="rin_install">Load extension</string>
+    <string name="rin_update">Update RIN</string>
+    <string name="rin_import_done">The extension is available in your Store.</string>
+    <string name="rin_invalid">This file is not a valid signed RIN, or could not be read. Choose the original .rin file.</string>
+    <string name="rin_untrusted">Add the publisher’s catalogue first, then load this RIN. The file’s signature must match that catalogue.</string>
+    <string name="rin_incompatible">This RIN requires a different Nyanime version. Update the app or choose a compatible file.</string>
+    <string name="rin_legacy">An APK version of this extension is still present. Use the extension migration flow before loading its RIN.</string>
+    <string name="rin_changed">The extension could not be replaced. Check its publisher, version and source identities, then choose the file again. Your previous version is unchanged.</string>
+    <string name="rin_busy">Close playback, reading and active addons before updating an extension.</string>
+    <string name="catalogue_link_address">Catalogue link</string>
+</resources>
