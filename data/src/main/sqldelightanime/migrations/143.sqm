@@ -1,0 +1,3 @@
+UPDATE release_check SET next_check = 0 WHERE EXISTS (
+    SELECT 1 FROM release_notice r WHERE r.entry_id = release_check.entry_id AND r.source_at = 0
+);

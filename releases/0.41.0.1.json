@@ -1,0 +1,23 @@
+{
+  "schema": 2,
+  "versionName": "0.41.0.1",
+  "versionCode": 217,
+  "channel": "recommended",
+  "legacyTag": "r8620",
+  "certificateSha256": "F99AD47F9286CE3D61345F65DD0F888F16AEBF53BFE75EFE5B6AB889041AB259",
+  "sha256": {
+    "Nyanime-0.41.0.1-arm64-v8a.apk": "e2f5d189f9069421ff563341dccd3b44bab716f14d5d164d1beb5adfddd8dac0",
+    "Nyanime-0.41.0.1-armeabi-v7a.apk": "18ce32f24b4e6b0468e50e5382e432cbc9e988235d2c04276e39d2de1cfbc6e8",
+    "Nyanime-0.41.0.1-universal.apk": "6f7f4c284d6a9bcd9ab98f498d20f4002c2ab69a5fa11dc3d99b78f313d9f5ee",
+    "Nyanime-0.41.0.1-x86.apk": "bd8364f41d9e0e667db61018181ddfbe8126fbcbc3cbd4054b6913ae443faab7",
+    "Nyanime-0.41.0.1-x86_64.apk": "a04261523009929e1bb89982b82cd9adea8c32f74321ec93b01419a74dc297e9",
+    "Nyanime-production-0.41.0.1-arm64-v8a.apk": "5e7b43173f655831c36b66568e7e5fe2fd5ad711b0d4b34db12529d68272b8f1",
+    "Nyanime-production-0.41.0.1-armeabi-v7a.apk": "66ed773250c65b1ef703447afad4122be1ffe190378f96ab29b8b616a09ebca2",
+    "Nyanime-production-0.41.0.1-universal.apk": "8d2773f2c96571ef79536b4673f1134fb0fe1ef2585b0ff62d83e6f8c9e0d465",
+    "Nyanime-production-0.41.0.1-x86.apk": "715a5605885c5fe66f48f948937c4b067e644277978f847c1d5dedc48fb395bb",
+    "Nyanime-production-0.41.0.1-x86_64.apk": "6aff47d9e2942e7dc320be0642c3147429c1b626606dd5f6e664297877a90dd3"
+  },
+  "productionCertificateSha256": "7DD368792C4D94D1186CC4B0E2AD6C2F34FCE5DD37F19C6A1BAB45106FFC136B",
+  "applicationId": "it.owouwuiwi.nyanime",
+  "legacyApplicationId": "xyz.jmir.tachiyomi.mi.anime4k.debug"
+}
