@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="store_mine">My extensions</string>
+    <string name="store_discover">Discover</string>
+    <string name="store_all">All</string>
+    <string name="store_video">Video</string>
+    <string name="store_active">Active</string>
+    <string name="store_inactive">Disabled</string>
+    <string name="store_active_plural">Active</string>
+    <string name="store_inactive_plural">Disabled</string>
+    <string name="store_activate">Enable</string>
+    <string name="store_activation_filter">Extension status</string>
+    <string name="store_owned_summary">%1$d active · %2$d disabled</string>
+    <string name="store_discover_summary">RIN extensions update automatically</string>
+    <string name="store_rin_heading">RIN extensions</string>
+    <string name="store_other_extensions">Other extensions</string>
+    <string name="store_clear_search">Clear search</string>
+    <string name="store_reset_filters">Reset filters</string>
+    <string name="store_rin_description">Installs inside Nyanime and updates automatically. Updates wait until playback or reading ends.</string>
+    <string name="store_disable_hint">Disabling keeps preferences, library and progress. Automatic updates remain active.</string>
+    <string name="store_session_busy">Close playback, the reader or the Cast session before changing extensions.</string>
+    <string name="store_activation_error">Could not change this extension. The installed version is preserved; please retry.</string>
+    <string name="store_package_installed">Installed</string>
+    <string name="store_sources_unavailable">The sources are unavailable. Check the content filters, or deactivate and reactivate the extension to retry loading it.</string>
+    <string name="store_empty_owned">Install an extension from Discover. It will appear here, ready to use.</string>
+    <string name="store_empty_catalogue">No extensions available</string>
+    <string name="store_empty_catalogue_hint">Check the language and content filters, or add a catalogue.</string>
+    <string name="store_installed_notice">%1$s is installed and ready</string>
+    <string name="store_update_others">Update other extensions (%1$d)</string>
+</resources>

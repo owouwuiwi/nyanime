@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="room_reading_copy_empty">Non ci sono ancora capitoli corrispondenti. Apri una volta il tuo manga per renderli disponibili, poi riprova.</string>
+    <string name="room_shared_reading">Lettura condivisa</string>
+    <string name="room_reach_shared">Raggiungi</string>
+    <string name="room_chapter_changed_notice">Un nuovo capitolo è pronto</string>
+    <string name="room_read_personally">Leggi per conto tuo</string>
+    <string name="room_return_shared">Torna alla lettura condivisa</string>
+    <string name="room_propose_manga">Proponi questo manga</string>
+    <string name="room_choose_reading_permission">Può scegliere il manga condiviso</string>
+    <string name="room_reading_received">Capitolo ricevuto</string>
+    <string name="room_reading_opening">Apertura del capitolo…</string>
+    <string name="room_reading_ready">Pronto a leggere</string>
+    <string name="room_reading_personal">Legge per conto suo</string>
+    <string name="room_reading_missing">Serve l’estensione</string>
+    <string name="room_reading_failed">Apertura non riuscita · riprova</string>
+    <string name="room_reading_command_failed">La richiesta non è stata confermata. Riprova.</string>
+    <string name="room_reading_pending">Invio della richiesta…</string>
+    <string name="room_reading_legacy">Alcuni partecipanti devono aggiornare per l’apertura automatica. Possono comunque raggiungerti manualmente.</string>
+    <string name="room_use_my_copy">Usa la mia copia</string>
+    <string name="room_find_extension">Trova l’estensione</string>
+    <string name="room_reading_copies">Edizioni diverse: salti esatti e schizzi condivisi richiedono pagine originali corrispondenti.</string>
+    <string name="room_reading_copy_title">Scegli il tuo manga e capitolo</string>
+    <string name="room_reading_copy_confirm">Usa questo capitolo</string>
+    <string name="room_reading_copy_hint">Conferma che questo sia il capitolo condiviso nella tua edizione. La scelta resta su questo dispositivo per questa stanza.</string>
+    <string name="room_reading_copy_search">Cerca nella tua libreria</string>
+    <string name="room_reading_proposed_by">Proposto da %1$s</string>
+    <string name="room_reading_page_unverified">Le pagine non corrispondono. Puoi aprire il capitolo senza saltare a una pagina potenzialmente sbagliata.</string>
+    <string name="room_reading_same_pages_required">Il numero di pagine è diverso in questa edizione. Il tuo punto non è stato modificato.</string>
+    <string name="room_reading_expand">Mostra i partecipanti alla lettura</string>
+</resources>
