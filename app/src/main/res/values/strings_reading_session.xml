@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="room_reading_copy_empty">No matching chapters here yet. Open your manga once to make its chapters available, then try again.</string>
+    <string name="room_shared_reading">Shared reading</string>
+    <string name="room_reach_shared">Join this chapter</string>
+    <string name="room_chapter_changed_notice">A new chapter is ready</string>
+    <string name="room_read_personally">Read on my own</string>
+    <string name="room_return_shared">Return to shared reading</string>
+    <string name="room_propose_manga">Suggest this manga</string>
+    <string name="room_choose_reading_permission">Can choose the shared manga</string>
+    <string name="room_reading_received">Chapter received</string>
+    <string name="room_reading_opening">Opening the chapter…</string>
+    <string name="room_reading_ready">Ready to read</string>
+    <string name="room_reading_personal">Reading independently</string>
+    <string name="room_reading_missing">Extension needed</string>
+    <string name="room_reading_failed">Could not open · try again</string>
+    <string name="room_reading_command_failed">Your request wasn’t confirmed. Try again.</string>
+    <string name="room_reading_pending">Sending your request…</string>
+    <string name="room_reading_legacy">Some participants need an update for automatic opening. They can still join manually.</string>
+    <string name="room_use_my_copy">Use my copy</string>
+    <string name="room_find_extension">Find the extension</string>
+    <string name="room_reading_copies">Different editions: exact page jumps and shared drawings need matching original pages.</string>
+    <string name="room_reading_copy_title">Choose your manga and chapter</string>
+    <string name="room_reading_copy_confirm">Use this chapter</string>
+    <string name="room_reading_copy_hint">Confirm that this is the shared chapter in your edition. Your choice stays on this device for this room.</string>
+    <string name="room_reading_copy_search">Search your library</string>
+    <string name="room_reading_proposed_by">Suggested by %1$s</string>
+    <string name="room_reading_page_unverified">These pages don’t match. You can open the chapter without jumping to a possibly wrong page.</string>
+    <string name="room_reading_same_pages_required">The page count differs in this edition. Your position hasn’t changed.</string>
+    <string name="room_reading_expand">Show reading participants</string>
+</resources>

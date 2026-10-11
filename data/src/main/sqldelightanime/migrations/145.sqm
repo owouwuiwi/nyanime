@@ -1,0 +1,3 @@
+-- Recheck failed catalogue mappings after correcting scheme-less links and empty-result 404s.
+-- Keep the existing payloads, verified dates, preferences and device-bound credential.
+UPDATE schedule_cache SET attempted_at = 0 WHERE error IN ('IDENTITY', 'NETWORK');

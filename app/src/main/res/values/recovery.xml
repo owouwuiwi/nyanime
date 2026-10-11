@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="recovery_authorize_title">Protect your Nyanime data</string>
+    <string name="recovery_authorize_body">Allow %1$s to create encrypted safety copies before in-app updates and recover your library, progress and settings after a crash.</string>
+    <string name="recovery_private_warning">Full backups may include account credentials. Downloads are not included. Access ends when you disable this addon.</string>
+    <string name="recovery_authorize">Enable protection</string>
+    <string name="recovery_not_now">Not now</string>
+    <string name="recovery_unavailable">This addon cannot use data recovery.</string>
+    <string name="recovery_update_title">Protecting your data</string>
+    <string name="recovery_update_body">We will verify your safety copy before opening the Android installer.</string>
+    <string name="recovery_update_failed">The safety copy could not be verified. Your current app has not been removed.</string>
+    <string name="recovery_retry">Try again</string>
+    <string name="recovery_update_unprotected">Update without protection</string>
+    <string name="recovery_update_unprotected_warning">If the new version cannot start, the recovery addon may only have an older copy. Continue without a new verified backup?</string>
+    <string name="recovery_continue">Continue</string>
+    <string name="recovery_phase_prepare">Preparing your backup</string>
+    <string name="recovery_phase_save">Saving the encrypted copy</string>
+    <string name="recovery_phase_verify">Verifying your safety copy</string>
+    <string name="recovery_installer_unavailable">Android could not open the installer. You can try again from the downloaded update.</string>
+</resources>

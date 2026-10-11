@@ -1,0 +1,13 @@
+Readium Kotlin Toolkit3.4.0 — Copyright (c)2017 Readium. BSD3Clause.
+https://github.com/readium/kotlin-toolkit/tree/3.4.0
+
+Original Nyanime adapters do not modify or relicense upstream code.
+
+PhotoView2.3.0 — Chris Banes, Baseflow and contributors. Apache2.0.
+The pinned Readium navigator embeds22byte-identical PhotoView classes;
+the old direct dependency was removed to avoid duplicates, not its attribution.
+https://github.com/Baseflow/PhotoView/tree/2.3.0
+
+Font notices are separate: iA Writer Duospace/IBM Plex and Accessible-Dfa are OFL1.1.
+The embedded legacy OpenDyslexic declares Bitstream Vera + CCBY3.0;
+see its retained notice, not the license of newer upstream font releases.

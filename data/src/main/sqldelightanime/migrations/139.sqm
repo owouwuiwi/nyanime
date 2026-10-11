@@ -1,0 +1,76 @@
+CREATE TABLE community_capture(enabled INTEGER NOT NULL);
+INSERT INTO community_capture VALUES(0);
+CREATE TABLE community_changes(
+ seq INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+ source INTEGER NOT NULL, title_url TEXT NOT NULL, item_url TEXT NOT NULL,
+ title TEXT NOT NULL, item TEXT NOT NULL, artwork TEXT NOT NULL,
+ favorite INTEGER NOT NULL, seen INTEGER NOT NULL, bookmark INTEGER NOT NULL,
+ position INTEGER NOT NULL, duration INTEGER NOT NULL, number REAL NOT NULL,
+ history_at INTEGER NOT NULL, categories TEXT NOT NULL, deleted INTEGER NOT NULL,
+ fields TEXT NOT NULL DEFAULT 'all',
+ changed_at INTEGER NOT NULL DEFAULT (CAST(strftime('%s','now') AS INTEGER)*1000 + CAST(substr(strftime('%f','now'),4,3) AS INTEGER)),
+ UNIQUE(source,title_url,item_url)
+);
+CREATE TRIGGER community_title_update AFTER UPDATE OF favorite ON animes
+WHEN (SELECT enabled FROM community_capture)=1 AND new.is_syncing=0 AND new.favorite!=old.favorite
+BEGIN INSERT OR REPLACE INTO community_changes(source, title_url, item_url, title, item, artwork, favorite, seen, bookmark, position, duration, number, history_at, categories, deleted) SELECT new.source, new.url, '', new.title, '', coalesce(new.thumbnail_url,''), new.favorite, 0, 0, 0, 0, -1.0, 0, coalesce((SELECT group_concat((SELECT min(id) FROM community_category_ids WHERE local_id=C._id) || ':' || hex(C.name), ',') FROM animes_categories TC JOIN categories C ON C._id=TC.category_id WHERE TC.anime_id=new._id AND C._id>0), ''), 0; END;
+CREATE TRIGGER community_item_update AFTER UPDATE OF seen,bookmark,last_second_seen ON episodes
+WHEN (SELECT enabled FROM community_capture)=1 AND new.is_syncing=0 AND (new.seen!=old.seen OR new.bookmark!=old.bookmark OR new.last_second_seen!=old.last_second_seen)
+BEGIN INSERT OR REPLACE INTO community_changes(source,title_url,item_url,title,item,artwork,favorite,seen,bookmark,position,duration,number,history_at,categories,deleted,fields) SELECT titleRow.source,titleRow.url,itemRow.url,titleRow.title,itemRow.name,coalesce(titleRow.thumbnail_url,''),titleRow.favorite,itemRow.seen,itemRow.bookmark,itemRow.last_second_seen,itemRow.total_seconds,itemRow.episode_number,coalesce((SELECT last_seen FROM animehistory WHERE episode_id=itemRow._id),0),'',0,coalesce((SELECT fields FROM community_changes WHERE source=titleRow.source AND title_url=titleRow.url AND item_url=itemRow.url),'') || (CASE WHEN new.seen!=old.seen THEN ',Seen' ELSE '' END || CASE WHEN new.bookmark!=old.bookmark THEN ',Bookmark' ELSE '' END || CASE WHEN new.last_second_seen!=old.last_second_seen THEN ',Progress' ELSE '' END) FROM episodes itemRow JOIN animes titleRow ON titleRow._id=itemRow.anime_id WHERE itemRow._id=new._id; END;
+CREATE TRIGGER community_item_insert AFTER INSERT ON episodes
+WHEN (SELECT enabled FROM community_capture)=1 AND new.is_syncing=0 AND (new.seen=1 OR new.bookmark=1 OR new.last_second_seen>0)
+BEGIN INSERT OR REPLACE INTO community_changes(source,title_url,item_url,title,item,artwork,favorite,seen,bookmark,position,duration,number,history_at,categories,deleted,fields) SELECT titleRow.source,titleRow.url,itemRow.url,titleRow.title,itemRow.name,coalesce(titleRow.thumbnail_url,''),titleRow.favorite,itemRow.seen,itemRow.bookmark,itemRow.last_second_seen,itemRow.total_seconds,itemRow.episode_number,coalesce((SELECT last_seen FROM animehistory WHERE episode_id=itemRow._id),0),'',0,coalesce((SELECT fields FROM community_changes WHERE source=titleRow.source AND title_url=titleRow.url AND item_url=itemRow.url),'') || (CASE WHEN new.seen=1 THEN ',Seen' ELSE '' END || CASE WHEN new.bookmark=1 THEN ',Bookmark' ELSE '' END || CASE WHEN new.last_second_seen>0 THEN ',Progress' ELSE '' END) FROM episodes itemRow JOIN animes titleRow ON titleRow._id=itemRow.anime_id WHERE itemRow._id=new._id; END;
+CREATE TRIGGER community_title_delete BEFORE DELETE ON animes
+WHEN (SELECT enabled FROM community_capture)=1
+BEGIN INSERT OR REPLACE INTO community_changes(source, title_url, item_url, title, item, artwork, favorite, seen, bookmark, position, duration, number, history_at, categories, deleted) SELECT old.source,old.url,'',old.title,'','',0,0,0,0,0,-1.0,0,'',1; END;
+CREATE TRIGGER community_category_insert AFTER INSERT ON animes_categories
+WHEN (SELECT enabled FROM community_capture)=1
+BEGIN INSERT OR REPLACE INTO community_changes(source, title_url, item_url, title, item, artwork, favorite, seen, bookmark, position, duration, number, history_at, categories, deleted) SELECT T.source, T.url, '', T.title, '', coalesce(T.thumbnail_url,''), T.favorite, 0, 0, 0, 0, -1.0, 0, coalesce((SELECT group_concat((SELECT min(id) FROM community_category_ids WHERE local_id=C._id) || ':' || hex(C.name), ',') FROM animes_categories TC JOIN categories C ON C._id=TC.category_id WHERE TC.anime_id=T._id AND C._id>0), ''), 0 FROM animes T WHERE T._id=new.anime_id; END;
+CREATE TRIGGER community_category_delete AFTER DELETE ON animes_categories
+WHEN (SELECT enabled FROM community_capture)=1
+BEGIN INSERT OR REPLACE INTO community_changes(source, title_url, item_url, title, item, artwork, favorite, seen, bookmark, position, duration, number, history_at, categories, deleted) SELECT T.source, T.url, '', T.title, '', coalesce(T.thumbnail_url,''), T.favorite, 0, 0, 0, 0, -1.0, 0, coalesce((SELECT group_concat((SELECT min(id) FROM community_category_ids WHERE local_id=C._id) || ':' || hex(C.name), ',') FROM animes_categories TC JOIN categories C ON C._id=TC.category_id WHERE TC.anime_id=T._id AND C._id>0), ''), 0 FROM animes T WHERE T._id=old.anime_id; END;
+CREATE TRIGGER community_category_rename AFTER UPDATE OF name ON categories
+WHEN (SELECT enabled FROM community_capture)=1
+BEGIN INSERT OR REPLACE INTO community_changes(source, title_url, item_url, title, item, artwork, favorite, seen, bookmark, position, duration, number, history_at, categories, deleted) SELECT T.source, T.url, '', T.title, '', coalesce(T.thumbnail_url,''), T.favorite, 0, 0, 0, 0, -1.0, 0, coalesce((SELECT group_concat((SELECT min(id) FROM community_category_ids WHERE local_id=C._id) || ':' || hex(C.name), ',') FROM animes_categories TC JOIN categories C ON C._id=TC.category_id WHERE TC.anime_id=T._id AND C._id>0), ''), 0 FROM animes T WHERE T._id IN (SELECT anime_id FROM animes_categories WHERE category_id=new._id); END;
+
+CREATE TRIGGER community_title_insert AFTER INSERT ON animes
+WHEN (SELECT enabled FROM community_capture)=1 AND new.is_syncing=0 AND new.favorite=1
+BEGIN INSERT OR REPLACE INTO community_changes(source, title_url, item_url, title, item, artwork, favorite, seen, bookmark, position, duration, number, history_at, categories, deleted) SELECT new.source, new.url, '', new.title, '', coalesce(new.thumbnail_url,''), new.favorite, 0, 0, 0, 0, -1.0, 0, coalesce((SELECT group_concat((SELECT min(id) FROM community_category_ids WHERE local_id=C._id) || ':' || hex(C.name), ',') FROM animes_categories TC JOIN categories C ON C._id=TC.category_id WHERE TC.anime_id=new._id AND C._id>0), ''), 0; END;
+CREATE TRIGGER community_history_insert AFTER INSERT ON animehistory
+WHEN (SELECT enabled FROM community_capture)=1
+BEGIN INSERT OR REPLACE INTO community_changes(source,title_url,item_url,title,item,artwork,favorite,seen,bookmark,position,duration,number,history_at,categories,deleted,fields) SELECT titleRow.source,titleRow.url,itemRow.url,titleRow.title,itemRow.name,coalesce(titleRow.thumbnail_url,''),titleRow.favorite,itemRow.seen,itemRow.bookmark,itemRow.last_second_seen,itemRow.total_seconds,itemRow.episode_number,coalesce(new.last_seen,0),'',0,coalesce((SELECT fields FROM community_changes WHERE source=titleRow.source AND title_url=titleRow.url AND item_url=itemRow.url),'') || ',History' FROM episodes itemRow JOIN animes titleRow ON titleRow._id=itemRow.anime_id WHERE itemRow._id=new.episode_id AND itemRow.is_syncing=0; END;
+
+CREATE TRIGGER community_history_update AFTER UPDATE OF last_seen ON animehistory
+WHEN (SELECT enabled FROM community_capture)=1
+BEGIN INSERT OR REPLACE INTO community_changes(source,title_url,item_url,title,item,artwork,favorite,seen,bookmark,position,duration,number,history_at,categories,deleted,fields) SELECT titleRow.source,titleRow.url,itemRow.url,titleRow.title,itemRow.name,coalesce(titleRow.thumbnail_url,''),titleRow.favorite,itemRow.seen,itemRow.bookmark,itemRow.last_second_seen,itemRow.total_seconds,itemRow.episode_number,coalesce(new.last_seen,0),'',0,coalesce((SELECT fields FROM community_changes WHERE source=titleRow.source AND title_url=titleRow.url AND item_url=itemRow.url),'') || ',History' FROM episodes itemRow JOIN animes titleRow ON titleRow._id=itemRow.anime_id WHERE itemRow._id=new.episode_id AND itemRow.is_syncing=0; END;
+
+CREATE TRIGGER community_history_delete AFTER DELETE ON animehistory
+WHEN (SELECT enabled FROM community_capture)=1
+BEGIN INSERT OR REPLACE INTO community_changes(source,title_url,item_url,title,item,artwork,favorite,seen,bookmark,position,duration,number,history_at,categories,deleted,fields) SELECT titleRow.source,titleRow.url,itemRow.url,titleRow.title,itemRow.name,coalesce(titleRow.thumbnail_url,''),titleRow.favorite,itemRow.seen,itemRow.bookmark,itemRow.last_second_seen,itemRow.total_seconds,itemRow.episode_number,0,'',0,coalesce((SELECT fields FROM community_changes WHERE source=titleRow.source AND title_url=titleRow.url AND item_url=itemRow.url),'') || ',History' FROM episodes itemRow JOIN animes titleRow ON titleRow._id=itemRow.anime_id WHERE itemRow._id=old.episode_id AND itemRow.is_syncing=0; END;
+
+CREATE TABLE community_category_ids(id TEXT NOT NULL PRIMARY KEY, local_id INTEGER NOT NULL);
+INSERT INTO community_category_ids SELECT lower(hex(randomblob(16))),_id FROM categories WHERE _id>0;
+CREATE TRIGGER community_category_identity AFTER INSERT ON categories WHEN new._id>0
+BEGIN INSERT INTO community_category_ids SELECT lower(hex(randomblob(16))),new._id WHERE NOT EXISTS(SELECT 1 FROM community_category_ids WHERE local_id=new._id); END;
+CREATE TRIGGER community_category_create_record AFTER INSERT ON categories
+WHEN (SELECT enabled FROM community_capture)=1 AND new._id>0
+BEGIN INSERT INTO community_category_ids SELECT lower(hex(randomblob(16))),new._id WHERE NOT EXISTS(SELECT 1 FROM community_category_ids WHERE local_id=new._id);
+INSERT OR REPLACE INTO community_changes(source,title_url,item_url,title,item,artwork,favorite,seen,bookmark,position,duration,number,history_at,categories,deleted) SELECT 0,'nyanime:category:' || id,'',new.name,'','',0,0,new.hidden,new.sort,0,-1.0,0,'',0 FROM community_category_ids WHERE local_id=new._id;
+ END;
+CREATE TRIGGER community_category_change_record AFTER UPDATE OF name,sort,hidden ON categories
+WHEN (SELECT enabled FROM community_capture)=1 AND new._id>0
+BEGIN INSERT INTO community_category_ids SELECT lower(hex(randomblob(16))),new._id WHERE NOT EXISTS(SELECT 1 FROM community_category_ids WHERE local_id=new._id);
+INSERT OR REPLACE INTO community_changes(source,title_url,item_url,title,item,artwork,favorite,seen,bookmark,position,duration,number,history_at,categories,deleted) SELECT 0,'nyanime:category:' || id,'',new.name,'','',0,0,new.hidden,new.sort,0,-1.0,0,'',0 FROM community_category_ids WHERE local_id=new._id;
+ END;
+CREATE TRIGGER community_category_remove_record BEFORE DELETE ON categories
+WHEN (SELECT enabled FROM community_capture)=1 AND old._id>0
+BEGIN
+INSERT OR REPLACE INTO community_changes(source,title_url,item_url,title,item,artwork,favorite,seen,bookmark,position,duration,number,history_at,categories,deleted) SELECT 0,'nyanime:category:' || id,'',old.name,'','',0,0,old.hidden,old.sort,0,-1.0,0,'',1 FROM community_category_ids WHERE local_id=old._id;
+INSERT OR IGNORE INTO community_removed_categories SELECT id FROM community_category_ids WHERE local_id=old._id; END;
+
+CREATE TABLE community_removed_categories(id TEXT NOT NULL PRIMARY KEY);
+CREATE TRIGGER community_category_identity_cleanup AFTER DELETE ON categories
+BEGIN
+INSERT OR IGNORE INTO community_removed_categories SELECT id FROM community_category_ids WHERE local_id=old._id;
+DELETE FROM community_category_ids WHERE local_id=old._id;
+END;

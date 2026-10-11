@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="store_manga_layer">Layer</string>
+    <string name="store_manga_layer_hint">Importa questo layer in Nyanime per aggiungere funzioni alle estensioni supportate.</string>
+    <string name="store_manga_layer_targets">Estensioni e funzioni supportate</string>
+    <string name="store_manga_layer_home">Home</string>
+    <string name="store_manga_layer_catalog">Catalogo</string>
+    <string name="store_manga_layer_update">Aggiornamento capitoli</string>
+    <string name="store_manga_layer_identity">Tracking</string>
+    <string name="store_manga_layer_reader">Lettore</string>
+    <string name="store_layer_guide">Guida programmi</string>
+    <string name="store_layer_player">Riproduzione</string>
+    <string name="store_layer_feed">Notizie</string>
+    <string name="store_layer_article">Articoli</string>
+    <string name="store_layer_search">Ricerca</string>
+    <string name="store_manga_migration_available">Il layer approvato è compatibile con un altro editore. Da qui puoi verificare un APK base per la migrazione.</string>
+    <string name="store_manga_migration_select">Scegli APK dell’editore</string>
+    <string name="store_manga_migration_confirm">Verifica e passa al nuovo APK</string>
+    <string name="store_manga_migration_hint">Nyanime controlla la firma con i layer approvati e verifica gli ID delle fonti prima di cambiare APK. Puoi ripristinare l’APK precedente dallo Store.</string>
+    <string name="store_manga_migration_mismatch">L’APK o gli ID delle fonti non coincidono con quelli dell’editore approvato per questa estensione. L’estensione attuale è ancora installata.</string>
+    <string name="store_manga_migration_rollback">Ripristina l’APK precedente</string>
+    <string name="store_manga_migration_rollback_hint">Riattiva l’APK firmato precedente. La libreria e i progressi di lettura restano associati agli stessi ID delle fonti.</string>
+</resources>
