@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="library_your_space">YOUR SPACE</string>
+    <string name="title_details_work">The work</string>
+    <string name="title_details_for_you">For you</string>
+    <string name="title_details_personal_tracking">Your tracking</string>
+    <string name="title_details_tracking_local">Progress, score and notes, even without an account</string>
+    <string name="title_details_tracking_unavailable">Could not read your tracking. Open to retry.</string>
+    <string name="title_details_personal_episodes">%1$s episodes · on this device</string>
+    <string name="title_details_personal_chapters">%1$s chapters · on this device</string>
+    <string name="title_details_your_score">Your score %1$s/10</string>
+    <string name="title_details_notes">Your notes</string>
+    <string name="title_details_your_path">Your journey</string>
+    <string name="title_details_available_progress">Progress in the selected source</string>
+    <string name="title_details_source_open">Open the selected source</string>
+    <string name="library_medium_anime">ANIME</string>
+    <string name="library_medium_manga">MANGA</string>
+    <string name="library_filter_continue">Continue</string>
+    <string name="library_filter_news">New releases</string>
+    <string name="library_filter_all_titles">All titles</string>
+    <string name="library_quick_filter_empty">No titles match these filters.</string>
+    <string name="library_collections_label">Your collections</string>
+    <string name="library_show_all_titles">Show all titles</string>
+    <string name="title_details_reading_position">Reading position</string>
+    <string name="title_details_full_catalogue">View all · %1$d available</string>
+    <string name="library_downloaded_count">Downloaded: %1$d</string>
+</resources>

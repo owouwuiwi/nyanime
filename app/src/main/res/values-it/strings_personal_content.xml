@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="library_your_space">IL TUO SPAZIO</string>
+    <string name="title_details_work">L’opera</string>
+    <string name="title_details_for_you">Per te</string>
+    <string name="title_details_personal_tracking">Il tuo tracking</string>
+    <string name="title_details_tracking_local">Progressi, voto e note, anche senza account</string>
+    <string name="title_details_tracking_unavailable">Tracking non disponibile. Apri per riprovare.</string>
+    <string name="title_details_personal_episodes">%1$s episodi · su questo dispositivo</string>
+    <string name="title_details_personal_chapters">%1$s capitoli · su questo dispositivo</string>
+    <string name="title_details_your_score">Il tuo voto %1$s/10</string>
+    <string name="title_details_notes">Le tue note</string>
+    <string name="title_details_your_path">Il tuo percorso</string>
+    <string name="title_details_available_progress">Progresso nella fonte selezionata</string>
+    <string name="title_details_source_open">Apri la fonte selezionata</string>
+    <string name="library_medium_anime">ANIME</string>
+    <string name="library_medium_manga">MANGA</string>
+    <string name="library_filter_continue">Da continuare</string>
+    <string name="library_filter_news">Novità</string>
+    <string name="library_filter_all_titles">Tutti i titoli</string>
+    <string name="library_quick_filter_empty">Nessun titolo corrisponde ai filtri.</string>
+    <string name="library_collections_label">Le tue raccolte</string>
+    <string name="library_show_all_titles">Mostra tutti i titoli</string>
+    <string name="title_details_reading_position">Punto di lettura</string>
+    <string name="title_details_full_catalogue">Apri indice · %1$d disponibili</string>
+    <string name="library_downloaded_count">Scaricati: %1$d</string>
+</resources>
