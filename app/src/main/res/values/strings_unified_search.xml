@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="unified_search_search">Search</string>
+    <string name="unified_search_close">Close search</string>
+    <string name="unified_search_hint">Search…</string>
+    <string name="unified_search_clear">Clear text</string>
+    <string name="unified_search_all">All</string>
+    <string name="unified_search_explore">Explore</string>
+    <string name="unified_search_results">Results</string>
+    <string name="unified_search_categories">Choose a category</string>
+    <string name="unified_search_query_scope">“%1$s” · %2$s</string>
+    <string name="unified_search_search_help">Suggestions and exact search</string>
+    <string name="unified_search_discover">Discover in your sources</string>
+    <string name="unified_search_found">Available titles</string>
+    <string name="unified_search_searching">Searching your sources… Results appear as they arrive.</string>
+    <string name="unified_search_offline">Online search is unavailable in downloaded-only mode.</string>
+    <string name="unified_search_begin">Start with a title or choose a genre.</string>
+    <string name="unified_search_confirm">Press Search to see results.</string>
+    <string name="unified_search_empty">No titles found with these choices.</string>
+    <string name="unified_search_clear_filters">Clear genre filters</string>
+    <string name="unified_search_retry_sources">Retry %1$d unavailable sources</string>
+    <string name="unified_search_more">Load more results</string>
+    <string name="unified_search_other_results">Show other titles (%1$d)</string>
+    <string name="unified_search_sources">%1$d sources</string>
+    <string name="unified_search_filters">Filters</string>
+    <string name="unified_search_supported_sources">Searching %1$d compatible sources. Sources that cannot apply your genres are excluded.</string>
+    <string name="unified_search_advanced">Advanced source filters</string>
+    <string name="unified_search_settings">Search settings</string>
+    <string name="unified_search_remember">Remember last search</string>
+    <string name="unified_search_remember_summary">Restore text, category and genres when opening Search. Disabled in incognito.</string>
+    <string name="unified_search_keyboard">Open keyboard immediately</string>
+    <string name="unified_search_live">Search as you type</string>
+    <string name="unified_search_live_summary">Waits briefly while typing; Search always starts immediately.</string>
+    <string name="unified_search_filters_removed">Some genres are unavailable in this category and were removed.</string>
+    <string name="unified_search_video">Anime</string>
+    <string name="unified_search_manga">Manga</string>
+    <string name="unified_search_preparing_help">Checking matching titles…</string>
+    <string name="unified_search_stale_filters">These filters are no longer available. Update the extension and choose them again.</string>
+    <string name="unified_search_intro_title">Search has a new home</string>
+    <string name="unified_search_intro_description">Search replaces Browse in the bottom bar.</string>
+    <string name="unified_search_intro_search_title">Anime and manga, together</string>
+    <string name="unified_search_intro_search_body">Find titles with categories and filters.</string>
+    <string name="unified_search_intro_browse_title">Looking for Browse?</string>
+    <string name="unified_search_intro_browse_body">Open More → Browse, or press and hold Search.</string>
+    <string name="unified_search_intro_try">Try Search</string>
+    <string name="unified_search_intro_done">Got it</string>
+</resources>

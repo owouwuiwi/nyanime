@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="playback_no_audio_tracks">Questo video non contiene tracce audio</string>
+    <string name="playback_track_unavailable">Impossibile aprire questa traccia. Riprova o scegline un’altra.</string>
+</resources>

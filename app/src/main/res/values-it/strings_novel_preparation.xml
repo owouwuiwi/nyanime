@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="novel_index_preparing">Preparazione dei capitoli</string>
+    <string name="novel_index_waiting">In attesa di preparare i capitoli</string>
+    <string name="novel_index_paused">Preparazione dei capitoli in pausa</string>
+    <string name="novel_index_failed">Preparazione dei capitoli interrotta</string>
+    <string name="novel_index_counts">%1$d pagine esaminate · %2$d capitoli trovati</string>
+    <string name="novel_index_saved_available">I capitoli già verificati restano disponibili durante questo aggiornamento.</string>
+    <string name="novel_index_resume_explanation">I progressi si salvano dopo ogni pagina. Puoi interrompere e riprendere senza ricominciare.</string>
+    <string name="novel_index_pause">Pausa</string>
+    <string name="novel_index_resume">Riprendi preparazione</string>
+</resources>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="catalogue_understood">Ho capito</string>
+    <string name="catalogue_link_title">Aggiungi un catalogo</string>
+    <string name="catalogue_link_instruction">Apri il sito del catalogo e premi «Aggiungi a Nyanime», oppure apri il suo link per Nyanime.</string>
+    <string name="catalogue_link_confirmation">Puoi anche incollare qui il link HTTPS del catalogo. Controlla il catalogo e le sue autorizzazioni prima di confermare.</string>
+    <string name="catalogue_reset_title">Aggiungi di nuovo i cataloghi</string>
+    <string name="catalogue_reset_description">Questo aggiornamento ha rimosso, una sola volta, i cataloghi configurati in precedenza. Puoi aggiungerli nuovamente tramite un link del catalogo.</string>
+    <string name="catalogue_reset_preserved">Le estensioni installate, la libreria e i progressi sono ancora qui.</string>
+    <string name="catalogue_authority_consent_title">Passaggio alle estensioni RIN</string>
+    <string name="catalogue_authority_consent">Autorizzi questo autore a fornire la versione RIN delle estensioni compatibili già installate. Il passaggio guidato verifica i pacchetti prima di chiederti di rimuovere gli APK precedenti. Qui sotto trovi l’impronta della firma.</string>
+    <string name="store_authority_title">Versioni consigliate</string>
+    <string name="store_authority_count">%1$d estensioni installate hanno una firma diversa. Controlla i consigli del catalogo prima di sostituirle.</string>
+    <string name="store_authority_review">Controlla</string>
+    <string name="store_signature_different">Firma diversa</string>
+    <string name="store_current_version">Versione installata</string>
+    <string name="store_catalogue_version">Versione del catalogo</string>
+    <string name="store_authority_switch_title">Usa la versione consigliata</string>
+    <string name="store_authority_recommends">%1$s consiglia la propria versione firmata per questa estensione. Installata: %2$s. Proposta: %3$s. Puoi conservare quella attuale.</string>
+    <string name="catalogue_open_store">Apri lo Store</string>
+</resources>
