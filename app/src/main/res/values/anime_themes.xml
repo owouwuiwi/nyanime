@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="anime_themes_title">Openings and endings</string>
+    <string name="anime_themes_opening">Opening</string>
+    <string name="anime_themes_ending">Ending</string>
+    <string name="anime_themes_sequence">Anime sequence</string>
+    <string name="anime_themes_full">Full song</string>
+    <string name="anime_themes_search_sequence">Find anime sequence</string>
+    <string name="anime_themes_search_full">Find full song</string>
+    <string name="anime_themes_change">Change video</string>
+    <string name="anime_themes_choose">Choose a video</string>
+    <string name="anime_themes_search">Search YouTube</string>
+    <string name="anime_themes_search_hint">Song, artist or anime</string>
+    <string name="anime_themes_search_note">Choose the version you want. Search results are suggestions, not verified matches.</string>
+    <string name="anime_themes_unknown">Other linked videos · version not specified</string>
+    <string name="anime_themes_spoiler">Preview hidden · may contain spoilers</string>
+    <string name="anime_themes_reveal">Show preview</string>
+    <string name="anime_themes_episodes">Episodes %1$s</string>
+    <string name="anime_themes_version">Version %1$d</string>
+    <string name="anime_themes_none">No songs available in this section yet.</string>
+    <string name="anime_themes_no_videos">No videos found. Try another song title or artist.</string>
+    <string name="anime_themes_error">Some song data could not be checked. Saved data is still available.</string>
+    <string name="anime_themes_search_error">YouTube search is unavailable. Try again.</string>
+    <string name="anime_themes_offline">Connect to the internet to search or play videos.</string>
+    <string name="anime_themes_identify">Choose the anime or season to find its songs.</string>
+    <string name="anime_themes_associate">Choose anime</string>
+    <string name="anime_themes_retry">Try again</string>
+    <string name="anime_themes_more">More videos</string>
+    <string name="anime_themes_more_songs">Show all %1$d songs</string>
+    <string name="anime_themes_less">Show fewer</string>
+    <string name="anime_themes_privacy">Song data: AnimeThemes and Jikan. Choosing a video opens the integrated YouTube player.</string>
+</resources>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="catalogue_understood">Got it</string>
+    <string name="catalogue_link_title">Add a catalogue</string>
+    <string name="catalogue_link_instruction">Paste an HTTPS catalogue link or a public Google Drive folder with an index.json file.</string>
+    <string name="catalogue_link_invalid">Check the address and paste the full link.</string>
+    <string name="catalogue_drive_folder_error">Check that anyone with the Google Drive link can open the folder and that it contains one valid index.json file.</string>
+    <string name="catalogue_drive_file_error">Check that anyone with the Google Drive link can open the file and that it is a valid catalogue index.</string>
+    <string name="catalogue_bridge_count">Bridges · %1$d</string>
+    <string name="catalogue_preview_checking">Checking catalogues…</string>
+    <string name="catalogue_links_title">Linked catalogues</string>
+    <string name="catalogue_link_verified">Signing fingerprint matches</string>
+    <string name="catalogue_link_identity_mismatch">Declared address or publisher does not match</string>
+    <string name="catalogue_link_unavailable">Catalogue unavailable or unreadable</string>
+    <string name="catalogue_links_incomplete">Every linked catalogue must pass verification before you can add them together.</string>
+    <string name="catalogue_links_done">Catalogues are ready. Open the Store to choose extensions.</string>
+    <string name="catalogue_primary_trust_hint">Applies to extensions you choose from the main catalogue. You can manage trust for linked catalogues separately.</string>
+    <string name="store_authority_title">Recommended versions</string>
+    <string name="store_authority_count">%1$d installed extensions have a different signature. Review the catalogue’s recommendations before replacing them.</string>
+    <string name="store_authority_review">Review</string>
+    <string name="store_signature_different">Different signature</string>
+    <string name="store_current_version">Installed version</string>
+    <string name="store_catalogue_version">Catalogue version</string>
+    <string name="store_authority_switch_title">Use the recommended version</string>
+    <string name="store_authority_recommends">%1$s recommends its signed version for this extension. Installed: %2$s. Proposed: %3$s. You can keep the current version.</string>
+    <string name="catalogue_open_store">Open the Store</string>
+</resources>

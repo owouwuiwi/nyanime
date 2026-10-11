@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="room_lounge_title">Il salotto</string>
+    <string name="room_lounge_people">Partecipanti · %1$d/8</string>
+    <string name="room_lounge_entry_hint">Crea una stanza o raggiungi gli amici. Guardate, leggete e parlate insieme.</string>
+    <string name="room_lounge_invite">Invita</string>
+    <string name="room_lounge_shared_hint">Gli amici possono avviare, mettere in pausa e spostarsi nel video.</string>
+    <string name="room_lounge_wait_title">Aspetta tutti</string>
+    <string name="room_lounge_wait_hint">Mette in pausa la stanza se qualcuno carica. Disattivato, le interruzioni restano locali.</string>
+    <string name="room_lounge_connection">Connessione</string>
+    <string name="room_lounge_close_hint">Tutti usciranno da questa stanza. Potrai crearne un’altra quando vuoi.</string>
+    <string name="room_lounge_leave_hint">Gli amici possono restare. I messaggi di questa stanza spariranno dal tuo telefono.</string>
+    <string name="room_lounge_now">State guardando</string>
+    <string name="room_lounge_live">In diretta insieme</string>
+    <string name="room_lounge_change_video">Scegli un video</string>
+    <string name="room_lounge_empty_seat">Un posto per un amico</string>
+    <string name="room_lounge_share_hint">Invia l’invito o fai inserire questo codice al tuo amico.</string>
+    <string name="room_lounge_host">Host</string>
+    <string name="room_lounge_annotations">Disegni e note</string>
+    <string name="room_lounge_annotations_hint">Disegna, lascia un messaggio o gestisci le annotazioni condivise.</string>
+    <string name="room_lounge_page_short">Pag. %1$d / %2$d</string>
+    <string name="room_lounge_reading_options">Opzioni di lettura</string>
+    <string name="room_lounge_create_tab">Crea</string>
+    <string name="room_lounge_join_tab">Entra</string>
+</resources>

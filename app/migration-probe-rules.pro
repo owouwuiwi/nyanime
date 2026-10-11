@@ -1,0 +1,1 @@
+-keep class eu.kanade.tachiyomi.data.migration.** { *; }

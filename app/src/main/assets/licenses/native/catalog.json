@@ -1,0 +1,146 @@
+[
+  {
+    "name": "mpv-android",
+    "website": "https://github.com/aniyomiorg/aniyomi-mpv-lib",
+    "licenseName": "MIT",
+    "asset": "licenses/native-player/mpv-android.txt"
+  },
+  {
+    "name": "ffmpeg-kit",
+    "website": "https://github.com/jmir1/ffmpeg-kit",
+    "licenseName": "LGPL-3.0-or-later",
+    "asset": "licenses/native-player/ffmpeg-kit.txt"
+  },
+  {
+    "name": "mpv",
+    "website": "https://github.com/mpv-player/mpv",
+    "licenseName": "GPL-2.0-or-later; combined GPL-3.0-or-later build",
+    "asset": "licenses/native-player/mpv.txt"
+  },
+  {
+    "name": "ffmpeg",
+    "website": "https://github.com/FFmpeg/FFmpeg",
+    "licenseName": "GPL-3.0-or-later (GPL/version3 enabled; nonfree disabled)",
+    "asset": "licenses/native-player/ffmpeg.txt"
+  },
+  {
+    "name": "mbedtls",
+    "website": "https://github.com/Mbed-TLS/mbedtls",
+    "licenseName": "Apache-2.0",
+    "asset": "licenses/native-player/mbedtls.txt"
+  },
+  {
+    "name": "libxml2",
+    "website": "https://gitlab.gnome.org/GNOME/libxml2",
+    "licenseName": "MIT",
+    "asset": "licenses/native-player/libxml2.txt"
+  },
+  {
+    "name": "dav1d",
+    "website": "https://github.com/videolan/dav1d",
+    "licenseName": "BSD-2-Clause",
+    "asset": "licenses/native-player/dav1d.txt"
+  },
+  {
+    "name": "freetype2",
+    "website": "https://github.com/freetype/freetype",
+    "licenseName": "FreeType License",
+    "asset": "licenses/native-player/freetype2.txt"
+  },
+  {
+    "name": "fribidi",
+    "website": "https://github.com/fribidi/fribidi",
+    "licenseName": "LGPL-2.1-or-later",
+    "asset": "licenses/native-player/fribidi.txt"
+  },
+  {
+    "name": "harfbuzz",
+    "website": "https://github.com/harfbuzz/harfbuzz",
+    "licenseName": "MIT",
+    "asset": "licenses/native-player/harfbuzz.txt"
+  },
+  {
+    "name": "libass",
+    "website": "https://github.com/libass/libass",
+    "licenseName": "ISC",
+    "asset": "licenses/native-player/libass.txt"
+  },
+  {
+    "name": "libplacebo",
+    "website": "https://github.com/haasn/libplacebo",
+    "licenseName": "LGPL-2.1-or-later",
+    "asset": "licenses/native-player/libplacebo.txt"
+  },
+  {
+    "name": "cpu-features",
+    "website": "https://github.com/arthenica/cpu_features",
+    "licenseName": "Apache-2.0",
+    "asset": "licenses/native-player/cpu-features.txt"
+  },
+  {
+    "name": "Lua 5.2.4",
+    "website": "https://www.lua.org",
+    "licenseName": "MIT",
+    "asset": "licenses/native-player/lua.txt"
+  },
+  {
+    "name": "libunibreak",
+    "website": "https://github.com/adah1972/libunibreak",
+    "licenseName": "Zlib",
+    "asset": "licenses/native-player/unibreak.txt"
+  },
+  {
+    "name": "Image decoder and static image codecs",
+    "website": "https://github.com/tachiyomiorg/image-decoder",
+    "licenseName": "MPL-2.0 \u00b7 LGPL-3.0-or-later \u00b7 third-party licenses",
+    "asset": "licenses/native/image-decoder.txt"
+  },
+  {
+    "name": "libarchive and archive codecs",
+    "website": "https://github.com/zhanghai/libarchive-android",
+    "licenseName": "BSD \u00b7 Apache-2.0 \u00b7 third-party licenses",
+    "asset": "licenses/native/libarchive-android.txt"
+  },
+  {
+    "name": "TorrServer and vendored Go dependencies",
+    "website": "https://gitlab.com/Secozzi/torrserver",
+    "licenseName": "GPL-3.0-only \u00b7 third-party licenses",
+    "asset": "licenses/native/torrserver.txt"
+  },
+  {
+    "name": "secp256k1 native signing library",
+    "website": "https://github.com/ACINQ/secp256k1-kmp",
+    "licenseName": "MIT",
+    "asset": "licenses/native/secp256k1-kmp.txt"
+  },
+  {
+    "name": "Zstandard native compression",
+    "website": "https://github.com/square/okio-zstd",
+    "licenseName": "Apache-2.0 \u00b7 BSD-3-Clause",
+    "asset": "licenses/native/okio-zstd.txt"
+  },
+  {
+    "name": "QuickJS Java and native JavaScript engine",
+    "website": "https://github.com/cashapp/quickjs-java",
+    "licenseName": "Apache-2.0 \u00b7 MIT",
+    "asset": "licenses/native/quickjs-java.txt"
+  },
+  {
+    "name": "Conscrypt native TLS bridge",
+    "website": "https://github.com/google/conscrypt",
+    "licenseName": "Apache-2.0 \u00b7 third-party licenses",
+    "asset": "licenses/native/conscrypt.txt"
+  },
+  {
+    "name": "LiteRT / TensorFlow Lite runtime",
+    "website": "https://github.com/google-ai-edge/LiteRT",
+    "licenseName": "Apache-2.0 \u00b7 third-party licenses",
+    "asset": "licenses/native/litert.txt"
+  },
+  {
+    "name": "Android NDK native runtime",
+    "website": "https://android.googlesource.com/toolchain/llvm-project",
+    "licenseName": "Apache-2.0 with LLVM exception \u00b7 third-party licenses",
+    "asset": "licenses/native/NOTICE.toolchain"
+  }
+]

@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "ndkVersion": "28.2.13676358",
+  "api": 21,
+  "gitSources": [
+    {
+      "path": "mpv-android",
+      "url": "https://github.com/aniyomiorg/aniyomi-mpv-lib.git",
+      "commit": "da7c885c18ae117ca27239c562ea7572fce3d4f5",
+      "license": "MIT"
+    },
+    {
+      "path": "ffmpeg-kit",
+      "url": "https://github.com/jmir1/ffmpeg-kit.git",
+      "commit": "0f1bfb5d9ca2711e723406b25f0aa6a0c1500826",
+      "license": "LGPL-3.0-or-later"
+    },
+    {
+      "path": "mpv-android/buildscripts/deps/mpv",
+      "url": "https://github.com/mpv-player/mpv.git",
+      "commit": "d82701962f99051a18d65c215b70d41ebadd9a22",
+      "license": "GPL-2.0-or-later (gpl=true; combined GPL-3.0-or-later build)"
+    },
+    {
+      "path": "mpv-android/buildscripts/deps/ffmpeg",
+      "url": "https://github.com/FFmpeg/FFmpeg.git",
+      "commit": "b08d7969c550a804a59511c7b83f2dd8cc0499b8",
+      "license": "GPL-3.0-or-later (GPL and version3 enabled; nonfree disabled)"
+    },
+    {
+      "path": "mpv-android/buildscripts/deps/mbedtls",
+      "url": "https://github.com/Mbed-TLS/mbedtls.git",
+      "commit": "107ea89daaefb9867ea9121002fbbdf926780e98",
+      "license": "Apache-2.0"
+    },
+    {
+      "path": "mpv-android/buildscripts/deps/libxml2",
+      "url": "https://gitlab.gnome.org/GNOME/libxml2.git",
+      "commit": "de918d45e1b2276a28a4cd32bcf556bef65284e4",
+      "license": "MIT"
+    },
+    {
+      "path": "mpv-android/buildscripts/deps/dav1d",
+      "url": "https://github.com/videolan/dav1d.git",
+      "commit": "32cf02af50f32af108a3b281c452788dccdac648",
+      "license": "BSD-2-Clause"
+    },
+    {
+      "path": "mpv-android/buildscripts/deps/freetype2",
+      "url": "https://github.com/freetype/freetype.git",
+      "commit": "42608f77f20749dd6ddc9e0536788eaad70ea4b5",
+      "license": "FTL"
+    },
+    {
+      "path": "mpv-android/buildscripts/deps/fribidi",
+      "url": "https://github.com/fribidi/fribidi.git",
+      "commit": "68162babff4f39c4e2dc164a5e825af93bda9983",
+      "license": "LGPL-2.1-or-later"
+    },
+    {
+      "path": "mpv-android/buildscripts/deps/harfbuzz",
+      "url": "https://github.com/harfbuzz/harfbuzz.git",
+      "commit": "9ef44a2d67ac870c1f7f671f6dc98d08a2579865",
+      "license": "MIT"
+    },
+    {
+      "path": "mpv-android/buildscripts/deps/unibreak",
+      "url": "https://github.com/adah1972/libunibreak.git",
+      "commit": "304585d8e2d63187507368d612c3d5fff1486368",
+      "license": "Zlib"
+    },
+    {
+      "path": "mpv-android/buildscripts/deps/libass",
+      "url": "https://github.com/libass/libass.git",
+      "commit": "e46aedea0a0d17da4c4ef49d84b94a7994664ab5",
+      "license": "ISC"
+    },
+    {
+      "path": "mpv-android/buildscripts/deps/libplacebo",
+      "url": "https://github.com/haasn/libplacebo.git",
+      "commit": "1fd3c7bde7b943fe8985c893310b5269a09b46c5",
+      "license": "LGPL-2.1-or-later"
+    },
+    {
+      "path": "cpu-features",
+      "url": "https://github.com/arthenica/cpu_features.git",
+      "commit": "936b9ab5515dead115606559502e3864958f7f6e",
+      "license": "Apache-2.0"
+    }
+  ],
+  "archives": [
+    {
+      "path": "mpv-android/buildscripts/deps/lua",
+      "url": "https://www.lua.org/ftp/lua-5.2.4.tar.gz",
+      "sha256": "b9e2e4aad6789b3b63a056d442f7b39f0ecfca3ae0f1fc0ae4e9614401b69f4b",
+      "license": "MIT"
+    }
+  ]
+}

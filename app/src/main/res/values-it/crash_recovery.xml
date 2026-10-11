@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="crash_recovery_title">Nyanime si è fermata</string>
+    <string name="crash_recovery_description">Si è verificato un errore imprevisto. Puoi riaprire l’app o condividere un rapporto per aiutarci a capire cosa è successo.</string>
+    <string name="crash_recovery_restart">Riapri Nyanime</string>
+    <string name="crash_recovery_share">Condividi rapporto</string>
+    <string name="crash_recovery_preparing">Preparo il rapporto…</string>
+    <string name="crash_recovery_close">Chiudi l’app</string>
+    <string name="crash_recovery_details">Dettagli dell’errore</string>
+    <string name="crash_recovery_expand">Mostra dettagli</string>
+    <string name="crash_recovery_collapse">Nascondi dettagli</string>
+    <string name="crash_recovery_no_details">I dettagli dell’errore non sono disponibili. Puoi comunque condividere un rapporto.</string>
+    <string name="crash_recovery_truncated">Questa è un’anteprima. Il rapporto condiviso contiene tutti i dettagli dell’errore.</string>
+    <string name="crash_recovery_version">Nyanime %1$s · Android %2$s</string>
+    <string name="crash_recovery_report_failed">Non è stato possibile preparare o condividere il rapporto. Riprova.</string>
+    <string name="crash_recovery_privacy">Il rapporto può contenere informazioni personali. Viene condiviso solo quando scegli a chi inviarlo.</string>
+</resources>
