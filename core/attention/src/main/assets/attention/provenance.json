@@ -1,0 +1,21 @@
+{
+  "model": {
+    "url": "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+    "sha256": "64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff",
+    "bytes": 3758596
+  },
+  "sdk": [
+    {
+      "coordinate": "com.google.mediapipe:tasks-core:0.10.35",
+      "bytes": 21342753,
+      "sha256": "4edf2f33c840d682c751b3ca951b1ae0465373734776d7fb37dcef936de28ad0",
+      "url": "https://dl.google.com/dl/android/maven2/com/google/mediapipe/tasks-core/0.10.35/tasks-core-0.10.35.aar"
+    },
+    {
+      "coordinate": "com.google.mediapipe:tasks-vision:0.10.35",
+      "bytes": 226903,
+      "sha256": "e2f0e0b63dea220d0424802fbbd4050dfb3b19c616b969c48f12d6c49cf94cde",
+      "url": "https://dl.google.com/dl/android/maven2/com/google/mediapipe/tasks-vision/0.10.35/tasks-vision-0.10.35.aar"
+    }
+  ]
+}

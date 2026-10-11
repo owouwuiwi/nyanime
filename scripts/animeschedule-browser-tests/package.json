@@ -1,0 +1,6 @@
+{
+  "name": "nyanime-schedule-form-checks",
+  "private": true,
+  "scripts": { "test": "node --test guide.test.cjs" },
+  "devDependencies": { "jsdom": "26.1.0" }
+}
