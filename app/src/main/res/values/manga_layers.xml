@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="store_manga_layer">Bridges</string>
+    <string name="store_manga_layer_hint">Import this bridge into Nyanime to add features to supported extensions.</string>
+    <string name="store_manga_layer_targets">Supported extensions and features</string>
+    <string name="store_manga_layer_home">Home</string>
+    <string name="store_manga_layer_catalog">Catalogue</string>
+    <string name="store_manga_layer_update">Chapter updates</string>
+    <string name="store_manga_layer_identity">Tracking</string>
+    <string name="store_manga_layer_reader">Reader</string>
+    <string name="store_layer_guide">Programme guide</string>
+    <string name="store_layer_player">Playback</string>
+    <string name="store_layer_feed">News feed</string>
+    <string name="store_layer_article">Articles</string>
+    <string name="store_layer_search">Search</string>
+    <string name="store_manga_migration_available">Your approved layer targets a different publisher. You can verify a base APK for migration here.</string>
+    <string name="store_manga_migration_select">Choose publisher APK</string>
+    <string name="store_manga_migration_confirm">Verify and switch</string>
+    <string name="store_manga_migration_hint">Nyanime will check the signed APK against your approved layers and confirm its source IDs before switching. It keeps the previous APK so you can restore it from the Store.</string>
+    <string name="store_manga_migration_mismatch">The APK or its source IDs do not match the approved publisher for this extension. The current extension is still installed.</string>
+    <string name="store_manga_migration_rollback">Restore previous APK</string>
+    <string name="store_manga_migration_rollback_hint">Use the previous signed extension APK again. Your library and reading progress stay linked to the same source IDs.</string>
+</resources>

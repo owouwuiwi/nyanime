@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="release_home_warning_later">Not now</string>
+    <string name="release_home_warning_action">Notifications blocked · fix Android settings</string>
+    <string name="release_home_warning_title">Notifications are blocked</string>
+    <string name="release_home_app_warning">Android is blocking notifications from Nyanime. Your titles can still update, but you will not receive release alerts or reminders. Enable notifications in Android settings; the yellow edges will disappear when access is restored.</string>
+    <string name="release_home_channel_warning">Android has disabled one or more release notification categories. Re-enable them to receive new-release alerts and reminders. Your choices inside Nyanime stay unchanged.</string>
+    <string name="release_home_warning_settings">Open Android settings</string>
+    <string name="release_test_scheduled">Test reminder scheduled in one minute. You can leave the app.</string>
+    <string name="release_test_scheduled_description">Schedule a test alert in one minute to check background delivery.</string>
+    <string name="release_title_notifications">Notifications by title</string>
+    <string name="release_title_notifications_hint">Turn off alerts for a title without removing it from your library, agenda or trackers. Automatically followed titles include your library, tracked and started works.</string>
+    <string name="release_title_notifications_explicit_hint">Only explicitly followed titles send alerts. Turning on a title here also follows its releases.</string>
+    <string name="release_title_notifications_search">Find a title</string>
+    <string name="release_title_notifications_empty">No titles match. Titles appear here when you add, follow or start them.</string>
+    <string name="release_title_notifications_muted">Notifications off</string>
+    <string name="release_title_notifications_following">Following · notifications on</string>
+    <string name="release_title_notifications_automatic">Automatically followed · notifications on</string>
+    <string name="release_title_notifications_auto_silent">Automatic following · silenced by your settings</string>
+    <string name="release_titles_all">All</string>
+    <string name="release_titles_anime">Anime</string>
+    <string name="release_titles_manga">Manga</string>
+    <string name="release_explicit_alerts_only">Only titles I explicitly follow</string>
+    <string name="release_explicit_alerts_only_description">Send release alerts only after you choose Follow. Your library, tracking and agenda stay unchanged.</string>
+    <string name="release_notification_blocked_title">Android is blocking notifications</string>
+    <string name="release_title_notifications_toggle">Notifications for this title</string>
+    <string name="release_title_notifications_toggle_description">Turn off both new-release alerts and scheduled reminders.</string>
+</resources>

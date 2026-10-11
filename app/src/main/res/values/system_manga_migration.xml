@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="store_android_migration_title">Change Android extension publisher</string>
+    <string name="store_android_migration_resume">Resume or restore an Android extension</string>
+    <string name="store_android_migration_empty">There are no saved Android extension migrations.</string>
+    <string name="store_android_migration_intro">Choose an APK from the publisher authorized by the approved layers. Nyanime will verify and save the two APKs before asking you to remove anything.</string>
+    <string name="store_android_migration_versions">Android version codes: %1$d → %2$d</string>
+    <string name="store_android_migration_verify_hint">Both APKs are saved. Verify that the replacement provides exactly the same source IDs. This runs the new source factory.</string>
+    <string name="store_android_migration_verify">Verify source IDs</string>
+    <string name="store_android_migration_remove_hint">Both APKs and all source IDs are verified. Android will ask you to remove the current extension. The backup covers the APK only. Android removes the extension’s own app data.</string>
+    <string name="store_android_migration_remove_original">Remove current APK in Android</string>
+    <string name="store_android_migration_clear">Close and delete staged copies</string>
+    <string name="store_android_migration_install_hint">The package is absent. Use Android to install the verified replacement or restore the saved original.</string>
+    <string name="store_android_migration_install_new">Install replacement in Android</string>
+    <string name="store_android_migration_restore_original">Restore original APK in Android</string>
+    <string name="store_android_migration_installed_hint">The replacement APK is installed. The original is still saved. To restore it, first remove the replacement in Android.</string>
+    <string name="store_android_migration_remove_candidate">Remove replacement to restore original</string>
+    <string name="store_android_migration_other">A different APK is installed under this package name. The copies are retained for recovery.</string>
+    <string name="store_android_migration_split">This extension uses split APKs. Nyanime cannot make a complete restorable copy, so removal is unavailable.</string>
+    <string name="store_android_migration_failed">The migration step could not be verified or opened. Any saved recovery APK remains available.</string>
+</resources>

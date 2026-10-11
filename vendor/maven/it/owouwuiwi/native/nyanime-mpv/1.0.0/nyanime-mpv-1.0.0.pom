@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"><modelVersion>4.0.0</modelVersion>
+<groupId>it.owouwuiwi.native</groupId><artifactId>nyanime-mpv</artifactId><version>1.0.0</version><packaging>aar</packaging>
+<name>Nyanime native mpv distribution</name><description>Pinned GPL native rebuild; original upstream bridge APIs retained.</description>
+<url>https://github.com/owouwuiwi/nyanime/tree/main/tools/native</url>
+<licenses><license><name>GNU General Public License, version 3 or later</name><url>https://www.gnu.org/licenses/gpl-3.0.html</url><distribution>repo</distribution></license></licenses>
+<scm><url>https://github.com/owouwuiwi/nyanime</url></scm></project>
