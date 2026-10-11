@@ -1,0 +1,15 @@
+CREATE TABLE reminder_receipt (
+    reminder_key TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    delivered_at INTEGER NOT NULL,
+    PRIMARY KEY(reminder_key, kind)
+);
+
+getReceipts:
+SELECT reminder_key, kind FROM reminder_receipt;
+
+recordReceipt:
+INSERT OR IGNORE INTO reminder_receipt(reminder_key, kind, delivered_at) VALUES (?, ?, ?);
+
+pruneReceipts:
+DELETE FROM reminder_receipt WHERE delivered_at < ?;

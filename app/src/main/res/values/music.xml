@@ -1,0 +1,4 @@
+<resources>
+    <string name="cast_audio_next_error">Could not prepare the next audio item. Try again.</string>
+    <string name="cast_audio_unavailable">Start some music before casting.</string>
+</resources>

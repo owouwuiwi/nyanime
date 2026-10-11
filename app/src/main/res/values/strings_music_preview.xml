@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="anime_themes_external_search">Search in your browser</string>
+    <string name="anime_themes_external_note">Videos and search open in your browser or a compatible app.</string>
+</resources>

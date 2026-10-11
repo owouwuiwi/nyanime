@@ -1,0 +1,446 @@
+package eu.kanade.tachiyomi.data.library.manga
+
+import android.app.Notification
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import coil3.asDrawable
+import coil3.imageLoader
+import coil3.request.ImageRequest
+import coil3.request.transformations
+import coil3.transform.CircleCropTransformation
+import eu.kanade.presentation.util.formatChapterNumber
+import eu.kanade.tachiyomi.R
+import eu.kanade.tachiyomi.core.common.Constants
+import eu.kanade.tachiyomi.core.security.SecurityPreferences
+import eu.kanade.tachiyomi.data.download.manga.MangaDownloader
+import eu.kanade.tachiyomi.data.library.LibraryUpdateLoad
+import eu.kanade.tachiyomi.data.notification.NotificationHandler
+import eu.kanade.tachiyomi.data.notification.NotificationReceiver
+import eu.kanade.tachiyomi.data.notification.Notifications
+import eu.kanade.tachiyomi.data.releases.ReleaseMedium
+import eu.kanade.tachiyomi.data.releases.ReleaseNotificationCopy
+import eu.kanade.tachiyomi.data.releases.ReleaseNotificationText
+import eu.kanade.tachiyomi.source.UnmeteredSource
+import eu.kanade.tachiyomi.ui.main.MainActivity
+import eu.kanade.tachiyomi.util.lang.chop
+import eu.kanade.tachiyomi.util.system.cancelNotification
+import eu.kanade.tachiyomi.util.system.getBitmapOrNull
+import eu.kanade.tachiyomi.util.system.notificationBuilder
+import eu.kanade.tachiyomi.util.system.notify
+import tachiyomi.core.common.i18n.stringResource
+import tachiyomi.core.common.util.lang.launchUI
+import tachiyomi.domain.entries.manga.model.Manga
+import tachiyomi.domain.items.chapter.model.Chapter
+import tachiyomi.domain.library.manga.LibraryManga
+import tachiyomi.domain.source.manga.service.MangaSourceManager
+import tachiyomi.i18n.MR
+import uy.kohesive.injekt.Injekt
+import uy.kohesive.injekt.api.get
+import java.math.RoundingMode
+import java.text.NumberFormat
+
+class MangaLibraryUpdateNotifier(
+    private val context: Context,
+
+    private val securityPreferences: SecurityPreferences = Injekt.get(),
+    private val sourceManager: MangaSourceManager = Injekt.get(),
+) {
+
+    private val percentFormatter = NumberFormat.getPercentInstance().apply {
+        roundingMode = RoundingMode.DOWN
+        maximumFractionDigits = 0
+    }
+
+    /**
+     * Pending intent of action that cancels the library update
+     */
+    private val cancelIntent by lazy {
+        NotificationReceiver.cancelLibraryUpdatePendingBroadcast(context)
+    }
+
+    /**
+     * Bitmap of the app for notifications.
+     */
+    private val notificationBitmap by lazy {
+        BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher)
+    }
+
+    /**
+     * Cached progress notification to avoid creating a lot.
+     */
+    val progressNotificationBuilder by lazy {
+        context.notificationBuilder(Notifications.CHANNEL_LIBRARY_PROGRESS) {
+            setContentTitle(context.stringResource(MR.strings.app_name))
+            setSmallIcon(R.drawable.ic_refresh_24dp)
+            setLargeIcon(notificationBitmap)
+            setOngoing(true)
+            setOnlyAlertOnce(true)
+            addAction(
+                R.drawable.ic_close_24dp,
+                context.stringResource(MR.strings.action_cancel),
+                cancelIntent,
+            )
+        }
+    }
+
+    /**
+     * Shows the notification containing the currently updating manga and the progress.
+     *
+     * @param manga the manga that are being updated.
+     * @param current the current progress.
+     * @param total the total progress.
+     */
+    fun showProgressNotification(manga: List<Manga>, current: Int, total: Int) {
+        progressNotificationBuilder
+            .setContentTitle(
+                context.stringResource(
+                    MR.strings.notification_updating_progress,
+                    percentFormatter.format(current.toFloat() / total),
+                ),
+            )
+
+        if (!securityPreferences.hideNotificationContent().get()) {
+            val updatingText = manga.joinToString("\n") { it.title.chop(40) }
+            progressNotificationBuilder.setStyle(NotificationCompat.BigTextStyle().bigText(updatingText))
+        }
+
+        context.notify(
+            Notifications.ID_LIBRARY_PROGRESS,
+            progressNotificationBuilder
+                .setProgress(total, current, false)
+                .build(),
+        )
+    }
+
+    /**
+     * Warn when excessively checking any single source.
+     */
+    fun showQueueSizeWarningNotificationIfNeeded(mangaToUpdate: List<LibraryManga>) {
+        val load = LibraryUpdateLoad.warning(mangaToUpdate.map { it.manga.source }) {
+            sourceManager.get(it) is UnmeteredSource
+        } ?: return
+        val warning = if (securityPreferences.hideNotificationContent().get()) {
+            context.stringResource(MR.strings.notification_size_warning)
+        } else {
+            context.stringResource(
+                MR.strings.notification_library_queue_warning,
+                sourceManager.get(load.source)?.name ?: load.source.toString(),
+                load.count,
+            )
+        }
+
+        context.notify(
+            Notifications.ID_LIBRARY_SIZE_WARNING,
+            Notifications.CHANNEL_LIBRARY_PROGRESS,
+        ) {
+            setContentTitle(context.stringResource(MR.strings.label_warning))
+            setStyle(
+                NotificationCompat.BigTextStyle()
+                    .bigText(warning),
+            )
+            setSmallIcon(R.drawable.ic_warning_white_24dp)
+            setTimeoutAfter(MangaDownloader.WARNING_NOTIF_TIMEOUT_MS)
+            setOnlyAlertOnce(true)
+            setContentIntent(NotificationHandler.openUrl(context, HELP_WARNING_URL))
+        }
+    }
+
+    /**
+     * Shows notification containing update entries that failed with action to open full log.
+     *
+     * @param failed Number of entries that failed to update.
+     * @param uri Uri for error log file containing all titles that failed.
+     */
+    fun showUpdateErrorNotification(failed: Int, uri: Uri) {
+        if (failed == 0) {
+            return
+        }
+
+        context.notify(
+            Notifications.ID_LIBRARY_ERROR,
+            Notifications.CHANNEL_LIBRARY_ERROR,
+        ) {
+            setContentTitle(context.stringResource(MR.strings.notification_update_error, failed))
+            setContentText(context.stringResource(MR.strings.action_show_errors))
+            setSmallIcon(R.drawable.ic_ani)
+
+            setContentIntent(NotificationReceiver.openErrorLogPendingActivity(context, uri))
+        }
+    }
+
+    /**
+     * Shows the notification containing the result of the update done by the service.
+     *
+     * @param updates a list of manga with new updates.
+     */
+    suspend fun showUpdateNotifications(
+        updates: List<Pair<Manga, Array<Chapter>>>,
+        publicationDates: Map<Long, Long> = emptyMap(),
+    ) {
+        val single = updates.singleOrNull()?.takeUnless { securityPreferences.hideNotificationContent().get() }
+            ?.let { (manga, chapters) -> newChaptersText(manga, chapters, publicationDates) }
+        // Parent group notification
+        context.notify(
+            Notifications.ID_NEW_CHAPTERS,
+            Notifications.CHANNEL_NEW_CHAPTERS_EPISODES,
+        ) {
+            setContentTitle(context.stringResource(MR.strings.notification_new_chapters))
+            if (single != null) {
+                setContentTitle(single.title)
+                setContentText(single.summary)
+                setStyle(NotificationCompat.BigTextStyle().setBigContentTitle(single.headline).bigText(single.details))
+            } else {
+                setContentText(
+                    context.resources.getQuantityString(
+                        R.plurals.notification_new_chapters_summary,
+                        updates.size,
+                        updates.size,
+                    ),
+                )
+
+                if (!securityPreferences.hideNotificationContent().get()) {
+                    setStyle(
+                        NotificationCompat.BigTextStyle().bigText(
+                            updates.joinToString("\n") {
+                                it.first.title.chop(NOTIF_TITLE_MAX_LEN)
+                            },
+                        ),
+                    )
+                }
+            }
+
+            setSmallIcon(R.drawable.ic_ani)
+            setLargeIcon(notificationBitmap)
+
+            setGroup(Notifications.GROUP_NEW_CHAPTERS)
+            setGroupAlertBehavior(
+                if (securityPreferences.hideNotificationContent().get()) {
+                    NotificationCompat.GROUP_ALERT_SUMMARY
+                } else {
+                    NotificationCompat.GROUP_ALERT_CHILDREN
+                },
+            )
+            setGroupSummary(true)
+            priority = NotificationCompat.PRIORITY_HIGH
+
+            setContentIntent(getNotificationIntent())
+            setAutoCancel(true)
+            setOnlyAlertOnce(true)
+        }
+
+        // Per-manga notification
+        if (!securityPreferences.hideNotificationContent().get()) {
+            for ((manga, chapters) in updates) {
+                eu.kanade.tachiyomi.data.releases.ReleaseNotifications.reserveSlot(
+                    context,
+                    "release-manga",
+                    manga.id.hashCode(),
+                )
+                androidx.core.app.NotificationManagerCompat.from(context).notify(
+                    "release-manga",
+                    manga.id.hashCode(),
+                    createNewChaptersNotification(manga, chapters, publicationDates),
+                )
+            }
+        }
+    }
+
+    private suspend fun createNewChaptersNotification(
+        manga: Manga,
+        chapters: Array<Chapter>,
+        publicationDates: Map<Long, Long>,
+    ): Notification {
+        val icon = kotlinx.coroutines.withTimeoutOrNull(500) { getMangaIcon(manga) }
+        return context.notificationBuilder(Notifications.CHANNEL_NEW_CHAPTERS_EPISODES) {
+            val text = newChaptersText(manga, chapters, publicationDates)
+            setContentTitle(text.title)
+            setContentText(text.summary)
+            setStyle(NotificationCompat.BigTextStyle().setBigContentTitle(text.headline).bigText(text.details))
+
+            setSmallIcon(R.drawable.ic_ani)
+
+            if (icon != null) {
+                setLargeIcon(icon)
+            }
+
+            setGroup(Notifications.GROUP_NEW_CHAPTERS)
+            setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)
+            priority = NotificationCompat.PRIORITY_HIGH
+
+            // Open first chapter on tap
+            setContentIntent(
+                NotificationReceiver.openChapterPendingActivity(
+                    context,
+                    manga,
+                    chapters.first(),
+                ),
+            )
+            setAutoCancel(true)
+            val newest = chapters.maxOf { it.dateFetch }
+            val previous = context.getSystemService(android.app.NotificationManager::class.java)
+                .activeNotifications.firstOrNull { it.id == manga.id.hashCode() && it.tag == "release-manga" }
+            setWhen(newest)
+            setOnlyAlertOnce(previous != null && previous.notification.`when` >= newest)
+
+            // Mark chapters as read action
+            addAction(
+                R.drawable.ic_done_24dp,
+                context.stringResource(MR.strings.action_mark_as_read),
+                NotificationReceiver.markAsViewedPendingBroadcast(
+                    context,
+                    manga,
+                    chapters,
+                    Notifications.ID_NEW_CHAPTERS,
+                ),
+            )
+            // View chapters action
+            addAction(
+                R.drawable.ic_book_24dp,
+                context.stringResource(MR.strings.action_view_chapters),
+                NotificationReceiver.openChapterPendingActivity(
+                    context,
+                    manga,
+                    Notifications.ID_NEW_CHAPTERS,
+                ),
+            )
+            // Download chapters action
+            // Only add the action when chapters is within threshold
+            if (chapters.size <= MangaDownloader.CHAPTERS_PER_SOURCE_QUEUE_WARNING_THRESHOLD) {
+                addAction(
+                    android.R.drawable.stat_sys_download_done,
+                    context.stringResource(MR.strings.action_download),
+                    NotificationReceiver.downloadChaptersPendingBroadcast(
+                        context,
+                        manga,
+                        chapters,
+                        Notifications.ID_NEW_CHAPTERS,
+                    ),
+                )
+            }
+        }.build()
+    }
+
+    /**
+     * Cancels the progress notification.
+     */
+    fun cancelProgressNotification() {
+        context.cancelNotification(Notifications.ID_LIBRARY_PROGRESS)
+    }
+
+    private suspend fun getMangaIcon(manga: Manga): Bitmap? {
+        val request = ImageRequest.Builder(context)
+            .data(manga)
+            .transformations(CircleCropTransformation())
+            .size(NOTIF_ICON_SIZE)
+            .build()
+        val drawable = context.imageLoader.execute(request).image?.asDrawable(context.resources)
+        return drawable?.getBitmapOrNull()
+    }
+
+    private fun getNewChaptersDescription(chapters: Array<Chapter>): String {
+        val displayableChapterNumbers = chapters
+            .filter { it.isRecognizedNumber }
+            .sortedBy { it.chapterNumber }
+            .map { formatChapterNumber(it.chapterNumber) }
+            .toSet()
+
+        return when (displayableChapterNumbers.size) {
+            // No sensible chapter numbers to show (i.e. no chapters have parsed chapter number)
+            0 -> {
+                // "1 new chapter" or "5 new chapters"
+                context.resources.getQuantityString(
+                    R.plurals.notification_chapters_generic,
+                    chapters.size,
+                    chapters.size,
+                )
+            }
+            // Only 1 chapter has a parsed chapter number
+            1 -> {
+                val remaining = chapters.size - displayableChapterNumbers.size
+                if (remaining == 0) {
+                    // "Chapter 2.5"
+                    context.stringResource(
+                        MR.strings.notification_chapters_single,
+                        displayableChapterNumbers.first(),
+                    )
+                } else {
+                    // "Chapter 2.5 and 10 more"
+                    context.stringResource(
+                        MR.strings.notification_chapters_single_and_more,
+                        displayableChapterNumbers.first(),
+                        remaining,
+                    )
+                }
+            }
+            // Everything else (i.e. multiple parsed chapter numbers)
+            else -> {
+                val shouldTruncate = displayableChapterNumbers.size > NOTIF_MAX_CHAPTERS
+                if (shouldTruncate) {
+                    // "Chapters 1, 2.5, 3, 4, 5 and 10 more"
+                    val remaining = displayableChapterNumbers.size - NOTIF_MAX_CHAPTERS
+                    val joinedChapterNumbers = displayableChapterNumbers.take(NOTIF_MAX_CHAPTERS).joinToString(
+                        ", ",
+                    )
+                    context.resources.getQuantityString(
+                        R.plurals.notification_chapters_multiple_and_more,
+                        remaining,
+                        joinedChapterNumbers,
+                        remaining,
+                    )
+                } else {
+                    // "Chapters 1, 2.5, 3"
+                    context.stringResource(
+                        MR.strings.notification_chapters_multiple,
+                        displayableChapterNumbers.joinToString(", "),
+                    )
+                }
+            }
+        }
+    }
+
+    private fun newChaptersText(
+        manga: Manga,
+        chapters: Array<Chapter>,
+        publicationDates: Map<Long, Long>,
+    ): ReleaseNotificationText = ReleaseNotificationCopy.from(context).available(
+        ReleaseMedium.MANGA,
+        manga.title,
+        getNewChaptersDescription(chapters),
+        chapters.size,
+        chapters.map { publicationDates[it.id] ?: 0 },
+        chapters.maxOf { it.dateFetch },
+        System.currentTimeMillis(),
+    )
+
+    /**
+     * Returns an intent to open the main activity.
+     */
+    private fun getNotificationIntent(): PendingIntent {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            action = Constants.SHORTCUT_UPDATES
+        }
+        return PendingIntent.getActivity(
+            context,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
+    companion object {
+        // Link to Nyanime's guidance for large library updates.
+        const val HELP_WARNING_URL =
+            "https://github.com/owouwuiwi/nyanime/blob/main/docs/support.md#aggiornamenti-in-blocco"
+    }
+}
+
+private const val NOTIF_MAX_CHAPTERS = 5
+private const val NOTIF_TITLE_MAX_LEN = 45
+private const val NOTIF_ICON_SIZE = 192

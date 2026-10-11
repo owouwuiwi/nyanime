@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_content_featured">Featured</string>
+    <string name="home_content_sources">Choose a source</string>
+    <string name="home_content_options">Options for %1$s</string>
+    <string name="home_content_episode_progress">%1$s · %2$s / %3$s</string>
+    <string name="home_content_new_episode">New episode</string>
+    <string name="home_content_new_chapter">New chapter</string>
+    <string name="home_content_read_chapter">Chapter %1$s</string>
+    <string name="home_content_watch_progress">%1$s / %2$s</string>
+</resources>
