@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="spread_mode">Spread</string>
+    <string name="reading_mode_use_default">Usa predefinito</string>
+    <string name="spread_heading">Disposizione delle pagine</string>
+    <string name="spread_single">Pagina singola</string>
+    <string name="spread_pairs">Due pagine</string>
+    <string name="spread_vertical">Scorri a coppie</string>
+    <string name="spread_offset">Abbinamento delle pagine</string>
+    <string name="spread_offset_pages">Pagine singole iniziali</string>
+    <string name="spread_offset_less">Riduci offset</string>
+    <string name="spread_offset_more">Aumenta offset</string>
+    <string name="spread_offset_hint">Queste prime pagine rimangono singole. Le successive vengono affiancate nell’ordine di lettura.</string>
+    <string name="spread_chapter_custom">Offset personalizzato per questo capitolo</string>
+    <string name="spread_chapter_inherits">Offset predefinito di questo manga</string>
+    <string name="spread_reset">Ripristina capitolo</string>
+    <string name="spread_apply_manga">Usa per tutto il manga</string>
+    <string name="spread_continue">Continua</string>
+    <string name="spread_page">Pagina %1$d</string>
+</resources>
