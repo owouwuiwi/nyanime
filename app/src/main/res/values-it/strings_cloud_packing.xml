@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cloud_packing_ready">Tutti i dispositivi supportano il recupero compatto</string>
+    <string name="cloud_packing_waiting">In attesa degli aggiornamenti: %1$d/%2$d dispositivi supportano il recupero compatto</string>
+    <string name="cloud_packing_copy">Ultima copia di recupero: %1$d documenti · %2$d blocchi</string>
+    <string name="cloud_packing_retention">Le copie precedenti restano protette per almeno sette giorni. Vengono rimosse solo dopo la verifica di due copie di recupero complete.</string>
+</resources>
