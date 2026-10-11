@@ -1,0 +1,363 @@
+{
+  "schemaVersion": 1,
+  "sourcePackages": {
+    "Nyanime-Native-0.42.0.2-player.tar.gz": {
+      "sha256": "ab16c22de3da24595a38a8e94f05ea3a5c112f63e63d4a0df12b46625737cd3b",
+      "url": "https://github.com/owouwuiwi/nyanime/releases/download/v0.42.0.2/Nyanime-Native-0.42.0.2-player.tar.gz"
+    },
+    "Nyanime-Native-0.42.0.2-supplemental.tar.gz": {
+      "sha256": "c822fa8fe4e81f82d4135f1b8ea944fe8f6dad1f1a311ef92e354c58a16dc210",
+      "url": "https://github.com/owouwuiwi/nyanime/releases/download/v0.42.0.2/Nyanime-Native-0.42.0.2-supplemental.tar.gz"
+    },
+    "Nyanime-Native-0.47.0.2-webrtc.tar.gz": {
+      "sha256": "1b3cb47f9c287b8b7b88eda45bb733c2f8c829410b146a25f42d80bd19900139",
+      "url": "https://github.com/owouwuiwi/nyanime/releases/download/v0.47.0.2/Nyanime-Native-0.47.0.2-webrtc.tar.gz"
+    },
+    "Nyanime-Native-0.49.0.0-exchange.tar.gz": {
+      "sha256": "9ec78db7be90728de5614f1462e9a002e9f33c3c06a271db32280a654cb404f3",
+      "url": "https://github.com/owouwuiwi/nyanime/releases/download/v0.49.0.0/Nyanime-Native-0.49.0.0-exchange.tar.gz",
+      "privateMirrorRelease": "native-materials-0.49.0.0"
+    },
+    "Nyanime-Native-0.49.0.0-camera-inference.tar.gz": {
+      "sha256": "6c84f9c3cf5aa6e0f2ce434404f04520d51f606dfe1075fadb66b87cb195d3da",
+      "url": "https://github.com/owouwuiwi/nyanime/releases/download/v0.49.0.0/Nyanime-Native-0.49.0.0-camera-inference.tar.gz",
+      "privateMirrorRelease": "native-materials-0.49.0.0"
+    }
+  },
+  "components": {
+    "player": {
+      "license": "GPL-3.0-or-later combined player; compatible upstream bridge and dependency licenses",
+      "sourceIdentity": "tools/native/player/sources.lock.json and all-architectures.json; immutable commits for complete native closure",
+      "buildRecipe": "tools/native/player/build-linux.sh; NDK 28.2.13676358",
+      "sourcePackages": [
+        "Nyanime-Native-0.42.0.2-player.tar.gz",
+        "Nyanime-Native-0.42.0.2-supplemental.tar.gz"
+      ],
+      "libraries": {
+        "lib/arm64-v8a/libass.so": "0bfcfd080b4662ce994974cd3134e3adde64005f0c15eb27ea7e20c3feea90e1",
+        "lib/arm64-v8a/libavcodec.so": "774cf5df494469473ebe4fd2c6c839d3a81a3a455006c149414bad4ca206b429",
+        "lib/arm64-v8a/libavdevice.so": "839d10a1dac2a5ad3509922856550f2f8e7029e5d86e689167198d377b4f89ab",
+        "lib/arm64-v8a/libavfilter.so": "a981db7b0416f05e8e6aa30aa6c5af066178e13026ca519b9b6b5249e562565c",
+        "lib/arm64-v8a/libavformat.so": "9976b10c35cf0062450673c4fbbb0c3e01426d7ff730147f65dbee3885bda4b9",
+        "lib/arm64-v8a/libavutil.so": "9a0467847163cad6409ef828b06793756bcc36761b5152007027cc4d687d9e86",
+        "lib/arm64-v8a/libc++_shared.so": "cd61762848882a16c8244c964a6f396c0caa0b440588a210ce9cc4ab0e6d9f0c",
+        "lib/arm64-v8a/libdav1d.so": "ca795fbc2c9266c20289d56334da64f0d2e9c11d20ab7a90050a542b55d3e902",
+        "lib/arm64-v8a/libffmpegkit.so": "9cd3531694b4402773c01531db32cd587a30c1a554ed7267f7d2d35861cb8048",
+        "lib/arm64-v8a/libffmpegkit_abidetect.so": "7e25291949d948974423269cebb2f001246ecb2fc530520fcb5ee55baa193792",
+        "lib/arm64-v8a/libfreetype.so": "6f89a13e95f329e4a23d1524f0c1b6332c428c98068edc32295e1916949fe6d7",
+        "lib/arm64-v8a/libfribidi.so": "be63d5ae8d20ada5d7b6c244784fe9d6ec7402b3b511cd6b56c52c5e248d4ac0",
+        "lib/arm64-v8a/libharfbuzz-subset.so": "5a327b82793c6edc7ed0ba5e3649aa77d5e6eddc3107344de546da7ff1019da5",
+        "lib/arm64-v8a/libharfbuzz.so": "e8a4259cf7d0d180b6d03b7ae9de78e95167d35a1107421b00aa9a62ab93e148",
+        "lib/arm64-v8a/libmpv.so": "16e23f5b6709d9bdaa2b3b3a89988454f4307743d52c6647dc303d20e8fdd563",
+        "lib/arm64-v8a/libplacebo.so": "9a65f4a3e314f4e1a51c5b3628fb69650006ee4dc3a3ec136bb47f4c47620ab7",
+        "lib/arm64-v8a/libplayer.so": "10ba1e25d3bc0dc878e3fb40b44ca594bb20be301b3b2b4018ab4cd96bb3a7fa",
+        "lib/arm64-v8a/libpostproc.so": "3f1f908aa4523fdddd4e05cbda77b15c92e0fb5cdde7e3e1112e19061ffbe354",
+        "lib/arm64-v8a/libswresample.so": "33ba3dbeaa88c673377db8f340a90f9d573c7cadd7d75718fd21c8cf83bf024c",
+        "lib/arm64-v8a/libswscale.so": "0c755e421ee635565eac87fce7d852aa458b29448e831a60cb45ab0ff03efe7d",
+        "lib/arm64-v8a/libxml2.so": "aac9801b997a0cf91186a13d848181739e21751930556d0fc8dd279c6ac4c721",
+        "lib/armeabi-v7a/libass.so": "74a62d070c301eaabd9f12dec29b618a109d42b661fc78b664985d5164a838ca",
+        "lib/armeabi-v7a/libavcodec.so": "353a188461bd99fa1edbfc2087519a5146823a92a8ed3fe6413a0fc174f96de2",
+        "lib/armeabi-v7a/libavdevice.so": "d33d5e84e79981fcf2e8c95f2a324cd3e94bad790637eb660022f4c206991b75",
+        "lib/armeabi-v7a/libavfilter.so": "866597f103ae6fa449360e60b1027b857aa580b39ea4fc0682b9b7842f426a42",
+        "lib/armeabi-v7a/libavformat.so": "7333e562cf50545ef08a85efebc3244ba9290b183d41525cd308706c54f7326f",
+        "lib/armeabi-v7a/libavutil.so": "8dd8e936044709d9985c56b9fb302aa4767d8a43afeedbd34767d67d5cff5d3c",
+        "lib/armeabi-v7a/libc++_shared.so": "e7e20f6e0f3f181e853cea50373ecee2ccfe95c668dce72d0999b2469c92d0e1",
+        "lib/armeabi-v7a/libdav1d.so": "516b66cd9751d5be2c36433f3da477fdff659be338ed0afce7f048246f0e8d02",
+        "lib/armeabi-v7a/libffmpegkit.so": "38c1dee13b747a4ba419b5745b156abf9c29990b2a265ecccb0dea936a2c4066",
+        "lib/armeabi-v7a/libffmpegkit_abidetect.so": "6b6279807780374b808928140ad65a49edf8072d8e45d6727b5fee525985c463",
+        "lib/armeabi-v7a/libfreetype.so": "98400151ea1be6f537fec4c8e1f696ba52234119ecf47c4c53666e7ba44d51c9",
+        "lib/armeabi-v7a/libfribidi.so": "496c60347120c7682eea91f0c2d4ae00b3613b223bdee1edb5a894a4bcdae669",
+        "lib/armeabi-v7a/libharfbuzz-subset.so": "ff055000c4a14bc4d2401590b07ba7d2c3ce3fad65c3ea2c765ae69ad69ac228",
+        "lib/armeabi-v7a/libharfbuzz.so": "27a1f6546be667ecb1684c616584f614bce5a5b1020ae1c4bc212b4597559ac2",
+        "lib/armeabi-v7a/libmpv.so": "44b7dc66fc2995520627d6417c0bb6da05b2c57f5e2033569d9de7a936645783",
+        "lib/armeabi-v7a/libplacebo.so": "2ff553dd450ffce6096a67fc7eb43f24f30f8a83c2dc2c39f02cc13a10f88b22",
+        "lib/armeabi-v7a/libplayer.so": "f72410d593f9805c6187bd8dbb1cd4fe419b9f12fd56e5996272271df60b9e9d",
+        "lib/armeabi-v7a/libpostproc.so": "95c8b02a50ba35f65c33d8989b145f922f77a61355cb21cfe7b5f7194a204402",
+        "lib/armeabi-v7a/libswresample.so": "5b55fdba1f8573564f4fb27583821af4fba54109a6218d9e9242e4b1bc23f753",
+        "lib/armeabi-v7a/libswscale.so": "114078c427be35176ec238b2afb533f5b7fdd05e9aa377d9d31d0d3c59dbbd7e",
+        "lib/armeabi-v7a/libxml2.so": "7130e8835942acee440085ffc0c7f8951010db99acc47a277e69adae8047b932",
+        "lib/x86/libass.so": "87706d48e199f393412d42d97ae88878be97fb61a3a4306b9ce268bb645a8ed7",
+        "lib/x86/libavcodec.so": "794c89fb46d10dd7a25a6bdbc31c8e6e810a08a017f79ee34a754904f6d33b32",
+        "lib/x86/libavdevice.so": "d309881e035e0b5989b7622e5baa2abd5d29a54c3c8bbe1ff64b528c9de0b597",
+        "lib/x86/libavfilter.so": "97c6a0c082c22f160e3deb6e7a7c5a1a693172536667d23e1c48b9a2c227cf96",
+        "lib/x86/libavformat.so": "bd9ce5618ec9f74bd1947f049d4f76b74fbedf5ad7296322d803541bbba25c6a",
+        "lib/x86/libavutil.so": "c53f594fd615fb49f8cfb8341ae7fbd4d6ed7ec1eb5c249a697c84ee8cb54f3e",
+        "lib/x86/libc++_shared.so": "23ff3b208a61693deda577e381a7da775b104b6c5e997465802037ab8952d9f1",
+        "lib/x86/libdav1d.so": "d827e4e36530f357c35a3f7809118666fe6daa2974c564292f9dd9e3b86ed69a",
+        "lib/x86/libffmpegkit.so": "4ebeb02e6841c38c0c5d290cb4c2930cf6aca8666b4ff7eae0b6f5c325d977e1",
+        "lib/x86/libffmpegkit_abidetect.so": "69463f42d7684573cc67eec133023889db13b6df068019dc259577a7aafa049c",
+        "lib/x86/libfreetype.so": "38b2ae77366ad35128bde73ea157edf5a327eaf9c8e33405997638cfa5ef4cc2",
+        "lib/x86/libfribidi.so": "27170be051441f49780e5db869e8a8b3bd28e6f0f4abb578be4b519a9480ba5f",
+        "lib/x86/libharfbuzz-subset.so": "13c69e287018f2870415d51523c710f05ecde7ed4f40e29c83f98735c652c43b",
+        "lib/x86/libharfbuzz.so": "1a1b4a2593bab61e1f587bd4d6674f9f019b5f5ceaf39938494a46273f584c04",
+        "lib/x86/libmpv.so": "6d9089a8d9c4e6c953c5e5cdad48ab05020c5b94e7e50e9631e9757e38c6e237",
+        "lib/x86/libplacebo.so": "1df557958fd2214cd89104cf6eb9a41dadb4c52fd7fe73d61a56d33556faa80c",
+        "lib/x86/libplayer.so": "e4f193610c5a96d26152625f9c73083de2ee9aa76f001fe1d653dcd18c262bff",
+        "lib/x86/libpostproc.so": "37bc29f712198579447a11e913a016de0f80cf5fe759858f4a77391b1981ee05",
+        "lib/x86/libswresample.so": "2ab96e22f771dd6da875576dffb6cd7ee8dcf325055e4eb0865f114eff2ec407",
+        "lib/x86/libswscale.so": "040769334feeb7dfdec07165197f0a869f519e47b0166aa46836cd0a319b4143",
+        "lib/x86/libxml2.so": "4732c720909b6247152728c67baf511dcedbc6b3ea7e66a140f44a152632bfa4",
+        "lib/x86_64/libass.so": "dc04fabad90c817e53f818452f1764c7c6f30ef2f430fa051d69ac804a95fc7c",
+        "lib/x86_64/libavcodec.so": "af359adf4427ea77bc5378f3fe3b18786535bce81893f9e13441ad4e7af24e3d",
+        "lib/x86_64/libavdevice.so": "c1fa80d880864f54fc7f5a2d3f533dab37685dd9540a23ec29ce642f8c3dcc43",
+        "lib/x86_64/libavfilter.so": "4bd847bae831ba38fb16083c86463d3ec5dad8e06ea7a040fd3c266a51d85cec",
+        "lib/x86_64/libavformat.so": "7dce37a005799a6497b0a6cedc815b2d127fb80c489a0356e4c9465752a4c747",
+        "lib/x86_64/libavutil.so": "aeceeaf1a7b5c6db522c82ba25a24679e15ae4c32f5db4a0e87340cbbcfeed14",
+        "lib/x86_64/libc++_shared.so": "2e855857f80819737d25a663109fedf816a5e996a85423166806014a06593256",
+        "lib/x86_64/libdav1d.so": "98b0a9efddb06d8f602a728d2957d359f5661cdd3b6a715de7df6a8271b5b496",
+        "lib/x86_64/libffmpegkit.so": "fcb8534374e16fd79ecce592f2a63c5dafee1c37532a7ce6c4d47cc218c17063",
+        "lib/x86_64/libffmpegkit_abidetect.so": "fe0228fd746b21ba8e656fc7538a12f50568be3e6d1d4ac4460e18f0cbf0d8c4",
+        "lib/x86_64/libfreetype.so": "60e0a5da515e5d037ef5f7724efa669b9f2564a229310a453e0b08c4c01a4231",
+        "lib/x86_64/libfribidi.so": "71a17bd47250002209e43fed179e6a0599b8207fcb1d01f50a42a7769efe13d3",
+        "lib/x86_64/libharfbuzz-subset.so": "ea9c685c987c7cd67cc52aeb4dd95c1b3b5aef4f455d12f45f7d53747d3b2f10",
+        "lib/x86_64/libharfbuzz.so": "a65032e511cca985665676720bbf7ab9a703aa9dfa1b9ab63f90000227d1767a",
+        "lib/x86_64/libmpv.so": "8233e34c9827b574c22ad1d8248656547afa73fa13069eee68f75bd25fe7fced",
+        "lib/x86_64/libplacebo.so": "f1506e7cd89d015baaecb0fa30ef1c028a247893337505b21e6e2e1fe595d3f6",
+        "lib/x86_64/libplayer.so": "9ee947146ffc8f22fc49591e715178770ebf2359f9d06957478b408c28548de4",
+        "lib/x86_64/libpostproc.so": "8c32aec09b017366fc0a4b96ae57fcbb25de53a4db1322d917cf0038510d7c9b",
+        "lib/x86_64/libswresample.so": "a4a639af14c1620c4c8efd593f45e5b02dbb7b2d01197e5573402a43210c4520",
+        "lib/x86_64/libswscale.so": "fa21b7accbaca34e10986533b7f62f8dd84dfcb94ed568967444390635cd0826",
+        "lib/x86_64/libxml2.so": "8303de861c2f2149d4a9eb5a1be4f830c8d68539eae8da80bce4ab8b9c093948"
+      },
+      "sourceCoverage": "Complete player closure, all ABI configurations and source overlays; pinned Java API source snapshots"
+    },
+    "graphics-path": {
+      "license": "Apache-2.0",
+      "sourceIdentity": "androidx.graphics:graphics-path:1.0.1",
+      "buildRecipe": "AndroidX release sources; Maven published artifact unchanged",
+      "sourcePackages": [
+        "Nyanime-Native-0.42.0.2-supplemental.tar.gz"
+      ],
+      "libraries": {
+        "lib/arm64-v8a/libandroidx.graphics.path.so": "41e9a793c43a0f4fddb19e33f346bace464f30f888ba7b9eaf96294ea115bfb6",
+        "lib/armeabi-v7a/libandroidx.graphics.path.so": "41399eba6fc2a60f6f14642375c1824f3cf25eb8fec7397d753730a3ceda3e2b",
+        "lib/x86/libandroidx.graphics.path.so": "eb0570b41fd3bff25d8204a967c03bd7550719e768b791f680cc40cbe35f29af",
+        "lib/x86_64/libandroidx.graphics.path.so": "4e56c996f13670e70082658de7880c4020eabf4f25e43387f88ed78a713fc9f0"
+      },
+      "sourceCoverage": "Unmodified published artifact identity and license notices; release-tag wrapper source where available. No claim of a recovered internal compiler/dependency revision for permissive prebuilt artifacts."
+    },
+    "libarchive": {
+      "license": "BSD-2-Clause and compatible dependency licenses",
+      "sourceIdentity": "me.zhanghai.android.libarchive:library:1.1.4; source 2cd677774d88438d866b51252533b5432b18607c",
+      "buildRecipe": "libarchive-android/library/build.gradle and pinned submodules",
+      "sourcePackages": [
+        "Nyanime-Native-0.42.0.2-supplemental.tar.gz"
+      ],
+      "libraries": {
+        "lib/arm64-v8a/libarchive-jni.so": "c7fb053fa75c6b051d9bfd642ca84fe536327eb988fcf6e11c48749e5e8fbdf0",
+        "lib/armeabi-v7a/libarchive-jni.so": "96401066fd1fa258e55661273c4d4dff29f425ac33fa023178e1848f661958e4",
+        "lib/x86/libarchive-jni.so": "6a313973cfff8f9ec27ebfb180b4c6ca4b0f12bf5034c4cd010f45e1dc171e49",
+        "lib/x86_64/libarchive-jni.so": "4b2dfa513857937bb9335b7bf43932419973480cd1a1abfb034ae50032ec5556"
+      }
+    },
+    "conscrypt": {
+      "license": "Apache-2.0 and BoringSSL compatible licenses",
+      "sourceIdentity": "org.conscrypt:conscrypt-android:2.5.3; wrapper fd209de6167201e4f3bca5b99c6db9f08d1843c6",
+      "buildRecipe": "conscrypt/BUILDING.md; published Maven artifact unchanged",
+      "sourcePackages": [
+        "Nyanime-Native-0.42.0.2-supplemental.tar.gz"
+      ],
+      "libraries": {
+        "lib/arm64-v8a/libconscrypt_jni.so": "fd5a080ced130e2c2e7982cb9c82b5601fc84df61f41129dd0d3ecdbf2c96155",
+        "lib/armeabi-v7a/libconscrypt_jni.so": "009ee440620105adefff81c5af4fafd23aebefff5b8d03d7180212c02983b532",
+        "lib/x86/libconscrypt_jni.so": "a005cac24028f662269e969b13bca38fa7f759e1479eecbd4e48dba9cfdc889b",
+        "lib/x86_64/libconscrypt_jni.so": "9ee2eccb596cbbf5316572c11efa5ce4c2612ceba540c215b360e2750a665d87"
+      },
+      "sourceCoverage": "Unmodified published artifact identity and license notices; release-tag wrapper source where available. No claim of a recovered internal compiler/dependency revision for permissive prebuilt artifacts."
+    },
+    "image-decoder": {
+      "license": "MPL-2.0; LGPL-3.0-or-later static codecs; compatible codec licenses",
+      "sourceIdentity": "com.github.tachiyomiorg:image-decoder:41c059e540; source 41c059e5405c1d982c937767707270ee96c32614",
+      "buildRecipe": "image-decoder/decoder/library/build.gradle; tools/native/image-decoder.sources.json",
+      "sourcePackages": [
+        "Nyanime-Native-0.42.0.2-supplemental.tar.gz"
+      ],
+      "libraries": {
+        "lib/arm64-v8a/libimagedecoder.so": "7adecfe1b881254b59c209917460c96e751ede194f50e7fa6a60fa350f86adbf",
+        "lib/armeabi-v7a/libimagedecoder.so": "218a55a14d8d8e15a4f99d9c41237d405577272b2804ca0495f336a012a3d862",
+        "lib/x86/libimagedecoder.so": "e224f9ad08ee6805a4636dc9a34999bb597414e23a6a76612c90488cb8b9ed39",
+        "lib/x86_64/libimagedecoder.so": "a453113179159fa7d56032ad63aa607731a867ebc62bc8943353c5355a615752"
+      }
+    },
+    "torrserver": {
+      "license": "GPL-3.0-only and compatible vendored dependency licenses",
+      "sourceIdentity": "io.github.secozzi:torrserver:0.1.1; source 0b03be8e9cbd6330a5f75397d8856efc1bd35376",
+      "buildRecipe": "torrserver/build-all.sh; Go 1.26.4; server/vendor; shipped-go-buildinfo.txt",
+      "sourcePackages": [
+        "Nyanime-Native-0.42.0.2-supplemental.tar.gz"
+      ],
+      "libraries": {
+        "lib/arm64-v8a/liblibrary.so": "1d8d378181e49301f506a91a1d7794800de3416dcc7865788a7169957498e6c7",
+        "lib/arm64-v8a/libtorrserver.so": "5aeb25583d20171ac32025313018b59e04035c040a43841b3fd5a289e1a137f7",
+        "lib/armeabi-v7a/liblibrary.so": "324f59a32e13b6a96565178ac27e54afac44a9ed60599bb6ea62c44ad4e49b36",
+        "lib/armeabi-v7a/libtorrserver.so": "8de6ada0cad54ade36a3174642b18cab78dbfdd1f74751581d85f044200332f4",
+        "lib/x86/liblibrary.so": "203bb326806c2f2f022b9eb5d7ddc1167ae30ef45459662aeeedca50843190a5",
+        "lib/x86/libtorrserver.so": "6c84ec7f7f941c94fc848940ac9c91fe87fafbb149c3111b8c62ce2045a726b5",
+        "lib/x86_64/liblibrary.so": "49949860f0bb75a419c56c6b277cbebfb35bb8333fd05c1c678885faa993739f",
+        "lib/x86_64/libtorrserver.so": "383c294ed75ec77a4d22fba26db6e03ebea0472cdbfc5a4d00870de12cc396f5"
+      }
+    },
+    "quickjs": {
+      "license": "Apache-2.0; MIT",
+      "sourceIdentity": "app.cash.quickjs:quickjs-android:0.9.2; source 6b3f1a1deaddc41ce6c62834a97c83976b2f1ee2",
+      "buildRecipe": "quickjs-java/zipline native Gradle recipe",
+      "sourcePackages": [
+        "Nyanime-Native-0.42.0.2-supplemental.tar.gz"
+      ],
+      "libraries": {
+        "lib/arm64-v8a/libquickjs.so": "b1cbb6a134d9def33e234bfc019c4c83df853435017ab5d0f066a65cb0ab8713",
+        "lib/armeabi-v7a/libquickjs.so": "3c5634ea884ab182533a91f5f7edabcdbe810c0b9385e9621b7a71e393fd2091",
+        "lib/x86/libquickjs.so": "fe79c8882c5cf7ce363ea55fc5b83f3ec705c30fdf3be3552775c55c0a42e47c",
+        "lib/x86_64/libquickjs.so": "91916976f38cf1b83d62a2dde3f41a0355284bf72c568c6a61e34e0a9388258f"
+      }
+    },
+    "secp256k1": {
+      "license": "MIT",
+      "sourceIdentity": "fr.acinq.secp256k1:secp256k1-kmp-jni-android:0.24.0; source e9d5c95f85bd326f3f6a5d4fd075ec11510de472",
+      "buildRecipe": "secp256k1-kmp Gradle recipe and native/secp256k1 pinned submodule",
+      "sourcePackages": [
+        "Nyanime-Native-0.42.0.2-supplemental.tar.gz"
+      ],
+      "libraries": {
+        "lib/arm64-v8a/libsecp256k1-jni.so": "d2de0b61a954f157074a934cb7aa0ccb6ab025edf92b42c604c3f3436fdf297a",
+        "lib/armeabi-v7a/libsecp256k1-jni.so": "77db9960f7d6cdbfed5486817b38a259f36cc0effe661e3928081a29b7462f70",
+        "lib/x86/libsecp256k1-jni.so": "5253651ce43124a00a8da493eb55fe0bb60a9bb3bf96420ba39ac9716b00be50",
+        "lib/x86_64/libsecp256k1-jni.so": "6d93801de3aced51b1869f669d631708710720079cdebdfc952c0f32f28b3cb2"
+      }
+    },
+    "sqlite": {
+      "license": "Apache-2.0; SQLite public domain",
+      "sourceIdentity": "com.github.requery:sqlite-android:3.45.0; wrapper 12e9161c9c6a989922981d0ea4defd9ca1defb30",
+      "buildRecipe": "SQLite Android upstream Gradle recipe",
+      "sourcePackages": [
+        "Nyanime-Native-0.42.0.2-supplemental.tar.gz"
+      ],
+      "libraries": {
+        "lib/arm64-v8a/libsqlite3x.so": "7ca96f30b9a8147f42e4a7c83b10faecb3e2a85592f075d3994af6864d6241da",
+        "lib/armeabi-v7a/libsqlite3x.so": "6cda7e9e3fd2841ba4a42bd22060697b567a450e61590963dab0961e9cdfcd7d",
+        "lib/x86/libsqlite3x.so": "94bfb6b46a960f3cf5a0a30a6483b0b02517af3a03c150d5fae26c90fcefdbee",
+        "lib/x86_64/libsqlite3x.so": "1715a406aa4cd57a60dbbc3aeaf90b256e9c8d94d48f523305b6760de6586b2d"
+      },
+      "sourceCoverage": "Unmodified published artifact identity and license notices; release-tag wrapper source where available. No claim of a recovered internal compiler/dependency revision for permissive prebuilt artifacts."
+    },
+    "tdlib": {
+      "license": "BSL-1.0; Apache-2.0",
+      "sourceIdentity": "TDLib 42e6a5259551178d1dab54a22ad96d14bd906e20; OpenSSL tag d0ca66a1abe52545f14eca635c648932fcde5615 / commit 45e844fa2a14ec92d146bd8f5778ac130b6625fb",
+      "buildRecipe": "scripts/build_telegram_native.py; tools/native/telegram-artifact.json",
+      "sourcePackages": [
+        "Nyanime-Native-0.42.0.2-supplemental.tar.gz"
+      ],
+      "libraries": {
+        "lib/arm64-v8a/libtdjsonjava.so": "a832b1b4207d731cd150466ab5b00211fa113932a5de774c0158a20a9c755ca2",
+        "lib/armeabi-v7a/libtdjsonjava.so": "b129a34c27497054f2101598f9cefc01dcd9b3308d6b37040139a64844961641",
+        "lib/x86/libtdjsonjava.so": "f24ac961ac5248b36f148b79e12e83c1bd0cb4c0157d0279c21f378f1e90153b",
+        "lib/x86_64/libtdjsonjava.so": "95028a233af7cde3a972509f0f0af76b247219d3ab1c8eed085da8d5d2baf9c4"
+      }
+    },
+    "litert": {
+      "license": "Apache-2.0 and compatible bundled licenses",
+      "sourceIdentity": "com.google.ai.edge.litert:litert:1.4.2 (unmodified published Maven artifact)",
+      "buildRecipe": "Upstream LiteRT Interpreter release; published Maven artifact unchanged",
+      "sourcePackages": [
+        "Nyanime-Native-0.42.0.2-supplemental.tar.gz"
+      ],
+      "libraries": {
+        "lib/arm64-v8a/libtensorflowlite_jni.so": "e2328caf39606382a13dc08f06ed03eb0119a490208d375e3f42b80e4dabc465",
+        "lib/armeabi-v7a/libtensorflowlite_jni.so": "1ef7f586c996fb95c944c3e25555d121f01874153b330d5b26503f369fd54d0a",
+        "lib/x86/libtensorflowlite_jni.so": "bd625a7422a8c19466a021b2cdfac3e964aa4945452e698c2ad2ecc7235b364c",
+        "lib/x86_64/libtensorflowlite_jni.so": "59fb31cc5aae55fd764ef74b0855db7549e981427e7debe31ef3a3f2792dc0d5"
+      },
+      "sourceCoverage": "Unmodified published artifact identity and license notices; release-tag wrapper source where available. No claim of a recovered internal compiler/dependency revision for permissive prebuilt artifacts."
+    },
+    "zstd": {
+      "license": "Apache-2.0; BSD-3-Clause",
+      "sourceIdentity": "com.squareup.zstd:zstd-kmp-android:0.4.0; source 4fbdf35df030888d2a0cce4a84329d107438134f",
+      "buildRecipe": "okio-zstd/zstd-kmp/src/androidMain/CMakeLists.txt and pinned zstd submodule",
+      "sourcePackages": [
+        "Nyanime-Native-0.42.0.2-supplemental.tar.gz"
+      ],
+      "libraries": {
+        "lib/arm64-v8a/libzstd-kmp.so": "10ec47f13bee884450b0911066019ba7aa6b4164a4c1f8c33c9d30dd3fd8868a",
+        "lib/armeabi-v7a/libzstd-kmp.so": "4b30671d21e9c6953dc84e4b4602e33b88740d61417af96dbc4ddf44b22a8e15",
+        "lib/x86/libzstd-kmp.so": "2daf9a5f2984289b93568a96bc4234a9e405aa4905c990b85ef887c5de7fb010",
+        "lib/x86_64/libzstd-kmp.so": "fefcbdcd59580a3043c62380a83d92f13c031c278481e22591a2c75112296e28"
+      }
+    },
+    "room-voice": {
+      "requiredJavaClasses": [
+        "org.jni_zero.JniInit",
+        "org.jni_zero.JniUtil",
+        "org.webrtc.PeerConnectionFactory",
+        "org.webrtc.NativeLibrary"
+      ],
+      "license": "BSD-3-Clause and bundled third-party licenses; MIT Android distribution binding",
+      "sourceIdentity": "io.github.webrtc-sdk:android:144.7559.15; webrtc-sdk/webrtc 30d5e63ae91da483e06577b5c35ee91cc5e5c3db",
+      "buildRecipe": "webrtc-sdk/webrtc-build 5c75bb9e7e558b80cda5dc8e9d07ec309ebe895f; tools_webrtc/android/build_aar.py; published AAR unchanged",
+      "sourcePackages": [
+        "Nyanime-Native-0.47.0.2-webrtc.tar.gz"
+      ],
+      "sourceCoverage": "Pinned WebRTC source tree including Android Java wrapper, DEPS, upstream build scripts and full license notices. Unmodified Maven artifact; no claim of a reproduced upstream internal compiler environment.",
+      "libraries": {
+        "lib/armeabi-v7a/libjingle_peerconnection_so.so": "58e3fd27ef738fb11a66f8d8548dc7aed4225986207d3b32b498125ce6735815",
+        "lib/arm64-v8a/libjingle_peerconnection_so.so": "5d68547da3fad7679846187577a0333c10d9ff4d39322bce61f366426924612e",
+        "lib/x86_64/libjingle_peerconnection_so.so": "6fa42eba21bcf4d02234d63e007b58966d9919d0d1eb0c887b8ef005964f7158",
+        "lib/x86/libjingle_peerconnection_so.so": "d14971f27acc4f4c242cc6b77f4077a665d45b3dff33b026c3c42a61fccb00e7"
+      }
+    },
+    "camera-native": {
+      "license": "Apache-2.0 and original embedded BSD notices",
+      "sourceIdentity": "androidx.camera:camera-core:1.6.1; AAR SHA-256 a36f1c323851b51215ba476640e1eb4153882b0c368c0376e9fb905e689df84a",
+      "buildRecipe": "Unmodified native bytes from the pinned Google Maven AAR; AndroidX sources or MediaPipe v0.10.35 public source and upstream build files in the supplied camera-inference archive. Java-only local telemetry transform: buildSrc/src/main/kotlin/it/lorelore/nyanime/buildlogic/LocalMediaPipeLogging.kt.",
+      "sourcePackages": [
+        "Nyanime-Native-0.49.0.0-camera-inference.tar.gz"
+      ],
+      "sourceCoverage": "Published Maven AAR/POM, original published sources where available, original CameraX licence and complete associated MediaPipe v0.10.35 public release tree. No claim of recovered internal vendor compiler/dependency revisions or bit-identical local rebuilding.",
+      "libraries": {
+        "lib/arm64-v8a/libimage_processing_util_jni.so": "0292b063fafccf734472cbb59588e756c2dbca907c72021ba6fbf126385508a2",
+        "lib/arm64-v8a/libsurface_util_jni.so": "a5c9d1928ea92ec7a94dff8cf666e7739cd734198b9f0ae1d4e28ea3c86516ba",
+        "lib/armeabi-v7a/libimage_processing_util_jni.so": "05973c0cf8e8dd281c8ec505c41814b78b740461056925bb41120594d7c35dcd",
+        "lib/armeabi-v7a/libsurface_util_jni.so": "78eb0b10e91b819be97cb7daa8c97fb757fa6d07cb80ccb7e92c113b45bda9be",
+        "lib/x86/libimage_processing_util_jni.so": "b52f93b57d408b2306071f9de1a4b0b5684c1b86563e34a8711d80a1e6c03f94",
+        "lib/x86/libsurface_util_jni.so": "3048a535d701579c87c4ad91283cd1246d2c85399a164ee4720642037ea31727",
+        "lib/x86_64/libimage_processing_util_jni.so": "112703727717651e69e91f3ea2c3c2311737ee5809a909c9d342a811b6c7c069",
+        "lib/x86_64/libsurface_util_jni.so": "e5311942b4fce0f7f2505d41150cf9921e558a6368929cb73127450f74dd4fe4"
+      }
+    },
+    "mediapipe-native": {
+      "license": "Apache-2.0 and upstream dependency notices",
+      "sourceIdentity": "com.google.mediapipe:tasks-core:0.10.35; AAR SHA-256 4edf2f33c840d682c751b3ca951b1ae0465373734776d7fb37dcef936de28ad0",
+      "buildRecipe": "Unmodified native bytes from the pinned Google Maven AAR; AndroidX sources or MediaPipe v0.10.35 public source and upstream build files in the supplied camera-inference archive. Java-only local telemetry transform: buildSrc/src/main/kotlin/it/lorelore/nyanime/buildlogic/LocalMediaPipeLogging.kt.",
+      "sourcePackages": [
+        "Nyanime-Native-0.49.0.0-camera-inference.tar.gz"
+      ],
+      "sourceCoverage": "Published Maven AAR/POM, original published sources where available, original CameraX licence and complete associated MediaPipe v0.10.35 public release tree. No claim of recovered internal vendor compiler/dependency revisions or bit-identical local rebuilding.",
+      "libraries": {
+        "lib/arm64-v8a/libmediapipe_tasks_jni.so": "c0497affbe5c60ddbb61b969403d053ae61d209dc6c7063f38427640c62b8f90",
+        "lib/armeabi-v7a/libmediapipe_tasks_jni.so": "13156861846c2ab5924b7c6331bf541dbc9d0918c2c480ede118aca47bf75e2f",
+        "lib/x86/libmediapipe_tasks_jni.so": "db2d3d3217e5e16a91014d337bbb922fce7e0a66c0eb1b53b097fee1eec91e38",
+        "lib/x86_64/libmediapipe_tasks_jni.so": "67fe7c45ce672cc65d121996ad3fe2f87c82ab5419fddfcb7210e4771d011ae0"
+      },
+      "requiredJavaClasses": [
+        "com.google.mediapipe.framework.Packet",
+        "com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarker"
+      ]
+    },
+    "source-exchange": {
+      "license": "Apache-2.0 / MIT with component-specific Cargo dependency terms retained",
+      "sourceIdentity": "core/source-exchange/native/android/provenance.json; exact source input hashes, Cargo.lock and vendored closure; Lightning revision 6960642a46f549c53d53abef3f2db7327857e488",
+      "buildRecipe": "tools/source-exchange/build-android.sh; NDK r27c 27.2.12479018, Rust 1.99.1, API 26, four ABIs; package_android.py verifies ELF and 16 KiB alignment.",
+      "sourcePackages": [
+        "Nyanime-Native-0.49.0.0-exchange.tar.gz"
+      ],
+      "libraries": {
+        "lib/arm64-v8a/libnyanime_source_exchange.so": "b2927eb48f894d9b374f7c2a33e3a5206d8e9dcece2dcb6d9294f36940de2966",
+        "lib/armeabi-v7a/libnyanime_source_exchange.so": "83a4eb6df98bc00371e6e1c10dde6cf31138b1fe02f74f7689050c22df465690",
+        "lib/x86/libnyanime_source_exchange.so": "9dddd2498782e15bbbc3b5969dbf531daa1898c3c0d568621af2b70a914b0bbe",
+        "lib/x86_64/libnyanime_source_exchange.so": "3e4cc14ca95d95b45f861d47e8b03ffdb7f00e94b8b08a0a60ec57337f1f025b"
+      },
+      "requiredJavaClasses": [
+        "org.rustls.platformverifier.CertificateVerifier"
+      ]
+    }
+  }
+}

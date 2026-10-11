@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="anime_themes_title">Opening e ending</string>
+    <string name="anime_themes_opening">Opening</string>
+    <string name="anime_themes_ending">Ending</string>
+    <string name="anime_themes_sequence">Sigla dell\'anime</string>
+    <string name="anime_themes_full">Brano completo</string>
+    <string name="anime_themes_search_sequence">Cerca sigla dell\'anime</string>
+    <string name="anime_themes_search_full">Cerca brano completo</string>
+    <string name="anime_themes_change">Cambia video</string>
+    <string name="anime_themes_choose">Scegli un video</string>
+    <string name="anime_themes_search">Cerca su YouTube</string>
+    <string name="anime_themes_search_hint">Brano, artista o anime</string>
+    <string name="anime_themes_search_note">Scegli la versione che preferisci. I risultati della ricerca sono suggerimenti, non abbinamenti verificati.</string>
+    <string name="anime_themes_unknown">Altri video collegati · versione non specificata</string>
+    <string name="anime_themes_spoiler">Anteprima nascosta · può contenere spoiler</string>
+    <string name="anime_themes_reveal">Mostra anteprima</string>
+    <string name="anime_themes_episodes">Episodi %1$s</string>
+    <string name="anime_themes_version">Versione %1$d</string>
+    <string name="anime_themes_none">Non ci sono ancora brani disponibili in questa sezione.</string>
+    <string name="anime_themes_no_videos">Nessun video trovato. Prova un altro titolo o artista.</string>
+    <string name="anime_themes_error">Alcuni dati delle sigle non sono stati verificati. I dati salvati restano disponibili.</string>
+    <string name="anime_themes_search_error">La ricerca YouTube non è disponibile. Riprova.</string>
+    <string name="anime_themes_offline">Collegati a Internet per cercare o riprodurre i video.</string>
+    <string name="anime_themes_identify">Scegli l\'anime o la stagione per trovare le sue sigle.</string>
+    <string name="anime_themes_associate">Scegli anime</string>
+    <string name="anime_themes_retry">Riprova</string>
+    <string name="anime_themes_more">Altri video</string>
+    <string name="anime_themes_more_songs">Mostra tutti i %1$d brani</string>
+    <string name="anime_themes_less">Mostra meno</string>
+    <string name="anime_themes_privacy">Dati dei brani: AnimeThemes e Jikan. Scegliendo un video si apre il player YouTube integrato.</string>
+</resources>

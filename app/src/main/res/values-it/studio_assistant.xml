@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_assist">Assistita</string>
+    <string name="studio_assist_start">Crea con assistenza</string>
+    <string name="studio_assist_editor">Editor a nodi</string>
+    <string name="studio_assist_intro_title">Mostrale cosa cercare</string>
+    <string name="studio_assist_intro">Apri il tuo sito, scegli esempi reali e controlla il risultato. Ogni passaggio approvato crea nodi modificabili. Nessun sito è preconfigurato.</string>
+    <string name="studio_assist_required_step">Scegli un esempio → Anteprima → Approva</string>
+    <string name="studio_assist_optional_step">Facoltativo · Aggiungi solo ciò che ti serve</string>
+    <string name="studio_assist_draft">La fonte resta una bozza. Completa i quattro passaggi dei contenuti, poi attivala nell’editor. Da lì puoi perfezionare ogni regola.</string>
+    <string name="studio_assist_preview">Anteprima</string>
+    <string name="studio_assist_approve">Approva passaggio</string>
+    <string name="studio_assist_search_hint">Cerca sul sito il testo di prova qui sotto. Seleziona una scheda, poi il suo titolo, collegamento e copertina. Usa Naviga per spostarti; passa a Seleziona quando sei pronto.</string>
+    <string name="studio_assist_details_hint">Apri un titolo sul sito. Seleziona il nome e, se vuoi, copertina e descrizione.</string>
+    <string name="studio_assist_entries_hint">Apri un titolo e seleziona il collegamento di un episodio o capitolo. I collegamenti simili formeranno l’elenco: controlla bene l’anteprima.</string>
+    <string name="studio_assist_pages_hint">Apri un capitolo e seleziona l’immagine di una pagina. Controlla che l’anteprima contenga le pagine nell’ordine di lettura.</string>
+    <string name="studio_assist_video_hint">Apri un episodio e seleziona il video. Questo passaggio supporta elementi video/source con indirizzo diretto. Player incorporati e flussi protetti possono richiedere l’editor a nodi.</string>
+    <string name="studio_assist_home_hint">Dai un nome alla sezione Home, raggiungi la categoria desiderata, poi seleziona una scheda e i suoi campi. Verrà aggiunta soltanto questa sezione approvata.</string>
+    <string name="studio_assist_filter_hint">Parti da una ricerca funzionante. Conserva qui l’indirizzo senza filtri, poi seleziona un collegamento a un genere/filtro che cambia un solo parametro dell’URL. Dai nomi leggibili al gruppo e all’opzione. Ripeti per aggiungere altre opzioni allo stesso gruppo.</string>
+    <string name="studio_assist_filter_option">Nome dell’opzione</string>
+    <string name="studio_assist_search_example">Indirizzo della ricerca senza filtri</string>
+    <string name="studio_assist_filter_pick">Scegli un’opzione del filtro sul sito</string>
+    <string name="studio_assist_entry_pick">Scegli un episodio o capitolo</string>
+    <string name="studio_assist_page_pick">Scegli l’immagine di una pagina</string>
+    <string name="studio_assist_media_pick">Scegli il video</string>
+    <string name="studio_assist_card_pick">Scegli una scheda dei risultati</string>
+    <string name="studio_assist_next_pick">Pagina successiva · Facoltativo</string>
+    <string name="studio_assist_browser_hint">Raggiungi il tuo esempio. Tocca Seleziona, poi l’elemento desiderato. Controlla le corrispondenze evidenziate prima di salvare.</string>
+    <string name="studio_assist_failed">Non è stato possibile riprodurre questo esempio in modo affidabile. Controlla elementi e indirizzo, poi riprova. La ricerca deve usare un parametro GET visibile; la paginazione deve collegare pagina 1 a pagina 2. Contenuti caricati solo con JavaScript, richieste POST e filtri complessi richiedono l’editor a nodi.</string>
+    <string name="studio_assist_review">Controlla questi risultati prima di approvare</string>
+    <string name="studio_assist_limits">L’anteprima invia una richiesta esplicita con le regole proposte. Approvare salva soltanto questo passaggio nella bozza: non attiva mai la fonte automaticamente.</string>
+    <string name="studio_assist_all">Qualsiasi</string>
+    <string name="studio_navigate">Naviga</string>
+    <string name="studio_navigation_blocked">L’indirizzo è fuori dai siti consentiti per questa fonte. Aggiungi la sua origine nell’editor prima di aprirlo.</string>
+    <string name="studio_assist_home_title">Nome della sezione Home</string>
+    <string name="studio_assist_values">Valori della richiesta per ogni opzione</string>
+    <string name="studio_assist_same_page">Scegli questi campi nella stessa pagina dell’esempio. Per cambiare titolo o categoria, seleziona prima un nuovo esempio.</string>
+</resources>
