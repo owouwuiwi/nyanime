@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="novel_index_preparing">Preparing chapters</string>
+    <string name="novel_index_waiting">Waiting to prepare chapters</string>
+    <string name="novel_index_paused">Chapter preparation paused</string>
+    <string name="novel_index_failed">Chapter preparation interrupted</string>
+    <string name="novel_index_counts">%1$d pages checked · %2$d chapters found</string>
+    <string name="novel_index_saved_available">Previously verified chapters remain available during this update.</string>
+    <string name="novel_index_resume_explanation">Progress is saved after each page. You can pause and resume without starting over.</string>
+    <string name="novel_index_pause">Pause</string>
+    <string name="novel_index_resume">Resume preparation</string>
+</resources>

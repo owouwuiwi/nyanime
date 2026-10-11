@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="release_home_warning_later">Non ora</string>
+    <string name="release_home_warning_action">Notifiche bloccate · correggi nelle impostazioni Android</string>
+    <string name="release_home_warning_title">Le notifiche sono bloccate</string>
+    <string name="release_home_app_warning">Android sta bloccando le notifiche di Nyanime. I titoli possono continuare ad aggiornarsi, ma non riceverai avvisi sulle uscite o promemoria. Riattiva le notifiche nelle impostazioni Android: i bordi gialli spariranno quando l’accesso sarà ripristinato.</string>
+    <string name="release_home_channel_warning">Android ha disattivato una o più categorie di notifiche sulle uscite. Riattivale per ricevere avvisi e promemoria. Le tue scelte dentro Nyanime restano invariate.</string>
+    <string name="release_home_warning_settings">Apri impostazioni Android</string>
+    <string name="release_test_scheduled">Promemoria di prova programmato tra un minuto. Puoi uscire dall’app.</string>
+    <string name="release_test_scheduled_description">Programma una notifica di prova tra un minuto per verificarne la ricezione in background.</string>
+    <string name="release_title_notifications">Notifiche per titolo</string>
+    <string name="release_title_notifications_hint">Spegni gli avvisi di un titolo senza rimuoverlo da libreria, agenda o tracker. Sono seguiti automaticamente anche i titoli in libreria, tracciati o iniziati.</string>
+    <string name="release_title_notifications_explicit_hint">Ricevi avvisi solo per i titoli seguiti esplicitamente. Attivando un titolo qui, seguirai anche le sue uscite.</string>
+    <string name="release_title_notifications_search">Cerca un titolo</string>
+    <string name="release_title_notifications_empty">Nessun titolo corrispondente. Qui trovi i titoli che aggiungi, segui o inizi.</string>
+    <string name="release_title_notifications_muted">Notifiche disattivate</string>
+    <string name="release_title_notifications_following">Seguito · notifiche attive</string>
+    <string name="release_title_notifications_automatic">Seguito automaticamente · notifiche attive</string>
+    <string name="release_title_notifications_auto_silent">Seguito automaticamente · silenziato dalle impostazioni</string>
+    <string name="release_titles_all">Tutti</string>
+    <string name="release_titles_anime">Anime</string>
+    <string name="release_titles_manga">Manga</string>
+    <string name="release_explicit_alerts_only">Solo i titoli che seguo esplicitamente</string>
+    <string name="release_explicit_alerts_only_description">Ricevi avvisi sulle uscite solo dopo aver scelto Segui. Libreria, tracking e agenda restano invariati.</string>
+    <string name="release_notification_blocked_title">Android sta bloccando le notifiche</string>
+    <string name="release_title_notifications_toggle">Notifiche per questo titolo</string>
+    <string name="release_title_notifications_toggle_description">Disattiva sia gli avvisi di nuove uscite sia i promemoria programmati.</string>
+</resources>
