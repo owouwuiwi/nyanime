@@ -1,0 +1,169 @@
+CREATE TRIGGER cloud_sync_subscription_insert AFTER INSERT ON release_subscription
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND ((SELECT source FROM animes WHERE _id=new.entry_id) NOT IN (SELECT source FROM cloud_sync_excluded_sources))
+BEGIN
+    INSERT OR REPLACE INTO cloud_sync_dirty(kind, source, title, item, removed)
+    SELECT 'subscription', source, url, '', 0 FROM animes WHERE _id=new.entry_id;
+END;
+
+CREATE TRIGGER cloud_sync_subscription_update AFTER UPDATE ON release_subscription
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND ((SELECT source FROM animes WHERE _id=new.entry_id) NOT IN (SELECT source FROM cloud_sync_excluded_sources))
+BEGIN
+    INSERT OR REPLACE INTO cloud_sync_dirty(kind, source, title, item, removed)
+    SELECT 'subscription', source, url, '', 0 FROM animes WHERE _id=new.entry_id;
+END;
+
+CREATE TRIGGER cloud_sync_subscription_delete BEFORE DELETE ON release_subscription
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND ((SELECT source FROM animes WHERE _id=old.entry_id) NOT IN (SELECT source FROM cloud_sync_excluded_sources))
+BEGIN
+    INSERT OR REPLACE INTO cloud_sync_dirty(kind, source, title, item, removed)
+    SELECT 'subscription', source, url, '', 1 FROM animes WHERE _id=old.entry_id;
+END;
+
+-- Only dirty references are journaled here; serialization and encryption run outside user writes.
+CREATE TABLE cloud_sync_control (
+    singleton INTEGER NOT NULL PRIMARY KEY CHECK (singleton = 1),
+    enabled INTEGER NOT NULL DEFAULT 0,
+    suppressed INTEGER NOT NULL DEFAULT 0,
+    incognito INTEGER NOT NULL DEFAULT 0
+);
+INSERT INTO cloud_sync_control(singleton) VALUES(1);
+
+CREATE TABLE cloud_sync_excluded_sources (source INTEGER NOT NULL PRIMARY KEY);
+
+CREATE TABLE cloud_sync_category_ids (
+    local_id INTEGER NOT NULL PRIMARY KEY,
+    shared_id TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE cloud_sync_dirty (
+    revision INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    kind TEXT NOT NULL,
+    source INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    item TEXT NOT NULL DEFAULT '',
+    removed INTEGER NOT NULL DEFAULT 0,
+    changed_at INTEGER NOT NULL DEFAULT (CAST(strftime('%s', 'now') AS INTEGER) * 1000),
+    UNIQUE(kind, source, title, item)
+);
+
+CREATE TRIGGER cloud_sync_title_insert AFTER INSERT ON animes
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND (new.favorite = 1 AND new.is_syncing = 0 AND new.source NOT IN (SELECT source FROM cloud_sync_excluded_sources))
+BEGIN
+    INSERT OR REPLACE INTO cloud_sync_dirty(kind, source, title, item, removed) VALUES('title', new.source, new.url, '', 0);
+END;
+
+CREATE TRIGGER cloud_sync_title_update AFTER UPDATE OF favorite, viewer, episode_flags, date_added, title, author, artist, description, genre, status, thumbnail_url, memo, season_flags, season_number, season_source_order, background_url ON animes
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND (new.is_syncing = 0 AND new.source NOT IN (SELECT source FROM cloud_sync_excluded_sources) AND (old.favorite IS NOT new.favorite OR old.viewer IS NOT new.viewer OR old.episode_flags IS NOT new.episode_flags OR old.date_added IS NOT new.date_added OR old.title IS NOT new.title OR old.author IS NOT new.author OR old.artist IS NOT new.artist OR old.description IS NOT new.description OR old.genre IS NOT new.genre OR old.status IS NOT new.status OR old.thumbnail_url IS NOT new.thumbnail_url OR old.memo IS NOT new.memo OR old.season_flags IS NOT new.season_flags OR old.season_number IS NOT new.season_number OR old.season_source_order IS NOT new.season_source_order OR old.background_url IS NOT new.background_url) AND (new.favorite = 1 OR old.favorite = 1 OR EXISTS(SELECT 1 FROM episodes WHERE anime_id = new._id AND (seen = 1 OR bookmark = 1 OR last_second_seen > 0))))
+BEGIN
+    INSERT OR REPLACE INTO cloud_sync_dirty(kind, source, title, item, removed) VALUES('title', new.source, new.url, '', 0);
+END;
+
+CREATE TRIGGER cloud_sync_title_delete BEFORE DELETE ON animes
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND (old.source NOT IN (SELECT source FROM cloud_sync_excluded_sources))
+BEGIN
+    INSERT OR REPLACE INTO cloud_sync_dirty(kind, source, title, item, removed) VALUES('title', old.source, old.url, '', 1);
+END;
+
+CREATE TRIGGER cloud_sync_item_insert AFTER INSERT ON episodes
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND (new.is_syncing = 0 AND (SELECT source FROM animes WHERE _id = new.anime_id) NOT IN (SELECT source FROM cloud_sync_excluded_sources) AND (new.seen = 1 OR new.bookmark = 1 OR new.last_second_seen > 0))
+BEGIN
+    INSERT OR REPLACE INTO cloud_sync_dirty(kind, source, title, item) SELECT 'item', source, url, new.url FROM animes WHERE _id = new.anime_id;
+END;
+
+CREATE TRIGGER cloud_sync_item_update AFTER UPDATE OF seen, bookmark, last_second_seen, total_seconds, fillermark, memo ON episodes
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND (new.is_syncing = 0 AND (SELECT source FROM animes WHERE _id = new.anime_id) NOT IN (SELECT source FROM cloud_sync_excluded_sources) AND (old.seen IS NOT new.seen OR old.bookmark IS NOT new.bookmark OR old.last_second_seen IS NOT new.last_second_seen OR old.total_seconds IS NOT new.total_seconds OR old.fillermark IS NOT new.fillermark OR old.memo IS NOT new.memo))
+BEGIN
+    INSERT OR REPLACE INTO cloud_sync_dirty(kind, source, title, item) SELECT 'item', source, url, new.url FROM animes WHERE _id = new.anime_id;
+END;
+
+CREATE TRIGGER cloud_sync_history_insert AFTER INSERT ON animehistory
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND ((SELECT T.source FROM animes T JOIN episodes I ON I.anime_id=T._id WHERE I._id=new.episode_id) NOT IN (SELECT source FROM cloud_sync_excluded_sources))
+BEGIN
+    INSERT OR REPLACE INTO cloud_sync_dirty(kind, source, title, item, removed) SELECT 'history', T.source, T.url, I.url, 0 FROM animes T JOIN episodes I ON I.anime_id=T._id WHERE I._id=new.episode_id;
+END;
+
+CREATE TRIGGER cloud_sync_category_insert AFTER INSERT ON categories
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND (new._id > 0)
+BEGIN
+    INSERT OR REPLACE INTO cloud_sync_dirty(kind, source, title, item, removed) VALUES('category', 0, '', CAST(new._id AS TEXT), 0);
+END;
+
+CREATE TRIGGER cloud_sync_membership_insert AFTER INSERT ON animes_categories
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND ((SELECT source FROM animes WHERE _id=new.anime_id) NOT IN (SELECT source FROM cloud_sync_excluded_sources))
+BEGIN
+    INSERT OR REPLACE INTO cloud_sync_dirty(kind, source, title, item, removed) SELECT 'membership', source, url, '', 0 FROM animes WHERE _id=new.anime_id;
+END;
+
+CREATE TRIGGER cloud_sync_tracking_insert AFTER INSERT ON anime_sync
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND ((SELECT source FROM animes WHERE _id=new.anime_id) NOT IN (SELECT source FROM cloud_sync_excluded_sources))
+BEGIN
+    INSERT OR REPLACE INTO cloud_sync_dirty(kind, source, title, item, removed) SELECT 'tracking', source, url, CAST(new.sync_id AS TEXT), 0 FROM animes WHERE _id=new.anime_id;
+END;
+
+CREATE TRIGGER cloud_sync_history_update AFTER UPDATE OF last_seen ON animehistory
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND ((SELECT T.source FROM animes T JOIN episodes I ON I.anime_id=T._id WHERE I._id=new.episode_id) NOT IN (SELECT source FROM cloud_sync_excluded_sources))
+BEGIN
+    INSERT OR REPLACE INTO cloud_sync_dirty(kind, source, title, item, removed) SELECT 'history', T.source, T.url, I.url, 0 FROM animes T JOIN episodes I ON I.anime_id=T._id WHERE I._id=new.episode_id;
+END;
+
+CREATE TRIGGER cloud_sync_category_update AFTER UPDATE ON categories
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND (new._id > 0)
+BEGIN
+    INSERT OR REPLACE INTO cloud_sync_dirty(kind, source, title, item, removed) VALUES('category', 0, '', CAST(new._id AS TEXT), 0);
+END;
+
+CREATE TRIGGER cloud_sync_membership_update AFTER UPDATE ON animes_categories
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND ((SELECT source FROM animes WHERE _id=new.anime_id) NOT IN (SELECT source FROM cloud_sync_excluded_sources))
+BEGIN
+    INSERT OR REPLACE INTO cloud_sync_dirty(kind, source, title, item, removed) SELECT 'membership', source, url, '', 0 FROM animes WHERE _id=new.anime_id;
+END;
+
+CREATE TRIGGER cloud_sync_tracking_update AFTER UPDATE ON anime_sync
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND ((SELECT source FROM animes WHERE _id=new.anime_id) NOT IN (SELECT source FROM cloud_sync_excluded_sources))
+BEGIN
+    INSERT OR REPLACE INTO cloud_sync_dirty(kind, source, title, item, removed) SELECT 'tracking', source, url, CAST(new.sync_id AS TEXT), 0 FROM animes WHERE _id=new.anime_id;
+END;
+
+CREATE TRIGGER cloud_sync_history_delete BEFORE DELETE ON animehistory
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND ((SELECT T.source FROM animes T JOIN episodes I ON I.anime_id=T._id WHERE I._id=old.episode_id) NOT IN (SELECT source FROM cloud_sync_excluded_sources))
+BEGIN
+    INSERT OR REPLACE INTO cloud_sync_dirty(kind, source, title, item, removed) SELECT 'history', T.source, T.url, I.url, 1 FROM animes T JOIN episodes I ON I.anime_id=T._id WHERE I._id=old.episode_id;
+END;
+
+CREATE TRIGGER cloud_sync_category_delete BEFORE DELETE ON categories
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND (old._id > 0)
+BEGIN
+    INSERT OR REPLACE INTO cloud_sync_dirty(kind, source, title, item, removed) VALUES('category', 0, '', CAST(old._id AS TEXT), 1);
+END;
+
+CREATE TRIGGER cloud_sync_membership_delete BEFORE DELETE ON animes_categories
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND ((SELECT source FROM animes WHERE _id=old.anime_id) NOT IN (SELECT source FROM cloud_sync_excluded_sources))
+BEGIN
+    INSERT OR REPLACE INTO cloud_sync_dirty(kind, source, title, item, removed) SELECT 'membership', source, url, '', 0 FROM animes WHERE _id=old.anime_id;
+END;
+
+CREATE TRIGGER cloud_sync_tracking_delete BEFORE DELETE ON anime_sync
+WHEN (SELECT enabled = 1 AND suppressed = 0 AND incognito = 0 FROM cloud_sync_control WHERE singleton = 1)
+AND ((SELECT source FROM animes WHERE _id=old.anime_id) NOT IN (SELECT source FROM cloud_sync_excluded_sources))
+BEGIN
+    INSERT OR REPLACE INTO cloud_sync_dirty(kind, source, title, item, removed) SELECT 'tracking', source, url, CAST(old.sync_id AS TEXT), 1 FROM animes WHERE _id=old.anime_id;
+END;

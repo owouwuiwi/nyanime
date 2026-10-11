@@ -1,0 +1,29 @@
+CREATE TABLE episode_ending_cue (
+    episode_id INTEGER NOT NULL PRIMARY KEY REFERENCES episodes(_id) ON DELETE CASCADE,
+    duration_ms INTEGER NOT NULL,
+    start_ms INTEGER NOT NULL,
+    end_ms INTEGER NOT NULL
+);
+
+getByEpisodeId:
+SELECT * FROM episode_ending_cue WHERE episode_id = :episodeId;
+
+getByAnimeId:
+SELECT episodes.url, episode_ending_cue.duration_ms, episode_ending_cue.start_ms, episode_ending_cue.end_ms
+FROM episode_ending_cue
+JOIN episodes ON episodes._id = episode_ending_cue.episode_id
+WHERE episodes.anime_id = :animeId;
+
+countAll:
+SELECT COUNT(*) FROM episode_ending_cue;
+
+deleteByEpisodeId:
+DELETE FROM episode_ending_cue WHERE episode_id = :episodeId;
+
+upsert:
+INSERT INTO episode_ending_cue (episode_id, duration_ms, start_ms, end_ms)
+VALUES (:episodeId, :durationMs, :startMs, :endMs)
+ON CONFLICT(episode_id) DO UPDATE SET
+    duration_ms = excluded.duration_ms,
+    start_ms = excluded.start_ms,
+    end_ms = excluded.end_ms;

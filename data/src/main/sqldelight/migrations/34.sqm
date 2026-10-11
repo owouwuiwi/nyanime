@@ -1,0 +1,25 @@
+DROP VIEW updatesView;
+CREATE VIEW updatesView AS
+SELECT
+    mangas._id AS mangaId,
+    mangas.title AS mangaTitle,
+    chapters._id AS chapterId,
+    chapters.name AS chapterName,
+    chapters.scanlator,
+    chapters.read,
+    chapters.bookmark,
+    chapters.last_page_read,
+    mangas.source,
+    mangas.favorite,
+    mangas.thumbnail_url AS thumbnailUrl,
+    mangas.cover_last_modified AS coverLastModified,
+    chapters.date_upload AS dateUpload,
+    chapters.date_fetch AS datefetch
+FROM mangas JOIN chapters ON mangas._id = chapters.manga_id
+WHERE (mangas.favorite = 1 AND chapters.date_fetch > mangas.date_added)
+OR (mangas.favorite = 0 AND chapters.date_fetch > COALESCE((
+    SELECT MIN(history.last_read)
+    FROM history JOIN chapters followed ON followed._id = history.chapter_id
+    WHERE followed.manga_id = mangas._id AND history.last_read > 0
+), 9223372036854775807))
+ORDER BY date_fetch DESC;
