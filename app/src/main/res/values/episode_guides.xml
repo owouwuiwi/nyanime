@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="store_guide">Guides</string>
+    <string name="guide_title">Episode guide</string>
+    <string name="guide_count">%1$d filler episodes identified</string>
+    <string name="guide_loading">Checking the guide…</string>
+    <string name="guide_ready">Classifications available</string>
+    <string name="guide_optional">Optional classifications and filler controls</string>
+    <string name="guide_canon">Canon</string>
+    <string name="guide_anime_canon">Anime canon</string>
+    <string name="guide_mixed">Mixed</string>
+    <string name="guide_filler">Filler</string>
+    <string name="guide_unknown">Unclassified</string>
+    <string name="guide_install">Install an episode guide provider from the Store to see classifications. No account is needed.</string>
+    <string name="guide_store">Open Store</string>
+    <string name="guide_confirm_hint">Check which guide episode corresponds to the numbering in this edition. Special episodes stay unclassified.</string>
+    <string name="guide_offset">Number to add to app episodes</string>
+    <string name="guide_mapping">App episode %1$d → guide episode %2$d</string>
+    <string name="guide_coverage">Guide covers episodes %1$d–%2$d</string>
+    <string name="guide_back">Back</string>
+    <string name="guide_confirm">Confirm numbering</string>
+    <string name="guide_unavailable">The provider could not be reached. Saved classifications remain available.</string>
+    <string name="guide_removed">Association removed. No automatic matching for this title.</string>
+    <string name="guide_choose_hint">Choose the matching work, then confirm its numbering.</string>
+    <string name="guide_find">Find a guide</string>
+    <string name="guide_correct">Correct association</string>
+    <string name="guide_attribution">Classification: %1$s</string>
+    <string name="guide_updated">Guide updated: %1$s</string>
+    <string name="guide_incomplete">Unlisted episodes remain unclassified and are never skipped automatically.</string>
+    <string name="guide_numbers">Correct numbering</string>
+    <string name="guide_remove">Remove association</string>
+    <string name="guide_filler_meaning">A standalone episode classified as filler. Automatic skipping is optional.</string>
+    <string name="guide_mixed_meaning">Contains both canon and filler material. Always kept when skipping fillers.</string>
+    <string name="guide_other_meaning">This classification does not trigger automatic filler skipping.</string>
+    <string name="guide_mark_filler">Mark as filler</string>
+    <string name="guide_mark_canon">Keep as canon</string>
+    <string name="guide_reset">Use guide</string>
+    <string name="guide_hide">Hide filler episodes</string>
+    <string name="guide_skip">Automatically skip fillers</string>
+    <string name="guide_global">Default for all anime</string>
+    <string name="guide_skip_hint">Only confirmed pure fillers are skipped. Opening an episode directly always plays it. In rooms, the host decides.</string>
+    <string name="guide_on">On</string>
+    <string name="guide_off">Off</string>
+    <string name="guide_skipped">Skipped %1$d filler episodes</string>
+    <string name="guide_view_skipped">View episodes</string>
+</resources>

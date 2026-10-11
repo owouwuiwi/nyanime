@@ -1,0 +1,5 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application android:theme="@android:style/Theme.Material.NoActionBar" android:hardwareAccelerated="true">
+        <activity android:name="nyanime.secretgame.SecretGameProbeActivity" android:exported="false" />
+    </application>
+</manifest>

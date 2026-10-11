@@ -1,0 +1,7 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="it.owouwuiwi.nyanime.ipcprobe">
+    <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="36" />
+    <application android:label="IPC verification" android:allowBackup="false" android:debuggable="true">
+        <service android:name="probe.EchoService" android:exported="false" android:process=":remote" />
+    </application>
+    <instrumentation android:name="probe.PayloadProbe" android:targetPackage="it.owouwuiwi.nyanime.ipcprobe" />
+</manifest>
