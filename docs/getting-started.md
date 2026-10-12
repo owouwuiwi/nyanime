@@ -25,7 +25,7 @@ l'app controlla gli aggiornamenti lì e puoi anche aggiornare manualmente.
 
 ## Preparare la libreria
 
-1. Scegli la cartella di archiviazione richiesta dall'app.
+1. Segui la guida di benvenuto: Nyanime prepara automaticamente la propria cartella, senza chiederti una destinazione. I download in questo spazio vengono rimossi disinstallando l'app; per una cartella personale usa Impostazioni → Dati e archiviazione.
 2. Configura le estensioni e le lingue che vuoi usare, oppure aggiungi file locali.
 3. Cerca un titolo e aggiungilo alla libreria anime o manga.
 4. Organizzalo nelle categorie e imposta, se desideri, aggiornamenti e download automatici.

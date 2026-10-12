@@ -21,6 +21,12 @@ and stop at the first difference: 0.20.0.0 is newer than 0.19.99.999.
 Android `versionCode` increases separately for every publication, including previews.
 Changing channels never proposes a downgrade.
 
+A changed application APK delivered to an existing user installation, including a
+local update through ADB, must also have a new public version and a higher Android
+`versionCode`. A new filename or commit does not change the installed version.
+Run the publication checks before pushing and build the APK from the versioned
+commit; do not reuse the preceding release's number for a modified application.
+
 Before a new publication, run one of these commands and include the changed file in
 the implementation commit. The helper defaults to the preview channel:
 

@@ -10,6 +10,7 @@ I documenti tecnici in inglese conservano i nomi delle API e dei componenti.
 | --- | --- |
 | [Condivisione in Nyanime](content-sharing.md) | Schede, episodi con minutaggio e capitoli con pagina, senza logica specifica delle fonti. |
 | [Primi passi e FAQ](getting-started.md) | Installazione, aggiornamenti, estensioni, preferenze e problemi comuni. |
+| [Guida di benvenuto](welcome.md) | Primo avvio, cartella automatica, permessi facoltativi e ripristino. |
 | [Versioni e aggiornamenti](versioning.md) | Numerazione a quattro componenti, scelta dei canali e compatibilità OTA. |
 | [Nyanime Cloud](telegram-cloud.md) | Account Telegram condiviso, backup privati, ripristino e configurazione di sviluppo. |
 | [Sincronizzazione personale](cloud-sync-protocol.md) | Associazione dei dispositivi, dati portabili, cifratura, conflitti e verifiche. |
@@ -36,7 +37,9 @@ I documenti tecnici in inglese conservano i nomi delle API e dei componenti.
 | [Ricerca intelligente](smart-title-search.md) | Motore comune, suggerimenti, limiti, privacy e licenza SymSpellKt. |
 | [Home e scoperta](discovery-home.md) | Cataloghi, associazione alle fonti, calendario, cache e ripresa. |
 | [Home Panorama](home-panorama.md) | Carosello circolare, ripresa compatta, caricamento e interazioni. |
+| [Fluidità](ui-fluidity.md) | Rendering, immagini, aggiornamenti locali e prove di scorrimento su dispositivo. |
 | [Store Vetrina](extension-store.md) | Estensioni Ready e Legacy, inventario, installazione e sostituzione guidata. |
+| [RIN locali e cataloghi](rin-manual-import.md) | Caricamento e aggiornamento di pacchetti verificati e collegamenti ai cataloghi. |
 | [Estensioni Notizie](news-extensions.md) | Fonti separate, lettore nativo, articoli salvati e avvisi facoltativi. |
 | [Addon opzionali](addons.md) | Modalità installabili, logo e attivazione dichiarati, isolamento, tema e aggiornamenti. |
 | [API Home anime](extension-home-api.md) | Contratto dichiarativo generico delle estensioni. |
@@ -51,6 +54,7 @@ I documenti tecnici in inglese conservano i nomi delle API e dei componenti.
 | [Cast](casting.md) | Google Cast, UPnP/DLNA, telecomando, relay locale e limiti. |
 | [TV in diretta](live-tv.md) | Home TV, guida, player live, ricerca, stanze e contratto generico delle estensioni. |
 | [Affidabilità](app-reliability.md) | Ricerca, download, backup, copertine e prestazioni. |
+| [Ripartenza dopo un crash](crash-recovery.md) | Riapertura, dettagli locali e condivisione volontaria del rapporto. |
 | [Motore di download](download-components.md) | Accelerazione adattiva, ripresa verificata, esecuzione Android e componenti riutilizzati. |
 | [Aggiornamenti delle estensioni](extension-update-alerts.md) | Frequenza dei controlli e deduplicazione delle notifiche. |
 | [Cataloghi delle estensioni](extension-catalogues.md) | Importazione e collegamento esplicito degli APK locali agli aggiornamenti. |

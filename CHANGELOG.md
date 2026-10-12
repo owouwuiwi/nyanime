@@ -14,6 +14,83 @@ distribuito come APK.
 - Il codice e la cronologia completa sono conservati nella repository privata; APK firmati, documentazione e changelog rimangono pubblici.
 - Gli aggiornamenti conservano gli indirizzi storici e le release compatibili con i primi updater, senza cambiare firma o identificativo dell'app.
 
+## 11 ottobre 2026 — 0.40.2.2: Store, menu delle schede e preferenze Smart
+
+- Ripristinate le immagini precedenti della Home e delle schede: rimosso il sistema sperimentale di copertine, fondali e loghi aggiuntivi, con pulizia delle sue preferenze e cache. Le copertine personalizzate restano conservate.
+- Carosello della Home centrato anche sui tablet, con titolo e segnaposto allineati alla copertina senza spostare i controlli di navigazione.
+- Menu «Altre azioni» con scorrimento interno stabile, altezza limitata e chiusura esplicita; eliminata l'oscillazione della finestra arrivando ai bordi della lista.
+- Corretti i comandi di download multiplo che in italiano mostravano soltanto l'icona, senza testo.
+- Lo Store permette di caricare e aggiornare file RIN locali verificati, conservando i dati dell'estensione e rifiutando pacchetti incompatibili o con provenienza modificata.
+- Ripristinata la possibilità di incollare il collegamento di un catalogo di estensioni.
+- Anime4K Smart non parte automaticamente nelle nuove installazioni. Gli aggiornamenti mantengono la preferenza esistente, compreso il precedente comportamento predefinito.
+
+## 11 ottobre 2026 — 0.40.1.7: Schede in armonia con la Home
+
+- Schede anime e manga con la stessa palette, fondale morbido e testata trasparente della Home, nei temi chiaro e scuro.
+- Superfici evidenziate, sfumature sulle copertine e pulsante di ripresa coordinati con lo stile dell'app; rimossa la palette separata delle schede.
+- Conservati disposizione dei comandi, posizioni di scorrimento, gestione di episodi e capitoli e transizioni delle copertine.
+- Testata delle schede stabile dopo finestre e cambi di sezione; fascia Episodi/Capitoli e Dettagli integrata nel fondale anche quando si fissa sopra la lista, senza lo stacco nero.
+
+## 11 ottobre 2026 — 0.40.1.4: Stanze e lettura condivisa (in verifica)
+
+- Il creatore sceglie la lettura quando apre un capitolo: gli ospiti aggiornati lo raggiungono al proprio punto, senza sincronizzare le pagine. Un nuovo capitolo dello stesso manga propone «Raggiungi» senza interrompere la lettura.
+- Permessi per scegliere il manga, proposte dei partecipanti e modalità «Leggi per conto tuo». La stanza distingue capitolo ricevuto, apertura, lettura pronta ed errori recuperabili.
+- Controllo dei partecipanti compatto ed espandibile nel lettore; barra e notifica della stanza rappresentano correttamente manga, video o TV.
+- «Usa la mia copia» richiede una scelta esplicita del manga e del capitolo. Tra edizioni diverse, salti precisi e schizzi richiedono pagine originali verificate; immagini e download non vengono modificati.
+- Richieste con scadenza, risposte obsolete ignorate e recupero dei contatori dopo il riavvio. Conservata la compatibilità delle annotazioni e dei client precedenti.
+- Corrette la prima apertura dei capitoli già in cache e la conservazione della scelta condivisa durante il recupero della stanza.
+- Riaprire la lettura dalla barra della stanza conclude correttamente il caricamento anche per il creatore.
+- «Torna al mio punto» compare soltanto nella stanza che ha salvato quel punto. Chiusura, uscita e rinuncia al rientro eliminano il segnalibro; i vecchi segnalibri senza stanza vengono rimossi senza toccare i progressi della libreria.
+- La verifica completa tra due Android rimane richiesta prima della pubblicazione di questa revisione.
+
+## 11 ottobre 2026 — 0.40.0.1: Guida di benvenuto dalle Impostazioni (consigliata)
+
+- «Entra in Nyanime» chiude correttamente la guida aperta da Impostazioni → Avanzate. Anche Indietro dal primo passaggio torna alle Impostazioni.
+- La consultazione della guida parte dall’inizio senza modificare il punto di ripresa del primo avvio; le nuove installazioni conservano il percorso guidato e la ripresa dopo un’interruzione.
+
+## 11 ottobre 2026 — 0.40.0.0: Un benvenuto più semplice (consigliata)
+
+- Guida di prima installazione riunita in un percorso: benvenuto, tema, permessi facoltativi, canale degli aggiornamenti e ripristino.
+- Cartella Nyanime creata e verificata automaticamente nello spazio dell’app, senza chiedere dove salvarla né un accesso generale ai file. Una cartella già configurata viene conservata; la scelta di una cartella personale resta nelle Impostazioni.
+- Permessi presentati in schede leggibili, con spiegazioni e stato aggiornato al ritorno dalle impostazioni Android. È possibile continuare senza concederli.
+- Ripristino locale o da Nyanime Cloud direttamente dalla guida, con anteprima, conferma, avanzamento e risultato; nessun accesso al cloud viene avviato automaticamente.
+- La guida riprende dal passaggio raggiunto se interrotta, rispetta temi e animazioni ridotte ed è tradotta in italiano e inglese. Chi ha già completato il benvenuto non deve rifarlo aggiornando l’app.
+
+## 11 ottobre 2026 — 0.39.3.0: Ripartenza più semplice e schede stabili (consigliata)
+
+- Schermata dopo un crash rinnovata: «Riapri Nyanime» in primo piano, rapporto condivisibile e dettagli dell’errore espandibili, con temi chiaro/scuro e testi italiano/inglese.
+- Preparazione del rapporto fuori dall’interfaccia, con avanzamento, tentativi ripetuti gestiti e possibilità di riprovare in caso di errore. Nessun rapporto viene inviato automaticamente.
+- Le schede anime e manga mantengono la lista durante il passaggio dal caricamento ai contenuti: sottotitolo, avanzamento e pulsante di ripresa conservano i loro spazi e appaiono con una dissolvenza.
+- Testata Home riordinata: indicatore delle novità a sinistra del pulsante delle stanze, con posizioni fisse anche quando non ci sono nuovi contenuti.
+- Rimosso il pulsante grande del backup da Altro; creazione e ripristino restano disponibili nelle Impostazioni.
+
+## 11 ottobre 2026 — 0.39.2.1: Home, fluidità e PiP (consigliata)
+
+### Correzione del Picture-in-Picture
+
+- Il gesto di chiusura del mini-player disattiva subito il PiP automatico, prima dell'animazione di uscita: tornare immediatamente alla Home del telefono non riduce più la Home di Nyanime nella finestrella. Una chiusura annullata o rifiutata dalla stanza ripristina il comportamento del player.
+
+- Chiudere il player revoca subito il PiP automatico: uscire dall'app senza un video non riduce più la Home in una finestra.
+- Il PiP segue la schermata che ospita il video, senza restare attivo su quella precedente; l'ingresso richiede una sessione video locale disponibile.
+
+### Interfaccia più fluida
+
+- Copertine già in memoria mostrate subito, senza ripetere l'animazione a ogni scorrimento; un'unica dissolvenza per le nuove immagini.
+- Aggiornamenti delle righe della Home indipendenti, conservando posizione e immagini durante il caricamento delle altre sezioni.
+- Tornare dalla Libreria e aggiornare la Home mantiene le copertine già caricate e la selezione del carosello; le risposte parziali non fanno sparire e ricomparire i titoli.
+- Il refresh riprova le immagini fallite senza riavviare quelle sane; il carosello sospende la rotazione durante l'aggiornamento e quando si lascia la Home.
+- Preparazione della libreria unificata fuori dall'interfaccia, mantenendo la lista visibile durante ricerca e aggiornamenti.
+- Controlli del player aggiornati soltanto dove serve il minutaggio, senza ridisegnare gli strumenti durante la riproduzione.
+- Conservati grafica, sfocatura, qualità delle transizioni e rispetto delle animazioni ridotte.
+
+### Home in continuità
+
+- Testata più morbida: le copertine scorrono sotto le categorie, con sfocatura graduale e senza lo stacco nero.
+- Logo, categorie e comandi restano nitidi e fermi; l'effetto è presente dall'apertura e non si accende durante lo scorrimento.
+- Ombre e sfondi accompagnano la copertina nel ritorno alla Home, senza zone scoperte durante il movimento.
+- Copertina e titolo restano continui durante l'apertura della scheda, anche quando il caricamento termina a metà animazione.
+- Spaziatura adattata alla testata reale, anche con categorie su più righe e caratteri grandi; mantenuti temi chiaro/scuro e caricamenti discreti.
+
 ## 10 ottobre 2026 — 0.39.1.1: Passaggio rapido tra anime e manga (consigliata)
 
 - Il collegamento identifica l’opera e cerca automaticamente una copia nelle fonti abilitate, anche fuori dalla libreria; gli ID discordanti impediscono l’apertura automatica.

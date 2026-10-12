@@ -5,6 +5,24 @@ fixed compact header, rounded artwork, reading/viewing progress, one resume acti
 library/release/room shortcuts, and the complete lazy episode/chapter list. Details
 remain a separate tab; Manage is for batch operations. Android TV is not changed.
 
+## Shared Home styling
+
+Detail pages inherit the application color scheme, including light/dark mode and
+AMOLED surfaces, instead of installing a separate palette. Home and details use
+the same `NyanimeSurfaces` atmosphere, feathered glass header, artwork scrim and
+floating material. Resume actions use the existing brand action colors.
+
+The header captures only the page content; its text and controls remain sharp.
+Blur is bounded to that header, with a tint fallback on older Android versions.
+Home opts into the shared-transition overlay to cover travelling source artwork;
+detail headers keep their normal Scaffold layer across modal windows and tab changes.
+Tabs are transparent within the page. When pinned over scrolling rows, they fade
+to the same stationary backdrop as the page, with its brush aligned to the viewport;
+there is no flat black stripe or extra blur capture. The opacity is read during
+drawing, without recomposing the list.
+The lazy list retains its existing viewport, insets, keys and saved positions;
+there is no additional full-screen blur, image request or animation loop.
+
 ## Existing functionality
 
 The presentation delegates to the existing screen callbacks for playback/reading,
@@ -93,6 +111,20 @@ serializable screen fields, so opening the player, reader or room Activity can s
 navigation state without serializing Compose geometry.
 
 ## Validation
+
+Loading and resolved branches share a retained page slot for the same navigation
+route. The lazy list is not recreated when the model becomes available. Subtitle
+lines and the resume button reserve the same geometry in both states; progress
+and text fade through local drawing layers instead of replacing differently sized
+placeholders. Artwork still uses its existing shared destination slot.
+
+On 11 October 2026, a physical SM-F741B running Android 16 exercised the
+production page in separate loading/resolved composition branches for both
+anime and manga. The long hero title retained identical screen bounds before
+and after resolution, and the resume action appeared correctly. The same test
+passed at 320 dp width, 130% font scaling and with system animations disabled.
+These checks verify loading geometry; they do not establish zero dropped frames
+for every title or device.
 
 Automated tests cover index completeness, duplicate/fractional numbers, search across
 groups, actual new releases, complete large lists, identity-based jumps, season

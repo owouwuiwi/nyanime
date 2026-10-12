@@ -7,18 +7,39 @@ Altro → Guarda e leggi insieme e dai controlli della stanza video.
 
 ## Leggere, raggiungere, tornare
 
+Quando il creatore inizia a leggere un capitolo, ne sceglie il riferimento condiviso:
+gli ospiti aggiornati lo aprono nell'app in primo piano, al proprio punto salvato o
+alla prima pagina. Visitare una scheda non cambia la selezione. Passare a un altro
+capitolo dello stesso manga propone «Raggiungi», senza interrompere la lettura.
+In background la notifica della stanza permette di aprire il contenuto scelto.
+«Leggi per conto tuo» sospende le aperture automatiche; si può tornare alla scelta
+condivisa senza lasciare la stanza. Il creatore può concedere il permesso di scegliere
+a un partecipante, mentre gli altri possono inviare una proposta.
+
 Ogni persona mantiene il proprio manga, capitolo e pagina. Non esiste un comando
 remoto che costringe il lettore a voltare pagina. La stanza mostra il punto degli
 altri e distingue la lettura attiva dall'ultimo punto condiviso.
 
 “Raggiungi questa pagina” apre l'esatto riferimento tramite l'estensione installata
-e conserva il proprio punto. “Torna al mio punto” resta disponibile anche dopo
-aver chiuso la stanza; il segnalibro è locale e sopravvive al riavvio dell'app.
+e conserva il proprio punto. “Torna al mio punto” è disponibile soltanto nella
+stanza in cui è stato salvato; lasciare o chiudere la stanza elimina il segnalibro.
+In caso di riavvio imprevisto, si recupera solo dopo il rientro confermato nella
+stessa stanza. La lettura normale mantiene i progressi della libreria senza
+mostrare comandi delle stanze.
 Si può cambiare manga dalla libreria senza cambiare stanza. I nomi e i numeri
 del database non vengono usati per scegliere silenziosamente un'altra edizione.
 La fonte deve essere installata e attendibile, i riferimenti devono appartenere
 alla sua origine e il numero di pagine deve corrispondere prima dello spostamento.
 Download con una diversa suddivisione delle pagine richiedono la stessa edizione.
+
+Se manca l'estensione, «Trova l'estensione» apre la gestione delle estensioni.
+«Usa la mia copia» richiede invece la scelta esplicita del manga e del capitolo
+nella propria libreria o cronologia; l'associazione rimane locale per quella stanza.
+Gli ID verificati ordinano i candidati, ma il titolo non dimostra un'identità.
+Tra copie diverse, salti precisi e schizzi richiedono l'impronta SHA-256 corrispondente
+dei file originali. Il calcolo avviene fuori dall'interfaccia, con concorrenza e
+dimensioni limitate. Senza corrispondenza restano presenza e apertura del capitolo;
+non vengono disegnati interventi su una pagina potenzialmente diversa.
 
 Aprire il lettore come ospite sospende il proprio video, senza mettere in pausa chi
 continua a guardare. Chi legge è escluso dalla barriera di buffering video.
@@ -60,6 +81,22 @@ La capacità readingVersion viene negoziata prima che un ospite invii questi dat
 un host precedente non deve interpretare una presenza manga come stato video.
 Entrambi i telefoni devono avere la nuova versione per leggere insieme.
 
+La capacità opzionale `readingSessionVersion=1` aggiunge una selezione di capitolo
+con revisione assegnata dal creatore, indipendente dalla presenza e dalle immagini.
+Gli involucri `Snapshot`, `Choose`, `Propose` e `Receipt` non modificano il protocollo
+reading v2 delle annotazioni. La ricezione della scelta e il caricamento riuscito
+sono conferme distinte; l'interfaccia mostra apertura, lettura pronta, estensione
+mancante, errore o lettura personale. Una richiesta esplicita scade dopo otto secondi;
+un nuovo tentativo usa un nuovo identificativo. Duplicati, revisioni obsolete e
+mittenti non autorizzati non cambiano la selezione. I client precedenti conservano
+la lettura manuale, segnalata nella stanza.
+
+Un coordinatore di navigazione invalida le risposte tardive dopo un cambio di stanza
+o modalità. Il giornale cifrato conserva selezione e scelta personale; al rientro
+riserva un nuovo intervallo di sequenze, così il riavvio non fa rifiutare i messaggi
+dal telefono rimasto connesso. I comandi in attesa non vengono riprodotti dal backup
+della stanza. Nessuna selezione viene trasmessa pubblicamente.
+
 Il creatore autentica e ammette i mittenti usando la stessa lista della stanza.
 Schizzi, note e visibilità sono operazioni immutabili: la loro unione converge anche
 con duplicati o arrivi fuori ordine. Un riepilogo per pagina segnala le differenze;
@@ -87,6 +124,16 @@ recupero CRDT dopo disconnessione, indipendenza dei lettori, cambio titolo, coda
 duplicazione, ordinamento, cancellazioni, autorizzazione, limiti e trasformazioni.
 WatchRoomTest verifica il canale sulla medesima stanza, l'isolamento dal player,
 la compatibilità con host precedenti e il ritorno al video.
+ReadingSessionTest verifica permessi, proposte, richieste concorrenti e scadute,
+reconnessione, lettura personale e invalidazione della navigazione. ReadingPageFingerprintTest
+verifica corrispondenze, limite di lettura e chiusura degli stream. WatchRoomTest
+include cambio modalità con snapshot tardivi e ripresa delle sequenze dopo un riavvio.
+ReadingReturnPointTest verifica che il segnalibro non sia disponibile fuori dalla
+stanza, si recuperi soltanto nella stessa stanza e venga eliminato alla chiusura
+senza ricomparire al riavvio o entrando in un'altra stanza.
+Una prova con osservatori immediati verifica che la pausa del video durante il recupero
+non cancelli il capitolo scelto: la modalità comune viene applicata prima degli effetti
+sulla riproduzione.
 ReadingRelayTest è una prova facoltativa su entrambi i relay, con due client reali
 e soli dati sintetici, attivata da NYANIME_WATCH_NETWORK_TEST=1.
 

@@ -29,6 +29,17 @@ before closing; a refused close restores the visible mini and explains the limit
 ReaderActivity observes the same registry and displays the mini player alongside
 the existing reader. Internal navigation does not request external PiP.
 
+PiP eligibility belongs to the current rendering host, not just a running native
+engine. Closing the session synchronously detaches that host and revokes its
+automatic PiP flag and actions before removing the session from the registry.
+Transferring rendering to another Activity first revokes the previous host;
+late detach callbacks cannot change the new host's parameters. Parameter updates
+from a closing session are ignored. Automatic entry additionally requires local
+video, active playback and the current PiP preferences; Cast cannot enter local
+PiP. Explicit PiP remains available for a loaded paused video.
+Android retains the automatic-entry flag on the Activity, so removing only the
+player composition is insufficient; see the [Android PiP guidance](https://developer.android.com/develop/ui/views/picture-in-picture#smoother-pip-entry).
+
 `PlaybackRequest`, `PlaybackSnapshot`, `PlaybackCommands` and
 `PlaybackPresentation` separate selection, playback state, actions and layout.
 Live playback reuses the same engine with the existing channel recovery contract;
@@ -144,3 +155,18 @@ settling, stale surface callbacks, observer gates, reentry and protocol defaults
 Device verification must separately establish session continuity, native progress,
 PiP, background, reader coexistence and safe teardown. Compilation and unit tests
 alone do not establish physical-device behavior.
+
+### PiP host teardown verification — 11 October 2026
+
+The release-optimized signed test APK was installed over the existing app on the
+USB Galaxy Z Flip6, Android 16. Before the fix, dismissing a playing mini player
+stopped `PlaybackSessionService`, but pressing Home still pinned MainActivity and
+displayed the app's Home inside the PiP window. After the fix, three separate
+playback/open/dismiss/Home cycles left both the playback service and pinned task
+absent. A launch without video also stayed outside PiP. Playing video entered PiP
+from the watch page, mini player and fullscreen; its MediaSession remained playing
+and its position advanced. Confirmed paused video did not automatically enter PiP.
+
+The focused player suite passed 174 tests across 25 suites; scoped Kotlin formatting
+and the optimized APK build passed. These results do not establish physical-device
+coverage for older Android versions or a live Cast receiver.
