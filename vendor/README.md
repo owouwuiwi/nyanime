@@ -22,10 +22,17 @@ SHA-256:
 Repository content filtering limits this dependency to that exact version. New upstream
 versions resolve normally. The source files and native libraries in the AAR are unchanged.
 
-## FFmpegKit maintenance build
+## Native player
 
-`com.github.jmir1:ffmpeg-kit:1.18-hls1` is a local maintenance artifact containing
-the generic HLS seek backport in libavformat. It is a separate pinned dependency,
-not part of the unmodified FlexibleAdapter artifact above.
-See the [native build guide](../tools/native/README.md) for source revisions,
-patches, build instructions, validation and licensing.
+`it.owouwuiwi.native:nyanime-mpv:1.0.0` and
+`it.owouwuiwi.native:nyanime-ffmpeg:1.0.0` preserve the original bridge APIs
+and replace the complete native closure with a pinned GPL build.
+The [native guide](../tools/native/README.md) identifies its sources,
+patches, build configuration and corresponding-source archives.
+The AAR inventory and SHA-256 values are in
+[aar-verification.json](../tools/native/player/aar-verification.json).
+Every ABI and every library is checked before packaging; no unverified native
+entry from the original AARs is carried into these artifacts.
+
+The historical `1.18-hls1` dependency is no longer used. Its generic patches
+and original maintenance recipes remain available for provenance.

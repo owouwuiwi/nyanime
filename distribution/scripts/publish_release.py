@@ -17,6 +17,7 @@ from pathlib import Path, PurePosixPath
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from scripts.public_distribution import allowed_source
+from scripts.verify_native_distribution import validate as validate_native
 
 PUBLIC = 'owouwuiwi/nyanime'
 SOURCE = 'owouwuiwi/nyanime-source'
@@ -55,7 +56,7 @@ def validate_name(name):
         raise ValueError('Unsafe publication archive path')
     return name in {'publication.json', 'notes.md', 'numeric/SHA256SUMS'} or (
         name.startswith('public/') and allowed_source(name.removeprefix('public/'))
-    ) or bool(re.fullmatch(r'numeric/(?:Nyanime-Production-\d+\.\d+\.\d+\.\d+-(universal|arm64-v8a|armeabi-v7a|x86|x86_64)\.apk|Nyanime-Source-\d+\.\d+\.\d+\.\d+\.zip)', name))
+    ) or bool(re.fullmatch(r'numeric/(?:Nyanime-Production-\d+\.\d+\.\d+\.\d+-(universal|arm64-v8a|armeabi-v7a|x86|x86_64)\.apk|Nyanime-Source-\d+\.\d+\.\d+\.\d+\.zip|Nyanime-Native-\d+\.\d+\.\d+\.\d+-[a-z0-9-]+\.tar\.gz|Nyanime-Native-Manifest-\d+\.\d+\.\d+\.\d+\.json)', name))
 
 def validate_text(text):
     blocked = {'807e4e92b75624ff2c9c3fd01ece23f84c4b2bfeec6816460539628f676d903d', '64a5090b45a4941f8ebc96f9c2f9f66558680fead5ddcbb8b780c1dc24d816a2', 'c4855bb0c8c2b1e2856a0aaf11f3b15ea7f0b353e2aa34dade10e6e435bc97c4'}
@@ -94,9 +95,11 @@ def validate_bundle(directory):
     metadata = json.loads((directory / 'publication.json').read_text())
     version = metadata['versionName']
     fields = {'schema', 'versionName', 'versionCode', 'channel', 'applicationId', 'assetPrefix', 'certificateSha256', 'sha256'}
-    if metadata['schema'] == 3:
+    if metadata['schema'] in {3, 4}:
         fields |= {'sourceRevision', 'sourceSha256'}
-    if set(metadata) != fields or metadata['schema'] not in {2, 3}:
+    if metadata['schema'] == 4:
+        fields.add('nativeManifest')
+    if set(metadata) != fields or metadata['schema'] not in {2, 3, 4}:
         raise ValueError('Unknown publication metadata')
     if not re.fullmatch(r'\d+\.\d+\.\d+\.\d+', version):
         raise ValueError('Invalid OTA tags')
@@ -115,10 +118,26 @@ def validate_bundle(directory):
         checksums += f'{digest}  {name}\n'
     if (directory / 'numeric/SHA256SUMS').read_text() != checksums:
         raise ValueError('Checksum manifest mismatch')
-    if metadata['schema'] == 3:
+    if metadata['schema'] in {3, 4}:
         name = f'Nyanime-Source-{version}.zip'
-        if not re.fullmatch(r'[0-9a-f]{40}', metadata['sourceRevision']) or set(metadata['sourceSha256']) != {name}:
+        expected_sources = {name}
+        if metadata['schema'] == 4:
+            manifest_name = f'Nyanime-Native-Manifest-{version}.json'
+            if metadata['nativeManifest'] != manifest_name:
+                raise ValueError('Invalid native manifest name')
+            manifest_file = directory / 'numeric' / manifest_name
+            declaration = json.loads(manifest_file.read_text())
+            expected_sources.update(declaration['sourcePackages'])
+            expected_sources.add(manifest_name)
+            if manifest_file.read_bytes() != (directory / 'public/tools/native/distribution.json').read_bytes():
+                raise ValueError('Native manifest differs from public source snapshot')
+            for abi in ABIS:
+                validate_native(directory / 'numeric' / f'{ASSET_PREFIX}-{version}-{abi}.apk', declaration, directory / 'numeric')
+        if not re.fullmatch(r'[0-9a-f]{40}', metadata['sourceRevision']) or set(metadata['sourceSha256']) != expected_sources:
             raise ValueError('Invalid source identity')
+        for material, digest in metadata['sourceSha256'].items():
+            if not validate_name('numeric/' + material) or hashlib.sha256((directory / 'numeric' / material).read_bytes()).hexdigest() != digest:
+                raise ValueError('Source hash mismatch')
         source = directory / 'numeric' / name
         if hashlib.sha256(source.read_bytes()).hexdigest() != metadata['sourceSha256'][name]:
             raise ValueError('Source hash mismatch')

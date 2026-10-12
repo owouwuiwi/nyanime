@@ -47,7 +47,8 @@ Il file è ignorato da Git. Evita nomi di progetto o percorsi locali nei documen
 Le dipendenze sono dichiarate nei [cataloghi Gradle](gradle).
 Il repository include un [mirror vincolato](vendor/README.md) e la manutenzione
 [nativa FFmpeg](tools/native/README.md). La ricompilazione del demuxer ha prerequisiti
-propri, distinti dal normale assemblaggio Android.
+propri, distinti dal normale assemblaggio Android. Prima della build ripristina
+l’input nativo verificato con `python3 -m scripts.restore_telegram_native`.
 
 ## Compilare
 

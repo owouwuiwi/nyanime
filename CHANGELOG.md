@@ -9,6 +9,22 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 13 ottobre 2026 — 0.42.0.2: Sorgenti nativi e distribuzione verificabile
+
+### Distribuzione
+
+- Player nativo ricompilato da revisioni fissate per tutte le architetture, conservando bridge Android, sottotitoli, filtri, codec e patch di riproduzione.
+- Ogni release include i sorgenti dell’app e del player, le dipendenze copyleft, le configurazioni e le istruzioni per compilare una propria versione. Gli archivi hanno hash verificabili.
+- La versione ponte per il trasferimento dalla vecchia firma resta disponibile con gli APK e i link originali.
+
+### Correzioni
+
+- Completati i testi e i crediti dei componenti nativi, dei codec immagini e delle dipendenze dei torrent nella schermata delle licenze.
+
+### Verifiche
+
+- La pubblicazione confronta le librerie native degli APK con l’inventario verificato e controlla i materiali allegati; una libreria aggiunta o modificata senza aggiornare la provenienza blocca la pubblicazione.
+
 ## 12 ottobre 2026 — 0.42.0.1: Licenze, crediti e sorgenti
 
 ### Correzioni

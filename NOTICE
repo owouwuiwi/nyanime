@@ -9,6 +9,13 @@ Nyanime's original application contributions are licensed under the Apache
 License, Version 2.0. The license text is provided in LICENSE. Separately
 licensed components retain their own licenses and distribution requirements.
 
+The distributed APK combines these application contributions with GPL-licensed
+native components. Distribution of the combined work is subject to the
+applicable GNU GPL version 3 requirements, in addition to the original
+licenses retained by its constituent parts. Corresponding source, build
+recipes and license texts accompany the release. This does not reassign
+copyright or remove Apache-2.0 from the original application sources.
+
 Nyanime is derived from AniYomi, Mihon and Tachiyomi. Original attribution
 notices are preserved, including:
 

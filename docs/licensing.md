@@ -39,9 +39,14 @@ produzione e file locali di build non sono necessari per compilare una propria
 versione e non vengono pubblicati.
 
 Le [istruzioni di compilazione](../CONTRIBUTING.md) descrivono la build Android.
-Il [player nativo](../tools/native/README.md) ha revisioni e istruzioni separate:
-gli artefatti upstream devono essere verificati rispetto al binario distribuito,
-senza dedurre la licenza dal solo wrapper Java/Kotlin.
+Il [player nativo](../tools/native/README.md) dispone di un archivio completo
+con le revisioni delle dipendenze, le patch e le configurazioni di tutte le ABI.
+Dalla 0.42.0.2 la pagina di ogni release include anche il manifesto nativo e
+archivi `Nyanime-Native-<versione>-*.tar.gz`, controllati rispetto agli APK.
+Il codice originale, i testi upstream e le istruzioni per creare una propria
+build rimangono disponibili senza registrazione. I binari GPL sono distribuiti
+con i sorgenti corrispondenti; i componenti permissivi precompilati conservano
+le proprie identità e gli avvisi, senza inventare revisioni interne mancanti.
 
 - Versione, revisione del codice e hash degli APK effettivamente distribuiti.
 - Testo Apache 2.0, NOTICE Nyanime e avvisi originali pertinenti.

@@ -1,6 +1,17 @@
 {
-  "schema": 1,
-  "artifacts": {
+  "schema": 2,
+  "currentDistribution": {
+    "fromVersion": "0.42.0.2",
+    "playerSources": "player/sources.lock.json",
+    "nativeManifest": "distribution.json",
+    "imageDecoderSources": "image-decoder.sources.json",
+    "telegramArtifact": "telegram-artifact.json",
+    "buildRecipe": "player/build-linux.sh"
+  },
+  "historicalProvenanceLimitations": [
+    "The original MPV build scripts fetch dav1d, libass and libplacebo from moving branches. Their exact commits are not recoverable from the AAR identity alone. Do not claim a fully pinned native rebuild solely from this index. Upstream build scripts and original notices must also be retained."
+  ],
+  "historicalArtifacts": {
     "mpvAndroid": {
       "repository": "https://github.com/jmir1/mpv-android",
       "revision": "484373b7cb772d43405c4312af1ad4f508f6dbd0",
@@ -64,8 +75,5 @@
       "license": "Apache-2.0",
       "build": "../../scripts/build_telegram_native.py"
     }
-  },
-  "provenanceLimitations": [
-    "The original MPV build scripts fetch dav1d, libass and libplacebo from moving branches. Their exact commits are not recoverable from the AAR identity alone. Do not claim a fully pinned native rebuild solely from this index. Upstream build scripts and original notices must also be retained."
-  ]
+  }
 }

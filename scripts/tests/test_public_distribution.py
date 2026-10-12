@@ -14,6 +14,53 @@ publisher = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(publisher)
 
 class PublicDistributionTest(unittest.TestCase):
+    def test_native_bundle_requires_delivered_materials_and_exact_binary_inventory(self):
+        import hashlib
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            apks, materials = root / 'apks', root / 'materials'
+            apks.mkdir()
+            materials.mkdir()
+            material = materials / 'Nyanime-Native-1.2.3.4-fixture.tar.gz'
+            material.write_bytes(b'synthetic pinned source')
+            native = b'synthetic native'
+            abis = ('arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64')
+            inventory = {f'lib/{abi}/libfixture.so': hashlib.sha256(native).hexdigest() for abi in abis}
+            declaration = {'schemaVersion': 1, 'sourcePackages': {material.name: {
+                'sha256': hashlib.sha256(material.read_bytes()).hexdigest(),
+            }}, 'components': {'fixture': {
+                'license': 'GPL-3.0-or-later', 'sourceIdentity': 'pinned fixture',
+                'buildRecipe': 'build.sh', 'sourcePackages': [material.name], 'libraries': inventory,
+            }}}
+            for abi in publisher.ABIS:
+                with zipfile.ZipFile(apks / f'Nyanime-Production-1.2.3.4-{abi}.apk', 'w') as archive:
+                    for architecture in abis if abi == 'universal' else (abi,):
+                        archive.writestr(f'lib/{architecture}/libfixture.so', native)
+            notes = root / 'notes.md'
+            notes.write_text('Generic release.')
+            def docs(target, *_):
+                (target / 'CHANGELOG.md').write_text('Generic release.')
+                (target / 'tools/native').mkdir(parents=True)
+                (target / 'tools/native/distribution.json').write_text(json.dumps(declaration))
+            with patch('scripts.public_distribution.export_documents', side_effect=docs):
+                prepare_bundle(root / 'bundle', apks, '1.2.3.4', 200, 'recommended', notes, 'HEAD', materials)
+            self.assertEqual(publisher.validate_bundle(root / 'bundle')['schema'], 4)
+            package = root / 'bundle/numeric' / material.name
+            package.unlink()
+            with self.assertRaisesRegex(ValueError, 'Missing or changed corresponding sources'):
+                publisher.validate_bundle(root / 'bundle')
+            package.write_bytes(material.read_bytes())
+            apk = root / 'bundle/numeric/Nyanime-Production-1.2.3.4-universal.apk'
+            with zipfile.ZipFile(apk, 'a') as archive:
+                archive.writestr('lib/arm64-v8a/libother.so', b'undeclared')
+            metadata = root / 'bundle/publication.json'
+            item = json.loads(metadata.read_text())
+            item['sha256'][apk.name] = hashlib.sha256(apk.read_bytes()).hexdigest()
+            metadata.write_text(json.dumps(item))
+            (root / 'bundle/numeric/SHA256SUMS').write_text(''.join(f'{digest}  {name}\n' for name, digest in item['sha256'].items()))
+            with self.assertRaisesRegex(ValueError, 'without corresponding sources'):
+                publisher.validate_bundle(root / 'bundle')
+
     def test_new_bundles_reject_previous_certificate_package_prefix_and_schema(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

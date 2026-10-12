@@ -49,7 +49,8 @@ dependencyResolutionManagement {
         maven(url = uri("vendor/maven")) {
             content {
                 includeVersion("com.github.arkon.FlexibleAdapter", "flexible-adapter", "c8013533")
-                includeVersion("com.github.jmir1", "ffmpeg-kit", "1.18-hls1")
+                includeVersion("it.owouwuiwi.native", "nyanime-ffmpeg", "1.0.0")
+                includeVersion("it.owouwuiwi.native", "nyanime-mpv", "1.0.0")
             }
         }
         mavenCentral()

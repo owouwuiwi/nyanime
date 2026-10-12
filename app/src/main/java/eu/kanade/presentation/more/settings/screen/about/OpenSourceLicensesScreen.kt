@@ -36,6 +36,7 @@ import eu.kanade.presentation.more.settings.widget.TextPreferenceWidget
 import eu.kanade.presentation.util.Screen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.components.material.Scaffold
 import tachiyomi.presentation.core.i18n.stringResource
@@ -143,7 +144,20 @@ class OpenSourceLicensesScreen : Screen() {
                             "licenses/OpenSSL-LICENSE.txt",
                             "licenses/telegram-NOTICE.txt",
                         ),
-                    ).map { asset ->
+                    ) +
+                        context.assets.open("licenses/native/catalog.json").bufferedReader().use { reader ->
+                            val entries = JSONArray(reader.readText())
+                            List(entries.length()) { index ->
+                                val item = entries.getJSONObject(index)
+                                BundledAsset(
+                                    item.getString("name"),
+                                    item.getString("website"),
+                                    item.getString("licenseName"),
+                                    item.getString("asset"),
+                                )
+                            }
+                        }
+                    val bundledLicenses = bundled.map { asset ->
                         BundledLicense(
                             asset.name,
                             asset.website,
@@ -154,7 +168,10 @@ class OpenSourceLicensesScreen : Screen() {
                                 context.assets.open(asset.asset).bufferedReader().use { it.readText() },
                         )
                     }
-                    LicenseCatalog.Ready(Libs.Builder().withContext(context).build().libraries.toList(), bundled)
+                    LicenseCatalog.Ready(
+                        Libs.Builder().withContext(context).build().libraries.toList(),
+                        bundledLicenses,
+                    )
                 }.getOrElse { LicenseCatalog.Failed }
             }
         }
