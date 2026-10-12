@@ -14,6 +14,20 @@ distribuito come APK.
 - Il codice e la cronologia completa sono conservati nella repository privata; APK firmati, documentazione e changelog rimangono pubblici.
 - Gli aggiornamenti conservano gli indirizzi storici e le release compatibili con i primi updater, senza cambiare firma o identificativo dell'app.
 
+## 12 ottobre 2026 — 0.41.0.6: Trasferimento e sync più affidabili
+
+- Se il canale privato Telegram del sync viene eliminato, l’app ricrea l’archivio e ripubblica i dati locali senza cambiare l’identità dei dispositivi. Gli errori del canale non vengono più mostrati come assenza di connessione.
+- Il trasferimento usa una copia separata: la versione precedente torna utilizzabile appena la preparazione termina.
+- Aggiunti annullamento, ripristino dei dati precedenti in caso di errore e codici diagnostici leggibili.
+- Il trasferimento può essere ripetuto dalle impostazioni anche dopo aver configurato la nuova app senza dati.
+- Dopo la conferma, l’accesso alla cartella condivisa viene trasferito quando Android lo permette; altrimenti la procedura guida alla selezione della stessa cartella. I permessi vengono verificati prima di preparare i dati, senza bloccare la vecchia app.
+- L’aggiornamento ordinario conserva il vecchio pacchetto e la vecchia firma; il passaggio alla nuova identità rimane facoltativo.
+- Dopo l’aggiornamento, la vecchia app propone una sola volta il passaggio alla nuova Nyanime. «Non ora» mantiene la versione attuale utilizzabile; l’azione resta disponibile nelle impostazioni.
+- La sostituzione dei database comprende i relativi file temporanei: corretto il trasferimento verso una nuova app già aperta e configurata, conservando il ripristino completo in caso di errore.
+- Il passaggio alla nuova app usa soltanto APK effettivamente pubblicati e compatibili: una release in preparazione non apre più un collegamento inesistente.
+- La procedura distingue preparazione, copia e verifica; il completamento rimane visibile anche ruotando lo schermo. La percentuale indica soltanto la copia, senza sembrare bloccata durante i controlli finali.
+- Dopo un trasferimento verificato, il primo ingresso nella nuova app propone di disinstallare la precedente con conferma di Android. «Non ora» rimanda la scelta; il comando rimane nelle impostazioni.
+
 ## 12 ottobre 2026 — 0.41.0.2: Ripristino della versione originale
 
 - Ripristinati il pacchetto e la firma precedenti: questo aggiornamento si installa sulla Nyanime originale, mantenendone dati e impostazioni.
