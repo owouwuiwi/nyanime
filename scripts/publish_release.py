@@ -17,7 +17,6 @@ from pathlib import Path, PurePosixPath
 PUBLIC = 'owouwuiwi/nyanime'
 SOURCE = 'owouwuiwi/nyanime-source'
 CERTIFICATE = 'F99AD47F9286CE3D61345F65DD0F888F16AEBF53BFE75EFE5B6AB889041AB259'
-PRODUCTION_CERTIFICATE = '7DD368792C4D94D1186CC4B0E2AD6C2F34FCE5DD37F19C6A1BAB45106FFC136B'
 ABIS = ('universal', 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64')
 ROOT_DOCS = {'README.md', 'CHANGELOG.md', 'LICENSE', 'NOTICE', 'CONTRIBUTING.md'}
 
@@ -39,16 +38,6 @@ def request(path, token, method='GET', data=None, binary=False):
         content = response.read()
         return content if binary else (json.loads(content) if content else None)
 
-def public_releases(per_page=20):
-    """Check exactly the anonymous OTA feed, without private draft releases."""
-    if not 1 <= per_page <= 100:
-        raise ValueError('Invalid public release page size')
-    req = urllib.request.Request(f'https://api.github.com/repos/{PUBLIC}/releases?per_page={per_page}',
-        headers={'Accept': 'application/vnd.github+json', 'Cache-Control': 'no-cache',
-                 'User-Agent': 'Nyanime-release', 'X-GitHub-Api-Version': '2022-11-28'})
-    with urllib.request.urlopen(req, timeout=90) as response:
-        return [release for release in json.loads(response.read()) if not release.get('draft', False)]
-
 def document(name):
     p = PurePosixPath(name)
     return name in ROOT_DOCS or (p.parts[0] == 'docs' and p.suffix == '.md' and 'qa' not in p.parts) or name in {
@@ -60,7 +49,7 @@ def validate_name(name):
         raise ValueError('Unsafe publication archive path')
     return name in {'publication.json', 'notes.md', 'numeric/SHA256SUMS'} or (
         name.startswith('public/') and document(name.removeprefix('public/'))
-    ) or bool(re.fullmatch(r'numeric/Nyanime-(?:production-)?\d+\.\d+\.\d+\.\d+-(universal|arm64-v8a|armeabi-v7a|x86|x86_64)\.apk', name))
+    ) or bool(re.fullmatch(r'numeric/Nyanime-\d+\.\d+\.\d+\.\d+-(universal|arm64-v8a|armeabi-v7a|x86|x86_64)\.apk', name))
 
 def validate_text(text):
     blocked = {'807e4e92b75624ff2c9c3fd01ece23f84c4b2bfeec6816460539628f676d903d', '64a5090b45a4941f8ebc96f9c2f9f66558680fead5ddcbb8b780c1dc24d816a2', 'c4855bb0c8c2b1e2856a0aaf11f3b15ea7f0b353e2aa34dade10e6e435bc97c4'}
@@ -93,11 +82,7 @@ def unpack(archive, destination):
 def validate_bundle(directory):
     metadata = json.loads((directory / 'publication.json').read_text())
     version = metadata['versionName']
-    fields = {'schema', 'versionName', 'versionCode', 'channel', 'legacyTag', 'certificateSha256', 'sha256'}
-    production = metadata.get('schema') == 2
-    if production:
-        fields |= {'productionCertificateSha256', 'applicationId', 'legacyApplicationId'}
-    if set(metadata) != fields or metadata['schema'] not in {1, 2}:
+    if set(metadata) != {'schema', 'versionName', 'versionCode', 'channel', 'legacyTag', 'certificateSha256', 'sha256'} or metadata['schema'] != 1:
         raise ValueError('Unknown publication metadata')
     if not re.fullmatch(r'\d+\.\d+\.\d+\.\d+', version) or not re.fullmatch(r'r\d+', metadata['legacyTag']):
         raise ValueError('Invalid OTA tags')
@@ -106,10 +91,6 @@ def validate_bundle(directory):
     if metadata['certificateSha256'] != CERTIFICATE:
         raise ValueError('Signing identity changed')
     expected = {f'Nyanime-{version}-{abi}.apk' for abi in ABIS}
-    if production:
-        if metadata['productionCertificateSha256'] != PRODUCTION_CERTIFICATE or metadata['applicationId'] != 'it.owouwuiwi.nyanime' or metadata['legacyApplicationId'] != 'xyz.jmir.tachiyomi.mi.anime4k.debug':
-            raise ValueError('Unexpected production identity')
-        expected |= {f'Nyanime-production-{version}-{abi}.apk' for abi in ABIS}
     if set(metadata['sha256']) != expected:
         raise ValueError('Missing ABI or unexpected APK')
     checksums = ''
@@ -235,7 +216,7 @@ def archive_previous_alias_dates(current_tag):
     # Each publication archives the previous current-day alias. Consequently
     # only the new alias and its predecessor occupy the current-day feed window;
     # older history can grow without an ever-growing scan on every publication.
-    releases = public_releases(100)
+    releases = request(f'repos/{PUBLIC}/releases?per_page=100', token)
     aliases = [item for item in releases if re.fullmatch(r'r\d+', item['tag_name'])]
     newest_tag = max([current_tag] + [item['tag_name'] for item in aliases], key=lambda tag: int(tag[1:]))
     for release in aliases:
@@ -382,7 +363,7 @@ def main():
     expected_alias = archive_previous_alias_dates(metadata['legacyTag'])
     deadline = time.monotonic() + 120
     while True:
-        feed = public_releases(20)
+        feed = request(f'repos/{PUBLIC}/releases?per_page=20', os.environ['GITHUB_TOKEN'])
         if legacy_first(feed) == expected_alias:
             break
         if time.monotonic() >= deadline:
