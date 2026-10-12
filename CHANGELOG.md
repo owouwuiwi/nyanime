@@ -9,19 +9,17 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
-## 12 ottobre 2026 — 0.41.0.1: Identità di produzione e trasferimento protetto
-
-- Nuova identità Android `it.owouwuiwi.nyanime`, firmata con un certificato di produzione. La versione precedente riceve un aggiornamento di transizione con la sua firma originale.
-- Trasferimento guidato sullo stesso dispositivo di libreria, progressi, impostazioni, estensioni e file privati; download condivisi riutilizzati nella cartella originale con una nuova autorizzazione Android.
-- Trasferimento locale autorizzato esplicitamente, controllo del certificato destinatario, blocchi cifrati riprendibili e verifica dei dati prima del completamento. La vecchia app non viene disinstallata automaticamente.
-- La guida spiega il passaggio dalla vecchia alla nuova Nyanime; dopo la verifica offre la rimozione della versione precedente con conferma Android.
-- Rimossa la fiducia automatica delle estensioni: firma valida e presenza in un catalogo non sostituiscono il consenso. I backup non riattivano estensioni nuove senza autorizzazione.
-- Aggiornamenti separati per le due identità e controllo del pacchetto e del certificato degli APK scaricati.
-
 ## Distribuzione privata e continuità OTA
 
 - Il codice e la cronologia completa sono conservati nella repository privata; APK firmati, documentazione e changelog rimangono pubblici.
-- Gli indirizzi storici e le release compatibili con i primi updater restano disponibili con la firma originale; il passaggio all’identità di produzione avviene tramite il trasferimento guidato.
+- Gli aggiornamenti conservano gli indirizzi storici e le release compatibili con i primi updater, senza cambiare firma o identificativo dell'app.
+
+## 12 ottobre 2026 — 0.41.0.2: Ripristino della versione originale
+
+- Ripristinati il pacchetto e la firma precedenti: questo aggiornamento si installa sulla Nyanime originale, mantenendone dati e impostazioni.
+- Rimossi il trasferimento fra le due app, la relativa guida e il blocco di avvio: la versione originale torna direttamente alla Home, anche dopo un tentativo interrotto.
+- Ritirata dall’OTA la versione con la nuova identità. Nessuna app viene disinstallata automaticamente e nessun dato personale viene cancellato.
+- Conservata la rimozione della fiducia automatica delle estensioni: l’autorizzazione resta esplicita.
 
 ## 11 ottobre 2026 — 0.40.2.2: Store, menu delle schede e preferenze Smart
 
