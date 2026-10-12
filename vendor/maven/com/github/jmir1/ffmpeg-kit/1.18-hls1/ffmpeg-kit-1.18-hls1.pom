@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.github.jmir1</groupId>
+  <artifactId>ffmpeg-kit</artifactId>
+  <version>1.18-hls1</version>
+  <packaging>aar</packaging>
+  <description>Local ABI-compatible FFmpeg 7.1 MOV/HLS seek backport; see tools/native/README.md.</description>
+</project>

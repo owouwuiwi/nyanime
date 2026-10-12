@@ -1,0 +1,44 @@
+Nyanime native player
+
+The Android wrappers and the native libraries have separate licenses. A MIT
+wrapper does not change the license of libmpv or of the libraries it links.
+
+mpv-android / AniYomi MPV bridge
+Copyright (c) 2016 Ilya Zhuravlev and sfan5, and subsequent contributors.
+Android bridge: MIT; its original license is included separately.
+https://github.com/aniyomiorg/aniyomi-mpv-lib
+Gradle coordinate 1.18.n resolves to the unchanged upstream binary 1.17.n.
+Binary source: https://github.com/jmir1/mpv-android
+Source revision: 484373b7cb772d43405c4312af1ad4f508f6dbd0.
+
+libmpv
+Copyright the mpv, MPlayer and mplayer2 contributors, as recorded in source.
+GPL-2.0-or-later. The shipped player links GPL/version3 FFmpeg libraries;
+distribution of the combined player follows GPL-3.0 requirements.
+https://github.com/mpv-player/mpv
+
+FFmpegKit
+Copyright the FFmpegKit contributors, including Taner Sener and the
+maintainers of the Android player integration; original notices are retained.
+Android bridge: LGPL-3.0. The included FFmpeg build enables GPL and version3.
+https://github.com/jmir1/ffmpeg-kit
+Release 1.18, source revision 0f1bfb5d9ca2711e723406b25f0aa6a0c1500826.
+
+FFmpeg
+Copyright the FFmpeg contributors, as recorded in the corresponding source.
+The shipped native build is GPL-3.0-or-later, not an LGPL-only build.
+The Nyanime maintenance artifact 1.18-hls1 changes libavformat only.
+FFmpeg n7.1: b08d7969c550a804a59511c7b83f2dd8cc0499b8.
+Changes: HLS/MOV seek backport and preservation of the optional force_mpegts
+setting. Source, configuration and patches: tools/native in the source repo.
+https://github.com/owouwuiwi/nyanime
+
+TorrServer
+Copyright Secozzi and the TorrServer contributors; GPL-3.0.
+https://gitlab.com/Secozzi/torrserver
+Release 0.1.1: 0b03be8e9cbd6330a5f75397d8856efc1bd35376.
+
+Application source, native source revisions and build information are linked
+from Nyanime's release and licensing pages. The source index explicitly records
+provenance limitations in the original upstream native build. Production signing keys are not needed to build your own APK;
+use your own signing key or the local debug variant.

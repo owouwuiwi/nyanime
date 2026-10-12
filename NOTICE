@@ -1,0 +1,24 @@
+Nyanime
+Copyright (c) 2026 owouwuiwi and Nyanime contributors.
+
+This copyright notice applies to original Nyanime contributions only.
+Each contributor retains the rights to their own contributions. It does not
+claim ownership of inherited code, dependencies, artwork or third-party data.
+
+Nyanime's original application contributions are licensed under the Apache
+License, Version 2.0. The license text is provided in LICENSE. Separately
+licensed components retain their own licenses and distribution requirements.
+
+Nyanime is derived from AniYomi, Mihon and Tachiyomi. Original attribution
+notices are preserved, including:
+
+Copyright (c) 2015 Javier Tomás
+Copyright (c) 2024 Mihon Open Source Project
+Copyright (c) 2024 Aniyomi Open Source Project
+
+Inherited file headers, the project history and component-specific notices
+identify further contributors and copyright holders. See docs/credits.md
+and docs/licensing.md for attribution and distribution information.
+
+This NOTICE provides attribution; it does not modify any license, grant
+additional trademark rights or replace third-party license texts.
