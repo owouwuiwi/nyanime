@@ -20,6 +20,7 @@ distribuito come APK.
 
 - Codice dell'app, istruzioni di compilazione e patch pubblici, con un archivio dei sorgenti e hash per ogni nuova release.
 - Copyright Nyanime per i contributi originali, Apache 2.0 conservata e attribuzioni upstream mantenute. Le licenze dei componenti nativi restano distinte e sono consultabili nell'app.
+- Il canale Consigliati propone la nuova versione; i client con la vecchia firma continuano a trovare il ponte di migrazione, conservato con APK e link originali.
 
 ### Verifiche
 

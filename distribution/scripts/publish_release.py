@@ -185,9 +185,12 @@ def canonical_snapshot_date():
         ref = 'refs/tags/' + alias
         if not subprocess.run(['git', 'cat-file', '-e', ref + '^{commit}'], capture_output=True).returncode == 0:
             git('fetch', 'origin', ref + ':' + ref)
-        # Freeze the ordering relative to the last unchanged bridge, rather than
-        # "yesterday": otherwise future dates would hide it from first-generation clients.
-        return (datetime.fromisoformat(git('log', '-1', '--format=%cI', ref)) - timedelta(seconds=1)).isoformat()
+        # GitHub groups releases by UTC commit day, then publication time. A
+        # one-second difference within the same day still hides the bridge.
+        # Freeze the previous UTC day relative to the unchanged bridge, rather
+        # than today's date, so this remains correct for future publications.
+        bridge = datetime.fromisoformat(git('log', '-1', '--format=%cI', ref)).astimezone(timezone.utc)
+        return (bridge - timedelta(days=1)).replace(hour=23, minute=59, second=59, microsecond=0).isoformat()
     return (datetime.now(timezone.utc) - timedelta(days=1)).replace(hour=23, minute=59, second=59, microsecond=0).isoformat()
 
 

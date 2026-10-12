@@ -49,10 +49,21 @@ class PublicDistributionTest(unittest.TestCase):
             previous = Path.cwd()
             try:
                 os.chdir(root)
-                with patch.object(publisher.subprocess, 'run', return_value=types.SimpleNamespace(returncode=0)), \
-                        patch.object(publisher, 'git', return_value='2026-01-01T12:00:00+00:00') as git:
-                    self.assertEqual(publisher.canonical_snapshot_date(), '2026-01-01T11:59:59+00:00')
-                    git.assert_called_once_with('log', '-1', '--format=%cI', 'refs/tags/r100')
+                for bridge_date, expected in [
+                    ('2026-01-01T12:00:00+00:00', '2025-12-31T23:59:59+00:00'),
+                    ('2026-01-01T00:00:00+00:00', '2025-12-31T23:59:59+00:00'),
+                    ('2026-01-01T23:30:00-02:00', '2026-01-01T23:59:59+00:00'),
+                ]:
+                    with self.subTest(bridge_date=bridge_date), \
+                            patch.object(publisher.subprocess, 'run', return_value=types.SimpleNamespace(returncode=0)), \
+                            patch.object(publisher, 'git', return_value=bridge_date) as git:
+                        actual = publisher.canonical_snapshot_date()
+                        self.assertEqual(actual, expected)
+                        # Only an earlier UTC day prevents a later publication
+                        # from overtaking the bridge in the grouped release feed.
+                        self.assertLess(datetime.fromisoformat(actual).date(),
+                                        datetime.fromisoformat(bridge_date).astimezone(timezone.utc).date())
+                        git.assert_called_once_with('log', '-1', '--format=%cI', 'refs/tags/r100')
             finally:
                 os.chdir(previous)
 
