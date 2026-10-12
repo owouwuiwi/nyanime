@@ -7,8 +7,13 @@ import json
 import re
 import shutil
 import subprocess
+import sys
+import time
+import urllib.request
 import zipfile
 from pathlib import Path, PurePosixPath
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 PUBLIC_REPOSITORY = 'owouwuiwi/nyanime'
 CERTIFICATE = '7DD368792C4D94D1186CC4B0E2AD6C2F34FCE5DD37F19C6A1BAB45106FFC136B'
@@ -94,7 +99,35 @@ def archive_source(destination, source_directory, version):
         if package.testzip():
             raise ValueError('Invalid source archive')
 
-def prepare_bundle(output, apk_directory, version, code, channel, notes, revision):
+def native_materials(manifest, destination, cache=None):
+    """Retain hash-pinned materials, either locally supplied or publicly downloadable."""
+    for name, record in manifest['sourcePackages'].items():
+        if not re.fullmatch(r'Nyanime-Native-\d+\.\d+\.\d+\.\d+-[a-z0-9-]+\.tar\.gz', name):
+            raise ValueError('Unexpected native-source package name')
+        target = destination / name
+        local = cache / name if cache else None
+        if local and local.is_file():
+            shutil.copyfile(local, target)
+        else:
+            url = record['url']
+            if not url.startswith(f'https://github.com/{PUBLIC_REPOSITORY}/releases/download/v') or not url.endswith('/' + name):
+                raise ValueError('Native sources must accompany a public Nyanime release')
+            for attempt in range(3):
+                try:
+                    with urllib.request.urlopen(url, timeout=90) as response, target.open('wb') as file:
+                        shutil.copyfileobj(response, file, length=1024 * 1024)
+                    break
+                except (OSError, TimeoutError):
+                    target.unlink(missing_ok=True)
+                    if attempt == 2:
+                        raise
+                    time.sleep(2)
+        with target.open('rb') as file:
+            if hashlib.file_digest(file, 'sha256').hexdigest() != record['sha256']:
+                raise ValueError('Native-source archive hash mismatch')
+
+
+def prepare_bundle(output, apk_directory, version, code, channel, notes, revision, materials=None):
     if not re.fullmatch(r'\d+\.\d+\.\d+\.\d+', version):
         raise ValueError('Invalid OTA version')
     if channel not in {'preview', 'recommended'}:
@@ -141,6 +174,18 @@ def prepare_bundle(output, apk_directory, version, code, channel, notes, revisio
                 'certificateSha256': CERTIFICATE, 'sha256': hashes,
                 'sourceRevision': git('rev-parse', revision).decode().strip(),
                 'sourceSha256': {source_name: source_hash}}
+    native = docs / 'tools/native/distribution.json'
+    if native.is_file():
+        from scripts.verify_native_distribution import validate
+        declaration = json.loads(native.read_text())
+        native_materials(declaration, assets, materials)
+        name = f'Nyanime-Native-Manifest-{version}.json'
+        shutil.copyfile(native, assets / name)
+        metadata.update(schema=4, nativeManifest=name)
+        metadata['sourceSha256'][name] = hashlib.sha256(native.read_bytes()).hexdigest()
+        metadata['sourceSha256'].update({key: item['sha256'] for key, item in declaration['sourcePackages'].items()})
+        for abi in ABIS:
+            validate(assets / f'{ASSET_PREFIX}-{version}-{abi}.apk', declaration, assets)
     (output / 'publication.json').write_text(json.dumps(metadata, indent=2) + '\n', encoding='utf-8')
 
 def main():
@@ -152,9 +197,10 @@ def main():
     parser.add_argument('--channel', required=True)
     parser.add_argument('--notes', required=True, type=Path)
     parser.add_argument('--revision', default='HEAD')
+    parser.add_argument('--native-materials', type=Path)
     args = parser.parse_args()
     prepare_bundle(args.output, args.apk_directory, args.version, args.code,
-                   args.channel, args.notes, args.revision)
+                   args.channel, args.notes, args.revision, args.native_materials)
 
 if __name__ == '__main__':
     main()
