@@ -100,6 +100,13 @@ while a player, reader or Cast session is busy. The original local save remains 
 active use. Android WorkManager provides best-effort background recovery; there is no Firebase or
 permanent synchronization service.
 
+The status panel separates the last successful reconciliation from the last confirmed data upload.
+An empty archive check updates only local verification metadata, without publishing heartbeat messages.
+Periodic empty checks retain the settled status; explicit checks and pending work show their activity.
+Verification requires a ready Telegram connection and a completed history pass, not cached authorization.
+Operation-owned deadlines produce retryable transport errors while caller cancellation remains cancellation.
+This preserves the foreground loop and queued envelope identities after interrupted uploads/downloads.
+
 Preferences use persisted projection intents plus an off-main-thread disk barrier before receipt
 acknowledgment. A complete checkpoint confirms outgoing revisions only after every encrypted part
 and its signed commit have server receipts. Interrupted sends retain envelope identity and queued

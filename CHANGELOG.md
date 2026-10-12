@@ -14,62 +14,136 @@ distribuito come APK.
 - Il codice e la cronologia completa sono conservati nella repository privata; APK firmati, documentazione e changelog rimangono pubblici.
 - Gli aggiornamenti conservano gli indirizzi storici e le release compatibili con i primi updater, senza cambiare firma o identificativo dell'app.
 
+## 12 ottobre 2026 — 0.42.0.0: Aggiornamenti più leggibili
+
+### Novità
+
+- Schermata aggiornamenti con riepilogo delle versioni, cronologia espandibile e schede con categorie, icone e colori leggibili anche per compatibilità, interfaccia, sicurezza, distribuzione, verifiche e limitazioni.
+- I nuovi changelog dichiarano le categorie delle modifiche; lo storico incluso nell’app è stato riclassificato e le vecchie note online non strutturate sono riconoscibili come «Note originali», senza classificazioni automatiche.
+- La cronologia delle versioni successive a quella installata viene recuperata separatamente, senza ritardare download e installazione.
+- Impostazioni → Info apre lo storico completo dentro Nyanime, disponibile anche senza rete; le categorie delle note storiche sono state revisionate conservando tutti i testi originali.
+
+### Correzioni
+
+- Il recupero del sync dopo la rimozione del canale Telegram può verificare le vecchie autorizzazioni nell’archivio sostitutivo quando mancano le copie locali, conservando identità, firme e modifiche in attesa.
+
+### Prestazioni
+
+- Espansioni coordinate, scorrimento unico e comandi sempre raggiungibili, con supporto ai temi, ai testi grandi e alle animazioni ridotte.
+
+### Distribuzione
+
+- Da questa versione i nuovi APK usano soltanto il pacchetto `it.owouwuiwi.nyanime` e il certificato di produzione. La 0.41.0.6 resta disponibile come ponte per trasferire i dati dalla vecchia app; i suoi APK non vengono sostituiti.
+
+## 12 ottobre 2026 — 0.41.0.7: Stato della sincronizzazione più chiaro
+
+### Novità
+
+- Il Cloud distingue l’ultimo controllo riuscito dall’ultimo invio dei dati: un archivio già aggiornato non sembra più fermo a un orario precedente.
+
+### Prestazioni
+
+- I controlli periodici senza nuove modifiche mantengono stabile lo stato; i controlli manuali e le operazioni in attesa restano visibili.
+
+### Correzioni
+
+- Gli avvisi indicano il prossimo tentativo automatico e non dichiarano aggiornato il dispositivo quando Telegram non è connesso.
+- I timeout di connessione, controllo, invio e ricezione diventano errori recuperabili: non interrompono il ciclo automatico e conservano gli invii già accodati.
+
 ## 12 ottobre 2026 — 0.41.0.6: Trasferimento e sync più affidabili
 
-- Se il canale privato Telegram del sync viene eliminato, l’app ricrea l’archivio e ripubblica i dati locali senza cambiare l’identità dei dispositivi. Gli errori del canale non vengono più mostrati come assenza di connessione.
+### Compatibilità
+
+- L’aggiornamento ordinario conserva il vecchio pacchetto e la vecchia firma; il passaggio alla nuova identità rimane facoltativo.
+
+### Novità
+
 - Il trasferimento usa una copia separata: la versione precedente torna utilizzabile appena la preparazione termina.
 - Aggiunti annullamento, ripristino dei dati precedenti in caso di errore e codici diagnostici leggibili.
 - Il trasferimento può essere ripetuto dalle impostazioni anche dopo aver configurato la nuova app senza dati.
 - Dopo la conferma, l’accesso alla cartella condivisa viene trasferito quando Android lo permette; altrimenti la procedura guida alla selezione della stessa cartella. I permessi vengono verificati prima di preparare i dati, senza bloccare la vecchia app.
-- L’aggiornamento ordinario conserva il vecchio pacchetto e la vecchia firma; il passaggio alla nuova identità rimane facoltativo.
 - Dopo l’aggiornamento, la vecchia app propone una sola volta il passaggio alla nuova Nyanime. «Non ora» mantiene la versione attuale utilizzabile; l’azione resta disponibile nelle impostazioni.
-- La sostituzione dei database comprende i relativi file temporanei: corretto il trasferimento verso una nuova app già aperta e configurata, conservando il ripristino completo in caso di errore.
-- Il passaggio alla nuova app usa soltanto APK effettivamente pubblicati e compatibili: una release in preparazione non apre più un collegamento inesistente.
 - La procedura distingue preparazione, copia e verifica; il completamento rimane visibile anche ruotando lo schermo. La percentuale indica soltanto la copia, senza sembrare bloccata durante i controlli finali.
 - Dopo un trasferimento verificato, il primo ingresso nella nuova app propone di disinstallare la precedente con conferma di Android. «Non ora» rimanda la scelta; il comando rimane nelle impostazioni.
 
+### Correzioni
+
+- Se il canale privato Telegram del sync viene eliminato, l’app ricrea l’archivio e ripubblica i dati locali senza cambiare l’identità dei dispositivi. Gli errori del canale non vengono più mostrati come assenza di connessione.
+- La sostituzione dei database comprende i relativi file temporanei: corretto il trasferimento verso una nuova app già aperta e configurata, conservando il ripristino completo in caso di errore.
+- Il passaggio alla nuova app usa soltanto APK effettivamente pubblicati e compatibili: una release in preparazione non apre più un collegamento inesistente.
+
 ## 12 ottobre 2026 — 0.41.0.2: Ripristino della versione originale
 
-- Ripristinati il pacchetto e la firma precedenti: questo aggiornamento si installa sulla Nyanime originale, mantenendone dati e impostazioni.
-- Rimossi il trasferimento fra le due app, la relativa guida e il blocco di avvio: la versione originale torna direttamente alla Home, anche dopo un tentativo interrotto.
-- Ritirata dall’OTA la versione con la nuova identità. Nessuna app viene disinstallata automaticamente e nessun dato personale viene cancellato.
+### Sicurezza
+
 - Conservata la rimozione della fiducia automatica delle estensioni: l’autorizzazione resta esplicita.
 
+### Correzioni
+
+- Ritirata dall’OTA la versione con la nuova identità. Nessuna app viene disinstallata automaticamente e nessun dato personale viene cancellato.
+- Ripristinati il pacchetto e la firma precedenti: questo aggiornamento si installa sulla Nyanime originale, mantenendone dati e impostazioni.
+- Rimossi il trasferimento fra le due app, la relativa guida e il blocco di avvio: la versione originale torna direttamente alla Home, anche dopo un tentativo interrotto.
+
 ## 11 ottobre 2026 — 0.40.2.2: Store, menu delle schede e preferenze Smart
+
+### Novità
+
+- Lo Store permette di caricare e aggiornare file RIN locali verificati, conservando i dati dell'estensione e rifiutando pacchetti incompatibili o con provenienza modificata.
+- Anime4K Smart non parte automaticamente nelle nuove installazioni. Gli aggiornamenti mantengono la preferenza esistente, compreso il precedente comportamento predefinito.
+
+### Correzioni
 
 - Ripristinate le immagini precedenti della Home e delle schede: rimosso il sistema sperimentale di copertine, fondali e loghi aggiuntivi, con pulizia delle sue preferenze e cache. Le copertine personalizzate restano conservate.
 - Carosello della Home centrato anche sui tablet, con titolo e segnaposto allineati alla copertina senza spostare i controlli di navigazione.
 - Menu «Altre azioni» con scorrimento interno stabile, altezza limitata e chiusura esplicita; eliminata l'oscillazione della finestra arrivando ai bordi della lista.
 - Corretti i comandi di download multiplo che in italiano mostravano soltanto l'icona, senza testo.
-- Lo Store permette di caricare e aggiornare file RIN locali verificati, conservando i dati dell'estensione e rifiutando pacchetti incompatibili o con provenienza modificata.
 - Ripristinata la possibilità di incollare il collegamento di un catalogo di estensioni.
-- Anime4K Smart non parte automaticamente nelle nuove installazioni. Gli aggiornamenti mantengono la preferenza esistente, compreso il precedente comportamento predefinito.
 
 ## 11 ottobre 2026 — 0.40.1.7: Schede in armonia con la Home
 
+### Interfaccia
+
+- Conservati disposizione dei comandi, posizioni di scorrimento, gestione di episodi e capitoli e transizioni delle copertine.
+
+### Novità
+
 - Schede anime e manga con la stessa palette, fondale morbido e testata trasparente della Home, nei temi chiaro e scuro.
 - Superfici evidenziate, sfumature sulle copertine e pulsante di ripresa coordinati con lo stile dell'app; rimossa la palette separata delle schede.
-- Conservati disposizione dei comandi, posizioni di scorrimento, gestione di episodi e capitoli e transizioni delle copertine.
+
+### Correzioni
+
 - Testata delle schede stabile dopo finestre e cambi di sezione; fascia Episodi/Capitoli e Dettagli integrata nel fondale anche quando si fissa sopra la lista, senza lo stacco nero.
 
 ## 11 ottobre 2026 — 0.40.1.4: Stanze e lettura condivisa (in verifica)
+
+### Verifiche
+
+- La verifica completa tra due Android rimane richiesta prima della pubblicazione di questa revisione.
+
+### Novità
 
 - Il creatore sceglie la lettura quando apre un capitolo: gli ospiti aggiornati lo raggiungono al proprio punto, senza sincronizzare le pagine. Un nuovo capitolo dello stesso manga propone «Raggiungi» senza interrompere la lettura.
 - Permessi per scegliere il manga, proposte dei partecipanti e modalità «Leggi per conto tuo». La stanza distingue capitolo ricevuto, apertura, lettura pronta ed errori recuperabili.
 - Controllo dei partecipanti compatto ed espandibile nel lettore; barra e notifica della stanza rappresentano correttamente manga, video o TV.
 - «Usa la mia copia» richiede una scelta esplicita del manga e del capitolo. Tra edizioni diverse, salti precisi e schizzi richiedono pagine originali verificate; immagini e download non vengono modificati.
+
+### Correzioni
+
 - Richieste con scadenza, risposte obsolete ignorate e recupero dei contatori dopo il riavvio. Conservata la compatibilità delle annotazioni e dei client precedenti.
 - Corrette la prima apertura dei capitoli già in cache e la conservazione della scelta condivisa durante il recupero della stanza.
 - Riaprire la lettura dalla barra della stanza conclude correttamente il caricamento anche per il creatore.
 - «Torna al mio punto» compare soltanto nella stanza che ha salvato quel punto. Chiusura, uscita e rinuncia al rientro eliminano il segnalibro; i vecchi segnalibri senza stanza vengono rimossi senza toccare i progressi della libreria.
-- La verifica completa tra due Android rimane richiesta prima della pubblicazione di questa revisione.
 
 ## 11 ottobre 2026 — 0.40.0.1: Guida di benvenuto dalle Impostazioni (consigliata)
+
+### Correzioni
 
 - «Entra in Nyanime» chiude correttamente la guida aperta da Impostazioni → Avanzate. Anche Indietro dal primo passaggio torna alle Impostazioni.
 - La consultazione della guida parte dall’inizio senza modificare il punto di ripresa del primo avvio; le nuove installazioni conservano il percorso guidato e la ripresa dopo un’interruzione.
 
 ## 11 ottobre 2026 — 0.40.0.0: Un benvenuto più semplice (consigliata)
+
+### Novità
 
 - Guida di prima installazione riunita in un percorso: benvenuto, tema, permessi facoltativi, canale degli aggiornamenti e ripristino.
 - Cartella Nyanime creata e verificata automaticamente nello spazio dell’app, senza chiedere dove salvarla né un accesso generale ai file. Una cartella già configurata viene conservata; la scelta di una cartella personale resta nelle Impostazioni.
@@ -79,47 +153,64 @@ distribuito come APK.
 
 ## 11 ottobre 2026 — 0.39.3.0: Ripartenza più semplice e schede stabili (consigliata)
 
+### Novità
+
 - Schermata dopo un crash rinnovata: «Riapri Nyanime» in primo piano, rapporto condivisibile e dettagli dell’errore espandibili, con temi chiaro/scuro e testi italiano/inglese.
-- Preparazione del rapporto fuori dall’interfaccia, con avanzamento, tentativi ripetuti gestiti e possibilità di riprovare in caso di errore. Nessun rapporto viene inviato automaticamente.
-- Le schede anime e manga mantengono la lista durante il passaggio dal caricamento ai contenuti: sottotitolo, avanzamento e pulsante di ripresa conservano i loro spazi e appaiono con una dissolvenza.
 - Testata Home riordinata: indicatore delle novità a sinistra del pulsante delle stanze, con posizioni fisse anche quando non ci sono nuovi contenuti.
 - Rimosso il pulsante grande del backup da Altro; creazione e ripristino restano disponibili nelle Impostazioni.
 
+### Correzioni
+
+- Le schede anime e manga mantengono la lista durante il passaggio dal caricamento ai contenuti: sottotitolo, avanzamento e pulsante di ripresa conservano i loro spazi e appaiono con una dissolvenza.
+
+### Prestazioni
+
+- Preparazione del rapporto fuori dall’interfaccia, con avanzamento, tentativi ripetuti gestiti e possibilità di riprovare in caso di errore. Nessun rapporto viene inviato automaticamente.
+
 ## 11 ottobre 2026 — 0.39.2.1: Home, fluidità e PiP (consigliata)
 
-### Correzione del Picture-in-Picture
+### Interfaccia
 
-- Il gesto di chiusura del mini-player disattiva subito il PiP automatico, prima dell'animazione di uscita: tornare immediatamente alla Home del telefono non riduce più la Home di Nyanime nella finestrella. Una chiusura annullata o rifiutata dalla stanza ripristina il comportamento del player.
-
-- Chiudere il player revoca subito il PiP automatico: uscire dall'app senza un video non riduce più la Home in una finestra.
-- Il PiP segue la schermata che ospita il video, senza restare attivo su quella precedente; l'ingresso richiede una sessione video locale disponibile.
-
-### Interfaccia più fluida
-
-- Copertine già in memoria mostrate subito, senza ripetere l'animazione a ogni scorrimento; un'unica dissolvenza per le nuove immagini.
-- Aggiornamenti delle righe della Home indipendenti, conservando posizione e immagini durante il caricamento delle altre sezioni.
-- Tornare dalla Libreria e aggiornare la Home mantiene le copertine già caricate e la selezione del carosello; le risposte parziali non fanno sparire e ricomparire i titoli.
-- Il refresh riprova le immagini fallite senza riavviare quelle sane; il carosello sospende la rotazione durante l'aggiornamento e quando si lascia la Home.
-- Preparazione della libreria unificata fuori dall'interfaccia, mantenendo la lista visibile durante ricerca e aggiornamenti.
-- Controlli del player aggiornati soltanto dove serve il minutaggio, senza ridisegnare gli strumenti durante la riproduzione.
 - Conservati grafica, sfocatura, qualità delle transizioni e rispetto delle animazioni ridotte.
 
-### Home in continuità
+### Novità
 
 - Testata più morbida: le copertine scorrono sotto le categorie, con sfocatura graduale e senza lo stacco nero.
+
+### Correzioni
+
+- Il gesto di chiusura del mini-player disattiva subito il PiP automatico, prima dell'animazione di uscita: tornare immediatamente alla Home del telefono non riduce più la Home di Nyanime nella finestrella. Una chiusura annullata o rifiutata dalla stanza ripristina il comportamento del player.
+- Chiudere il player revoca subito il PiP automatico: uscire dall'app senza un video non riduce più la Home in una finestra.
+- Il PiP segue la schermata che ospita il video, senza restare attivo su quella precedente; l'ingresso richiede una sessione video locale disponibile.
+- Tornare dalla Libreria e aggiornare la Home mantiene le copertine già caricate e la selezione del carosello; le risposte parziali non fanno sparire e ricomparire i titoli.
 - Logo, categorie e comandi restano nitidi e fermi; l'effetto è presente dall'apertura e non si accende durante lo scorrimento.
 - Ombre e sfondi accompagnano la copertina nel ritorno alla Home, senza zone scoperte durante il movimento.
 - Copertina e titolo restano continui durante l'apertura della scheda, anche quando il caricamento termina a metà animazione.
 - Spaziatura adattata alla testata reale, anche con categorie su più righe e caratteri grandi; mantenuti temi chiaro/scuro e caricamenti discreti.
 
+### Prestazioni
+
+- Copertine già in memoria mostrate subito, senza ripetere l'animazione a ogni scorrimento; un'unica dissolvenza per le nuove immagini.
+- Aggiornamenti delle righe della Home indipendenti, conservando posizione e immagini durante il caricamento delle altre sezioni.
+- Il refresh riprova le immagini fallite senza riavviare quelle sane; il carosello sospende la rotazione durante l'aggiornamento e quando si lascia la Home.
+- Preparazione della libreria unificata fuori dall'interfaccia, mantenendo la lista visibile durante ricerca e aggiornamenti.
+- Controlli del player aggiornati soltanto dove serve il minutaggio, senza ridisegnare gli strumenti durante la riproduzione.
+
 ## 10 ottobre 2026 — 0.39.1.1: Passaggio rapido tra anime e manga (consigliata)
 
+### Novità
+
 - Il collegamento identifica l’opera e cerca automaticamente una copia nelle fonti abilitate, anche fuori dalla libreria; gli ID discordanti impediscono l’apertura automatica.
-- Le copie verificate compaiono senza aspettare i riferimenti sui capitoli. Un tocco durante la ricerca apre la destinazione appena pronta, senza dover ripetere il comando.
-- Cache privata delle copie già riconosciute, mantenuta anche al riavvio, e richieste limitate e annullabili in entrambe le direzioni.
 - Stato di ricerca discreto, scelta delle copie e messaggi in italiano e inglese; nessun capitolo o episodio viene stimato.
 
+### Prestazioni
+
+- Le copie verificate compaiono senza aspettare i riferimenti sui capitoli. Un tocco durante la ricerca apre la destinazione appena pronta, senza dover ripetere il comando.
+- Cache privata delle copie già riconosciute, mantenuta anche al riavvio, e richieste limitate e annullabili in entrambe le direzioni.
+
 ## 10 ottobre 2026 — 0.39.1.0: Aggiornamenti più semplici (consigliata)
+
+### Novità
 
 - Nuova pagina degli aggiornamenti: tutte le novità subito leggibili, versione installata a confronto e un solo pulsante sempre raggiungibile.
 - «Aggiorna» mostra download e verifica, poi apre l’installazione protetta con la conferma di Android; permessi e annullamento restano gestibili senza aperture ripetute.
@@ -127,17 +218,32 @@ distribuito come APK.
 
 ## 10 ottobre 2026 — 0.39.0.3: Vignette nel verso giusto (consigliata)
 
+### Compatibilità
+
+- Conservate le sequenze riordinate a mano e la compatibilità dei backup precedenti; la ripresa identifica il riquadro attraverso la sua posizione nella pagina.
+
+### Novità
+
 - Ordine delle vignette indipendente dalla modalità di scorrimento: da destra a sinistra per i manga, con scelta per titolo fra destra a sinistra, sinistra a destra e dall’alto in basso.
+
+### Correzioni
+
 - Lo scorrimento verticale continua ad avanzare verso l’alto; cambiare ordine conserva la vignetta inquadrata e lo zoom, senza riavviare il riconoscimento.
 - Dopo la rotazione il lettore ricrea la vista nella nuova schermata e ripristina la vignetta, senza riutilizzare componenti già distrutti.
-- Conservate le sequenze riordinate a mano e la compatibilità dei backup precedenti; la ripresa identifica il riquadro attraverso la sua posizione nella pagina.
 
 ## 10 ottobre 2026 — 0.39.0.2: Pubblicazione OTA affidabile (consigliata)
 
-- Pubblicazione OTA indipendente dalla quota degli artefatti Actions: trasferimento privato verificato, senza esporre il codice o cambiare gli APK già pubblicati.
+### Distribuzione
+
 - Conservato il pacchetto temporaneo in caso di errore, con eliminazione dopo la conferma della release pubblica e dei riferimenti al codice privato.
 
+### Correzioni
+
+- Pubblicazione OTA indipendente dalla quota degli artefatti Actions: trasferimento privato verificato, senza esporre il codice o cambiare gli APK già pubblicati.
+
 ## 10 ottobre 2026 — 0.39.0.1: Video dentro Nyanime (consigliata)
+
+### Novità
 
 - Pagina di visione con video in alto, titolo, prossimo episodio, ricerca e filtri degli episodi, contenuti correlati e consigliati disponibili.
 - Avvio diretto nella pagina di visione o a schermo intero, selezionabile dalle impostazioni del player; un lettore manga in background non riduce il video appena aperto.
@@ -145,60 +251,83 @@ distribuito come APK.
 - Mini player senza comandi sovrapposti: un tocco riapre il video, un trascinamento deciso oltre il bordo inferiore lo chiude con una breve uscita animata.
 - Espansione e riduzione tramite gesti e pulsante Indietro, conservando la stessa sessione video, il punto di riproduzione e gli strumenti del player a schermo intero.
 - Trascinamento ancorato al dito: dalla pagina il video si riduce verso il bordo inferiore; dallo schermo intero scende senza cambiare dimensioni fino al rilascio, poi torna alla pagina verticale.
-- Superficie video stabile durante le animazioni, con un solo tempo di movimento e riposizionamento coerente quando cambia l'orientamento.
 - Linea sottile nella pagina di visione, con caricamento nella stessa linea e pallino che cresce durante il seek; a schermo intero torna la barra originale con segmenti, tempi e colori del tema.
 - Il trascinamento orizzontale del video per avanzare o tornare indietro funziona soltanto a schermo intero.
-- Il punto scelto resta stabile al rilascio della barra fino alla conferma del player, senza tornare al progresso precedente; minutaggio e pulsante schermo intero avvicinati alla linea, con aree di tocco distinte.
 - Play e pausa condividono una trasformazione continua tra pagina, schermo intero e stanze; feedback elastico dei pulsanti e del pallino, rispettando le animazioni ridotte.
 - Barra della pagina con gradiente arancione-rosso e colore distinto per il video già caricato; avanzamento ordinario interpolato senza ritardare il trascinamento o animare uno spostamento richiesto.
+- Audio in background abilitato inizialmente, disattivabile nelle impostazioni del player, con notifica e controlli di sistema; PiP fuori dall'app quando abilitato.
+- Dirette interne nella stessa pagina di visione, con informazioni e scelta dei canali disponibili.
+- Nelle stanze aggiornate, chiudere il video locale mantiene la partecipazione come osservatore, senza fermare gli altri. Rientro esplicito dal pannello della stanza; limitazioni segnalate con partecipanti su versioni precedenti.
+
+### Correzioni
+
+- Superficie video stabile durante le animazioni, con un solo tempo di movimento e riposizionamento coerente quando cambia l'orientamento.
+- Il punto scelto resta stabile al rilascio della barra fino alla conferma del player, senza tornare al progresso precedente; minutaggio e pulsante schermo intero avvicinati alla linea, con aree di tocco distinte.
 - Il PiP mantiene le dimensioni del buffer nativo: cambia la finestra visibile senza esporre un vecchio fotogramma ritagliato durante il ridimensionamento.
 - Il ritorno in verticale conserva il fotogramma a schermo intero fino alla nuova disposizione della finestra, evitando un ridimensionamento intermedio prima della rotazione.
 - Durante la rotazione il fotogramma viene disegnato nella finestra prima del cambio di orientamento; la superficie video rimane collegata ma nascosta sotto di esso, senza esporre trasformazioni separate.
 - Il ritorno da schermo intero viene animato dal player nella nuova finestra verticale, evitando la rotazione del vecchio fotogramma da parte del sistema; barre di sistema ripristinate dopo il cambio.
 - Scheda di fine episodio compatibile con lo scorrimento della pagina di visione, senza arresti durante il conto alla rovescia.
 - Corretto il salvataggio ripetuto della cronologia con Cloud attivo: la coda conserva l'ultima revisione senza bloccare il progresso locale.
-- La nuova selezione viene preparata mentre il video attuale continua; selezioni superate vengono annullate e un errore di preparazione conserva il contenuto precedente.
-- Audio in background abilitato inizialmente, disattivabile nelle impostazioni del player, con notifica e controlli di sistema; PiP fuori dall'app quando abilitato.
-- Dirette interne nella stessa pagina di visione, con informazioni e scelta dei canali disponibili.
-- Nelle stanze aggiornate, chiudere il video locale mantiene la partecipazione come osservatore, senza fermare gli altri. Rientro esplicito dal pannello della stanza; limitazioni segnalate con partecipanti su versioni precedenti.
 - Proprietà della riproduzione separata dalle schermate, con protezioni per superfici sostituite, callback tardivi e chiusura delle risorse native.
 - Adattamento delle pagine affiancate alle dimensioni effettivamente decodificate, anche dopo il ritaglio dei bordi.
 
+### Prestazioni
+
+- La nuova selezione viene preparata mentre il video attuale continua; selezioni superate vengono annullate e un errore di preparazione conserva il contenuto precedente.
+
 ## 9 ottobre 2026 — 0.38.0.0: Manga a due pagine (consigliata)
+
+### Novità
 
 - Opzione Spread nella scelta della modalità di lettura: due pagine affiancate e unite al centro, in verticale e orizzontale, con lettura paginata o scorrimento continuo a coppie.
 - Abbinamento regolabile per capitolo, con anteprima, pagine singole iniziali e un valore predefinito per tutto il manga.
 - Panoramiche, pagine lunghe e ultima pagina dispari restano singole; rispettata la direzione di lettura.
 - Zoom condiviso, navigazione e indicazione delle pagine originali, senza unire le immagini o cambiare i riferimenti di condivisione e stanze.
+
+### Correzioni
+
 - Una pagina ancora in caricamento o non visibile non completa il capitolo. Configurazione inclusa nei backup completi, con compatibilità dei backup precedenti.
 - Conservati lettura singola, lettura guidata e relative preferenze; corretti i controlli di separazione e inversione delle pagine nel lettore paginato.
 
 ## 9 ottobre 2026 — 0.36.0.2: Lettura guidata stabile e TV nello Store (anteprima)
+
+### Correzioni
 
 - Pagina intera e vignetta adattata allo schermo rimangono ferme; il trascinamento esplora l'immagine solo dopo un ingrandimento manuale.
 - Pinch e doppio tap permettono di ingrandire; tornando allo zoom iniziale, l'immagine recupera il focus senza mantenere spostamenti accidentali.
 - Il focus segue subito lo spazio disponibile dopo rotazione o comparsa e scomparsa delle barre, senza assestarsi al primo trascinamento.
 - Gli swipe cambiano vignetta senza trascinare prima la pagina e senza interrompere la transizione appena iniziata.
 - Il punto di lettura distingue il focus automatico dallo zoom personale, anche dopo rotazione o ripristino; conservati attivazione per titolo, correzioni e backup precedenti.
-- La build OTA libera gli intermedi dopo la verifica degli APK e prima della firma, riducendo lo spazio occupato senza eliminare gli APK o i controlli di integrità.
 - Le estensioni TV multilingua sono visibili nello Store anche sui telefoni dove non sono ancora installate, con i filtri italiano e inglese; invariati i filtri linguistici di anime e manga.
+
+### Prestazioni
+
+- La build OTA libera gli intermedi dopo la verifica degli APK e prima della firma, riducendo lo spazio occupato senza eliminare gli APK o i controlli di integrità.
 
 ## 9 ottobre 2026 — 0.36.0.1: TV in diretta (consigliata)
 
+### Novità
+
 - Il player distingue problemi temporanei di rete, indirizzi non raggiungibili, accesso rifiutato e formati non supportati.
-- I collegamenti definitivamente falliti non vengono riprovati in continuazione: si provano le alternative dello stesso canale e un nuovo recupero dei collegamenti dall’estensione.
 - Quando una diretta resta indisponibile, il player mostra il motivo e permette di scegliere un altro canale; un catalogo non garantisce che ogni trasmissione sia raggiungibile.
 - La diagnostica del player live conserva soltanto il tipo di errore, senza indirizzi video, header o credenziali.
 - Home TV facoltativa, alimentata dalle estensioni compatibili: canali, preferiti ordinabili, recenti e programmi in onda.
 - Guida a lista o griglia, filtri di paese, lingua e categoria; palinsesti salvati e caricamenti progressivi per i canali aperti.
 - Canali ricercabili in Atlante e condivisibili con link Nyanime senza indirizzi di streaming o credenziali.
 - Player live dedicato con PiP, audio, sottotitoli e funzioni abilitate soltanto quando supportate; nessun episodio fittizio, tracking o AniSkip sui canali.
-- Cambio canale e riconnessione conservano il lettore live; il ritorno dal PiP al canale già in riproduzione evita un caricamento aggiuntivo.
 - Le stanze esistenti supportano la scelta del canale da parte dell’host; pausa e buffering restano locali. Il ritardo è verificato solo quando sono disponibili riferimenti temporali affidabili.
 - Cast live per ricevitori compatibili e telecomando verticale; preferiti e scelte TV inclusi nei backup delle impostazioni.
 - Contratto RIN TV separato e generico, con controlli di compatibilità e firma; nessun catalogo o parser di una fonte nell’app.
 
+### Prestazioni
+
+- I collegamenti definitivamente falliti non vengono riprovati in continuazione: si provano le alternative dello stesso canale e un nuovo recupero dei collegamenti dall’estensione.
+- Cambio canale e riconnessione conservano il lettore live; il ritorno dal PiP al canale già in riproduzione evita un caricamento aggiuntivo.
+
 ## 9 ottobre 2026 — 0.35.0.0: Lettura guidata (anteprima)
+
+### Novità
 
 - Nuova lettura guidata facoltativa, ricordata per titolo, per manga, fumetti e webtoon: focus sulle vignette, zoom libero e ritorno alla pagina intera.
 - Navigazione tramite tocchi, scorrimento e tasti configurati; transizioni di posizione e zoom coordinate e rispettose delle animazioni ridotte.
@@ -210,31 +339,46 @@ distribuito come APK.
 
 ## 9 ottobre 2026 — 0.34.0.0: Guide episodi, Atlante e nuovo logo
 
+### Compatibilità
+
+- Ricerca esatta, filtri, limiti di richieste e protezioni per stagioni ed edizioni rimangono disponibili.
+
+### Novità
+
 - Nuova categoria «Guide» nello Store, con estensioni facoltative aggiornabili separatamente.
 - Guida nella scheda anime, badge discreti per filler e misti, associazione e numerazione correggibili.
 - Nascondere i filler e saltarli automaticamente sono scelte separate, disattivate inizialmente; il salto può seguire una preferenza globale o specifica del titolo.
 - Player, autoplay e Cast condividono la scelta del prossimo episodio; nelle stanze decide l'host. Gli episodi aperti esplicitamente vengono riprodotti e quelli saltati non diventano visti.
 - Dati salvati disponibili offline, richieste condivise e annullabili, classificazioni incerte lasciate sconosciute. Preferenze e correzioni sono incluse nei backup.
 - Nuova icona e logo della Home e di Altro vettoriali, con fori trasparenti e risorse separate per tema chiaro e scuro. La N ha più margine nell'icona, con sfondo bianco nell'aspetto chiaro e nero in quello scuro. Gli asset precedenti sono conservati per poterli ripristinare.
-
-### Atlante: risultati più pertinenti
-
 - Tutti i risultati restano nella stessa griglia: titoli completi e nomi alternativi verificati precedono corrispondenze parziali e risultati meno pertinenti.
 - L'ordine dipende dalla pertinenza e dalle fonti configurate, anche quando le risposte arrivano in momenti diversi o vengono caricate altre pagine.
-- Conservati gli alias già disponibili durante risposte incomplete e aggiornamenti della Home; le alternative di fonte rimangono apribili.
-- Riordino fuori dal percorso grafico, schede con identità stabile e transizioni brevi che rispettano le animazioni ridotte.
-- Ricerca esatta, filtri, limiti di richieste e protezioni per stagioni ed edizioni rimangono disponibili.
 - Con corrispondenze convincenti, i titoli estranei restano accessibili con «Mostra altri titoli»; nessun risultato viene perso. Il titolo principale precede i contenuti collegati con nomi più lunghi.
 
+### Correzioni
+
+- Conservati gli alias già disponibili durante risposte incomplete e aggiornamenti della Home; le alternative di fonte rimangono apribili.
+
+### Prestazioni
+
+- Riordino fuori dal percorso grafico, schede con identità stabile e transizioni brevi che rispettano le animazioni ridotte.
+
 ## 8 ottobre 2026 — 0.33.0.1: Tornano le stanze su Nostr (anteprima)
+
+### Compatibilità
+
+- Conservati codici stanza, inviti, lettura insieme e scarabocchi; mantenute le correzioni graduali dei piccoli ritardi e il recupero del buffer dopo una pausa.
+- Backup, accesso Telegram e sincronizzazione personale Cloud rimangono disponibili.
+
+### Correzioni
 
 - Ripristinate le schermate precedenti per creare, raggiungere e gestire le stanze video e manga.
 - Rimossi chat Telegram, gruppi automatici, chiamate e videocamere dalle stanze.
 - Il player torna a schermo intero con i suoi comandi abituali, senza pannelli sociali o modifiche audio legate alle chiamate.
-- Conservati codici stanza, inviti, lettura insieme e scarabocchi; mantenute le correzioni graduali dei piccoli ritardi e il recupero del buffer dopo una pausa.
-- Backup, accesso Telegram e sincronizzazione personale Cloud rimangono disponibili.
 
 ## 8 ottobre 2026 — 0.33.0.0: I tuoi dispositivi, collegati (anteprima)
+
+### Novità
 
 - Sincronizzazione Telegram facoltativa di librerie, categorie, cronologia, progressi video e manga, segnalibri e collegamenti ai tracker.
 - Preferenze condivise con la possibilità di mantenere aspetto, player o lettore diversi su ciascun telefono; conversione dei riferimenti locali per categorie, novità e titoli nascosti.
@@ -246,12 +390,16 @@ distribuito come APK.
 
 ## 8 ottobre 2026 — 0.32.0.10: Protezione opzionale degli aggiornamenti
 
+### Novità
+
 - Nuova capacità generica per addon di recupero, con autorizzazione esplicita e revocabile.
 - Copia completa verificata prima degli aggiornamenti installati nell’app, quando la protezione è abilitata.
 - Esportazione e ripristino isolati dall’avvio normale, con verifica di libreria, progressi e impostazioni.
 - Nessun processo di recupero o backup aggiuntivo in assenza di un addon autorizzato.
 
 ## 8 ottobre 2026 — 0.32.0.9: Stanza compatta e integrata nel player (anteprima)
+
+### Novità
 
 - Una sola barra con partecipanti, Chat, Voce e Video, con comandi secondari nel menu.
 - Il video mantiene quasi tutto lo schermo finché la conversazione non è disponibile.
@@ -261,39 +409,64 @@ distribuito come APK.
 
 ## 8 ottobre 2026 — 0.32.0.8: Comandi della stanza accessibili dal player (anteprima)
 
+### Novità
+
+- Rimossi i comandi della chat duplicati nel pannello della stanza; avviso di chiusura aggiornato per i gruppi temporanei.
+
+### Correzioni
+
 - Pannello dei comandi della stanza sull’intero schermo, senza restringerlo alla nuova area del video.
 - Pulsante Chiudi sempre raggiungibile e tasto Indietro che chiude i pannelli prima di passare in PiP.
-- Rimossi i comandi della chat duplicati nel pannello della stanza; avviso di chiusura aggiornato per i gruppi temporanei.
 
 ## 8 ottobre 2026 — 0.32.0.7: Player condiviso, reazioni e chiusura delle stanze (anteprima)
 
+### Novità
+
 - Video in alto e un solo spazio sottostante per chat, anteprima messaggi, reazioni, voce e videocamera, anche in orizzontale.
 - Ogni partecipante può scegliere un episodio e usare Play, pausa e ricerca nella riproduzione; Nostr mantiene un unico ordine dei comandi.
+- Gruppi temporanei eliminati alla chiusura della stanza, con coda di cancellazione conservata in caso di assenza di rete.
+- Correzioni della sincronizzazione più graduali e ripresa dal buffer disponibile dopo una pausa condivisa.
+
+### Correzioni
+
 - Microfono e videocamera indipendenti: un errore della videocamera non disattiva più la voce.
 - Corretto l’avvio dell’uscita audio e rimossa la ricreazione dei dispositivi audio quando cambia soltanto la videocamera.
 - Chiusura corretta del pannello chiamata e messaggi di errore distinti per i dispositivi.
 - Conferme degli invii recuperate anche dopo un ritardo della connessione; gli invii incerti non vengono duplicati.
-- Gruppi temporanei eliminati alla chiusura della stanza, con coda di cancellazione conservata in caso di assenza di rete.
-- Correzioni della sincronizzazione più graduali e ripresa dal buffer disponibile dopo una pausa condivisa.
 
 ## 8 ottobre 2026 — 0.32.0.5: Chat nel player e chiamate nelle stanze (anteprima)
 
+### Compatibilità
+
+- La sincronizzazione della visione continua a usare Nostr; gli errori della chat o della chiamata non comandano la riproduzione.
+
+### Novità
+
 - Chat accanto al video in orizzontale e sotto il video in verticale, con comandi rapidi dedicati e campo di scrittura compatto.
-- Corretto il posizionamento della conversazione quando si apre la tastiera.
 - Anteprime dei messaggi e reazioni con avatar durante la visione, disattivabili dal menu della conversazione.
 - “Guarda qui” condivide un minuto del video oppure capitolo e pagina del manga; ogni spostamento richiede un tocco esplicito.
 - Menu comune per silenziare, cercare messaggi, vedere i partecipanti e tornare alla sessione.
 - Comandi per voce e videocamera, con microfono e video inizialmente spenti; motore separato dal player e videocamera sospesa in background.
 - Chat e chiamata accessibili anche dal lettore, mantenendo posizione personale e strumenti per disegnare.
-- La sincronizzazione della visione continua a usare Nostr; gli errori della chat o della chiamata non comandano la riproduzione.
+
+### Correzioni
+
+- Corretto il posizionamento della conversazione quando si apre la tastiera.
 
 ## 7 ottobre 2026 — 0.32.0.4: Collegamento della conversazione (anteprima)
 
-- Corretto il recupero delle conversazioni rimaste incomplete durante la creazione.
-- Un aggiornamento precedente della stanza non cancella più il gruppo appena creato da un partecipante.
+### Novità
+
 - Preparazione con scadenza e nuova richiesta esplicita tramite “Riprova”, senza interferire con il video.
 
+### Correzioni
+
+- Corretto il recupero delle conversazioni rimaste incomplete durante la creazione.
+- Un aggiornamento precedente della stanza non cancella più il gruppo appena creato da un partecipante.
+
 ## 7 ottobre 2026 — 0.32.0.3: Chiusura della stanza dall’hub (anteprima)
+
+### Novità
 
 - Aggiunto il pulsante “Chiudi stanza” per il proprietario e “Esci dalla stanza”
   per gli altri partecipanti direttamente nella scheda della stanza in corso.
@@ -302,14 +475,26 @@ distribuito come APK.
 
 ## 7 ottobre 2026 — 0.32.0.2: Accesso alla chat e stabilità Telegram (anteprima)
 
-- Corretto un arresto del servizio Telegram durante rotazioni e cambi di
-  configurazione, che poteva interrompere la preparazione della chat.
+### Novità
+
 - Accesso Chat sempre visibile nel player quando si è in una stanza.
 - Conversazioni accessibili anche dai comandi della stanza e dalla lettura:
   collegamento dell’account, attivazione e stato della preparazione nello stesso punto.
 - Titolo dell’hub semplificato in “Guarda insieme”.
 
+### Correzioni
+
+- Corretto un arresto del servizio Telegram durante rotazioni e cambi di
+  configurazione, che poteva interrompere la preparazione della chat.
+
 ## 7 ottobre 2026 — 0.32.0.0: Chat Telegram nelle stanze (anteprima)
+
+### Limitazioni
+
+- Questa anteprima riceve messaggi mentre l’app è aperta. Chiamate vocali,
+  videocamera e notifiche ad app chiusa non sono ancora disponibili.
+
+### Novità
 
 - Hub Stanze con sessione attiva, conversazioni recenti e messaggi non letti.
 - Chat Telegram facoltativa con l’account già collegato a Cloud e consenso separato.
@@ -325,15 +510,17 @@ distribuito come APK.
   ripetuti automaticamente e non risultano falsamente consegnati.
 - Layout adattato a schermi stretti, caratteri grandi, tastiera, temi chiaro e
   scuro e preferenza per le animazioni ridotte.
-- Questa anteprima riceve messaggi mentre l’app è aperta. Chiamate vocali,
-  videocamera e notifiche ad app chiusa non sono ancora disponibili.
 
 ## 7 ottobre 2026 — 0.31.0.7: Continuità degli aggiornamenti
 
-- I vecchi updater continuano a trovare la versione più recente anche quando cresce lo storico delle release.
+### Correzioni
+
 - Ripetere una pubblicazione o promuovere un'anteprima conserva APK e checksum già distribuiti, senza ripristinare documentazione più vecchia.
+- I vecchi updater continuano a trovare la versione più recente anche quando cresce lo storico delle release.
 
 ## 7 ottobre 2026 — 0.31.0.5: Accesso Cloud più comodo
+
+### Novità
 
 - Numero Telegram con selettore del paese e del prefisso, ricercabile per nome o codice.
   Italia (+39) è preselezionata: basta inserire il numero senza riscrivere il prefisso.
@@ -342,21 +529,24 @@ distribuito come APK.
 
 ## 7 ottobre 2026 — 0.31.0.4: Ripristino delle animazioni precedenti
 
-- Annullato il rifacimento delle animazioni introdotto con 0.30.0.0:
-  Home, Libreria, navigazione, player, lettore e pannelli tornano al comportamento precedente.
+### Compatibilità
+
 - Conservati Nyanime Cloud, accesso Telegram, backup automatici e ripristino guidato.
   I componenti di presentazione necessari a Cloud rimangono confinati alle sue schermate.
 
+### Correzioni
+
+- Annullato il rifacimento delle animazioni introdotto con 0.30.0.0:
+  Home, Libreria, navigazione, player, lettore e pannelli tornano al comportamento precedente.
+
 ## 7 ottobre 2026 — 0.31.0.3: Nyanime Cloud
+
+### Novità
 
 - Accesso Telegram condiviso per le funzioni Nyanime, tramite il motore ufficiale TDLib.
 - Accesso con avanzamento immediato ed errori specifici accanto al campo da correggere.
 - Schermata Cloud integrata con il tema Nyanime: accesso guidato, ultimo backup
   in primo piano, cronologia per dispositivo e impostazioni in un pannello dedicato.
-- Corretto un difetto nel passaggio delle richieste al motore Telegram che poteva
-  lasciare l’accesso in attesa senza proseguire.
-- Invio dei documenti adeguato all’API TDLib inclusa; gli errori permanenti non
-  vengono più rimandati all’infinito come semplici attese di rete.
 - Backup completi in un archivio privato Telegram, con storico per dispositivo,
   avanzamento, esportazione e ripristino attraverso le opzioni già presenti nell’app.
 - Proposta facoltativa di Cloud al primo avvio, prima delle altre schermate di
@@ -371,10 +561,19 @@ distribuito come APK.
 - Motore Telegram in un processo separato, avviato soltanto quando si usa Cloud;
   controlli delle librerie native e delle licenze prima della pubblicazione.
 
+### Correzioni
+
+- Corretto un difetto nel passaggio delle richieste al motore Telegram che poteva
+  lasciare l’accesso in attesa senza proseguire.
+- Invio dei documenti adeguato all’API TDLib inclusa; gli errori permanenti non
+  vengono più rimandati all’infinito come semplici attese di rete.
+
 Accesso, archivio privato, invio confermato ed esportazione verificati su Android.
 Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram-cloud.md).
 
 ## 7 ottobre 2026 — 0.30.0.0: Animazioni coordinate e controlli più fluidi
+
+### Novità
 
 - Tempi e curve comuni per selezioni, finestre, pannelli e cambi di stato,
   con movimenti contenuti e chiusure più rapide.
@@ -382,15 +581,27 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
   immagini già visibili conservate durante caricamento ed errori.
 - Play e Pausa si trasformano con un morph discreto nel player, nelle stanze
   e nel telecomando Cast, senza ritardare i comandi.
+- «Riduci animazioni» disponibile anche in Aspetto e applicato all'interfaccia,
+  mantenendo la stessa preferenza del player e rispettando la scala Android.
+
+### Correzioni
+
 - Pannelli e finestre gestiscono il ritorno durante l'apertura e i tocchi rapidi,
   impedendo interazioni con i contenuti in uscita.
 - Calendario più stabile durante gli aggiornamenti; selezioni e passaggi tra
   Anime e Manga uniformati anche in Libreria e nelle Novità.
-- «Riduci animazioni» disponibile anche in Aspetto e applicato all'interfaccia,
-  mantenendo la stessa preferenza del player e rispettando la scala Android.
+
+### Prestazioni
+
 - Animazioni decorative sospese quando nascoste o con l'app in background.
 
 ## 6 ottobre 2026 — 0.29.0.5: Addon più chiari e integrati
+
+### Compatibilità
+
+- Conservata la compatibilità delle modalità già disponibili con pressione sul logo.
+
+### Novità
 
 - Supporto agli addon RIN: installazione, aggiornamento e disattivazione direttamente
   nello Store, con interfacce e logica mantenute nei pacchetti addon.
@@ -400,22 +611,35 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
   con indicazioni chiare su come aprirli e disabilitarli.
 - Gli addon possono dichiarare una versione minima dell’app e, solo se necessario,
   una massima: Store e apertura verificano la compatibilità con spiegazioni chiare.
-- Conservata la compatibilità delle modalità già disponibili con pressione sul logo.
 - Tema e lingua condivisi senza incorporare motori, logica o dati specifici degli addon
   nell’app principale.
 
 ## 6 ottobre 2026 — 0.29.0.4: Rimozione della modalità Libri
 
+### Compatibilità
+
+- Conservate le correzioni recenti a Home manga, tracking automatico e notifiche.
+
+### Novità
+
 - Rimossa la modalità Libri con il relativo contratto RIN, lettori documenti,
   browser incorporato e download dedicati.
 - Pulizia dei moduli e dei dati residui della funzione ritirata sulle installazioni
   aggiornate, senza modificare librerie, progressi e impostazioni anime e manga.
-- Conservate le correzioni recenti a Home manga, tracking automatico e notifiche.
 
 ## 6 ottobre 2026 — 0.29.0.1: Home manga e tracking più affidabile
 
+### Verifiche
+
+- Ampliate le verifiche di regressione per Home, tracking e consegna degli avvisi.
+
+### Novità
+
 - Il carosello manga riunisce tutte le sezioni in evidenza delle fonti della
   categoria, unendo le opere con ID pubblici coerenti e mantenendo il cambio fonte.
+
+### Correzioni
+
 - Tracking automatico anime e manga tramite ID AniList verificato anche quando
   il titolo locale è tradotto o abbreviato. La ricerca manuale resta disponibile.
 - Errori temporanei di rete e timeout del tracking vengono riprovati con un
@@ -425,9 +649,10 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
   estensione; tentativi dello stesso titolo serializzati per evitare doppioni.
 - Avvisi delle nuove uscite conservati se manca il canale Android o se i permessi
   cambiano durante la preparazione della notifica.
-- Ampliate le verifiche di regressione per Home, tracking e consegna degli avvisi.
 
 ## 6 ottobre 2026 — 0.28.0.4: Il nuovo Store
+
+### Novità
 
 - Store riprogettato con «Le mie» e «Scopri», ricerca, categorie e filtri per stato.
 - RIN gestibili con Attiva/Disattiva, Apri, Installa e Disinstalla; libreria,
@@ -441,6 +666,8 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 6 ottobre 2026 — 0.28.0.3: Stabilità e migrazione RIN
 
+### Correzioni
+
 - Risolto un crash nella preparazione delle RIN con librerie Kotlin incorporate:
   runtime e contratti condivisi mantengono l’identità delle classi dell’app.
 - Errori di compatibilità e inizializzazione delle estensioni gestiti come errori
@@ -451,7 +678,6 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
   prima del controllo periodico; recupero dei download interrotti e delle attese.
 - Nello Store le RIN mantengono «Apri» durante gli aggiornamenti automatici,
   senza richiedere un aggiornamento manuale; le versioni bloccate restano rispettate.
-
 - Passaggio alle RIN compatibile con le edizioni che un’estensione ha già
   disattivato: gli identificativi restano conservati senza riattivare le lingue.
 - Aggiornamenti automatici che preservano anche le identità dormienti dichiarate
@@ -459,12 +685,16 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 6 ottobre 2026 — 0.28.0.2: Icone RIN
 
+### Correzioni
+
 - Icone originali delle estensioni RIN mostrate nello Store e nelle schermate di
   gestione anche dopo la rimozione dell’APK precedente.
 - Icone del catalogo disponibili anche per le RIN non ancora installate e per i
   pacchetti precedenti senza icona incorporata.
 
 ## 6 ottobre 2026 — 0.28.0.1: Compatibilità RIN
+
+### Correzioni
 
 - Passaggio alle estensioni RIN disponibile anche per le fonti installate ma
   nascoste dal filtro dei contenuti adulti; il filtro resta rispettato nell’uso normale.
@@ -474,6 +704,8 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
   rimozione dell’APK Android precedente.
 
 ## 6 ottobre 2026 — 0.28.0.0: Nyanime RIN
+
+### Novità
 
 - Nuove estensioni RIN in Kotlin, gestite all’interno dell’app senza installare
   pacchetti Android separati. Le estensioni APK e gli addon restano supportati.
@@ -492,44 +724,64 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 5 ottobre 2026 — 0.27.0.0: Download adattivi
 
-- Accelerazione automatica dei video HTTP e HLS compatibili, con connessioni
-  adattate alla velocità e ai limiti del server, senza ridurre la qualità.
-- Riconoscimento dei contenitori anche nei link senza estensione e aumento più
-  rapido delle connessioni quando migliora la velocità.
+### Novità
+
 - Ripresa dei blocchi e dei segmenti verificati dopo un’interruzione; percorso
   precedente mantenuto quando il server o il formato non consentono l’accelerazione.
-- Salvataggio HLS nelle cartelle Android tramite il file già autorizzato, senza
-  errori del protocollo SAF; recupero separato delle code anime e manga al riavvio.
-- Download manga con trasferimenti adattivi, meno scansioni delle cartelle e
-  lavorazioni delle immagini e degli archivi limitate per contenere il carico.
 - Le due code condividono i limiti di rete. Aggiungere nuovi elementi conserva
   quelli in corso; l’impostazione dei download simultanei viene rispettata.
-- Pausa dei download interni durante la visione, anche in PiP e nelle stanze;
-  ripresa all’uscita dal player, senza annullare una pausa scelta manualmente.
 - Avanzamento con byte trasferiti, velocità, tempo restante quando disponibile
   e motivo dell’attesa; salvataggio verificato prima del completamento.
 - Rimosso il vecchio avviso generico sui download di massa: la coda mostra
   lo stato effettivo e gli eventuali errori di trasferimento.
-- Corretti il nome della coda Manga, il conteggio della scheda selezionata
-  e le indicazioni di attesa dopo il riavvio; testi dei repository aggiornati a Nyanime.
 - Esecuzione dei download manuali tramite i trasferimenti avviati dall’utente
   su Android 14+, mantenendo WorkManager per richieste automatiche e recupero.
 
+### Correzioni
+
+- Salvataggio HLS nelle cartelle Android tramite il file già autorizzato, senza
+  errori del protocollo SAF; recupero separato delle code anime e manga al riavvio.
+- Corretti il nome della coda Manga, il conteggio della scheda selezionata
+  e le indicazioni di attesa dopo il riavvio; testi dei repository aggiornati a Nyanime.
+
+### Prestazioni
+
+- Accelerazione automatica dei video HTTP e HLS compatibili, con connessioni
+  adattate alla velocità e ai limiti del server, senza ridurre la qualità.
+- Riconoscimento dei contenitori anche nei link senza estensione e aumento più
+  rapido delle connessioni quando migliora la velocità.
+- Download manga con trasferimenti adattivi, meno scansioni delle cartelle e
+  lavorazioni delle immagini e degli archivi limitate per contenere il carico.
+- Pausa dei download interni durante la visione, anche in PiP e nelle stanze;
+  ripresa all’uscita dal player, senza annullare una pausa scelta manualmente.
+
 ## 5 ottobre 2026 — Aggiornamenti delle estensioni nello Store
+
+### Correzioni
 
 - Il refresh ricontrolla i cataloghi sul server anche se la copia locale è ancora
   recente: nuove versioni e nuovi addon non restano nascosti dalla cache.
+
+### Prestazioni
+
 - Se il catalogo è invariato, la verifica HTTP riutilizza i dati già scaricati.
   Controlli di firma, distribuzione e preferenze di aggiornamento restano attivi.
 
 ## 5 ottobre 2026 — Filtri dello Store semplificati
 
+### Compatibilità
+
+- Le estensioni installate rimangono disponibili per gestione e aggiornamenti.
+
+### Novità
+
 - Restano soltanto Italiano e Inglese, selezionabili singolarmente o insieme.
 - Nuove schede con tutta la riga cliccabile, selezione animata e filtro per adulti
   distinto; le vecchie lingue salvate vengono eliminate dalla selezione.
-- Le estensioni installate rimangono disponibili per gestione e aggiornamenti.
 
 ## 5 ottobre 2026 — Introduzione agli addon all’avvio
+
+### Novità
 
 - La scheda degli addon compare una volta all’apertura di Nyanime, anche senza
   addon installati o cataloghi configurati.
@@ -539,6 +791,8 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 5 ottobre 2026 — 0.25.0.0: Addon opzionali
 
+### Novità
+
 - Le modalità aggiuntive si installano dal catalogo delle estensioni: compatibilità,
   firma, autorizzazione e aggiornamenti sono verificati dall’app.
 - Ogni addon fornisce il proprio logo e il gesto di apertura. Puoi abilitarlo o
@@ -547,10 +801,15 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
   delle funzioni alpha e beta, senza riproporsi ai successivi accessi.
 - L’app base conserva solo il contratto generico: codice, risorse, motore video e
   dipendenze delle modalità aggiuntive risiedono nei rispettivi APK.
+
+### Correzioni
+
 - Ripristinata la configurazione Gradle dell’app senza i moduli delle modalità
   aggiuntive; rimossi anche i relativi passaggi della compilazione principale.
 
 ## 4 ottobre 2026 — Informazioni sulle opere
+
+### Novità
 
 - Approfondimenti facoltativi nelle schede: autori, cast, struttura e opere
   collegate, con informazioni da AniList, TVmaze e Wikidata senza account o chiavi.
@@ -561,6 +820,8 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 4 ottobre 2026 — Cinema in cuffia
 
+### Novità
+
 - Audio binaurale facoltativo per le tracce 5.1 e 7.1, con confronto
   «Originale / Cinema» direttamente dal menu Audio del player.
 - Preferenza ricordata, riconoscimento delle cuffie e audio originale
@@ -570,16 +831,23 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 4 ottobre 2026 — Categorie di lettura dalle estensioni
 
+### Novità
+
 - Home di lettura distinte secondo le categorie dichiarate dalle estensioni,
   con sezioni, generi e ricerca coerenti nella Home e in Atlante.
 - Ripresa e novità nella categoria pertinente, mantenendo la libreria,
   i progressi e i controlli su lingue, privacy e contenuti per adulti.
 - Filtri di esplorazione dichiarati dalle estensioni anche per la lettura,
   schede dei capitoli più leggibili e apertura nella categoria scelta.
+
+### Correzioni
+
 - Errori delle sezioni visibili e riprovabili, senza svuotare i contenuti
   salvati; eliminate le richieste agli ID superflue nelle Home con una sola fonte.
 
 ## 4 ottobre 2026 — Cataloghi tramite link e versioni consigliate
+
+### Novità
 
 - Pulizia una tantum dei cataloghi per chi aggiorna; le nuove installazioni,
   le estensioni installate, la libreria e i progressi restano esclusi.
@@ -592,6 +860,8 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 4 ottobre 2026 — Store Vetrina
 
+### Novità
+
 - Nuovo Store unificato per Anime, Manga e Notizie, con schede Nyanime Ready
   e un elenco Legacy distinto, ricerca, lingue e inventario delle installate.
 - Installazione e aggiornamento dalla vetrina, mantenendo gestione delle fonti,
@@ -603,10 +873,10 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 4 ottobre 2026 — Schede Primo piano
 
+### Novità
+
 - Elenco completo di episodi e capitoli direttamente nella scheda, con ricerca,
   indice rapido e salto al punto di ripresa; gestione multipla separata.
-- Posizione conservata tra elenco e dettagli, righe caricate solo quando servono
-  e caricamento più stabile di progresso, ripresa e avvisi opzionali.
 - Nuove schede anime e manga con copertina protagonista, progresso e ripresa immediata,
   mantenendo tracking, avvisi, stanze, categorie e tutte le azioni esistenti.
 - Gestore di episodi e capitoli con ricerca per numero o titolo, indice a gruppi,
@@ -614,7 +884,14 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 - Caricamento con spazi già riservati, icone coordinate e transizioni della copertina
   coerenti anche al ritorno; rispetto delle animazioni ridotte.
 
+### Prestazioni
+
+- Posizione conservata tra elenco e dettagli, righe caricate solo quando servono
+  e caricamento più stabile di progresso, ripresa e avvisi opzionali.
+
 ## 4 ottobre 2026 — Cataloghi unificati e aggiornamenti delle estensioni
+
+### Novità
 
 - Possibilità di collegare un’estensione installata manualmente a un catalogo compatibile,
   scegliendo esplicitamente l’origine nei dettagli dell’estensione.
@@ -624,31 +901,51 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
   ogni sezione mostra soltanto le estensioni del proprio tipo.
 - Installazione e aggiornamento delle estensioni Notizie dalla schermata Fonti,
   con avanzamento, controlli di firma e consenso separato per abilitarle.
-- Versioni e pulsanti delle estensioni Notizie aggiornati al ritorno dall’installatore,
-  conservando preferenze e consenso quando l’identità della distribuzione coincide.
 - Collegamenti Nyanime per importare cataloghi senza credenziali condivise
   e senza nomi o regole delle fonti incorporati nell’app.
 - Sito e nuovi link di condivisione sul dominio dell’organizzazione; collegamenti
   precedenti ancora compatibili, inclusi episodio, minutaggio, capitolo e pagina.
 
+### Correzioni
+
+- Versioni e pulsanti delle estensioni Notizie aggiornati al ritorno dall’installatore,
+  conservando preferenze e consenso quando l’identità della distribuzione coincide.
+
 ## 3 ottobre 2026 — Una nuova schermata per gli aggiornamenti
+
+### Novità
 
 - Schermata degli aggiornamenti ridisegnata con testata compatta, versione e comandi
   fissi; scorrono soltanto le novità, in schede leggibili nei temi chiaro e scuro.
 - Download con avanzamento, annullamento e possibilità di continuare a usare l’app;
   «Installa ora» compare dopo il controllo del file scaricato.
+
+### Prestazioni
+
 - Controlli fuori dal thread dell’interfaccia, protezione dai tocchi ripetuti e recupero
   dei file non più disponibili, con messaggi in italiano e inglese.
 
 ## 3 ottobre 2026 — Nuovo repository e continuità degli aggiornamenti
 
-- Aggiornamenti e collegamenti di aiuto usano il repository dell’organizzazione.
+### Compatibilità
+
 - Compatibilità mantenuta con il vecchio indirizzo OTA e con le versioni `r…`,
   conservando pacchetto, firma e dati dell’app.
+
+### Novità
+
+- Aggiornamenti e collegamenti di aiuto usano il repository dell’organizzazione.
 - Recupero tramite l’indirizzo precedente se quello principale non è disponibile;
   il cambio di repository avvia un nuovo controllo senza attendere la vecchia cache.
 
 ## 3 ottobre 2026 — Versioni e scelta degli aggiornamenti
+
+### Distribuzione
+
+- Pubblicazioni con note dedicate e APK immutabili, mantenendo pacchetto e firma per
+  conservare i dati. [Numerazione e compatibilità](docs/versioning.md).
+
+### Novità
 
 - Nuova numerazione a quattro componenti, a partire da 0.19.0.0, con confronto numerico
   e versione Android crescente; le installazioni precedenti continuano ad aggiornarsi via OTA.
@@ -656,19 +953,24 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
   la conferma, con schermata adattiva nei due temi e testi in italiano e inglese.
 - Preferenza modificabile in Impostazioni → Aggiornamenti, con controllo manuale e
   installazione integrata; cambiare canale non propone versioni precedenti.
-- Pubblicazioni con note dedicate e APK immutabili, mantenendo pacchetto e firma per
-  conservare i dati. [Numerazione e compatibilità](docs/versioning.md).
 
 ## 3 ottobre 2026 — Player più reattivo e compatibilità delle estensioni
 
-- Caricamento delle tracce audio e dei sottotitoli esterni fuori dal thread
-  dell’interfaccia, per evitare blocchi all’apertura dei video con molte tracce.
+### Correzioni
+
 - Il caricamento delle tracce rispetta il cambio di episodio e la chiusura del player,
   evitando di applicare tracce a una riproduzione successiva.
 - Ripristinata la compatibilità con le varianti della libreria video 16 usate dalle
   estensioni, evitando errori di apertura dovuti ai costruttori dei server video.
 
+### Prestazioni
+
+- Caricamento delle tracce audio e dei sottotitoli esterni fuori dal thread
+  dell’interfaccia, per evitare blocchi all’apertura dei video con molte tracce.
+
 ## 3 ottobre 2026 — Rimozione del doppio tocco posteriore
+
+### Novità
 
 - Rimossi il gesto posteriore, la calibrazione, le relative impostazioni e
   l’ascolto dei sensori in tutte le schermate.
@@ -677,10 +979,14 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 2 ottobre 2026 — Icone delle estensioni Notizie
 
+### Novità
+
 - Le fonti Notizie mostrano l’icona del rispettivo APK anche se disabilitate,
   con caricamento fuori dall’interfaccia e un segnaposto per i pacchetti senza icona.
 
 ## 2 ottobre 2026 — Notizie legate ai tuoi titoli
+
+### Novità
 
 - «Per te» riconosce anche i nomi alternativi e tradotti verificati nei cataloghi,
   gli ID equivalenti e le relazioni dirette tra opere, senza modificare il tracking.
@@ -690,6 +996,8 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
   esclusioni valide anche per gli ID equivalenti. Restano esclusi gli avvisi storici.
 
 ## 2 ottobre 2026 — Notizie dalle estensioni
+
+### Novità
 
 - Nuovo tipo di estensione Notizie, separato dalle fonti video e manga: si abilita da
   Sfoglia e aggiunge una categoria nella Home, mantenendo la testata e la navigazione.
@@ -702,6 +1010,8 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 2 ottobre 2026 — Ripresa compatta nella Home
 
+### Novità
+
 - «Continua a guardare» usa segnalibri orizzontali compatti: piccola copertina verticale,
   titolo, episodio, minutaggio e avanzamento, con ripresa al tocco e menu separato.
 - Altezza adattata ai caratteri grandi e skeleton delle stesse dimensioni, mantenendo
@@ -709,24 +1019,43 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 2 ottobre 2026 — Carosello senza intestazione
 
+### Novità
+
 - Rimossa la riga «In evidenza» con la freccia sopra il carosello, anche durante
   il caricamento: le copertine partono direttamente sotto le categorie.
 
 ## 2 ottobre 2026 — Ripresa dalla Home e fluidità
 
-- Conservati gli angoli arrotondati delle copertine durante apertura e ritorno dalla
-  scheda, con una sola immagine e un cambiamento continuo di forma e proporzioni.
+### Novità
+
 - «Continua a guardare» nella Home diventa una fila di schede ampie: ripresa diretta,
   episodio, minutaggio e avanzamento leggibili, con le altre azioni raccolte nel menu.
-- Migliorata la fluidità delle transizioni tra Home e schede, limitando i ricalcoli
-  agli elementi coinvolti; le azioni sulla copertina seguono la dissolvenza del titolo.
 - Rimossi gli indicatori sotto i titoli in primo piano per alleggerire la Home.
 
+### Correzioni
+
+- Conservati gli angoli arrotondati delle copertine durante apertura e ritorno dalla
+  scheda, con una sola immagine e un cambiamento continuo di forma e proporzioni.
+
+### Prestazioni
+
+- Migliorata la fluidità delle transizioni tra Home e schede, limitando i ricalcoli
+  agli elementi coinvolti; le azioni sulla copertina seguono la dissolvenza del titolo.
+
 ## 2 ottobre 2026 — Aumento della numerazione
+
+### Distribuzione
 
 - Aumento di numerazione, nessun cambiamento alle funzionalità dell'app.
 
 ## 2 ottobre 2026 — Home Panorama
+
+### Compatibilità
+
+- Categorie, sezioni, date, classifiche, capitoli, paginazione e fonti alternative
+  continuano a usare i contratti delle estensioni, senza regole specifiche nell'app.
+
+### Novità
 
 - Nuova Home Panorama per anime e manga: copertina centrale ampia, anteprime laterali,
   scorrimento circolare con il dito e rotazione dopo sei secondi di inattività.
@@ -734,23 +1063,30 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
   copertine. Il titolo selezionato si conserva durante gli aggiornamenti delle sezioni.
 - Ripresa compatta con progressi e opzioni; novità più leggibili, con tutte le voci
   raggiungibili e azioni di lettura, riproduzione e apertura della scheda conservate.
-- Categorie, sezioni, date, classifiche, capitoli, paginazione e fonti alternative
-  continuano a usare i contratti delle estensioni, senza regole specifiche nell'app.
+
+### Prestazioni
+
 - Rotazione sospesa durante l'interazione, fuori dalla sezione visibile, nelle finestre
   di scelta della fonte e con animazioni ridotte o lettore schermo attivo.
 
 ## 1 ottobre 2026 — Lingua della Libreria
+
+### Correzioni
 
 - Il pulsante Libreria e le intestazioni della raccolta seguono la lingua scelta
   nell'app, mostrando «Library» in inglese e «Libreria» in italiano.
 
 ## 1 ottobre 2026 — Affidabilità della Home
 
+### Correzioni
+
 - Migliorato il coordinamento tra dati locali e inizializzazione asincrona delle estensioni.
 - Gestiti gli aggiornamenti del registro delle estensioni senza modificare i dati
   persistenti o introdurre richieste di rete aggiuntive.
 
 ## 1 ottobre 2026 — Atlante, ricerca unificata
+
+### Novità
 
 - Cerca riunisce anime e manga, con categorie della Home, risultati progressivi
   e scelta delle fonti alternative quando gli ID verificati identificano la stessa opera.
@@ -763,18 +1099,33 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
   controlli adattati alla tastiera e testi in italiano e inglese.
 - Breve guida al primo aggiornamento per trovare Cerca e Sfoglia, senza mostrarla
   nelle nuove installazioni; campo di ricerca più leggibile e placeholder centrato.
+
+### Prestazioni
+
 - Richieste limitate e condivise tra i due tipi di contenuto, risultati obsoleti scartati
   e comportamento incognito/Solo scaricati conservato. [Guida](docs/atlas-search.md).
 
 ## 1 ottobre 2026 — Risultati completi per grafie equivalenti
 
+### Verifiche
+
+- Aggiunte verifiche della prima ricerca e delle successive con cache già alimentata.
+
+### Correzioni
+
 - La ricerca con spazi o punteggiatura diversa conserva la query breve e recupera
   anche stagioni, parti e titoli collegati, senza restringersi al primo nome completo.
 - Un risultato iniziale non blocca il recupero delle grafie equivalenti note;
   refresh e paginazione conservano tutte le varianti verificate, entro i limiti esistenti.
-- Aggiunte verifiche della prima ricerca e delle successive con cache già alimentata.
 
 ## 30 settembre 2026 — Ricerca intelligente dei titoli
+
+### Compatibilità
+
+- Nessun aggiornamento obbligatorio delle estensioni e nessuna modifica automatica
+  al tracking o alle associazioni dei titoli. [Dettagli e licenze](docs/smart-title-search.md).
+
+### Novità
 
 - Home, Sfoglia, singole fonti e libreria riconoscono punteggiatura diversa,
   parole unite, refusi e alias, mantenendo il testo originale e i filtri.
@@ -785,10 +1136,10 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
   quando il numero finale non corrisponde a una parte riconosciuta.
 - Aiuto online facoltativo dei cataloghi, cache locale cancellabile e nessuna
   nuova memorizzazione persistente in incognito. La libreria resta tutta locale.
-- Nessun aggiornamento obbligatorio delle estensioni e nessuna modifica automatica
-  al tracking o alle associazioni dei titoli. [Dettagli e licenze](docs/smart-title-search.md).
 
 ## 30 settembre 2026 — Impostazioni delle notifiche più facili da trovare
+
+### Novità
 
 - Aggiunta «Notifiche e uscite» direttamente nelle Impostazioni, con orari dei
   promemoria, avvisi per nuovi episodi e capitoli, permessi Android e notifiche di prova.
@@ -799,35 +1150,55 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 30 settembre 2026 — Traduzioni inglesi più complete
 
+### Compatibilità
+
+- L’italiano rimane disponibile; codici d’invito e riferimenti delle estensioni
+  conservano il formato esistente.
+
+### Novità
+
 - Stanze, inviti, QR, lettura condivisa e schizzi seguono la lingua dell’app,
   inclusi messaggi di connessione, comandi nel player e notifica della stanza.
 - Tradotti anche i testi e i filtri della Home, le opzioni della sigla e dei comandi del player,
   il download degli aggiornamenti nell’app e la visibilità dei manga in altre lingue.
-- L’italiano rimane disponibile; codici d’invito e riferimenti delle estensioni
-  conservano il formato esistente.
 
 ## 30 settembre 2026 — Collegamenti condivisi apribili dall’app
+
+### Compatibilità
+
+- I riferimenti rimangono dati opachi forniti dalle estensioni: nessuna fonte o
+  regola di sito entra nell’app.
+
+### Novità
 
 - Schede, episodi con minutaggio e capitoli con pagina vengono condivisi con link
   HTTPS e titolo leggibile, adatti alle applicazioni di messaggistica.
 - Il sito Nyanime permette di aprire il contenuto anche nelle versioni precedenti;
   l’app aggiornata riconosce i collegamenti verificati. I vecchi link restano validi.
-- I riferimenti rimangono dati opachi forniti dalle estensioni: nessuna fonte o
-  regola di sito entra nell’app.
 
 ## 30 settembre 2026 — Orari personalizzati per i promemoria
+
+### Compatibilità
+
+- Le preferenze già esistenti per 24 ore prima e all’uscita restano attive dopo
+  l’aggiornamento. Le notifiche di contenuti disponibili nella fonte restano separate.
+
+### Novità
 
 - I promemoria delle trasmissioni anime possono essere combinati: 24 ore prima o alle 09:00,
   15:00 e 20:00 del giorno precedente; il giorno stesso agli stessi orari,
   un’ora, 10, 5 o 2 minuti prima, oppure all’orario annunciato.
 - Gli orari fissi seguono il fuso del telefono. Gli avvisi che arriverebbero dopo
   l’uscita o troppo tardi vengono saltati; scelte coincidenti non duplicano la notifica.
-- Le preferenze già esistenti per 24 ore prima e all’uscita restano attive dopo
-  l’aggiornamento. Le notifiche di contenuti disponibili nella fonte restano separate.
+
+### Correzioni
+
 - La riprogrammazione completa il salvataggio anche uscendo subito dalle impostazioni;
   cambiare la lingua del telefono conserva gli orari scelti.
 
 ## 30 settembre 2026 — Backup più semplici
+
+### Novità
 
 - Un backup completo si avvia con un tocco da Altro o da Dati e archiviazione,
   con avanzamento visibile anche cambiando schermata.
@@ -839,16 +1210,23 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 30 settembre 2026 — Home e navigazione
 
+### Novità
+
 - Copertine protagoniste, sezioni e stati di caricamento riorganizzati nella
   Home per rendere più chiari titoli, azioni e contenuti in evidenza.
-- Categorie e filtri conservano la disposizione compatta originale; i comandi
-  della testata mantengono una posizione stabile quando cambiano le novità.
 - Barra inferiore flottante più contrastata, senza alone o fondale esterno. Le
   pagine scorrono sotto la barra e lasciano libero l'ultimo contenuto a fine elenco.
 - In modalità scura il fondale della barra inferiore è più scuro e uniforme.
 - Il logo vettoriale arancione della modalità chiara usa una tonalità più scura.
 
+### Correzioni
+
+- Categorie e filtri conservano la disposizione compatta originale; i comandi
+  della testata mantengono una posizione stabile quando cambiano le novità.
+
 ## 30 settembre 2026 — Libreria Anime e Manga ridisegnata
+
+### Novità
 
 - Libreria ModernUI più leggibile, con testata compatta, categorie ordinate,
   progresso immediato e stati vuoti più utili.
@@ -864,6 +1242,8 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 29 settembre 2026 — Ripresa intelligente degli episodi
 
+### Novità
+
 - “Continua a guardare” propone il prossimo episodio quando restano pochi secondi
   oppure la riproduzione arriva a cinque secondi dall'inizio della sigla finale riconosciuta.
 - Il finale resta accessibile dalla scheda di ripresa. Alla successiva apertura
@@ -874,6 +1254,13 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 29 settembre 2026 — Manga unificati e cambio fonte
 
+### Sicurezza
+
+- Identità discordanti restano separate; cambiare fonte non migra automaticamente
+  libreria, download o progresso. Dati e logica dei siti restano nelle estensioni.
+
+### Novità
+
 - Riconoscimento delle fonti alternative tramite ID pubblici, condiviso tra
   Home, ricerca e scheda manga anche quando i titoli compaiono in sezioni diverse.
 - Cambio fonte in un pannello compatto, con scelta della fonte predefinita;
@@ -882,10 +1269,10 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
   mantenendo posizione delle schede e scorrimento durante gli aggiornamenti.
 - La Home Manga apre direttamente con filtri e contenuti, senza intestazione e
   scorciatoia duplicate; la Libreria rimane nella navigazione principale.
-- Identità discordanti restano separate; cambiare fonte non migra automaticamente
-  libreria, download o progresso. Dati e logica dei siti restano nelle estensioni.
 
 ## 29 settembre 2026 — Menu delle uscite nell’agenda
+
+### Novità
 
 - Pressione prolungata su una voce, anche nel calendario: pannello animato con
   copertina, titolo, data e azioni per scheda, episodio o capitolo.
@@ -899,6 +1286,8 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 29 settembre 2026 — Link che aprono i contenuti in Nyanime
 
+### Novità
+
 - Condivisione delle schede tramite link `nyanime://open/v1`, aperti direttamente
   nell’app tramite l’estensione installata sul telefono del destinatario.
 - Un unico pannello per schede, episodi e capitoli: scelta tra titolo, inizio
@@ -906,8 +1295,6 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 - Pulsanti Condividi/Copia sempre raggiungibili anche nel player orizzontale;
   disposizione compatta a due colonne sugli schermi larghi e bassi, con tutte
   le destinazioni subito visibili e contenuto scorrevole per i testi grandi.
-- Aprire un episodio condiviso durante un’altra riproduzione attende il rilascio
-  effettivo del vecchio player, evitando due inizializzazioni native sovrapposte.
 - Azione di condivisione anche selezionando un singolo episodio o capitolo;
   link alla pagina distinto dalla condivisione dell’immagine nel lettore.
 - Apertura del riferimento preciso, senza cercare un titolo simile; errori
@@ -915,7 +1302,14 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 - I link non includono URL di streaming, intestazioni, cookie, ID del database
   locale o dati delle stanze. Le normali azioni WebView/browser restano disponibili.
 
+### Correzioni
+
+- Aprire un episodio condiviso durante un’altra riproduzione attende il rilascio
+  effettivo del vecchio player, evitando due inizializzazioni native sovrapposte.
+
 ## 29 settembre 2026 — Notifiche delle uscite più leggibili
+
+### Novità
 
 - Nome del titolo sulla prima riga compatta; nome completo a capo nei dettagli
   espansi, leggibile anche quando l'annuncio è lungo.
@@ -923,13 +1317,18 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
   episodio/capitolo di…”, con plurali per le uscite multiple.
 - Numero e ora in una riga breve; notifica espansa con data completa, trasmissione,
   piattaforme e dettagli disponibili. Orari nel fuso e nel formato scelto sul telefono.
-- Avvisi di disponibilità distinti dagli annunci: una data di rilevamento o un
-  recupero storico non diventano una pubblicazione di oggi. Orario di rilevamento
-  indicato come tale, senza inventare l’ora di uscita dei capitoli.
 - Struttura coerente anche per gli avvisi della libreria; azioni, canali, impostazioni
   di privacy e ricevute di consegna mantenuti.
 
+### Correzioni
+
+- Avvisi di disponibilità distinti dagli annunci: una data di rilevamento o un
+  recupero storico non diventano una pubblicazione di oggi. Orario di rilevamento
+  indicato come tale, senza inventare l’ora di uscita dei capitoli.
+
 ## 29 settembre 2026 — Protezione laterale integrata
+
+### Novità
 
 - Compatibilità rilevata dall’hardware e dalle API, senza vincolo sul firmware esatto.
 - Protezione selezionabile per le schede dei titoli, con copertina, descrizione ed episodi o capitoli.
@@ -939,20 +1338,32 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 29 settembre 2026 — Manga in altre lingue visibili inizialmente
 
+### Novità
+
 - “Mostra manga in altre lingue” è ora attivo di default per chi non ha ancora
   salvato una scelta. Le preferenze già impostate rimangono rispettate.
 
 ## 29 settembre 2026 — Splash coerente con il tema scelto
 
-- Su Android 12 e successivi, splash e sfondo iniziale rispettano la modalità
-  Chiaro o Scuro scelta nell’app, anche se il telefono usa il tema opposto.
-  Segui il sistema rimuove la forzatura e segue i cambiamenti di Android.
-- Gestione del tema nativo separata da quella dell’icona; preferenze e conferma
-  iniziale conservate. Sulle versioni precedenti rimane la compatibilità AppCompat.
+### Limitazioni
+
 - Il primo avvio dopo l’aggiornamento può mostrare ancora la splash precedente
   prima che Android registri la preferenza per gli avvii successivi.
 
+### Novità
+
+- Gestione del tema nativo separata da quella dell’icona; preferenze e conferma
+  iniziale conservate. Sulle versioni precedenti rimane la compatibilità AppCompat.
+
+### Correzioni
+
+- Su Android 12 e successivi, splash e sfondo iniziale rispettano la modalità
+  Chiaro o Scuro scelta nell’app, anche se il telefono usa il tema opposto.
+  Segui il sistema rimuove la forzatura e segue i cambiamenti di Android.
+
 ## 29 settembre 2026 — Promemoria del giorno prima
+
+### Novità
 
 - Avviso facoltativo 24 ore prima dell’episodio, attivo inizialmente e utilizzabile
   anche con il calendario abituale senza collegare AnimeSchedule. Disattivabile da
@@ -969,13 +1380,20 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 29 settembre 2026 — Memoria della compilazione GitHub
 
-- Profilo CI condiviso per preview e pull request: compilatore Kotlin nello stesso
-  processo Gradle, memoria riservata aumentata e compilazione dei moduli senza
-  parallelismo. Corretto il percorso che esauriva la memoria prima dei test.
+### Novità
+
 - Rapporti dei test e diagnostica di compilazione conservati in caso di fallimento,
   senza allegare dump di memoria del processo.
 
+### Correzioni
+
+- Profilo CI condiviso per preview e pull request: compilatore Kotlin nello stesso
+  processo Gradle, memoria riservata aumentata e compilazione dei moduli senza
+  parallelismo. Corretto il percorso che esauriva la memoria prima dei test.
+
 ## 29 settembre 2026 — AnimeSchedule facoltativo e configurazione guidata
+
+### Novità
 
 - Collegamento opzionale, inizialmente disattivato, con guida nel browser interno,
   verifica del token e salvataggio cifrato sul dispositivo; nessun token incluso nell’APK.
@@ -984,14 +1402,21 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
   Sito completo e inserimento manuale sempre disponibili; password mai lette dall’app.
 - Consenso ai soli cookie necessari configurato prima dell’accesso; scelte già
   salvate sul sito conservate. Termini e verifiche di registrazione restano visibili.
-- Moduli guidati senza larghezza aggiunta dai margini del sito: campi e collegamenti
-  contenuti nello schermo stretto, messaggi di conferma della registrazione preservati.
 - Orari RAW, SUB inglese e DUB inglese distinti, première, rinvii, date eccezionali
   e piattaforme integrate nell’agenda esistente e nelle schede anime.
-- Conto alla rovescia della scheda e dettaglio degli orari coordinati con la
-  trasmissione preferita; un rinvio senza data non conserva un vecchio conto alla rovescia.
 - Associazione tramite ID di catalogo verificati, cache condivisa degli orari e rispetto
   dei limiti del servizio. Il catalogo abituale rimane disponibile senza configurazione.
+- Trasmissione preferita per promemoria e controlli mirati delle disponibilità;
+  orario annunciato distinto dal contenuto effettivamente trovato nell’estensione.
+- Widget “Le tue uscite” basato sulla stessa agenda locale anime e manga, con
+  apertura diretta e rispetto della modalità incognito e della privacy delle notifiche.
+
+### Correzioni
+
+- Moduli guidati senza larghezza aggiunta dai margini del sito: campi e collegamenti
+  contenuti nello schermo stretto, messaggi di conferma della registrazione preservati.
+- Conto alla rovescia della scheda e dettaglio degli orari coordinati con la
+  trasmissione preferita; un rinvio senza data non conserva un vecchio conto alla rovescia.
 - Link di catalogo senza schema HTTPS riconosciuti e controllati per dominio e ID;
   titoli assenti dal catalogo distinti dagli errori di rete. Recupero automatico delle
   associazioni fallite nella prova precedente, senza perdere il collegamento salvato.
@@ -1002,26 +1427,29 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
   del token e della settimana corrente continua a riconoscere i guasti del servizio.
 - Coda di verifica corretta quando contiene sia titoli già associati sia associazioni
   da recuperare: l’ordinamento conserva la priorità senza bloccare il lavoro.
-- Trasmissione preferita per promemoria e controlli mirati delle disponibilità;
-  orario annunciato distinto dal contenuto effettivamente trovato nell’estensione.
-- Widget “Le tue uscite” basato sulla stessa agenda locale anime e manga, con
-  apertura diretta e rispetto della modalità incognito e della privacy delle notifiche.
 
 ## 29 settembre 2026 — Agenda futura e verifica degli orari
+
+### Novità
 
 - Verifiche degli orari in una coda indipendente dagli aggiornamenti degli
   episodi: il primo controllo prosegue a piccoli gruppi fino a raggiungere
   tutti i titoli con identificatori, anche senza aprire le loro schede.
-- Uscite future conservate nell’agenda anche quando il numero dell’episodio
-  è già registrato localmente; date lontane e deduplicazione fra edizioni mantenute.
 - Titoli senza ID esclusi dal controllo del catalogo degli orari e dai relativi
   avvisi. Il monitoraggio dei contenuti disponibili nella fonte continua.
 - Verifiche in attesa distinte dagli ID non confermati e dagli errori di rete;
   i titoli coinvolti possono essere consultati direttamente dall’agenda.
+
+### Correzioni
+
+- Uscite future conservate nell’agenda anche quando il numero dell’episodio
+  è già registrato localmente; date lontane e deduplicazione fra edizioni mantenute.
 - Fine agenda con un messaggio esplicito, senza una schermata vuota aggiunta
   allo scorrimento. Apertura su oggi mantenuta anche quando ci sono solo uscite passate.
 
 ## 29 settembre 2026 - Estensioni e distribuzioni protette
+
+### Novità
 
 - Schermate Estensioni anime e manga con viste Installate e Catalogo, schede
   compatte e filtri per lingua, repository e supporto Home, anche con UI legacy.
@@ -1032,24 +1460,34 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
   repository duplicati non vengono scelti arbitrariamente.
 - Mantieni questa versione nei dettagli, conservato nei backup e rivalidato
   contro la firma degli APK presenti dopo il ripristino.
-- Contatori, notifiche e Aggiorna tutte usano la stessa politica. Un catalogo
-  irraggiungibile mostra Controllo non riuscito e viene ricontrollato, senza
-  dichiarare obsolete le estensioni locali.
 - APK scaricati verificati crittograficamente prima di qualsiasi installatore,
   comprese le installazioni private; controlli di pacchetto, versione, API,
   firma e descrittore della distribuzione.
 
+### Correzioni
+
+- Contatori, notifiche e Aggiorna tutte usano la stessa politica. Un catalogo
+  irraggiungibile mostra Controllo non riuscito e viene ricontrollato, senza
+  dichiarare obsolete le estensioni locali.
+
 ## 28 settembre 2026 — Identificatori verificati per gli orari
+
+### Novità
+
+- Il filtro Tutti usa ora il violetto uniforme, con riempimento soltanto
+  quando selezionato; Anime e Manga mantengono arancione e celeste.
+
+### Correzioni
 
 - Il tracking già salvato ha precedenza sugli identificatori forniti dalle
   estensioni. Un ID AniList inesistente può essere risolto tramite l’ID
   MyAnimeList collegato, soltanto dopo conferma della corrispondenza nel catalogo.
 - Identificatori contraddittori non selezionano un altro titolo in silenzio.
   Una corrispondenza assente viene distinta da un errore di connessione.
-- Il filtro Tutti usa ora il violetto uniforme, con riempimento soltanto
-  quando selezionato; Anime e Manga mantengono arancione e celeste.
 
 ## 28 settembre 2026 — Recupero delle verifiche degli orari
+
+### Correzioni
 
 - Una richiesta degli orari fallita non eredita più le sei ore di validità
   della verifica precedente: il monitor e la scheda usano la stessa regola
@@ -1058,21 +1496,31 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
   senza aspettare la scadenza dei metadati. Un cambio dell’orologio non blocca i tentativi.
 - Gli avvisi degli orari anime non compaiono nel filtro Manga. Il controllo
   riuscito rimuove l’avviso; gli errori sono registrati per poterli diagnosticare.
+
+### Prestazioni
+
 - Richieste degli orari con il DNS configurato nell’app e il limite condiviso
   con Home e tracking, evitando un secondo flusso indipendente di richieste.
 
 ## 28 settembre 2026 — Filtri delle uscite e verifica della navigazione
+
+### Novità
 
 - Filtri Tutti/Anime/Manga centrati e distribuiti sulla larghezza disponibile,
   con etichette leggibili anche negli schermi stretti e con caratteri grandi.
 - L’interno dei filtri si colora soltanto quando sono selezionati.
 - Selezione dei filtri con transizione morbida del riempimento, senza spostare
   i pulsanti o ridisegnare il testo. Animazione ridotta rispettata.
+
+### Correzioni
+
 - Corretto il test della navigazione rimasto precedente all’aggiunta di Uscite,
   che impediva la build GitHub; verifica delle destinazioni conservata anche per
   le vecchie preferenze di navigazione.
 
 ## 28 settembre 2026 — Agenda continua, aperta su oggi
+
+### Novità
 
 - L’agenda si apre su oggi: scorrendo verso l’alto si consultano le uscite
   precedenti e verso il basso quelle future, senza il limite di sette giorni.
@@ -1080,16 +1528,18 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
   corrente. Se oggi non ci sono uscite, resta una posizione chiara nella lista.
 - Il giorno scelto nel calendario diventa il punto di apertura dell’agenda.
   Gli aggiornamenti dei dati mantengono la posizione senza riportare la lista all’inizio.
+
+### Prestazioni
+
 - Consultazione basata sui dati locali e sulle date effettive, senza nuove
   richieste alle fonti durante lo scorrimento.
 
 ## 28 settembre 2026 - Uscite seguite e calendario affidabile
 
+### Novità
+
 - Nuovo comando Segui nelle schede anime e manga, con preferenze separate
   per nuove disponibilità e promemoria delle trasmissioni annunciate.
-- Aggiornamenti automatici attivi inizialmente, controlli mirati, recupero
-  persistente degli errori e rotazione delle librerie grandi, senza aggiornare
-  tutto a ogni apertura o fermarsi ai primi titoli.
 - Vista Agenda con schede raggruppate per giorno e Calendario con giorni
   vuoti selezionabili;
   date annunciate tramite ID verificati, distinte dalla disponibilità nella fonte.
@@ -1097,12 +1547,6 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
   filtri Tutti/Anime/Manga e preferenza per consultarli separatamente.
 - Schede anime con bordo sfumato arancione; manga in celeste, con contrasto
   adattato al tema chiaro e scuro e indicazione testuale del tipo di contenuto.
-- Agenda caricata dai dati locali, senza attendere una verifica in rete di tutta
-  la libreria; giorni e mesi si cambiano senza nuovi controlli remoti.
-- Corretta la data dei capitoli storici: l'agenda usa soltanto date annunciate o
-  di pubblicazione fornite dalla fonte; il rilevamento nell'app non diventa
-  un'uscita di oggi. Riparazione degli avvisi esistenti al controllo del titolo,
-  senza cancellare letture, capitoli o ricevute delle notifiche.
 - Uscite dello stesso anime riunite tra fonti ed edizioni tramite i criteri della
   Home e identificativi verificati; una scheda con scelta di fonte ed edizione, senza
   confondere le stagioni. Visto in una fonte non resta annunciato in un'altra.
@@ -1111,10 +1555,27 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
   nelle impostazioni; promemoria puntuali facoltativi.
 - Preferenze Segui incluse nei backup, mantenimento dei progressi quando cambiano
   gli indirizzi e coordinamento tra scheda e aggiornamento in background.
+
+### Correzioni
+
+- Corretta la data dei capitoli storici: l'agenda usa soltanto date annunciate o
+  di pubblicazione fornite dalla fonte; il rilevamento nell'app non diventa
+  un'uscita di oggi. Riparazione degli avvisi esistenti al controllo del titolo,
+  senza cancellare letture, capitoli o ricevute delle notifiche.
 - Ottimizzatore Android aggiornato alla versione compatibile con Kotlin 2.4,
   per completare correttamente gli APK firmati.
 
+### Prestazioni
+
+- Aggiornamenti automatici attivi inizialmente, controlli mirati, recupero
+  persistente degli errori e rotazione delle librerie grandi, senza aggiornare
+  tutto a ogni apertura o fermarsi ai primi titoli.
+- Agenda caricata dai dati locali, senza attendere una verifica in rete di tutta
+  la libreria; giorni e mesi si cambiano senza nuovi controlli remoti.
+
 ## 28 settembre 2026 — Protezione laterale del display, verifica hardware
+
+### Novità
 
 - Aggiunta una protezione hardware facoltativa in Impostazioni → Sicurezza,
   con selezione separata di video e sottotitoli, lettura manga, cronologia,
@@ -1124,16 +1585,21 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 - Comando temporaneo in Player → Altro; geometria aggiornata insieme alla finestra
   e gestione degli errori separata dalla riproduzione. Preferenze incluse nei backup,
   senza esportare lo stato hardware o l’avviso locale.
-- Regione gestita tramite una vista dedicata, senza spostare o ridisegnare i contenuti
-  dell’app. Gestione dei margini richiesti dal pannello e aggiornamenti della posizione
-  senza ripetere l’attivazione hardware.
 - Modulo indipendente con adattatore Samsung originale. Sui dispositivi incompatibili
   il comando è disabilitato. Le build ordinarie mantengono disabilitate le modalità
   senza verifica fisica; l’APK locale di prova permette la valutazione sul Galaxy
   S26 Ultra. PiP, multifinestra e display esterni restano esclusi.
   [Requisiti e validazione](docs/privacy-display.md).
 
+### Prestazioni
+
+- Regione gestita tramite una vista dedicata, senza spostare o ridisegnare i contenuti
+  dell’app. Gestione dei margini richiesti dal pannello e aggiornamenti della posizione
+  senza ripetere l’attivazione hardware.
+
 ## 28 settembre 2026 — ModernUI chiara e scelta iniziale del tema
+
+### Novità
 
 - Tre aspetti selezionabili: Scuro con marchio rosso, Chiaro con superfici bianche
   e marchio Arancio solare, oppure Segui il sistema. Palette condivise fra
@@ -1159,15 +1625,22 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 28 settembre 2026 — Home continua e caricamenti più morbidi
 
+### Interfaccia
+
+- Conservati posizione di scorrimento, ricerca, loghi delle estensioni, ripresa
+  e novità di ogni Home, inclusa Manga. La riduzione delle animazioni è rispettata.
+
+### Novità
+
 - Le categorie della Home condividono una sola testata: cambia soltanto il
   contenuto sottostante con una dissolvenza, senza scorrimento laterale della pagina.
 - Hero e righe in caricamento usano skeleton con una pulsazione discreta e
   dimensioni adattate allo schermo e al testo. I dati già disponibili restano
   visibili durante gli aggiornamenti; errori e sezioni vuote non restano in caricamento.
-- Conservati posizione di scorrimento, ricerca, loghi delle estensioni, ripresa
-  e novità di ogni Home, inclusa Manga. La riduzione delle animazioni è rispettata.
 
 ## 28 settembre 2026 — Scegliere la stagione dal manga
+
+### Novità
 
 - La scelta degli anime collegati a un manga mostra i capitoli documentati di
   inizio e fine per ogni stagione, in un riquadro compatto sotto titolo e anno.
@@ -1178,12 +1651,16 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 28 settembre 2026 — Home torna prima in cima
 
+### Novità
+
 - Toccando di nuovo Home, una pagina scorsa torna in cima; il cambio categoria
   avviene soltanto quando si è già all'inizio della pagina.
 - Lo stesso comportamento vale per le Home video, Manga e catalogo. Durante
   il ritorno in cima, tocchi ripetuti non cambiano categoria.
 
 ## 28 settembre 2026 — Collegamenti anime e manga sempre compatti
+
+### Novità
 
 - Rimossi il pulsante di espansione e i dettagli estesi. Restano il gradiente,
   i riferimenti di stagione e capitolo e l'apertura diretta del titolo.
@@ -1192,30 +1669,47 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 28 settembre 2026 — Dettagli manga senza ripetizioni
 
+### Correzioni
+
 - La scheda espansa mantiene i riferimenti compatti di stagione, inizio e fine
   una sola volta. Rimossi i paragrafi duplicati dai dettagli; restano le copie
   alternative, la copertina e le azioni di apertura.
 
 ## 28 settembre 2026 — Capitoli della stagione aperta
 
-- La scheda compatta anime/manga mostra due righe con stagione, inizio/fine e
-  capitolo documentato. Il numero si riferisce alla stagione aperta nella scheda.
-- Riconosciuti anche i riferimenti «S1» senza episodio e i campi con più stagioni:
-  i capitoli di un'altra stagione o dell'intera serie non vengono riutilizzati
-  come fine di un sequel. Gli archi con riferimenti pertinenti hanno la precedenza.
+### Interfaccia
+
 - Conservati il gradiente, l'apertura diretta del manga e il controllo circolare
   per espandere e richiudere i dettagli.
 
+### Novità
+
+- La scheda compatta anime/manga mostra due righe con stagione, inizio/fine e
+  capitolo documentato. Il numero si riferisce alla stagione aperta nella scheda.
+
+### Correzioni
+
+- Riconosciuti anche i riferimenti «S1» senza episodio e i campi con più stagioni:
+  i capitoli di un'altra stagione o dell'intera serie non vengono riutilizzati
+  come fine di un sequel. Gli archi con riferimenti pertinenti hanno la precedenza.
+
 ## 28 settembre 2026 — Riferimenti manga a colpo d'occhio
+
+### Novità
 
 - La scheda compatta mostra subito il capitolo iniziale e l'ultimo capitolo
   documentato, quando disponibili. Il gradiente è condiviso con la versione
   espansa, mantenendo un solo controllo circolare per aprire e richiudere i dettagli.
+
+### Correzioni
+
 - Il passaggio dal manga all'anime verifica l'identità della copia nei metadati
   dell'estensione: vecchie associazioni di tracking da sole non fanno comparire
   adattamenti diversi tra le copie dell'anime.
 
 ## 28 settembre 2026 — Dal manga all'anime
+
+### Novità
 
 - Collegamenti anime/manga compatti di default: toccare la scheda apre il titolo,
   il pulsante circolare espande i dettagli e rimane in basso a destra per richiuderli.
@@ -1232,10 +1726,15 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 28 settembre 2026 — Manga per archi delle opere nate come novel
 
+### Novità
+
 - Quando un anime deriva da una novel, Nyanime mostra anche i manga collegati
   alla stessa opera, distinguendo il rapporto indiretto da un adattamento diretto.
   Gli intervalli stagione/episodio documentati aiutano a scegliere l'arco, senza
   usarli per indovinare un capitolo esatto.
+
+### Correzioni
+
 - Corretto il mantenimento dei contratti di ricerca nelle build ottimizzate:
   i collegamenti forniti dalle estensioni possono aprire anche manga mai aggiunti
   alla libreria e senza un tracking già impostato.
@@ -1248,6 +1747,8 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 28 settembre 2026 — Dall'anime al manga
 
+### Novità
+
 - La scheda anime riconosce i manga collegati tramite ID di catalogo e, quando
   l'estensione lo fornisce, apre direttamente una copia verificata senza cercarla
   per titolo.
@@ -1259,6 +1760,8 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 27 settembre 2026 — Categorie Home adattive
 
+### Novità
+
 - Le categorie della Home si distribuiscono su una o due righe secondo la larghezza
   dello schermo. Se sono ancora troppe, restano raggiungibili scorrendo lateralmente.
 - Una pressione lunga porta una categoria all'inizio e conserva l'ordine scelto.
@@ -1267,17 +1770,24 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 27 settembre 2026 — Esplorazione manga e filtro lingue
 
+### Novità
+
 - La sezione personale si chiama ora «Libreria». Nella Home manga i generi sono
   subito disponibili sotto l'intestazione, con chip e ricerca nell'elenco completo.
 - Etichette equivalenti in italiano e inglese confluiscono in un solo genere;
   ogni fonte riceve comunque il proprio filtro originale.
-- La ricerca usa una corsia separata dai caricamenti della Home e presenta i
-  risultati di ogni fonte appena arrivano, senza attendere le altre.
 - La preferenza già presente per le altre lingue ora vale anche in ricerca,
   elenco fonti, Libreria, cronologia e novità manga. Nascondere un titolo non
   cancella letture, download o dati salvati.
 
+### Prestazioni
+
+- La ricerca usa una corsia separata dai caricamenti della Home e presenta i
+  risultati di ogni fonte appena arrivano, senza attendere le altre.
+
 ## 27 settembre 2026 — Compatibilità completa con le estensioni manga 1.6
+
+### Novità
 
 - Le schede manga, la biblioteca, il tracking, la ricerca e le stanze usano ora
   l'aggiornamento combinato di dettagli e capitoli delle estensioni 1.6.
@@ -1285,10 +1795,15 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 - Le estensioni meno recenti continuano a funzionare tramite il contratto
   precedente. Il modello e i metodi delle nuove estensioni sono disponibili
   nell'API generica dell'app, senza logica legata a una fonte.
+
+### Prestazioni
+
 - Le richieste simultanee per lo stesso manga vengono coordinate, evitando
   aggiornamenti concorrenti tra scheda, Home e tracking.
 
 ## 27 settembre 2026 — Home Manga e librerie unite
+
+### Novità
 
 - Manga entra nella Home moderna accanto alle categorie video, con sezioni, ricerca
   nel catalogo completo e filtri forniti dalle estensioni installate. I risultati
@@ -1298,6 +1813,9 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
   «Biblioteca & Libreria». La vecchia interfaccia manga viene disattivata.
 - Una preferenza nasconde dalla Home Manga i cataloghi non italiani, senza
   rimuovere titoli già presenti nella biblioteca personale.
+
+### Correzioni
+
 - Il tracking manga continua ad avviarsi dalla lettura del primo capitolo;
   i tentativi simultanei sullo stesso titolo vengono serializzati per evitare
   associazioni duplicate.
@@ -1306,13 +1824,20 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 27 settembre 2026 — Prossima uscita nella scheda del titolo
 
+### Novità
+
 - Il tempo che manca al prossimo episodio compare anche sotto lo studio,
   prima dello stato e della fonte. Usa lo stesso conto alla rovescia della lista
   episodi e rispetta la preferenza che ne controlla la visibilità.
+
+### Correzioni
+
 - Un refresh conserva la data nota se il tracker non è ancora disponibile o la
   richiesta alla rete fallisce. La aggiorna soltanto dopo una risposta valida.
 
 ## 27 settembre 2026 — Prossima uscita degli episodi
+
+### Novità
 
 - La previsione del prossimo episodio è ora una scheda discreta nella lista:
   mette in primo piano data e ora locali, seguite dal tempo rimanente; il numero
@@ -1321,6 +1846,8 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
   schermi stretti e alle griglie della UI moderna e legacy.
 
 ## 27 settembre 2026 — Home Anime con più fonti
+
+### Novità
 
 - Le sezioni e la ricerca della Home Anime combinano i risultati delle estensioni
   installate. Le schede dello stesso titolo vengono unite quando condividono
@@ -1333,12 +1860,17 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 - Le estensioni possono fornire classifiche, un indice dei generi, titoli ed
   episodi casuali, l'episodio preciso di una scheda e titoli simili. Quando una
   Home usa più fonti, il logo di un singolo sito non sostituisce Nyanime.
+
+### Correzioni
+
 - La barra dei generi mostra di nuovo tutte le categorie disponibili. Le due
   scelte casuali sono raccolte in Esplora, fuori dalla barra dei generi.
 - Uscendo dal player dopo l'apertura diretta di un episodio, la scheda conserva
   lo stato dell'avvio e non rilancia una seconda volta il player.
 
 ## 27 settembre 2026 — Tracking dei titoli nella libreria
+
+### Novità
 
 - Un anime o manga aggiunto alla libreria viene cercato in background nei
   tracker configurati, anche prima del primo episodio o capitolo. Quando
@@ -1352,6 +1884,8 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 27 settembre 2026 — Aggiornamenti progressivi di episodi e Home
 
+### Novità
+
 - Aprendo una scheda anime, l'elenco degli episodi salvato viene mostrato subito e
   controllato in sottofondo con la sua estensione, senza dover trascinare per aggiornare.
 - Nella Home i titoli visti di recente vengono controllati a rotazione, compresi
@@ -1361,6 +1895,9 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
   a parità di attesa hanno precedenza le serie in corso. Limiti persistenti
   per titolo e per fonte evitano raffiche di
   richieste anche dopo il riavvio dell'app.
+
+### Prestazioni
+
 - Le sezioni della Home continuano a ricevere i dati dalle estensioni. Il controllo
   della libreria resta legato soltanto all'aggiornamento periodico configurato
   nelle impostazioni o all'azione manuale. Il controllo automatico prosegue
@@ -1373,6 +1910,8 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 26 settembre 2026 — Riesame manuale del tracking
 
+### Novità
+
 - In Impostazioni → Tracking, «Riesamina i titoli iniziati» riprova anime e manga
   guardati o letti che non sono ancora collegati ai servizi configurati. Si può
   avviare anche dopo il recupero iniziale e con il tracking automatico spento.
@@ -1381,6 +1920,8 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 26 settembre 2026 — Riproduzione in finestra
 
+### Correzioni
+
 - Il video continua a riprodursi quando si passa alla modalità picture-in-picture:
   la pausa avviene solo quando il player esce davvero dallo schermo.
 - Corretto il ridimensionamento che poteva lasciare metà finestra nera al primo
@@ -1388,18 +1929,27 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 25 settembre 2026 — Schermata Novità
 
-- Lo scorrimento orizzontale tra Anime e Manga resta continuo: il tema della
-  pagina manga non ricrea più l'intera schermata a metà gesto.
+### Novità
+
 - Filtri e stato vuoto hanno una presentazione più chiara, con conteggi separati
   per i titoli ancora da vedere o leggere e per tutti gli episodi o capitoli.
 
+### Correzioni
+
+- Lo scorrimento orizzontale tra Anime e Manga resta continuo: il tema della
+  pagina manga non ricrea più l'intera schermata a metà gesto.
+
 ## 25 settembre 2026 — Installazione degli aggiornamenti
+
+### Novità
 
 - Quando il download OTA termina, un avviso nell'app offre «Installa ora» e
   «Non ora». L'APK pronto resta accessibile in Altro anche dopo aver lasciato
   la schermata delle novità; l'avviso scompare quando la versione è installata.
 
 ## 25 settembre 2026 — Novità nella Home
+
+### Novità
 
 - Un indicatore circolare appare nella Home anime o manga soltanto per novità non
   ancora viste. Ha il colore delle altre icone della barra superiore. Toccandolo,
@@ -1410,6 +1960,8 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
   aperti o ignorati; le novità arrivate dopo riattivano l'indicatore.
 
 ## 25 settembre 2026 — Recupero iniziale e sigle personalizzate
+
+### Novità
 
 - Se un tracker è già configurato, Nyanime collega in background anche i titoli
   iniziati prima dell'aggiornamento. Il recupero si conclude una sola volta per
@@ -1423,6 +1975,8 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 25 settembre 2026 — Collegamento automatico ai tracker
 
+### Novità
+
 - Quando inizia la visione o la lettura, Nyanime collega in background il titolo
   ai tracker già configurati sul dispositivo e aggiorna poi il progresso.
   La ricerca usa prima gli identificativi forniti dall'estensione, poi titoli
@@ -1434,6 +1988,8 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
   la finestra di collegamento manuale. La scelta già salvata resta invariata.
 
 ## 25 settembre 2026 — Novità personali e aggiornamenti nell'app
+
+### Novità
 
 - Le schermate Aggiornamenti già esistenti mostrano per prime le novità da
   vedere o leggere dei titoli nella libreria e di quelli guardati o letti di recente.
@@ -1458,44 +2014,66 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 24 settembre 2026 — Stanze: avvio preparato e durate dei video
 
+### Novità
+
 - L'owner può attivare nelle opzioni della stanza il precaricamento prima del
   primo avvio di ogni episodio. Ogni telefono carica in parallelo fino a 15
   secondi di video; se la stima non è disponibile, usa un margine breve.
   L'attesa massima per il precaricamento è 15 secondi.
+
+### Correzioni
+
 - Le piccole differenze di durata riportate da manifest e qualità diverse dello
   stesso episodio non bloccano più la stanza. Durante l'apertura, una durata
   ancora sconosciuta viene mostrata come preparazione e non come video diverso.
 
 ## 24 settembre 2026 — Pulizia dei dati disattivati
 
+### Correzioni
+
 - La pulizia dei vecchi dati di profili e sincronizzazione termina correttamente
   anche nell'APK ottimizzato, senza un avviso a ogni avvio.
 
 ## 23 settembre 2026 — Stanze con relay verificati
+
+### Novità
+
+- Le nuove stanze tollerano fino a 5 secondi di caricamento dell'ospite
+  prima di fermare anche chi ospita; chi era rimasto indietro si riallinea quando
+  torna pronto. La pausa immediata per tutti resta disponibile nelle opzioni.
+
+### Correzioni
 
 - Le stanze usano due relay che hanno superato una prova di scambio cifrato in
   entrambe le direzioni, senza account. I precedenti rifiutavano gli invii.
 - La connessione viene mostrata come pronta solo dopo che il relay accetta un
   messaggio di prova; rifiuti e limiti di frequenza non fanno più lampeggiare lo
   stato della stanza come se fosse disponibile.
-- Una stanza vuota non invia più aggiornamenti periodici inutili e le richieste
-  di ingresso ripetute sono meno frequenti.
 - Un singolo aggiornamento di presenza perso non ferma più entrambi i video;
   con l'opzione di attesa attiva, il buffering reale continua a mettere in pausa la stanza.
-- Le nuove stanze tollerano fino a 5 secondi di caricamento dell'ospite
-  prima di fermare anche chi ospita; chi era rimasto indietro si riallinea quando
-  torna pronto. La pausa immediata per tutti resta disponibile nelle opzioni.
+
+### Prestazioni
+
+- Una stanza vuota non invia più aggiornamenti periodici inutili e le richieste
+  di ingresso ripetute sono meno frequenti.
 
 ## 23 settembre 2026 — Inviti brevi coerenti in tutta la stanza
+
+### Compatibilità
+
+- I link completi delle versioni precedenti continuano ad aprirsi.
+
+### Novità
 
 - Link, messaggio condiviso e QR del creatore ora contengono il codice stanza a
   otto cifre, anche quando si invita dal lettore manga. L'amico chiede di entrare
   e il creatore conferma l'accesso.
 - La schermata delle stanze mette in primo piano Crea/Entra, codice e richieste;
   il nome facoltativo resta modificabile senza affollare il percorso iniziale.
-- I link completi delle versioni precedenti continuano ad aprirsi.
 
 ## 23 settembre 2026 — Accesso alle stanze con codice breve
+
+### Novità
 
 - Per invitare un amico in una stanza video o manga ora bastano otto cifre temporanee.
   Chi crea la stanza vede la richiesta e può accettarla o rifiutarla.
@@ -1504,21 +2082,30 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 23 settembre 2026 — Rimozione della traduzione manga sperimentale
 
+### Novità
+
 - Rimossi pulsanti, impostazioni e componenti della traduzione manga offline.
 - Dopo l'aggiornamento, l'app elimina i modelli e la cache della traduzione scaricati
   in precedenza, senza alterare manga, progressi o annotazioni delle stanze.
 
 ## 23 settembre 2026 — Annotazioni condivise più affidabili
 
-- Nella stessa stanza video e manga, schizzi e note sulla pagina si riallineano
-  dopo disconnessioni e messaggi fuori ordine; gli interventi nascosti non ricompaiono.
+### Novità
+
 - Ogni partecipante può nascondere e ripristinare i propri interventi per tutti;
   il creatore può moderare quelli della stanza. La visibilità locale resta separata.
 - Dopo una chiusura imprevista, la schermata offre il rientro esplicito nella stanza
   con le annotazioni temporanee salvate in forma cifrata sul dispositivo.
 - La stanza mostra temporaneamente a che punto del video stanno guardando gli altri.
 
+### Correzioni
+
+- Nella stessa stanza video e manga, schizzi e note sulla pagina si riallineano
+  dopo disconnessioni e messaggi fuori ordine; gli interventi nascosti non ricompaiono.
+
 ## 23 settembre 2026 — Pressione prolungata nel player personalizzabile
+
+### Novità
 
 - Nelle impostazioni dei gesti puoi scegliere cosa accade tenendo premuto sul video:
   velocità temporanea 2× (predefinita), 1,5× o 1,25×, cattura schermata oppure
@@ -1528,11 +2115,18 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 
 ## 23 settembre 2026 — Backup trasferibili e note OTA per versione
 
+### Novità
+
 - I nuovi backup manuali e automatici usano `.nyabk`; il ripristino continua ad
   accettare i vecchi file `.tachibk` e il formato interno resta compatibile.
 - Esporta dati offre un backup completo di librerie, progressi e segnalibri di
   visione e lettura anche fuori dalla libreria, cronologia, impostazioni, preferenze delle
   fonti ed estensioni. Video e pagine scaricati restano esclusi.
+- Le note di aggiornamento OTA mostrano soltanto le novità aggiunte dal tag
+  precedente, senza riproporre ogni volta l'intera sezione del changelog.
+
+### Correzioni
+
 - Sul nuovo dispositivo vengono ripristinate anche le preferenze non ancora
   inizializzate; categorie, impostazioni e titoli sono ripristinati nell'ordine
   corretto. Le categorie anime e manga sono mappate separatamente e le stagioni
@@ -1542,58 +2136,76 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
   tramite riferimento alla fonte e al titolo, senza copiare ID del database.
 - Le preferenze che non si riescono a ripristinare compaiono nel resoconto degli
   errori invece di essere ignorate senza avviso.
-- Le note di aggiornamento OTA mostrano soltanto le novità aggiunte dal tag
-  precedente, senza riproporre ogni volta l'intera sezione del changelog.
 
 ## 23 settembre 2026 — Licenze, aiuto e aggiornamenti OTA
+
+### Compatibilità
+
+- Gli APK delle nuove release mantengono nomi riconosciuti anche dalle versioni
+  già installate, per consentire l'aggiornamento OTA diretto.
+
+### Novità
+
+- Il pulsante Aiuto e le guide collegate aprono la documentazione Nyanime.
+- La schermata di aggiornamento mostra le novità di questa release, prese dal
+  changelog, anziché istruzioni tecniche per scegliere un APK.
+
+### Correzioni
 
 - La testata Info ora mostra il marchio Nyanime senza lo spazio vuoto sopra l'icona.
 - Nella Home moderna, logo, Stanze e Cerca restano sulla stessa riga anche sugli
   schermi stretti; il pulsante Cerca mantiene la sua forma a pillola.
 - La pagina delle licenze delle librerie usa un elenco compatibile con la versione
   Compose dell'app, con ricerca e dettaglio della licenza, evitando il crash.
-- Il pulsante Aiuto e le guide collegate aprono la documentazione Nyanime.
-- La schermata di aggiornamento mostra le novità di questa release, prese dal
-  changelog, anziché istruzioni tecniche per scegliere un APK.
-- Gli APK delle nuove release mantengono nomi riconosciuti anche dalle versioni
-  già installate, per consentire l'aggiornamento OTA diretto.
 
 ## 23 settembre 2026 — Link Nyanime e aggiornamenti OTA
 
+### Novità
+
+- Le release preview firmate vengono pubblicate automaticamente da `main` con APK
+  per ogni architettura, riattivando la verifica degli aggiornamenti OTA.
 - I pulsanti Sito web, Discord e GitHub nella schermata Info mostrano un avviso
   finché i relativi canali non saranno disponibili; rimossa la voce per tradurre.
 - Licenze e privacy aprono i documenti di questo repository.
-- Le release preview firmate vengono pubblicate automaticamente da `main` con APK
-  per ogni architettura, riattivando la verifica degli aggiornamenti OTA.
 - Supporto alle estensioni video con versione 17 della libreria, conservando le
   versioni precedenti e gli identificatori tecnici necessari alla compatibilità.
 
 ## 22 settembre 2026 — Sync disattivato e avvio Ultra più accessibile
 
+### Novità
+
 - Sync personale rimosso dalle impostazioni e disattivato anche sulle installazioni
   già configurate. Pulizia automatica di chiavi, archivi privati e code di sync/community;
   librerie, progressi locali, download e stanze restano disponibili.
-- Codice social e sync inutilizzato escluso dall’APK ottimizzato.
 - Ultra può elaborare a schermo acceso e a batteria; le due restrizioni diventano
   facoltative. Soglie termiche meno prudenti, carico GPU ancora dosato e attese
   ricontrollate senza accumulare ritardi crescenti. Aggiornamento delle code esistenti.
+
+### Prestazioni
+
+- Codice social e sync inutilizzato escluso dall’APK ottimizzato.
 
 ## r8200 — Guarda insieme e controlli del player
 
 Riferimenti: `bc660e1b0`, `7ee9e9a4f`, `51d484a1e`, `83115106a`.
 
+### Novità
+
 - Play con risposta immediata, animazione play/cuore/cerchio e conto alla rovescia
   integrato nel video.
 - Iniziali e stato dei partecipanti, indicazione di chi sta ancora caricando
   e messaggi brevi sulle azioni manuali.
-- Scadenza dei comandi non confermati, nuovi tentativi controllati e riconnessione
-  senza riapplicare richieste di episodi precedenti.
 - Barra della stanza nella navigazione e nei dettagli, con episodio, partecipanti
   e ritorno al player.
 - Caricamento individuale, inviti al salto e scheda del prossimo episodio più compatti,
   conservando legacy, riduzione del movimento e timer.
 - Anime4K disabilitato per l'intera stanza, con ripristino delle scelte individuali
   all'uscita.
+
+### Correzioni
+
+- Scadenza dei comandi non confermati, nuovi tentativi controllati e riconnessione
+  senza riapplicare richieste di episodi precedenti.
 - Protezioni del ciclo di vita nativo durante apertura e chiusura, anche senza stanze.
 
 Per questa revisione: 411 test automatici superati, quattro facoltativi saltati,
@@ -1603,6 +2215,8 @@ Non è stata eseguita una nuova prova con due telefoni su questa revisione.
 ## Stanze cifrate e sincronizzazione
 
 Riferimenti: `2ec1bd009`, `51ba63dfb`, `6019330d5`.
+
+### Novità
 
 - Creazione e ingresso tramite codice, link e QR, fino a otto partecipanti.
 - Trasporto cifrato su relay Nostr, senza account Nyanime o apertura di porte.
@@ -1615,15 +2229,22 @@ Riferimenti: `2ec1bd009`, `51ba63dfb`, `6019330d5`.
 
 Riferimento: `10fb2a381`.
 
+### Compatibilità
+
+- Lettore, tema manga, librerie e avanzamento mantenuti.
+
+### Novità
+
 - Home opzionale accanto alla biblioteca, basata sulle capacità dell'estensione.
 - Aggiornamenti, classifiche, metadati di presentazione e azioni dei capitoli.
 - Apertura del capitolo esatto e “Continua a leggere”.
-- Lettore, tema manga, librerie e avanzamento mantenuti.
 
 ## ModernUI, navigazione e strumenti del player
 
 Riferimenti: `27b30551a`, `f4455e11c`, `a7364253d`, `f5c1210ca`,
 `73a899d03`, `9575ea5b3`, `f70647847`, `d91acfa62`, `b1f9a8e69`.
+
+### Novità
 
 - Nome e icona Nyanime, presentazione video cinematografica e tema manga indipendente.
 - ModernUI attiva di default, con ritorno alla presentazione legacy dalle impostazioni.
@@ -1640,6 +2261,8 @@ Riferimenti: `27b30551a`, `f4455e11c`, `a7364253d`, `f5c1210ca`,
 
 Riferimento: `c5ef563fe`.
 
+### Novità
+
 - Google Cast e UPnP/DLNA, scoperta sulla rete locale e relay dei contenuti supportati.
 - Telecomando, volume, avanzamento, coda episodi, notifica e navigazione durante il Cast.
 - Cambio del video e ritorno alla riproduzione locale con posizione.
@@ -1650,17 +2273,25 @@ Riferimento: `c5ef563fe`.
 
 Il lavoro precedente comprende:
 
+### Novità
+
 - Catalogo video, associazione automatica a titolo e stagione, fallback Kitsu,
   calendario e Home dichiarative delle estensioni.
 - “Continua a guardare” indipendente dai feed remoti e gestione dei titoli nascosti.
 - Anime4K integrato in mpv, Smart con misure del rendering, calibrazione,
   telemetria limitata e verifica degli shader.
-- Ricerca globale con annullamento e concorrenza limitata, cache e retry per sezione.
 - Download HTTP riprendibili quando validabili, controllo dello spazio,
   recupero dei link e protezioni dei backup.
+
+### Correzioni
+
 - Aggiornamenti delle estensioni deduplicati, scelta corretta degli allegati APK.
 - Correzioni PiP/JNI, demuxer HLS per ripresa e seek, accessibilità con testo grande,
   verifiche di rendering e strumenti di misura delle prestazioni.
+
+### Prestazioni
+
+- Ricerca globale con annullamento e concorrenza limitata, cache e retry per sezione.
 
 Dettagli e vincoli sono nelle [guide tecniche](docs/README.md).
 

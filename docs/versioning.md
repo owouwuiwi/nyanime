@@ -58,22 +58,25 @@ until the initial setup is complete.
 
 ## Publication and permanent compatibility
 
-The main Android workflow builds the existing installable package and certificate.
-Canonical releases use `vX.Y.Z.W` tags and `Nyanime-X.Y.Z.W-<abi>.apk` assets.
+The main Android workflow builds the production package and verifies its release certificate.
+Canonical releases use `vX.Y.Z.W` tags. From 0.42.0.0, they contain only
+`Nyanime-Production-X.Y.Z.W-<abi>.apk` assets for the production package and
+certificate. Previously published old-identity assets and `rNNNN` aliases remain
+unchanged as migration bridges; new releases do not recreate these aliases.
 Recommended releases are not GitHub prereleases; previews are. Both have a numeric
 title, per-release notes, checksums and compatible ABI/universal packages.
 
-**Every release also publishes a compatibility alias** using the previous `r<commit-count>`
-tag and fixed `app-<abi>-preview.apk` asset names. This is permanent, not a one-time
-migration window. The compatibility alias is kept first in the release feed for
-the earliest clients, including those that inspect only the first suitable release.
-Clients with stricter asset filters also find it within their existing query. Thus an
-old r-style installation can jump directly to the latest APK after hundreds of releases;
-intermediate APKs do not need to be installed.
+The last existing compatibility alias remains first for the earliest clients,
+including those that inspect only the first suitable release. It still points to
+the unchanged 0.41.0.6 bridge, which can install the current production APK and
+offer the verified local transfer. New documentation snapshots stay below this
+frozen bridge in the legacy feed; the numeric Recommended release is explicitly
+selected as GitHub's latest release. No old-signed APK is rebuilt or replaced.
 
-Numeric clients ignore these aliases. The app and APK filenames show only X.Y.Z.W;
-legacy tag identifiers are retained solely for compatibility with already shipped clients.
-The old application ID and signing identity are unchanged, preserving app data.
+Numeric clients select assets for their own package identity. The new production
+APK cannot update the old package in place: Android installs it alongside the old
+app, and removal is offered only after the transfer is verified. See the
+[identity transfer guide](identity-transfer.md).
 
 Source builds run in the private `owouwuiwi/nyanime-source` repository with complete
 Git history. The original public `owouwuiwi/nyanime` repository retains its identity,

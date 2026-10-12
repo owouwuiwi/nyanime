@@ -152,9 +152,11 @@ Le condizioni e le opzioni sono descritte nel [catalogo completo delle funzional
 
 ## Installazione
 
-Serve **Android 8.0 o successivo**. Installa l'APK Nyanime ricevuto dal manutentore
-o compilato da questo repository; non è necessario un account Nyanime.
-Non viene indicato un canale pubblico di download che potrebbe non essere disponibile.
+Serve **Android 8.0 o successivo**. Gli APK firmati sono disponibili nelle
+[release Nyanime](https://github.com/owouwuiwi/nyanime/releases); non è necessario
+un account Nyanime. Da 0.42.0.0 viene distribuita soltanto la nuova identità
+`it.owouwuiwi.nyanime`. La vecchia 0.41.0.6 resta disponibile come ponte per il
+[trasferimento dei dati](docs/identity-transfer.md).
 
 Le build producono varianti per `arm64-v8a`, `armeabi-v7a`, `x86`, `x86_64`
 e universale. Il file deve essere compatibile con il dispositivo; per aggiornare

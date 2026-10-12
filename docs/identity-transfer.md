@@ -1,10 +1,20 @@
 # Local transfer between Nyanime identities
 
-The ordinary build keeps its existing package and certificate. The new identity is
-selected explicitly with `-PproductionIdentity=true` and signed with the protected
-production certificate. Publishing the new identity is a separate release decision.
+From 0.42.0.0 onward, releases use only `it.owouwuiwi.nyanime` and the protected
+production certificate. This is the default build identity. An explicit
+`-PproductionIdentity=false` is reserved for local migration diagnostics; it must
+not enter the release pipeline. Development/unit-test tasks need no release key.
 
-After an ordinary update, configured legacy installations receive a one-time optional
+The previously published 0.41.0.6 remains the migration bridge for the old package.
+Its APKs, signatures and download URLs remain unchanged; no further releases are
+built with that old signing identity. If a very old installation lacks the transfer
+action, first install its [0.41.0.6 bridge](https://github.com/owouwuiwi/nyanime/releases/tag/v0.41.0.6).
+Then use the transfer action in Data settings to install the current production APK.
+Android cannot install a differently signed package as an in-place update: the new
+app is installed alongside the old one, verifies the transferred data, and only then
+offers removal of the old app through Android's confirmation.
+
+After the bridge update, configured legacy installations receive a one-time optional
 offer to download or open the pinned production package. Deferring keeps the old app
 usable, and Data settings retain the same action. Clean installs and the production
 identity do not receive that offer. Successfully transferred sources do not prompt again.
