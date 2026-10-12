@@ -188,9 +188,16 @@ def published(tag, directory, notes, metadata, commit, canonical):
     except urllib.error.HTTPError as error:
         if error.code != 404:
             raise
-        release = request(base, token, 'POST', {'tag_name': tag, 'target_commitish': commit,
-            'name': 'Nyanime ' + metadata['versionName'], 'body': notes, 'draft': True,
-            'prerelease': not canonical or metadata['channel'] == 'preview'})
+        # By-tag reads only published releases. Resume a draft through the authenticated list.
+        drafts = [item for item in request(base + '?per_page=100', token) if item['tag_name'] == tag]
+        if len(drafts) > 1:
+            raise ValueError('Ambiguous release drafts; refusing to select one silently')
+        if drafts:
+            release = drafts[0]
+        else:
+            release = request(base, token, 'POST', {'tag_name': tag, 'target_commitish': commit,
+                'name': 'Nyanime ' + metadata['versionName'], 'body': notes, 'draft': True,
+                'prerelease': not canonical or metadata['channel'] == 'preview'})
     assets = {asset['name']: asset for asset in release['assets']}
     for file in directory.iterdir():
         digest = hashlib.sha256(file.read_bytes()).hexdigest()
