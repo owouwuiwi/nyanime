@@ -9,10 +9,21 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
-## Distribuzione privata e continuità OTA
+## 12 ottobre 2026 — 0.42.0.1: Licenze, crediti e sorgenti
 
-- Il codice e la cronologia completa sono conservati nella repository privata; APK firmati, documentazione e changelog rimangono pubblici.
-- Gli aggiornamenti conservano gli indirizzi storici e le release compatibili con i primi updater, senza cambiare firma o identificativo dell'app.
+### Correzioni
+
+- Le licenze delle librerie mostrano tutti i testi dichiarati, anche quando un componente usa più licenze; completati i metadati mancanti senza cambiare le dipendenze.
+- I crediti del player identificano la versione binaria effettivamente inclusa, distinta dal nome della dipendenza Gradle.
+
+### Distribuzione
+
+- Codice dell'app, istruzioni di compilazione e patch pubblici, con un archivio dei sorgenti e hash per ogni nuova release.
+- Copyright Nyanime per i contributi originali, Apache 2.0 conservata e attribuzioni upstream mantenute. Le licenze dei componenti nativi restano distinte e sono consultabili nell'app.
+
+### Verifiche
+
+- La pubblicazione controlla i testi delle licenze, l'integrità dei sorgenti e la corrispondenza tra archivio e snapshot pubblico; chiavi di firma e dati locali rimangono esclusi.
 
 ## 12 ottobre 2026 — 0.42.0.0: Aggiornamenti più leggibili
 

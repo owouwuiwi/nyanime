@@ -6,9 +6,10 @@
   Anime4K, Cast e visione sincronizzata con gli amici.</p>
 </div>
 
-Questa repository pubblica distribuisce APK firmati, changelog e documentazione.
-Il codice e la sua cronologia completa sono conservati nel progetto privato;
-gli aggiornamenti OTA restano disponibili anche alle installazioni precedenti.
+Questa repository pubblica contiene il codice di Nyanime, le istruzioni di build,
+le licenze, il changelog e gli APK firmati. Ogni nuova release include anche un
+archivio dei sorgenti della versione distribuita. Gli aggiornamenti OTA restano
+disponibili anche alle installazioni precedenti.
 
 **Nyanime** è un fork di AniYomi che aggiunge una nuova esperienza video e conserva
 le funzioni di gestione e lettura manga. La ModernUI offre un aspetto scuro con
@@ -200,6 +201,10 @@ Usa mpv e la relativa integrazione Android, FFmpeg, gli shader Anime4K e altre
 librerie con le rispettive licenze. Il riferimento visivo del restyling è indicato
 nella [guida all'interfaccia](docs/nyanime-ui.md).
 
-Il codice ereditato mantiene [Apache License 2.0](LICENSE) e le attribuzioni
-originali. Sono disponibili [i crediti dei componenti](docs/credits.md), la documentazione del
+Il codice originale di Nyanime è distribuito sotto [Apache License 2.0](LICENSE),
+con copyright **© 2026 owouwuiwi e contributori Nyanime**. Il [NOTICE](NOTICE)
+conserva le attribuzioni del codice ereditato. Le dipendenze mantengono le
+proprie licenze, inclusi gli obblighi GPL/LGPL dei componenti nativi.
+Sono disponibili la [guida alle licenze](docs/licensing.md),
+i [crediti dei componenti](docs/credits.md), la documentazione del
 [demuxer nativo](tools/native/README.md) e le licenze incluse nell'app.

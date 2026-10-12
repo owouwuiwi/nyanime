@@ -1,0 +1,38 @@
+CREATE TABLE airing_event (
+    entry_id INTEGER NOT NULL REFERENCES animes(_id) ON DELETE CASCADE,
+    episode INTEGER NOT NULL,
+    airing_at INTEGER NOT NULL,
+    catalog_id INTEGER NOT NULL,
+    reminded_at INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY(entry_id, episode)
+);
+CREATE INDEX airing_event_date ON airing_event(airing_at);
+CREATE TABLE airing_cache (
+    entry_id INTEGER NOT NULL PRIMARY KEY REFERENCES animes(_id) ON DELETE CASCADE,
+    verified_at INTEGER NOT NULL DEFAULT 0,
+    attempted_at INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'UNRESOLVED',
+    total_episodes INTEGER NOT NULL DEFAULT 0,
+    finished INTEGER NOT NULL DEFAULT 0
+);
+
+getEvents:
+SELECT * FROM airing_event ORDER BY airing_at;
+getEntryEvents:
+SELECT * FROM airing_event WHERE entry_id = ? ORDER BY airing_at;
+getCaches:
+SELECT * FROM airing_cache;
+getCache:
+SELECT * FROM airing_cache WHERE entry_id = ?;
+cacheResult:
+INSERT INTO airing_cache(entry_id, verified_at, attempted_at, status, total_episodes, finished) VALUES (?, ?, ?, ?, ?, ?)
+ON CONFLICT(entry_id) DO UPDATE SET verified_at = excluded.verified_at, attempted_at = excluded.attempted_at, status = excluded.status, total_episodes = excluded.total_episodes, finished = excluded.finished;
+upsertEvent:
+INSERT INTO airing_event(entry_id, episode, airing_at, catalog_id) VALUES (?, ?, ?, ?)
+ON CONFLICT(entry_id, episode) DO UPDATE SET airing_at = excluded.airing_at, catalog_id = excluded.catalog_id;
+removeAbsent:
+DELETE FROM airing_event WHERE entry_id = :entryId AND episode NOT IN :episodes;
+markReminded:
+UPDATE airing_event SET reminded_at = ? WHERE entry_id = ? AND episode = ?;
+setNextAiring:
+UPDATE animes SET viewer = (viewer & ~:mask) | :value WHERE _id = :entryId;

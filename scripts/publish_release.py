@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Public bot publisher. Receives signed APKs and documentation, never app source."""
+"""Publish verified APKs, reviewed source snapshots, documentation and checksums."""
 import hashlib
 import json
 import os
 import re
 import shutil
 import subprocess
+import sys
 import time
 import urllib.request
 import urllib.error
@@ -13,6 +14,9 @@ import urllib.parse
 import zipfile
 from datetime import datetime, timezone, timedelta
 from pathlib import Path, PurePosixPath
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from scripts.public_distribution import allowed_source
 
 PUBLIC = 'owouwuiwi/nyanime'
 SOURCE = 'owouwuiwi/nyanime-source'
@@ -50,8 +54,8 @@ def validate_name(name):
     if p.is_absolute() or '..' in p.parts or '\\' in name or ':' in name or not p.parts:
         raise ValueError('Unsafe publication archive path')
     return name in {'publication.json', 'notes.md', 'numeric/SHA256SUMS'} or (
-        name.startswith('public/') and document(name.removeprefix('public/'))
-    ) or bool(re.fullmatch(r'numeric/Nyanime-Production-\d+\.\d+\.\d+\.\d+-(universal|arm64-v8a|armeabi-v7a|x86|x86_64)\.apk', name))
+        name.startswith('public/') and allowed_source(name.removeprefix('public/'))
+    ) or bool(re.fullmatch(r'numeric/(?:Nyanime-Production-\d+\.\d+\.\d+\.\d+-(universal|arm64-v8a|armeabi-v7a|x86|x86_64)\.apk|Nyanime-Source-\d+\.\d+\.\d+\.\d+\.zip)', name))
 
 def validate_text(text):
     blocked = {'807e4e92b75624ff2c9c3fd01ece23f84c4b2bfeec6816460539628f676d903d', '64a5090b45a4941f8ebc96f9c2f9f66558680fead5ddcbb8b780c1dc24d816a2', 'c4855bb0c8c2b1e2856a0aaf11f3b15ea7f0b353e2aa34dade10e6e435bc97c4'}
@@ -78,13 +82,21 @@ def unpack(archive, destination):
             target = destination / entry.filename
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(package.read(entry))
-            if target.suffix in {'.md', '.svg', '.json'} or target.name in {'LICENSE', 'NOTICE'}:
+            if entry.filename in {'notes.md', 'publication.json'} or (
+                entry.filename.startswith('public/') and document(entry.filename.removeprefix('public/')) and target.suffix != '.png'
+            ):
                 validate_text(target.read_text(encoding='utf-8'))
+            elif target.suffix.lower() in {'.kt', '.kts', '.java', '.py', '.sh', '.yml', '.properties', '.json', '.xml'}:
+                if re.search(rb'(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----)', target.read_bytes()):
+                    raise ValueError('Credential in application source')
 
 def validate_bundle(directory):
     metadata = json.loads((directory / 'publication.json').read_text())
     version = metadata['versionName']
-    if set(metadata) != {'schema', 'versionName', 'versionCode', 'channel', 'applicationId', 'assetPrefix', 'certificateSha256', 'sha256'} or metadata['schema'] != 2:
+    fields = {'schema', 'versionName', 'versionCode', 'channel', 'applicationId', 'assetPrefix', 'certificateSha256', 'sha256'}
+    if metadata['schema'] == 3:
+        fields |= {'sourceRevision', 'sourceSha256'}
+    if set(metadata) != fields or metadata['schema'] not in {2, 3}:
         raise ValueError('Unknown publication metadata')
     if not re.fullmatch(r'\d+\.\d+\.\d+\.\d+', version):
         raise ValueError('Invalid OTA tags')
@@ -103,6 +115,26 @@ def validate_bundle(directory):
         checksums += f'{digest}  {name}\n'
     if (directory / 'numeric/SHA256SUMS').read_text() != checksums:
         raise ValueError('Checksum manifest mismatch')
+    if metadata['schema'] == 3:
+        name = f'Nyanime-Source-{version}.zip'
+        if not re.fullmatch(r'[0-9a-f]{40}', metadata['sourceRevision']) or set(metadata['sourceSha256']) != {name}:
+            raise ValueError('Invalid source identity')
+        source = directory / 'numeric' / name
+        if hashlib.sha256(source.read_bytes()).hexdigest() != metadata['sourceSha256'][name]:
+            raise ValueError('Source hash mismatch')
+        with zipfile.ZipFile(source) as package:
+            expected_prefix = f'Nyanime-{version}/'
+            if package.testzip() or any(not entry.filename.startswith(expected_prefix) or
+                    not allowed_source(entry.filename.removeprefix(expected_prefix)) for entry in package.infolist()):
+                raise ValueError('Invalid source archive contents')
+            entries = {entry.filename.removeprefix(expected_prefix): entry for entry in package.infolist()}
+            public = directory / 'public'
+            files = {file.relative_to(public).as_posix(): file for file in public.rglob('*') if file.is_file()}
+            if set(entries) != set(files) or len(entries) != len(package.infolist()):
+                raise ValueError('Source archive differs from public snapshot')
+            for name, entry in entries.items():
+                if files[name].is_symlink() or hashlib.sha256(files[name].read_bytes()).digest() != hashlib.sha256(package.read(entry)).digest():
+                    raise ValueError('Source archive differs from public snapshot')
     if not (directory / 'public/CHANGELOG.md').is_file() or not (directory / 'notes.md').is_file():
         raise ValueError('Missing release documentation')
     return metadata
@@ -111,16 +143,15 @@ def git(*args):
     return subprocess.check_output(['git', *args], text=True).strip()
 
 def commit_docs(directory, metadata):
-    # Before any commit, reject source files already present in the public checkout.
+    reserved = {'.github/workflows/publish.yml', 'scripts/publish_release.py'}
     for name in git('ls-files').splitlines():
-        if not (document(name) or name.startswith('releases/') and name.endswith('.json') or
-                name in {'.github/workflows/publish.yml', 'scripts/publish_release.py', '.gitignore'}):
+        if not (allowed_source(name) or name.startswith('releases/') and name.endswith('.json') or name in reserved):
             raise ValueError('Public repository contains an unapproved file')
     documents = directory / 'public'
     current_versions = [tuple(map(int, file.stem.split('.'))) for file in Path('releases').glob('*.json')]
     if not current_versions or tuple(map(int, metadata['versionName'].split('.'))) >= max(current_versions):
         for name in git('ls-files').splitlines():
-            if document(name) and not (documents / name).exists():
+            if allowed_source(name) and name not in reserved and not (documents / name).exists():
                 Path(name).unlink()
         for source in documents.rglob('*'):
             if source.is_file():
@@ -138,7 +169,7 @@ def commit_docs(directory, metadata):
     git('config', 'user.email', 'owouwuiwi@users.noreply.github.com')
     git('add', '-A')
     if git('diff', '--cached', '--name-only'):
-        git('commit', '-m', f'Publish Nyanime {metadata["versionName"]} documentation and checksums')
+        git('commit', '-m', f'Publish Nyanime {metadata["versionName"]} source, documentation and checksums')
         git('push', 'origin', 'HEAD:main')
     return git('rev-parse', 'HEAD')
 

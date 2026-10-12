@@ -20,7 +20,10 @@ Copyright © 2024 Mihon Open Source Project
 Copyright © 2024 Aniyomi Open Source Project
 ```
 
-La licenza del codice dell'app è [Apache License 2.0](../LICENSE).
+Il codice originale di Nyanime usa [Apache License 2.0](../LICENSE), con
+copyright © 2026 owouwuiwi e contributori Nyanime. Il [NOTICE](../NOTICE)
+conserva le attribuzioni; la [guida alle licenze](licensing.md) distingue
+il codice dell'app dagli obblighi dei componenti inclusi, anche GPL/LGPL.
 Lo [storico AniYomi](history/aniyomi-changelog.md) rimane archiviato separatamente.
 
 ## Componenti e servizi
@@ -56,6 +59,6 @@ La presentazione Nyanime è implementata in Kotlin e Compose; marchio e icona
 sono descritti nella [guida UI](nyanime-ui.md).
 
 Le copertine mostrate durante l'uso provengono dai cataloghi o dalle estensioni.
-Il repository della documentazione usa il logo locale Nyanime e non distribuisce
+Il repository pubblico usa il logo locale Nyanime e non distribuisce
 artwork delle integrazioni private. I progetti upstream e i servizi citati non
 sono canali di assistenza per le personalizzazioni Nyanime.

@@ -70,6 +70,7 @@ I documenti tecnici in inglese conservano i nomi delle API e dei componenti.
 - [Dipendenze conservate localmente](../vendor/README.md).
 - [Manutenzione FFmpeg e build nativa](../tools/native/README.md).
 - [Crediti e licenze](credits.md).
+- [Licenza e copyright Nyanime](licensing.md).
 - [Changelog storico AniYomi](history/aniyomi-changelog.md): archivio upstream,
   non elenco delle release Nyanime.
 

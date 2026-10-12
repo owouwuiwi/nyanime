@@ -1,3 +1,27 @@
-*.apk
-*.zip
+# Build files
+.gradle
+.kotlin
+build
 __pycache__/
+*.pyc
+
+# IDE files
+*.iml
+.idea/*
+!.idea/icon.png
+/captures
+
+# Configuration files
+local.properties
+
+# Private integration fixtures and local maintenance material
+/.local/
+/private/
+
+# Local Compose preview renders may use private artwork
+/app/src/screenshotTestDebug/
+/app/src/screenshotTestRelease/
+/app/src/screenshotTestPreview/
+
+# macOS specific files
+.DS_Store

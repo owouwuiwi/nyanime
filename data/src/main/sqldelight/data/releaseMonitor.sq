@@ -1,0 +1,82 @@
+CREATE TABLE release_subscription (
+    entry_id INTEGER NOT NULL PRIMARY KEY REFERENCES mangas(_id) ON DELETE CASCADE,
+    mode TEXT NOT NULL DEFAULT 'AUTO',
+    availability INTEGER NOT NULL DEFAULT 1,
+    reminder INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE release_check (
+    entry_id INTEGER NOT NULL PRIMARY KEY REFERENCES mangas(_id) ON DELETE CASCADE,
+    last_attempt INTEGER NOT NULL DEFAULT 0,
+    last_success INTEGER NOT NULL DEFAULT 0,
+    next_check INTEGER NOT NULL DEFAULT 0,
+    failures INTEGER NOT NULL DEFAULT 0,
+    metadata_at INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE release_notice (
+    item_id INTEGER NOT NULL PRIMARY KEY REFERENCES chapters(_id) ON DELETE CASCADE,
+    entry_id INTEGER NOT NULL REFERENCES mangas(_id) ON DELETE CASCADE,
+    created_at INTEGER NOT NULL,
+    delivered_at INTEGER NOT NULL DEFAULT 0,
+    source_at INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX release_notice_pending ON release_notice(delivered_at, created_at);
+
+getSubscription:
+SELECT * FROM release_subscription WHERE entry_id = ?;
+
+getSubscriptions:
+SELECT * FROM release_subscription;
+
+setSubscription:
+INSERT OR REPLACE INTO release_subscription(entry_id, mode, availability, reminder) VALUES (?, ?, ?, ?);
+
+getCheck:
+SELECT * FROM release_check WHERE entry_id = ?;
+
+getChecks:
+SELECT * FROM release_check;
+
+markAttempt:
+INSERT INTO release_check(entry_id, last_attempt) VALUES (?, ?)
+ON CONFLICT(entry_id) DO UPDATE SET last_attempt = excluded.last_attempt;
+
+markSuccess:
+INSERT INTO release_check(entry_id, last_attempt, last_success, next_check, failures) VALUES (:entryId, :now, :now, :nextCheck, 0)
+ON CONFLICT(entry_id) DO UPDATE SET last_success = excluded.last_success, next_check = excluded.next_check, failures = 0;
+
+markFailure:
+INSERT INTO release_check(entry_id, last_attempt, next_check, failures) VALUES (:entryId, :now, :nextCheck, 1)
+ON CONFLICT(entry_id) DO UPDATE SET last_attempt = excluded.last_attempt, next_check = excluded.next_check, failures = failures + 1;
+
+makeDue:
+UPDATE release_check SET next_check = 0 WHERE entry_id = ?;
+
+queueNotice:
+INSERT OR IGNORE INTO release_notice(item_id, entry_id, created_at, source_at) VALUES (?, ?, ?, ?);
+
+verifyPublicationDate:
+UPDATE release_notice SET source_at = :sourceAt WHERE item_id = :itemId AND source_at != :sourceAt;
+
+getPending:
+SELECT * FROM release_notice WHERE delivered_at = 0 ORDER BY created_at LIMIT 200;
+
+markDelivered:
+UPDATE release_notice SET delivered_at = ? WHERE item_id IN :itemIds;
+
+getMonitoredIds:
+SELECT p._id FROM mangas p
+LEFT JOIN release_subscription s ON s.entry_id = p._id
+WHERE COALESCE(s.mode, 'AUTO') != 'IGNORE'
+AND (s.mode = 'FOLLOW' OR p.favorite = 1
+    OR EXISTS(SELECT 1 FROM manga_sync t WHERE t.manga_id = p._id)
+    OR EXISTS(SELECT 1 FROM chapters i WHERE i.manga_id = p._id AND (i.read = 1 OR i.last_page_read > 0)));
+
+getNotices:
+SELECT r.item_id, r.entry_id, r.created_at, r.delivered_at, r.source_at, i.chapter_number
+FROM release_notice r JOIN chapters i ON i._id = r.item_id
+WHERE i.read = 0 ORDER BY r.created_at DESC;
+
+markMetadata:
+UPDATE release_check SET metadata_at = ? WHERE entry_id = ?;
