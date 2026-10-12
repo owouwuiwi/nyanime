@@ -16,7 +16,9 @@ from pathlib import Path, PurePosixPath
 
 PUBLIC = 'owouwuiwi/nyanime'
 SOURCE = 'owouwuiwi/nyanime-source'
-CERTIFICATE = 'F99AD47F9286CE3D61345F65DD0F888F16AEBF53BFE75EFE5B6AB889041AB259'
+CERTIFICATE = '7DD368792C4D94D1186CC4B0E2AD6C2F34FCE5DD37F19C6A1BAB45106FFC136B'
+APPLICATION_ID = 'it.owouwuiwi.nyanime'
+ASSET_PREFIX = 'Nyanime-Production'
 ABIS = ('universal', 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64')
 ROOT_DOCS = {'README.md', 'CHANGELOG.md', 'LICENSE', 'NOTICE', 'CONTRIBUTING.md'}
 
@@ -49,7 +51,7 @@ def validate_name(name):
         raise ValueError('Unsafe publication archive path')
     return name in {'publication.json', 'notes.md', 'numeric/SHA256SUMS'} or (
         name.startswith('public/') and document(name.removeprefix('public/'))
-    ) or bool(re.fullmatch(r'numeric/Nyanime-\d+\.\d+\.\d+\.\d+-(universal|arm64-v8a|armeabi-v7a|x86|x86_64)\.apk', name))
+    ) or bool(re.fullmatch(r'numeric/Nyanime-Production-\d+\.\d+\.\d+\.\d+-(universal|arm64-v8a|armeabi-v7a|x86|x86_64)\.apk', name))
 
 def validate_text(text):
     blocked = {'807e4e92b75624ff2c9c3fd01ece23f84c4b2bfeec6816460539628f676d903d', '64a5090b45a4941f8ebc96f9c2f9f66558680fead5ddcbb8b780c1dc24d816a2', 'c4855bb0c8c2b1e2856a0aaf11f3b15ea7f0b353e2aa34dade10e6e435bc97c4'}
@@ -82,15 +84,15 @@ def unpack(archive, destination):
 def validate_bundle(directory):
     metadata = json.loads((directory / 'publication.json').read_text())
     version = metadata['versionName']
-    if set(metadata) != {'schema', 'versionName', 'versionCode', 'channel', 'legacyTag', 'certificateSha256', 'sha256'} or metadata['schema'] != 1:
+    if set(metadata) != {'schema', 'versionName', 'versionCode', 'channel', 'applicationId', 'assetPrefix', 'certificateSha256', 'sha256'} or metadata['schema'] != 2:
         raise ValueError('Unknown publication metadata')
-    if not re.fullmatch(r'\d+\.\d+\.\d+\.\d+', version) or not re.fullmatch(r'r\d+', metadata['legacyTag']):
+    if not re.fullmatch(r'\d+\.\d+\.\d+\.\d+', version):
         raise ValueError('Invalid OTA tags')
-    if metadata['channel'] not in {'preview', 'recommended'} or not 134 <= metadata['versionCode'] <= 2_100_000_000:
+    if metadata['channel'] not in {'preview', 'recommended'} or type(metadata['versionCode']) is not int or not 134 <= metadata['versionCode'] <= 2_100_000_000:
         raise ValueError('Invalid channel or Android version code')
-    if metadata['certificateSha256'] != CERTIFICATE:
+    if metadata['certificateSha256'] != CERTIFICATE or metadata['applicationId'] != APPLICATION_ID or metadata['assetPrefix'] != ASSET_PREFIX:
         raise ValueError('Signing identity changed')
-    expected = {f'Nyanime-{version}-{abi}.apk' for abi in ABIS}
+    expected = {f'{ASSET_PREFIX}-{version}-{abi}.apk' for abi in ABIS}
     if set(metadata['sha256']) != expected:
         raise ValueError('Missing ABI or unexpected APK')
     checksums = ''
@@ -140,6 +142,24 @@ def commit_docs(directory, metadata):
         git('push', 'origin', 'HEAD:main')
     return git('rev-parse', 'HEAD')
 
+def canonical_snapshot_date():
+    bridges = []
+    for file in Path('releases').glob('*.json'):
+        metadata = json.loads(file.read_text())
+        alias = metadata.get('legacyTag')
+        if metadata.get('schema') == 1 and alias and re.fullmatch(r'r\d+', alias):
+            bridges.append((tuple(map(int, file.stem.split('.'))), alias))
+    if bridges:
+        alias = max(bridges)[1]
+        ref = 'refs/tags/' + alias
+        if not subprocess.run(['git', 'cat-file', '-e', ref + '^{commit}'], capture_output=True).returncode == 0:
+            git('fetch', 'origin', ref + ':' + ref)
+        # Freeze the ordering relative to the last unchanged bridge, rather than
+        # "yesterday": otherwise future dates would hide it from first-generation clients.
+        return (datetime.fromisoformat(git('log', '-1', '--format=%cI', ref)) - timedelta(seconds=1)).isoformat()
+    return (datetime.now(timezone.utc) - timedelta(days=1)).replace(hour=23, minute=59, second=59, microsecond=0).isoformat()
+
+
 def ensure_tag(tag, commit, create_alias_commit=False, canonical_snapshot=False):
     refs = git('ls-remote', '--tags', 'origin', f'refs/tags/{tag}')
     if refs:
@@ -150,7 +170,7 @@ def ensure_tag(tag, commit, create_alias_commit=False, canonical_snapshot=False)
         # Documentation-only canonical snapshots occupy the previous UTC day;
         # the current-day r alias is therefore visible to even first-release-only
         # clients. Actual publication times and private source dates are unchanged.
-        date = (datetime.now(timezone.utc) - timedelta(days=1)).replace(hour=23, minute=59, second=59, microsecond=0).isoformat()
+        date = canonical_snapshot_date()
         commit = subprocess.check_output(['git', 'commit-tree', git('rev-parse', 'HEAD^{tree}')],
             input=f'Archived release documentation for {tag}\n', text=True,
             env={**os.environ, 'GIT_AUTHOR_DATE': date, 'GIT_COMMITTER_DATE': date}).strip()
@@ -350,26 +370,9 @@ def main():
     tag_commit = ensure_tag(canonical, docs_commit, canonical_snapshot=True)
     notes = (bundle / 'notes.md').read_text(encoding='utf-8')
     published(canonical, bundle / 'numeric', notes, metadata, tag_commit, True)
-    legacy = bundle / 'legacy'
-    legacy.mkdir()
-    sums = ''
-    for abi in sorted(ABIS):
-        name = f'app-{abi}-preview.apk'
-        shutil.copyfile(bundle / 'numeric' / f'Nyanime-{metadata["versionName"]}-{abi}.apk', legacy / name)
-        sums += f'{hashlib.sha256((legacy / name).read_bytes()).hexdigest()}  {name}\n'
-    (legacy / 'SHA256SUMS').write_text(sums)
-    legacy_commit = ensure_tag(metadata['legacyTag'], docs_commit, True)
-    published(metadata['legacyTag'], legacy, notes, metadata, legacy_commit, False)
-    expected_alias = archive_previous_alias_dates(metadata['legacyTag'])
-    deadline = time.monotonic() + 120
-    while True:
-        feed = request(f'repos/{PUBLIC}/releases?per_page=20', os.environ['GITHUB_TOKEN'])
-        if legacy_first(feed) == expected_alias:
-            break
-        if time.monotonic() >= deadline:
-            raise ValueError('Oldest OTA client does not see the latest compatibility release first')
-        time.sleep(5)
-    print('Published signed APKs, checksums and docs; verified the legacy OTA feed.')
+    # Old APKs and r aliases remain immutable migration bridges. A new certificate
+    # must never be offered to their same-package updater as an in-place update.
+    print('Published production APKs, checksums and docs; historical migration bridges preserved.')
 
 if __name__ == '__main__':
     main()
