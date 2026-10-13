@@ -9,6 +9,12 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 14 ottobre 2026 — 0.43.0.1: Riallineamento delle versioni installate
+
+### Distribuzione
+
+- Nuova build consigliata con numerazione e codice Android superiori alla 0.43.0.0 installata per le prove. Permette di ricevere di nuovo gli aggiornamenti OTA; nessuna nuova funzionalità o modifica al comportamento dell’app.
+
 ## 14 ottobre 2026 — 0.42.1.1: Riallineamento degli aggiornamenti
 
 ### Distribuzione
