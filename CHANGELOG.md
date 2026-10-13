@@ -9,6 +9,12 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 13 ottobre 2026 — 0.42.0.4: Collegamenti Nyanime nelle Info
+
+### Interfaccia
+
+- Riattivati i pulsanti Sito e GitHub nelle Info: aprono il sito e il repository ufficiali di Nyanime. Discord rimane non disponibile finché non sarà aperto un server ufficiale.
+
 ## 13 ottobre 2026 — 0.42.0.3: Aggiornamento senza chiusure inattese
 
 ### Correzioni

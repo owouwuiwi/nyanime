@@ -200,7 +200,7 @@ object AboutScreen : Screen() {
                         LinkIcon(
                             label = stringResource(MR.strings.website),
                             icon = Icons.Outlined.Public,
-                            onClick = { context.toast(MR.strings.feature_not_yet_available) },
+                            onClick = { uriHandler.openUri("https://owouwuiwi.github.io/") },
                         )
                         LinkIcon(
                             label = "Discord",
@@ -210,7 +210,7 @@ object AboutScreen : Screen() {
                         LinkIcon(
                             label = "GitHub",
                             icon = CustomIcons.Github,
-                            onClick = { context.toast(MR.strings.feature_not_yet_available) },
+                            onClick = { uriHandler.openUri("https://github.com/owouwuiwi/nyanime") },
                         )
                     }
                 }
