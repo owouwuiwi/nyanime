@@ -9,6 +9,13 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 13 ottobre 2026 — 0.42.0.3: Aggiornamento senza chiusure inattese
+
+### Correzioni
+
+- La schermata delle novità resta aperta dopo «Aggiorna» anche con l’installazione automatica disattivata: mostra avanzamento, verifica ed eventuali errori, poi permette di installare il file scaricato.
+- Nelle Info resta una sola voce «Cronologia aggiornamenti», con tutte le versioni; rimossa la voce duplicata «Le novità».
+
 ## 13 ottobre 2026 — 0.42.0.2: Sorgenti nativi e distribuzione verificabile
 
 ### Distribuzione

@@ -90,7 +90,6 @@ class NewUpdateScreen(
                     } else {
                         try {
                             repository.start(downloadLink, versionName)
-                            if (!installInApp) close()
                         } catch (_: Exception) {
                             model.failed(context.getString(R.string.app_update_failed_description))
                         }

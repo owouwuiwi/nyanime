@@ -158,19 +158,6 @@ object AboutScreen : Screen() {
                     }
                 }
 
-                if (!BuildConfig.DEBUG) {
-                    item {
-                        TextPreferenceWidget(
-                            title = stringResource(MR.strings.whats_new),
-                            onPreferenceClick = {
-                                navigator.push(
-                                    eu.kanade.tachiyomi.ui.more.UpdateHistoryScreen(BuildConfig.VERSION_NAME),
-                                )
-                            },
-                        )
-                    }
-                }
-
                 item {
                     TextPreferenceWidget(
                         title = androidStringResource(R.string.app_update_history_title),
