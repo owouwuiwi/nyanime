@@ -1,8 +1,8 @@
 name: Publish verified Nyanime APKs
-run-name: Publish Nyanime ${{ github.event.client_payload.version }} from build ${{ github.event.client_payload.source_run }}
+run-name: Publish Nyanime ${{ github.event.client_payload.version }} · ${{ github.event.client_payload.phase || 'verified build' }}
 on:
   repository_dispatch:
-    types: [publish-nyanime, repair-historical-attribution]
+    types: [publish-nyanime, repair-historical-attribution, publish-reviewed-nyanime]
 permissions:
   contents: write
 concurrency:

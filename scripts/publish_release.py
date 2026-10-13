@@ -396,10 +396,168 @@ def repair_attribution(event):
             raise ValueError('Historical repair did not preserve bytes, URL and bot ownership')
     print('Historical assets retain their bytes and download URLs; attribution belongs to the bot.')
 
+def reviewed_release_inputs(payload):
+    """A manual, device-reviewed build still uses pinned metadata and the bot."""
+    version = payload.get('version', '')
+    if not isinstance(version, str) or not re.fullmatch(r'\d+\.\d+\.\d+\.\d+', version):
+        raise ValueError('Invalid reviewed release version')
+    if payload.get('phase') not in {'prepare', 'publish'}:
+        raise ValueError('Unknown reviewed publication phase')
+    metadata = json.loads((Path('releases') / (version + '.json')).read_text())
+    if (metadata['schema'] != 4 or metadata['versionName'] != version or
+            metadata['certificateSha256'] != CERTIFICATE or metadata['applicationId'] != APPLICATION_ID or
+            metadata['assetPrefix'] != ASSET_PREFIX or metadata['channel'] not in {'recommended', 'preview'} or
+            type(metadata['versionCode']) is not int or not 134 <= metadata['versionCode'] <= 2_100_000_000 or
+            not re.fullmatch(r'[a-f0-9]{40}', metadata['sourceRevision'])):
+        raise ValueError('Reviewed signing, channel or source identity changed')
+    tag = 'v' + version
+    properties = dict(line.split('=', 1) for line in git('show', tag + ':release.properties').splitlines()
+                      if '=' in line and not line.startswith('#'))
+    if (properties.get('versionName') != version or properties.get('versionCode') != str(metadata['versionCode']) or
+            properties.get('channel') != metadata['channel']):
+        raise ValueError('Immutable source tag differs from reviewed release')
+    declaration = json.loads(git('show', tag + ':tools/native/distribution.json'))
+    manifest = f'Nyanime-Native-Manifest-{version}.json'
+    source = f'Nyanime-Source-{version}.zip'
+    if (metadata['nativeManifest'] != manifest or set(metadata['sourceSha256']) !=
+            {manifest, source} | set(declaration['sourcePackages'])):
+        raise ValueError('Reviewed native material set changed')
+    expected_apks = {f'{ASSET_PREFIX}-{version}-{abi}.apk' for abi in ABIS}
+    if set(metadata['sha256']) != expected_apks:
+        raise ValueError('Reviewed APK architecture set changed')
+    expected = metadata['sha256'] | metadata['sourceSha256']
+    if any(not validate_name('numeric/' + name) or not re.fullmatch(r'[a-f0-9]{64}', digest)
+           for name, digest in expected.items()):
+        raise ValueError('Invalid reviewed material name or hash')
+    reused = {}
+    for name, record in declaration['sourcePackages'].items():
+        prefix = f'https://github.com/{PUBLIC}/releases/download/'
+        url = record.get('url', '')
+        if not url.startswith(prefix) or not re.fullmatch(r'v\d+\.\d+\.\d+\.\d+/' + re.escape(name), url[len(prefix):]):
+            raise ValueError('Native material must use an immutable public release URL')
+        if record['sha256'] != expected[name]:
+            raise ValueError('Reviewed native material hash changed')
+        if not url.startswith(prefix + tag + '/'):
+            reused[name] = record
+    checksum = ''.join(f'{digest}  {name}\n' for name, digest in metadata['sha256'].items()).encode()
+    uploads = {name: digest for name, digest in expected.items() if name not in reused}
+    uploads['SHA256SUMS'] = hashlib.sha256(checksum).hexdigest()
+    return metadata, uploads, reused
+
+
+def reviewed_release(payload):
+    metadata, expected, reused = reviewed_release_inputs(payload)
+    token = os.environ['GITHUB_TOKEN']
+    version, phase = metadata['versionName'], payload['phase']
+    tag = 'v' + version
+    base = f'repos/{PUBLIC}/releases'
+    matches = []
+    for page in range(1, 100):
+        releases = request(base + f'?per_page=100&page={page}', token)
+        matches.extend(item for item in releases if item['tag_name'] == tag)
+        if len(releases) < 100:
+            break
+    if len(matches) > 1:
+        raise ValueError('Multiple reviewed release drafts')
+    if phase == 'prepare' and not matches:
+        notes = payload.get('notes', '')
+        if not isinstance(notes, str) or not notes.strip() or len(notes.encode()) > 50_000 or version not in notes:
+            raise ValueError('Missing reviewed release notes')
+        validate_text(notes)
+        # The immutable tag already exists. Never create/move it with the bot,
+        # or ask the release API to replace historical workflow-containing refs.
+        release = request(base, token, 'POST', {'tag_name': tag, 'target_commitish': 'main',
+            'name': 'Nyanime ' + version, 'body': notes, 'draft': True,
+            'prerelease': metadata['channel'] == 'preview'})
+    elif matches:
+        release = matches[0]
+    else:
+        raise ValueError('Prepare the reviewed draft before staging verified files')
+    if release['author']['login'] != 'github-actions[bot]' or release['author']['type'] != 'Bot':
+        raise ValueError('Reviewed releases must belong to the public GitHub publisher')
+    if phase == 'prepare':
+        if not release['draft']:
+            raise ValueError('An existing published release cannot be prepared again')
+        print('Prepared bot-owned reviewed release draft: ' + tag, flush=True)
+        return
+    assets = {asset['name']: asset for asset in release['assets']}
+    if len(assets) != len(release['assets']) or set(assets) != set(expected) or any(
+            assets[name]['state'] != 'uploaded' or assets[name]['digest'] != 'sha256:' + digest
+            for name, digest in expected.items()):
+        raise ValueError('Reviewed staging assets do not match the pinned manifest')
+    if not release['draft']:
+        if any(asset['uploader']['login'] != 'github-actions[bot]' for asset in assets.values()):
+            raise ValueError('Published assets have unexpected attribution')
+        print('Reviewed release is already published; immutable assets left untouched.', flush=True)
+        return
+    temp = Path(os.environ['RUNNER_TEMP']) / ('reviewed-' + version)
+    numeric = temp / 'numeric'
+    numeric.mkdir(parents=True)
+    # Re-check every staged byte and the complete corresponding native materials
+    # before replacing any draft asset. Published downloads are never replaced.
+    for name, digest in expected.items():
+        data = request(base + '/assets/' + str(assets[name]['id']), token, binary=True)
+        if hashlib.sha256(data).hexdigest() != digest:
+            raise ValueError('Downloaded reviewed asset hash mismatch')
+        (numeric / name).write_bytes(data)
+    for name, record in reused.items():
+        old_tag = record['url'].split('/releases/download/', 1)[1].split('/', 1)[0]
+        older = request(base + '/tags/' + old_tag, token)
+        old = next(item for item in older['assets'] if item['name'] == name)
+        if older['draft'] or old['digest'] != 'sha256:' + record['sha256'] or old['browser_download_url'] != record['url']:
+            raise ValueError('Reusable public native source changed')
+        with urllib.request.urlopen(record['url'], timeout=180) as response:
+            data = response.read()
+        if hashlib.sha256(data).hexdigest() != record['sha256']:
+            raise ValueError('Downloaded native source hash mismatch')
+        (numeric / name).write_bytes(data)
+    (temp / 'publication.json').write_text(json.dumps(metadata))
+    (temp / 'notes.md').write_text(release['body'], encoding='utf-8')
+    public = temp / 'public'
+    with zipfile.ZipFile(numeric / f'Nyanime-Source-{version}.zip') as archive:
+        prefix = f'Nyanime-{version}/'
+        for entry in archive.infolist():
+            name = entry.filename.removeprefix(prefix)
+            if (not entry.filename.startswith(prefix) or not allowed_source(name) or
+                    (entry.external_attr >> 16) & 0o170000 == 0o120000):
+                raise ValueError('Unsafe reviewed source archive')
+            target = public / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(archive.read(entry))
+    validate_bundle(temp)
+    for name, asset in assets.items():
+        if asset['uploader']['login'] == 'github-actions[bot]':
+            continue
+        request(base + '/assets/' + str(asset['id']), token, 'DELETE')
+        subprocess.run(['gh', 'release', 'upload', tag, str(numeric / name), '--repo', PUBLIC],
+                       check=True, env={**os.environ, 'GH_TOKEN': token})
+    completed = request(base + '/' + str(release['id']), token)
+    saved = {asset['name']: asset for asset in completed['assets']}
+    if set(saved) != set(expected) or any(saved[name]['state'] != 'uploaded' or
+            saved[name]['digest'] != 'sha256:' + digest or
+            saved[name]['uploader']['login'] != 'github-actions[bot]' for name, digest in expected.items()):
+        raise ValueError('Bot publication differs from the reviewed files')
+    latest = False
+    if metadata['channel'] == 'recommended':
+        try:
+            previous = request(base + '/latest', token)['tag_name'].removeprefix('v')
+            latest = tuple(map(int, version.split('.'))) >= tuple(map(int, previous.split('.')))
+        except urllib.error.HTTPError as error:
+            if error.code != 404:
+                raise
+            latest = True
+    request(base + '/' + str(release['id']), token, 'PATCH', {'draft': False,
+        'prerelease': metadata['channel'] == 'preview', 'make_latest': str(latest).lower()})
+    print('Published reviewed APKs and corresponding sources with the public bot: ' + tag, flush=True)
+
+
 def main():
     if os.environ['GITHUB_REPOSITORY'] != PUBLIC:
         raise SystemExit('Wrong public publication repository')
     full_event = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
+    if full_event['action'] == 'publish-reviewed-nyanime':
+        reviewed_release(full_event['client_payload'])
+        return
     if full_event['action'] == 'repair-historical-attribution':
         repair_attribution(full_event)
         return
