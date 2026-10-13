@@ -40,7 +40,7 @@ class UpdatePageDeviceProbe : Instrumentation() {
                 checkDownloadPage(host)
                 result.putString(
                     "stream",
-                    "Update remains open during download and after failure with automatic installation enabled or disabled. Original preference restored.",
+                    "Update remains open during download and after failure regardless of the retired installation preference. Original preference restored.",
                 )
                 finish(Activity.RESULT_OK, result)
                 return
@@ -89,7 +89,7 @@ class UpdatePageDeviceProbe : Instrumentation() {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
         )
         SystemClock.sleep(1500)
-        val preference = host?.getMethod("automaticInstallation", Boolean::class.javaPrimitiveType)
+        val preference = host?.getMethod("legacyInstallationPreference", Boolean::class.javaPrimitiveType)
         val shared = targetContext.getSharedPreferences(
             "${targetContext.packageName}_preferences",
             Context.MODE_PRIVATE,

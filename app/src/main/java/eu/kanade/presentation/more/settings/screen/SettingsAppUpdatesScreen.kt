@@ -21,10 +21,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
-import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.presentation.components.AppBar
 import eu.kanade.presentation.more.UpdateChannelChoice
-import eu.kanade.presentation.more.settings.widget.SwitchPreferenceWidget
 import eu.kanade.presentation.util.Screen
 import eu.kanade.tachiyomi.BuildConfig
 import eu.kanade.tachiyomi.R
@@ -48,9 +46,7 @@ object SettingsAppUpdatesScreen : Screen() {
         val navigator = LocalNavigator.currentOrThrow
         val scope = rememberCoroutineScope()
         val preferences = remember { AppUpdatePreferences(Injekt.get()) }
-        val ui = remember { Injekt.get<UiPreferences>() }
         val selection by preferences.selection.collectAsState()
-        val inApp by ui.inAppUpdateInstallation().collectAsState()
         val selected = UpdateChannel.fromKey(selection)
         var checking by remember { mutableStateOf(false) }
         var message by remember { mutableStateOf<Int?>(null) }
@@ -91,14 +87,6 @@ object SettingsAppUpdatesScreen : Screen() {
                             )
                         }
                     }
-                }
-                item {
-                    SwitchPreferenceWidget(
-                        title = stringResource(R.string.update_in_app),
-                        subtitle = stringResource(R.string.update_in_app_hint),
-                        checked = inApp,
-                        onCheckedChanged = ui.inAppUpdateInstallation()::set,
-                    )
                 }
                 item {
                     Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {

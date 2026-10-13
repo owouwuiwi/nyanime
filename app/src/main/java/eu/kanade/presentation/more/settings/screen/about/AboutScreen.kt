@@ -11,7 +11,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,7 +25,6 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.presentation.components.AppBar
 import eu.kanade.presentation.more.LogoHeader
-import eu.kanade.presentation.more.settings.widget.SwitchPreferenceWidget
 import eu.kanade.presentation.more.settings.widget.TextPreferenceWidget
 import eu.kanade.presentation.util.LocalBackPress
 import eu.kanade.presentation.util.Screen
@@ -69,10 +67,6 @@ object AboutScreen : Screen() {
         val uriHandler = LocalUriHandler.current
         val handleBack = LocalBackPress.current
         val navigator = LocalNavigator.currentOrThrow
-        val uiPreferences = remember { Injekt.get<UiPreferences>() }
-        val inAppUpdates by uiPreferences.inAppUpdateInstallation().changes().collectAsState(
-            initial = uiPreferences.inAppUpdateInstallation().get(),
-        )
         var isCheckingUpdates by remember { mutableStateOf(false) }
 
         Scaffold(
@@ -112,14 +106,6 @@ object AboutScreen : Screen() {
                 }
 
                 if (updaterEnabled) {
-                    item {
-                        SwitchPreferenceWidget(
-                            title = androidStringResource(R.string.update_in_app),
-                            subtitle = androidStringResource(R.string.update_in_app_hint),
-                            checked = inAppUpdates,
-                            onCheckedChanged = uiPreferences.inAppUpdateInstallation()::set,
-                        )
-                    }
                     item {
                         TextPreferenceWidget(
                             title = stringResource(MR.strings.check_for_updates),

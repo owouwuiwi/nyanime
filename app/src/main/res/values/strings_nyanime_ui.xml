@@ -32,8 +32,6 @@
     <string name="player_show_audio">Show audio button</string>
     <string name="player_show_quality">Show HQ button</string>
     <string name="player_watch_together">Watch together</string>
-    <string name="update_in_app">Download and install in the app</string>
-    <string name="update_in_app_hint">Shows download progress and an Install button. Android will ask for confirmation.</string>
     <string name="home_search_category">Search %1$s</string>
     <string name="home_prioritize">Move %1$s to the start</string>
     <string name="home_remove_filter">Remove %1$s filter</string>

@@ -32,8 +32,6 @@
     <string name="player_show_audio">Mostra il tasto audio</string>
     <string name="player_show_quality">Mostra il tasto HQ</string>
     <string name="player_watch_together">Guarda insieme</string>
-    <string name="update_in_app">Scarica e installa nell\'app</string>
-    <string name="update_in_app_hint">Mostra avanzamento e pulsante Installa. Android chiederà conferma.</string>
     <string name="home_search_category">Cerca %1$s</string>
     <string name="home_prioritize">Sposta %1$s all\'inizio</string>
     <string name="home_remove_filter">Rimuovi filtro %1$s</string>

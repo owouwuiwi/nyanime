@@ -10,7 +10,6 @@ import androidx.compose.ui.platform.LocalContext
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
-import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.presentation.more.NewUpdateScreen
 import eu.kanade.presentation.util.Screen
 import eu.kanade.tachiyomi.BuildConfig
@@ -19,8 +18,6 @@ import eu.kanade.tachiyomi.data.updater.AppUpdateRepository
 import eu.kanade.tachiyomi.data.updater.UpdateInstallGate
 import eu.kanade.tachiyomi.data.updater.UpdateScreenPhase
 import eu.kanade.tachiyomi.util.system.openInBrowser
-import uy.kohesive.injekt.Injekt
-import uy.kohesive.injekt.api.get
 
 class NewUpdateScreen(
     private val versionName: String,
@@ -33,15 +30,11 @@ class NewUpdateScreen(
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         val context = LocalContext.current
-        val preferences = remember { Injekt.get<UiPreferences>() }
         val repository = remember { AppUpdateRepository.get(context) }
         val model = rememberScreenModel { UpdateInstallScreenModel() }
         val historyModel = rememberScreenModel { UpdateHistoryScreenModel() }
         val history by historyModel.state.collectAsState()
         LaunchedEffect(historyModel) { historyModel.load(versionName, releaseLink) }
-        val installInApp by preferences.inAppUpdateInstallation().changes().collectAsState(
-            initial = preferences.inAppUpdateInstallation().get(),
-        )
         val snapshot by repository.state.collectAsState()
         val download = snapshot.forRelease(downloadLink)
         val gate by model.state.collectAsState()
@@ -71,7 +64,6 @@ class NewUpdateScreen(
             historyUnavailable = history.unavailable,
             onOpenHistory = { navigator.push(UpdateHistoryScreen()) },
             phase = download.phase,
-            inAppInstallation = installInApp,
             downloadProgress = download.progress,
             installError = installError,
             openingInstaller = gate.stage == UpdateInstallGate.Stage.PERMISSION ||
@@ -84,7 +76,7 @@ class NewUpdateScreen(
             onRejectUpdate = close,
             onAcceptUpdate = {
                 if (!download.phase.busy && gate.stage == UpdateInstallGate.Stage.IDLE) {
-                    if (installInApp || download.ready != null) model.request(download.ready?.id)
+                    model.request(download.ready?.id)
                     if (download.ready != null) {
                         repository.refresh()
                     } else {

@@ -8,12 +8,12 @@ import androidx.compose.runtime.Composable
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
-import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.presentation.theme.TachiyomiPreviewTheme
 import eu.kanade.tachiyomi.data.updater.AppUpdateDownloadJob
 import eu.kanade.tachiyomi.ui.more.NewUpdateScreen
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import tachiyomi.core.common.preference.PreferenceStore
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.io.File
@@ -23,8 +23,9 @@ object UpdatePageProbeHost {
     private var currentNavigator: Navigator? = null
 
     @JvmStatic
-    fun automaticInstallation(enabled: Boolean): Boolean {
-        val preference = Injekt.get<UiPreferences>().inAppUpdateInstallation()
+    fun legacyInstallationPreference(enabled: Boolean): Boolean {
+        // Seed the retired key only to verify that it no longer controls production UI or installation.
+        val preference = Injekt.get<PreferenceStore>().getBoolean("nyanime_in_app_update_installation", true)
         return preference.get().also { preference.set(enabled) }
     }
 

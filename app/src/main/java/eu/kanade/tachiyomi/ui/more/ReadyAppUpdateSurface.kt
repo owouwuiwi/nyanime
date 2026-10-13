@@ -40,22 +40,19 @@ import uy.kohesive.injekt.api.get
 fun ReadyAppUpdateSurface(allowDismiss: Boolean, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val preferences = remember { Injekt.get<UiPreferences>() }
-    val enabled by preferences.inAppUpdateInstallation().changes().collectAsState(
-        initial = preferences.inAppUpdateInstallation().get(),
-    )
     val dismissed by preferences.dismissedReadyUpdate().changes().collectAsState(
         initial = preferences.dismissedReadyUpdate().get(),
     )
     val repository = remember { AppUpdateRepository.get(context) }
     val snapshot by repository.state.collectAsState()
     val ready = snapshot.latest?.ready
-    val visible = enabled && ready != null && (!allowDismiss || dismissed != ready.id)
+    val visible = ready != null && (!allowDismiss || dismissed != ready.id)
     val motion = appMotionEnabled()
     val model = remember { UpdateInstallScreenModel() }
     val gate by model.state.collectAsState()
     val error by model.installError.collectAsState()
     // Keep the permission round trip alive while a foreground file recheck is pending.
-    UpdateInstallationEffect(model, ready, enabled, snapshot.latest?.phase == UpdateScreenPhase.READY)
+    UpdateInstallationEffect(model, ready, true, snapshot.latest?.phase == UpdateScreenPhase.READY)
 
     AnimatedVisibility(
         visible = visible,

@@ -45,7 +45,6 @@
     <string name="app_update_download">Scarica ora</string>
     <string name="app_update_continue">Torna all’app</string>
     <string name="app_update_later">Non ora</string>
-    <string name="app_update_notification_install">Quando è pronto, premi Installa nella notifica.</string>
     <string name="app_update_install_permission">Consenti l’installazione da Nyanime per proseguire. Android ti chiederà di confermare l’aggiornamento.</string>
     <string name="app_update_install_error">Impossibile aprire l’installer Android. Riprova.</string>
     <string name="app_update_update">Aggiorna</string>

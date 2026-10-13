@@ -45,7 +45,6 @@
     <string name="app_update_download">Download now</string>
     <string name="app_update_continue">Back to the app</string>
     <string name="app_update_later">Not now</string>
-    <string name="app_update_notification_install">When it’s ready, tap Install in the notification.</string>
     <string name="app_update_install_permission">Allow installs from Nyanime to continue. Android will ask you to confirm the update.</string>
     <string name="app_update_install_error">Couldn’t open the Android installer. Please try again.</string>
     <string name="app_update_update">Update</string>

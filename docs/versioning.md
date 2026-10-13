@@ -109,7 +109,7 @@ UI thread, shared with the ready-update reminder, and repeat on foreground retur
 Progress ticks never trigger package/file inspections. Missing or obsolete files can
 be downloaded again.
 
-With in-app installation enabled, **Update** downloads, checks the APK and opens the
+**Update** always downloads, checks the APK and opens the
 existing protected installation flow once while this page is resumed. Android still
 requires the user's confirmation; launching its installer is not proof of installation.
 If install permission is missing, granting it in Android settings continues the same
@@ -119,7 +119,8 @@ Android automatically. Rotation preserves the screen's one-shot intent.
 Closing the page abandons automatic installation but does not stop the WorkManager
 download. Its notification and the in-app **Install** reminder remain available.
 Reopening the page or restarting the process never restores an abandoned automatic
-intent. Disabling in-app installation preserves the notification route. The page
+intent. In-app updates are always enabled, including installations that previously
+disabled them; there is no installation-mode switch in Info or Update settings. The page
 respects theme/reduced motion, with Italian and English labels. Channel selection,
 version comparison, package identity, signing and OTA aliases are unchanged.
 

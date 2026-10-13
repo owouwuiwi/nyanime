@@ -71,7 +71,6 @@ fun NewUpdateScreen(
     phase: UpdateScreenPhase = UpdateScreenPhase.AVAILABLE,
     downloadProgress: Int? = null,
     installError: String? = null,
-    inAppInstallation: Boolean = true,
     openingInstaller: Boolean = false,
     onCancelDownload: () -> Unit,
     onOpenInBrowser: () -> Unit,
@@ -94,7 +93,6 @@ fun NewUpdateScreen(
                 phase,
                 downloadProgress,
                 installError,
-                inAppInstallation,
                 openingInstaller,
                 motion,
                 onAcceptUpdate,
@@ -196,7 +194,6 @@ private fun UpdateActions(
     phase: UpdateScreenPhase,
     progress: Int?,
     error: String?,
-    inAppInstallation: Boolean,
     openingInstaller: Boolean,
     motion: Boolean,
     onAccept: () -> Unit,
@@ -302,13 +299,6 @@ private fun UpdateActions(
                         LinearProgressIndicator(progress = { 0.25f }, modifier = Modifier.fillMaxWidth())
                     }
                 }
-            }
-            if (!inAppInstallation && phase == UpdateScreenPhase.AVAILABLE) {
-                Text(
-                    stringResource(R.string.app_update_notification_install),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.onSurfaceVariant,
-                )
             }
             if (phase == UpdateScreenPhase.FAILED || phase == UpdateScreenPhase.UNAVAILABLE) {
                 Text(

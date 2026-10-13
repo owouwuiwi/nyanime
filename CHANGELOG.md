@@ -9,6 +9,16 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 13 ottobre 2026 — 0.42.1.0: Aggiornamenti sempre gestiti nell’app
+
+### Interfaccia
+
+- Gli aggiornamenti vengono sempre scaricati e installati dall’app, con avanzamento, verifica e conferma Android. Rimossi i due interruttori nelle Info e nelle Impostazioni aggiornamenti.
+
+### Compatibilità
+
+- La vecchia scelta disattivata non blocca più la procedura né il promemoria «Installa»: il comportamento è uniforme anche dopo aggiornamenti e ripristini di backup.
+
 ## 13 ottobre 2026 — 0.42.0.4: Collegamenti Nyanime nelle Info
 
 ### Interfaccia
