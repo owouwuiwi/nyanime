@@ -173,7 +173,7 @@ def prepare_bundle(output, apk_directory, version, code, channel, notes, revisio
     else:
         hashes = dict(sorted(hashes.items()))
         checksums = ''.join(f'{digest}  {name}\n' for name, digest in hashes.items())
-    (assets / 'SHA256SUMS').write_text(checksums, encoding='utf-8')
+    (assets / 'SHA256SUMS').write_text(checksums, encoding='utf-8', newline='\n')
     source_name = f'Nyanime-Source-{version}.zip'
     archive_source(assets / source_name, docs, version)
     source_hash = hashlib.sha256((assets / source_name).read_bytes()).hexdigest()
