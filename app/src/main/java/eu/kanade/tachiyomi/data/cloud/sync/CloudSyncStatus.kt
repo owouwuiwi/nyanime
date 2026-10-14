@@ -28,9 +28,11 @@ internal data class CloudSyncStatus(
     val retryAt: Long = 0,
     val devices: List<CloudSyncDevice> = emptyList(),
 ) {
-    /** Keep routine empty checks quiet; a manual check or actual queued work remains visible. */
+    /** Checking again is not a change of data state. The action's spinner shows a manual check. */
     fun receiving(explicit: Boolean, captured: Long): CloudSyncPhase = when {
-        explicit || captured > 0 || pending > 0 || projections > 0 -> CloudSyncPhase.RECEIVING
+        captured > 0 || pending > 0 -> CloudSyncPhase.RECEIVING
+        lastVerified > 0 && phase in setOf(CloudSyncPhase.CURRENT, CloudSyncPhase.WAITING_CONTENT) -> phase
+        explicit || projections > 0 -> CloudSyncPhase.RECEIVING
         phase in setOf(
             CloudSyncPhase.CURRENT,
             CloudSyncPhase.NETWORK,

@@ -1,8 +1,5 @@
 package eu.kanade.tachiyomi.ui.cloud
 
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -54,11 +51,11 @@ import eu.kanade.tachiyomi.data.cloud.sync.CloudSyncDevice
 import eu.kanade.tachiyomi.data.cloud.sync.CloudSyncManager
 import eu.kanade.tachiyomi.data.cloud.sync.CloudSyncPhase
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import tachiyomi.core.common.preference.Preference
 import tachiyomi.presentation.core.util.collectAsState
-import java.text.DateFormat
-import java.util.Date
 
 @Composable
 internal fun CloudSyncTabs(selected: Int, onSelect: (Int) -> Unit) {
@@ -95,20 +92,19 @@ internal fun CloudSyncTabs(selected: Int, onSelect: (Int) -> Unit) {
 internal fun CloudSyncContent(manager: CloudSyncManager, devices: Boolean) {
     val context = LocalContext.current
     val navigator = cafe.adriel.voyager.navigator.LocalNavigator.current
-    val status by manager.state.collectAsState()
     val space by manager.preferences.space().collectAsState()
     val enabled by manager.preferences.enabled().collectAsState()
     val scope = rememberCoroutineScope()
     var setup by remember { mutableStateOf(false) }
     var approve by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
+    var syncing by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf(false) }
     var removal by remember { mutableStateOf<CloudSyncDevice?>(null) }
-    val motion = cloudMotionEnabled()
-    fun perform(action: suspend () -> Unit) {
-        if (busy) return
+    fun perform(sync: Boolean = false, action: suspend () -> Unit) {
+        if (busy || sync && syncing) return
+        if (sync) syncing = true else busy = true
         scope.launch {
-            busy = true
             error = false
             try {
                 action()
@@ -117,12 +113,12 @@ internal fun CloudSyncContent(manager: CloudSyncManager, devices: Boolean) {
             } catch (_: Exception) {
                 error = true
             } finally {
-                busy = false
+                if (sync) syncing = false else busy = false
             }
         }
     }
     Column(
-        Modifier.fillMaxWidth().animateContentSize(CloudMotion.resize(motion)),
+        Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         if (space.isBlank()) {
@@ -141,6 +137,8 @@ internal fun CloudSyncContent(manager: CloudSyncManager, devices: Boolean) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else if (devices) {
+            val linked by remember(manager) { manager.state.map { it.devices }.distinctUntilChanged() }
+                .collectAsState(initial = manager.state.value.devices)
             Text(
                 stringResource(R.string.cloud_sync_devices_title),
                 style = MaterialTheme.typography.headlineSmall,
@@ -150,7 +148,7 @@ internal fun CloudSyncContent(manager: CloudSyncManager, devices: Boolean) {
                 stringResource(R.string.cloud_sync_devices_summary),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            status.devices.forEach { device ->
+            linked.forEach { device ->
                 Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
                     Row(
                         Modifier.fillMaxWidth().padding(16.dp),
@@ -181,96 +179,24 @@ internal fun CloudSyncContent(manager: CloudSyncManager, devices: Boolean) {
             }
             CloudActionButton(stringResource(R.string.cloud_sync_approve), !busy, onClick = { approve = true })
         } else {
-            Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
-                Column(Modifier.fillMaxWidth().padding(22.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Crossfade(
-                        targetState = status.phase,
-                        animationSpec = tween(CloudMotion.duration(motion, CloudMotion.SURFACE_EXIT_MILLIS)),
-                        label = "cloud-sync-status",
-                    ) { phase ->
-                        Row(
-                            Modifier.fillMaxWidth().heightIn(min = 40.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Icon(
-                                if (phase ==
-                                    CloudSyncPhase.CURRENT
-                                ) {
-                                    Icons.Outlined.CloudDone
-                                } else {
-                                    Icons.Outlined.CloudSync
-                                },
-                                null,
-                                Modifier.size(30.dp),
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
-                            Text(
-                                stringResource(syncStatusLabel(phase)),
-                                Modifier.weight(1f),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        }
-                    }
-                    if (status.pending > 0) {
+            CloudSyncStatusCard(
+                manager = manager,
+                enabled = enabled,
+                busy = busy || syncing,
+                onSync = { perform(sync = true) { manager.syncNow() } },
+                onRecover = { setup = true },
+            )
+            Surface(shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
+                Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f).padding(end = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(stringResource(R.string.cloud_sync_switch), style = MaterialTheme.typography.titleMedium)
                         Text(
-                            stringResource(R.string.cloud_sync_pending, status.pending),
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    }
-                    Text(
-                        if (status.lastVerified > 0) {
-                            stringResource(
-                                R.string.cloud_sync_checked,
-                                DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
-                                    .format(Date(status.lastVerified * 1000)),
-                            )
-                        } else {
-                            stringResource(R.string.cloud_sync_not_checked)
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    if (status.lastConfirmed > 0) {
-                        Text(
-                            stringResource(
-                                R.string.cloud_sync_confirmed,
-                                DateFormat.getDateTimeInstance(
-                                    DateFormat.SHORT,
-                                    DateFormat.SHORT,
-                                ).format(Date(status.lastConfirmed * 1000)),
-                            ),
+                            stringResource(R.string.cloud_sync_background),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    if (status.retryAt > System.currentTimeMillis() &&
-                        status.phase in setOf(CloudSyncPhase.NETWORK, CloudSyncPhase.RATE_LIMIT, CloudSyncPhase.ERROR)
-                    ) {
-                        Text(
-                            stringResource(
-                                R.string.cloud_sync_retry_at,
-                                DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(status.retryAt)),
-                            ),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text(stringResource(R.string.cloud_sync_switch), Modifier.weight(1f))
-                        Switch(enabled, { value -> perform { manager.setEnabled(value) } }, enabled = !busy)
-                    }
-                    OutlinedButton(
-                        onClick = { perform { manager.syncNow() } },
-                        enabled = enabled && !busy,
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                    ) {
-                        Text(stringResource(R.string.cloud_sync_now))
-                    }
-                    if (status.phase in setOf(CloudSyncPhase.LOCKED, CloudSyncPhase.REMOVED)) {
-                        TextButton(onClick = { setup = true }) { Text(stringResource(R.string.cloud_sync_recover)) }
-                    }
+                    Switch(enabled, { value -> perform { manager.setEnabled(value) } }, enabled = !busy)
                 }
             }
             Text(
@@ -401,7 +327,7 @@ private fun SyncPreference(label: Int, preference: Preference<Boolean>) {
     }
 }
 
-private fun syncStatusLabel(phase: CloudSyncPhase): Int = when (phase) {
+internal fun syncStatusLabel(phase: CloudSyncPhase): Int = when (phase) {
     CloudSyncPhase.OFF, CloudSyncPhase.PAUSED -> R.string.cloud_sync_paused
     CloudSyncPhase.CONNECTING -> R.string.cloud_sync_connecting
     CloudSyncPhase.PREPARING -> R.string.cloud_sync_preparing

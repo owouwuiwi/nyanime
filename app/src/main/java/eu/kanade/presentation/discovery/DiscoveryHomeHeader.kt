@@ -83,6 +83,7 @@ fun DiscoveryHomeHeader(
     hasUpdates: Boolean = false,
     categoryOrder: String = "",
     onPrioritizeCategory: (HomeCategory) -> Unit = {},
+    nativeFallback: Boolean = false,
 ) {
     if (!LocalNyanimeStyle.current) {
         return eu.kanade.presentation.discovery.legacy.DiscoveryHomeHeader(
@@ -96,6 +97,7 @@ fun DiscoveryHomeHeader(
             artworkRefreshKey,
             onUpdates,
             hasUpdates,
+            nativeFallback,
         )
     }
     val host = LocalDiscoveryHeaderHost.current
@@ -126,7 +128,7 @@ fun DiscoveryHomeHeader(
                     }
                 }
             }
-            HomeContentSwitch(selectedHome, homes, categoryOrder, onSelect, onPrioritizeCategory)
+            HomeContentSwitch(selectedHome, homes, categoryOrder, onSelect, onPrioritizeCategory, nativeFallback)
         }
     }
 }
@@ -160,9 +162,11 @@ private fun HomeContentSwitch(
     savedOrder: String,
     onSelect: (String?) -> Unit,
     onPrioritizeCategory: (HomeCategory) -> Unit,
+    nativeFallback: Boolean,
 ) {
     val motion = modernMotionEnabled()
-    val choices = HomeCategories.choices(homes, savedOrder)
+    val choices = HomeCategories.choices(homes, savedOrder, nativeFallback)
+    if (choices.isEmpty()) return
     val textMeasurer = rememberTextMeasurer()
     val density = LocalDensity.current
     val haptics = LocalHapticFeedback.current

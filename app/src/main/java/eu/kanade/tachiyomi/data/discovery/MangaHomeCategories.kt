@@ -20,7 +20,7 @@ object MangaHomeCategories {
 
     fun groups(listing: SourceHomeListing): List<SourceHomeGroup> {
         val declared = listing.groups.map { it.copy(id = key(it.id)) }
-        return if (declared.any { it.id == DEFAULT_CATEGORY }) {
+        return if (!listing.nativeFallback || declared.any { it.id == DEFAULT_CATEGORY }) {
             declared
         } else {
             listOf(SourceHomeGroup(DEFAULT_CATEGORY, "Manga", emptyList())) + declared

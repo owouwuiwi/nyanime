@@ -73,6 +73,7 @@ fun DiscoveryHomeHeader(
     artworkRefreshKey: Int = 0,
     onUpdates: (() -> Unit)? = null,
     hasUpdates: Boolean = false,
+    nativeFallback: Boolean = false,
 ) {
     val motion = appMotionEnabled()
     val branded = sourceHomeLogoEnabled() && logo != null
@@ -82,7 +83,7 @@ fun DiscoveryHomeHeader(
                 if (branded) {
                     SourceHomeWordmark(logo, Modifier.fillMaxWidth(), refreshKey = artworkRefreshKey)
                 } else if (homes.isNotEmpty()) {
-                    HomeContentSwitch(selectedHome, homes, onSelect)
+                    HomeContentSwitch(selectedHome, homes, onSelect, nativeFallback)
                 } else {
                     Text("Home", style = MaterialTheme.typography.headlineMedium)
                 }
@@ -117,18 +118,21 @@ fun DiscoveryHomeHeader(
                 IconButton(onClick = onRefresh) { Icon(Icons.Outlined.Refresh, "Aggiorna Home") }
             },
         )
-        if (branded) HomeContentSwitch(selectedHome, homes, onSelect)
+        if (branded) HomeContentSwitch(selectedHome, homes, onSelect, nativeFallback)
     }
 }
 
 /** Compact, single-tap navigation. State remains owned by the Home, not this visual control. */
 @Composable
-private fun HomeContentSwitch(selectedHome: String?, homes: List<SourceHomeGroup>, onSelect: (String?) -> Unit) {
+private fun HomeContentSwitch(
+    selectedHome: String?,
+    homes: List<SourceHomeGroup>,
+    onSelect: (String?) -> Unit,
+    nativeFallback: Boolean,
+) {
     val shape = RoundedCornerShape(50)
-    val choices = (if (homes.any { it.primary }) emptyList() else listOf(null to "Anime")) +
-        homes.sortedWith(compareByDescending<SourceHomeGroup> { it.primary }.thenBy { it.title }).map { home ->
-            home.id to home.title
-        }
+    val choices = eu.kanade.presentation.discovery.HomeCategories.choices(homes, "", nativeFallback)
+    if (choices.isEmpty()) return
     Row(
         Modifier
             .widthIn(max = 280.dp)

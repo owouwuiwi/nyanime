@@ -34,6 +34,10 @@ data class RinManifest(
     val minHostVersionName: String? = null,
     val maxHostVersionName: String? = null,
 ) {
+    companion object {
+        val supportedMedia: Set<String> = setOf("anime", "manga", "addon", "guide", "tv")
+    }
+
     val hostVersions get() = eu.kanade.domain.extension.AddonHostVersions(
         minHostVersionCode,
         maxHostVersionCode,
@@ -178,7 +182,7 @@ object RinArchive {
                     packagePattern.matches(manifest.packageName),
             )
             require(manifest.versionCode > 0 && manifest.versionName.length in 1..80 && manifest.name.length in 1..200)
-            require(manifest.medium in setOf("anime", "manga", "addon", "guide", "tv") && manifest.hostVersions.valid)
+            require(manifest.medium in RinManifest.supportedMedia && manifest.hostVersions.valid)
             require(manifest.medium !in setOf("addon", "guide", "tv") || manifest.entryPoints.size == 1)
             require(manifest.entryPoints.isNotEmpty() && manifest.entryPoints.size <= 32)
             require(manifest.entryPoints.all { packagePattern.matches(it) })

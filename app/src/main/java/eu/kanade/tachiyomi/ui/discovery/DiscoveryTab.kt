@@ -132,34 +132,13 @@ data object DiscoveryTab : Tab {
         ) { mutableStateOf<String?>(null) }
         val mangaRegistry = remember { Injekt.get<MangaHomeRegistry>() }
         val mangaListing by mangaRegistry.observe().collectAsState(initial = SourceHomeListing())
-        val mangaHomeId = MangaHomeCategories.homeId(selected)
-        val isManga = mangaHomeId != null
         val newsModel = requireNotNull(eu.kanade.tachiyomi.ui.news.LocalNewsModel.current)
         val newsExtensions by newsModel.repository.registry.state.collectAsState()
         val hasNews = newsExtensions.any { it.source != null }
-        val isNews = selected == NEWS_CATEGORY && hasNews
         val tvServices = remember { Injekt.get<eu.kanade.tachiyomi.data.tv.TvServices>() }
         val tvSources by tvServices.registry.state.collectAsState()
         val tvInitialized by tvServices.initialized.collectAsState()
         val hasTv = tvSources.isNotEmpty()
-        val isTv = selected == TV_CATEGORY && hasTv
-        LaunchedEffect(isNews) { newsSelected.value = isNews }
-        val homeKey = if (isManga || isNews || selected == TV_CATEGORY) null else availability.selectedHome(selected)
-        LaunchedEffect(availability, mangaListing, tvInitialized, hasTv) {
-            if (!isManga &&
-                selected != NEWS_CATEGORY &&
-                selected != TV_CATEGORY
-            ) {
-                selected = availability.reconcileSelection(selected)
-            } else if (isManga &&
-                !mangaListing.loading &&
-                MangaHomeCategories.groups(mangaListing).none { it.id == selected }
-            ) {
-                selected = MANGA_CATEGORY
-            } else if (selected == TV_CATEGORY && tvInitialized && !hasTv) {
-                selected = availability.reconcileSelection(null)
-            }
-        }
         val newsTitle = androidx.compose.ui.res.stringResource(eu.kanade.tachiyomi.R.string.news_title)
         val tvTitle = androidx.compose.ui.res.stringResource(eu.kanade.tachiyomi.R.string.tv_title)
         val headerHomes = remember(availability.homes, mangaListing, hasNews, newsTitle, hasTv, tvTitle) {
@@ -170,18 +149,34 @@ data object DiscoveryTab : Tab {
         }
         val orderPreference = remember { Injekt.get<UiPreferences>().homeCategoryOrder() }
         val categoryOrder by orderPreference.changes().collectAsState(initial = orderPreference.get())
+        val choices = HomeCategories.choices(headerHomes, categoryOrder, availability.nativeFallback)
+        val initializing = availability.loading || mangaListing.loading || !tvInitialized
+        val effectiveSelection = if (initializing) {
+            selected
+        } else {
+            selected.takeIf { id -> choices.any { it.id == id } } ?: choices.firstOrNull()?.id
+        }
+        LaunchedEffect(initializing, effectiveSelection) {
+            if (!initializing && selected != effectiveSelection) selected = effectiveSelection
+        }
+        val mangaHomeId = MangaHomeCategories.homeId(effectiveSelection)
+        val isManga = mangaHomeId != null
+        val isNews = effectiveSelection == NEWS_CATEGORY && hasNews
+        val isTv = effectiveSelection == TV_CATEGORY && hasTv
+        LaunchedEffect(isNews) { newsSelected.value = isNews }
+        val homeKey = if (isManga || isNews || isTv) null else availability.selectedHome(effectiveSelection)
         val cycleCategory = {
-            val current = if (isManga || isNews || isTv) selected else availability.selectedHome(selected)
-            selected = HomeCategories.next(current, HomeCategories.choices(headerHomes, categoryOrder))
+            selected = HomeCategories.next(effectiveSelection, choices)
         }
         val savedState = rememberSaveableStateHolder()
         val page = rememberHomePage(
             homeKey,
             isManga,
-            availability.loading,
+            initializing,
             isNews,
             mangaHomeId ?: MangaHomeCategories.DEFAULT_HOME,
             tv = isTv,
+            empty = !initializing && choices.isEmpty(),
         )
         val header = page.headerState(headerHomes)
         val navigator = LocalNavigator.currentOrThrow
@@ -194,7 +189,7 @@ data object DiscoveryTab : Tab {
                 val controls: @Composable () -> Unit = {
                     DiscoveryHomeHeader(
                         selectedHome = if (isManga) {
-                            selected
+                            effectiveSelection
                         } else if (isTv) {
                             TV_CATEGORY
                         } else if (isNews) {
@@ -213,6 +208,7 @@ data object DiscoveryTab : Tab {
                         artworkRefreshKey = header.artworkRefreshKey,
                         categoryOrder = categoryOrder,
                         onPrioritizeCategory = { orderPreference.set(HomeCategories.moveFirst(categoryOrder, it)) },
+                        nativeFallback = availability.nativeFallback,
                     )
                 }
                 if (continuity != null) {
@@ -257,6 +253,9 @@ data object DiscoveryTab : Tab {
                                 eu.kanade.tachiyomi.ui.news.NewsContent(displayed.model, active)
                             }
                             DiscoveryHomePage.Initializing -> HomeLoadingSkeleton()
+                            DiscoveryHomePage.Empty -> eu.kanade.presentation.discovery.HomeEmptyContent {
+                                navigator.push(eu.kanade.tachiyomi.ui.browse.BrowseTab)
+                            }
                             is DiscoveryHomePage.Manga -> MangaHomeTabContent(
                                 page = displayed,
                                 active = active,

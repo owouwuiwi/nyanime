@@ -281,6 +281,7 @@ class AtlasSearchScreenModel : StateScreenModel<AtlasState>(AtlasState()) {
                     }
                     ),
             uiPreferences.homeCategoryOrder().get(),
+            nativeFallback = videoListing.nativeFallback,
         ).map { if (it.id == null) it.copy(id = DEFAULT_VIDEO) else it }
         val routes = (videoRoutes + mangaRoutes + tvRoutes).sortedBy { route ->
             val pinned = if (route.medium == SearchMedium.VIDEO) {

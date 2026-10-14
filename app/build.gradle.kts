@@ -2,6 +2,7 @@ import mihon.buildlogic.Config
 import mihon.buildlogic.getBuildTime
 import mihon.buildlogic.getCommitCount
 import mihon.buildlogic.getGitSha
+import mihon.buildlogic.tasks.EnglishFallbackResourcesTask
 import java.util.Properties
 
 plugins {
@@ -30,6 +31,12 @@ tasks.configureEach {
     if (name.startsWith("merge") && name.endsWith("Assets")) {
         dependsOn(generateProjectLicenses)
     }
+}
+
+val englishFallback = tasks.register<EnglishFallbackResourcesTask>("prepareEnglishFallback") {
+    inputDirectory.set(layout.projectDirectory.dir("src/main/res"))
+    outputDirectory.set(layout.buildDirectory.dir("generated/englishFallback"))
+    baseFolder.set("values")
 }
 
 val telegramProperties = Properties().apply {
@@ -196,6 +203,7 @@ android {
     }
 
     sourceSets {
+        getByName("main").res.setSrcDirs(emptyList<String>())
         getByName("preview").res.srcDirs("src/debug/res")
         getByName("benchmark").res.srcDirs("src/debug/res")
         if (providers.gradleProperty("updateProbe").orNull == "true") {
@@ -511,6 +519,9 @@ dependencies {
 }
 
 androidComponents {
+    onVariants {
+        it.sources.res?.addGeneratedSourceDirectory(englishFallback, EnglishFallbackResourcesTask::outputDirectory)
+    }
     onVariants(selector().withFlavor("default" to "standard")) {
         // Only excluding in standard flavor because this breaks
         // Layout Inspector's Compose tree

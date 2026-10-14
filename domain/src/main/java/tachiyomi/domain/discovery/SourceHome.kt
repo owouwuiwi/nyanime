@@ -35,7 +35,12 @@ data class SourceHomeSource(
     val randomEpisode: SourceHomeSection? = null,
 )
 
-data class SourceHomeListing(val loading: Boolean = true, val homes: List<SourceHomeSource> = emptyList()) {
+data class SourceHomeListing(
+    val loading: Boolean = true,
+    val homes: List<SourceHomeSource> = emptyList(),
+    /** A usable installed source without its own Home may use the native fallback. */
+    val nativeFallback: Boolean = false,
+) {
     val groups: List<SourceHomeGroup> get() = homes.groupBy { it.homeId }.map { (id, providers) ->
         val ordered = providers.sortedWith(compareByDescending<SourceHomeSource> { it.primary }.thenBy { it.key })
         SourceHomeGroup(id, ordered.first().title, ordered)

@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.data.cloud.sync
 
+import eu.kanade.domain.entries.manga.model.toSManga
 import eu.kanade.tachiyomi.data.backup.models.BackupTracking
 import eu.kanade.tachiyomi.data.backup.models.backupMangaTrackMapper
 import kotlinx.serialization.json.JsonObject
@@ -29,6 +30,7 @@ internal class MangaCloudSyncPort(
     private val active: SyncActiveContent,
     deviceName: () -> String,
     private val now: () -> Long,
+    private val historyRecovery: CloudSyncHistoryRecovery,
     private val database: MangaDatabaseHandler = Injekt.get(),
     private val titles: MangaRepository = Injekt.get(),
     private val items: ChapterRepository = Injekt.get(),
@@ -205,7 +207,31 @@ internal class MangaCloudSyncPort(
         val parent = titles.getMangaByUrlAndSourceId(title, source) ?: return
         val entry = items.getChapterByUrlAndMangaId(url, parent.id) ?: return
         val history = database.awaitOneOrNull { cloudSyncQueries.historyEntry(entry.id) } ?: return
+        if (store.record(SyncRef("manga-title", source, title)) == null) captureTitle(source, title, initial = true)
+        if (store.record(SyncRef("manga-item", source, title, url)) == null) {
+            captureItem(source, title, url, initial = true)
+        }
         store.capture(ref, mapOf("at" to JsonPrimitive(history.last_read?.time ?: 0L)) + present, captureTime())
+    }
+
+    override suspend fun repairHistoryMetadata(refs: List<SyncRef>) {
+        for (ref in refs.filter { it.kind == "manga-history" }) {
+            val source = ref.source ?: continue
+            if (!privacy.await(source) && !store.isExcluded(ref) && store.record(ref)?.deleted == false) {
+                val parent = titles.getMangaByUrlAndSourceId(ref.title, source)
+                val entry = parent?.let { items.getChapterByUrlAndMangaId(ref.item, it.id) }
+                val itemRef = ref.copy(kind = "manga-item")
+                if (entry != null && store.record(itemRef) == null) {
+                    val metadata = PortableItem.from(entry)
+                    if (runCatching { metadata.validate() }.isSuccess) {
+                        if (store.record(ref.copy(kind = "manga-title", item = "")) == null) {
+                            captureTitle(source, ref.title, initial = true)
+                        }
+                        store.capture(itemRef, (metadata.fields() - setOf("completed", "bookmark")) + present, now())
+                    }
+                }
+            }
+        }
     }
 
     private suspend fun captureTracking(source: Long, title: String, service: Long, deleted: Boolean = false) {
@@ -261,6 +287,7 @@ internal class MangaCloudSyncPort(
         }
         val parentRef = SyncRef("manga-title", ref.source, ref.title)
         if (active.contains(parentRef)) return false
+        if (ref.kind == "manga-history" && !record.deleted) recoverHistoryItem(projection)
         var actualFields = record.fields.mapValues { it.value.resolved()?.value }
         val applied = database.await(true) {
             // Serialize the final local observations with the remote database projection.
@@ -288,8 +315,9 @@ internal class MangaCloudSyncPort(
                     }
                     "manga-history" -> {
                         val parent =
-                            titles.getMangaByUrlAndSourceId(ref.title, requireNotNull(ref.source)) ?: return@await false
-                        val entry = items.getChapterByUrlAndMangaId(ref.item, parent.id) ?: return@await false
+                            titles.getMangaByUrlAndSourceId(ref.title, requireNotNull(ref.source))
+                                ?: return@await record.deleted
+                        val entry = items.getChapterByUrlAndMangaId(ref.item, parent.id) ?: return@await record.deleted
                         val at = if (record.deleted) {
                             0L
                         } else {
@@ -417,5 +445,64 @@ internal class MangaCloudSyncPort(
         // A crash here repeats an idempotent projection; never acknowledge before the source commit.
         if (applied) store.applied(projection, actualFields)
         return applied
+    }
+
+    private suspend fun recoverHistoryItem(projection: CloudSyncStore.Projection) {
+        val ref = projection.record.ref
+        val itemRef = ref.copy(kind = "manga-item")
+        if (store.record(itemRef) != null || store.isExcluded(ref)) return
+        val sourceId = ref.source ?: return
+        val parent = titles.getMangaByUrlAndSourceId(ref.title, sourceId) ?: return
+        val existing = items.getChapterByUrlAndMangaId(ref.item, parent.id)
+        val metadata = if (existing != null) {
+            PortableItem.from(existing)
+        } else {
+            val engine = Injekt.get<tachiyomi.domain.source.manga.service.MangaSourceManager>().get(sourceId) ?: return
+            val recovered = historyRecovery.recover(ref) {
+                engine.getMangaUpdate(
+                    parent.toSManga(),
+                    emptyList(),
+                    fetchDetails = false,
+                    fetchChapters = true,
+                ).chapters.mapIndexed { index, value ->
+                    RecoveredSyncItem(
+                        value.url,
+                        PortableItem(
+                            value.name,
+                            value.chapter_number.toDouble(),
+                            index.toLong(),
+                            scanlator = value.scanlator,
+                            dateUpload = value.date_upload.coerceAtLeast(0),
+                            filler = false,
+                        ),
+                    )
+                }
+            } ?: return
+            recovered.metadata.also { it.validate() }
+        }
+        val parentRef = ref.copy(kind = "manga-title", item = "")
+        val saved = database.await(true) {
+            if (active.contains(parentRef) ||
+                store.isExcluded(ref) ||
+                store.record(ref) != projection.record ||
+                store.record(itemRef) != null
+            ) {
+                return@await false
+            }
+            if (titles.getMangaByUrlAndSourceId(ref.title, sourceId)?.id != parent.id) return@await false
+            if (items.getChapterByUrlAndMangaId(ref.item, parent.id) == null) {
+                cloudSyncQueries.suppress(1)
+                try {
+                    items.addAllChapters(listOf(metadata.chapter(itemRef, parent.id)))
+                } finally {
+                    cloudSyncQueries.suppress(0)
+                }
+            }
+            true
+        }
+        if (saved) {
+            // Metadata repairs do not fabricate progress, reading sessions or completion.
+            store.capture(itemRef, (metadata.fields() - setOf("completed", "bookmark")) + present, now())
+        }
     }
 }

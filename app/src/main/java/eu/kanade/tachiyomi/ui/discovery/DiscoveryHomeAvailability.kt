@@ -9,6 +9,7 @@ import tachiyomi.domain.discovery.SourceHomeListing
 data class DiscoveryHomeAvailability(
     val loading: Boolean = true,
     val homes: List<SourceHomeGroup> = emptyList(),
+    val nativeFallback: Boolean = false,
 ) {
     fun selectedHome(
         requested: String?,
@@ -41,6 +42,10 @@ data class DiscoveryHomeAvailability(
             }.orEmpty(),
         )
 
-        fun from(listing: SourceHomeListing) = DiscoveryHomeAvailability(listing.loading, listing.groups)
+        fun from(listing: SourceHomeListing) = DiscoveryHomeAvailability(
+            listing.loading,
+            listing.groups,
+            listing.nativeFallback,
+        )
     }
 }

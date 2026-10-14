@@ -9,6 +9,31 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 14 ottobre 2026 — 0.44.1.1: Traduzioni e Cloud
+
+### Correzioni
+
+- I singoli testi mancanti o vuoti nelle traduzioni usano l’inglese, compresi i plurali e le voci degli elenchi, conservando le traduzioni disponibili.
+- La riconnessione a Telegram recupera anche lo stato di connessione già raggiunto dal servizio. Un controllo dell’account interrotto può ripartire senza disconnettere l’utente o cancellare gli invii locali.
+- Gli allegati cifrati del sync vengono riconosciuti anche quando Telegram restituisce il file originale dell’invio. Il file viene conservato fino al salvataggio della copia ricevuta, evitando che un invio interrotto blocchi quelli successivi.
+- Le pause richieste da Telegram verificano il tempo d’attesa aggiornato prima di riprovare, senza ripetere all’infinito quello di una vecchia ricevuta.
+- Cloud segue la lingua e le impostazioni dell’app anche quando viene aperto in una schermata separata.
+- Il sync riconosce i RIN locali senza catalogo e tutti i tipi di pacchetto supportati. Un pacchetto mancante resta in attesa dell’importazione locale, senza richiedere un catalogo.
+- La cronologia viene sincronizzata insieme ai dati dell’episodio o del capitolo. Le vecchie voci incomplete recuperano soltanto la voce corrispondente dalla loro estensione, con richieste limitate e senza inventare progressi o associazioni.
+- Recuperati una sola volta anche i metadati mancanti delle vecchie voci di cronologia sul dispositivo che li conserva, senza ripubblicare l’intera libreria.
+- La Home senza estensioni non mostra categorie Anime e Manga vuote né carica cataloghi remoti: offre l’accesso allo Store. Le estensioni senza Home dedicata mantengono la visualizzazione nativa.
+
+### Interfaccia
+
+- Il pulsante di sincronizzazione mantiene posizione e aspetto durante il controllo, senza spostare il testo o oscurare brevemente le altre preferenze.
+- Stato del sync più leggibile, con un titolo breve, dettagli dell’ultimo controllo e invii in attesa. I controlli e le preferenze non si ridimensionano a ogni aggiornamento di rete.
+- Ridotti gli aggiornamenti grafici ripetuti e le scansioni duplicate dei dati durante la sincronizzazione.
+
+### Distribuzione
+
+- Le note degli aggiornamenti vengono controllate prima della pubblicazione per evitare caratteri corrotti; i checksum usano lo stesso formato su Windows e Linux.
+- La pubblicazione manuale passa dal publisher GitHub per mantenere release e allegati attribuiti al bot, conservando i byte verificati degli APK.
+
 ## 14 ottobre 2026 — 0.44.0.0: Lettura e archivi più affidabili
 
 ### Correzioni

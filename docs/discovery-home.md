@@ -5,14 +5,18 @@ si mantengono fuori dal repository dell'app. Gli esempi e i test del contratto
 usano nomi e dati fittizi. Eventuale materiale privato nel checkout appartiene
 alle directory locali ignorate `.local/` o `private/`.
 
-La Home aggiunge catalogo pubblico AniList, cronologia locale, nuovi episodi rilevati e feed
-delle estensioni. Il player, Anime4K, package, firma e aggiornamento dell'app restano quelli del fork.
+La Home mostra le categorie effettivamente dichiarate dalle estensioni disponibili.
+Senza estensioni non crea categorie Anime/Manga vuote né avvia richieste ai cataloghi:
+mostra un invito ad aprire lo Store. Le fonti abilitate senza una Home dedicata
+mantengono il percorso nativo, con catalogo pubblico, cronologia e feed esistenti.
+La libreria personale resta accessibile anche quando manca un’estensione.
 
 ## Uso
 
-La navigazione iniziale è Home / Anime / Manga / Esplora / Altro. Aggiornamenti e Cronologia
-sono accessibili dalla Home e da Altro. La migrazione si applica una sola volta: in Impostazioni
-rimangono selezionabili le schermate iniziali e le disposizioni classiche.
+La navigazione iniziale è Home / Libreria / Cerca / Uscite / Altro. Lo Store è
+accessibile da Altro e tenendo premuto Cerca. Aggiornamenti e Cronologia restano
+accessibili dai percorsi già presenti. La scelta della categoria viene riconciliata
+soltanto dopo l’inizializzazione delle estensioni, conservando ordine e selezioni valide.
 
 Una copertina AniList apre la scheda; **Apri episodi**, **Riprendi** e **Aggiungi alla libreria**
 risolvono automaticamente una versione nelle estensioni installate e abilitate.

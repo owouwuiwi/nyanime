@@ -12,6 +12,16 @@ Il [protocollo e le verifiche](cloud-sync-protocol.md) descrivono dati inclusi e
 
 ## Usare Cloud
 
+Il servizio Telegram restituisce lo stato di connessione corrente ai nuovi
+consumatori, anche se è già online prima dell’apertura di Cloud. Le richieste
+interrotte per leggere l’account vengono ritentate attraverso l’autorizzazione
+esistente; non occorre cancellare sessioni, chiavi o invii in attesa.
+
+La schermata Sync mantiene separati stato, comando di sincronizzazione e scelte
+locali. Solo la scheda dello stato osserva gli aggiornamenti frequenti: gli altri
+controlli restano fermi e gli orari mostrati al minuto non provocano ricalcoli a
+ogni secondo. Il trasferimento effettivo conserva la precisione originale.
+
 Al primo avvio Nyanime propone Cloud prima delle altre scelte di configurazione.
 **Collega Telegram** apre subito l'accesso; **Più tardi** prosegue senza avviare
 il motore o attivare backup. La scelta è locale e non viene importata dai backup.
@@ -179,3 +189,40 @@ Restano da verificare recupero su un altro telefono, interruzioni prolungate del
 rete e revoca della sessione. La configurazione
 API è già disponibile privatamente per la build locale e tramite i secret cifrati
 di GitHub Actions; nessun valore è conservato nel codice o nella documentazione.
+
+## Ripresa degli allegati del sync
+
+Gli allegati cifrati possono essere restituiti da TDLib nella sua cache privata
+oppure nel file originale di quello specifico invio. Il controllo accetta soltanto
+questi percorsi canonici e verifica dimensione, identità e contenuto della busta.
+Il file originale non viene eliminato alla sola conferma del server: la pulizia
+avviene dopo il salvataggio persistente della copia ricevuta.
+
+I tentativi successivi riutilizzano le copie già salvate, confrontando identità,
+data e descrittore con il messaggio restituito da Telegram. Questo permette di
+riprendere una pagina di cronologia interrotta anche quando la cache nativa non
+conserva più il vecchio allegato. Un contenuto non valido resta un errore: non
+viene saltato avanzando il cursore. Account, chiavi e coda non vengono azzerati.
+
+I RIN importati localmente non richiedono un catalogo. Il loro inventario conserva
+un’origine vuota, la firma e gli identificativi pubblici del pacchetto. Il sync
+può applicare le preferenze a una copia locale con la stessa identità verificata.
+Se il pacchetto manca, conserva lo stato da applicare dopo l’importazione: non
+aggiunge un catalogo né cerca di scaricare il pacchetto da un’origine inesistente.
+Anime, manga, addon, guide e TV usano gli stessi tipi dichiarati dal contratto RIN.
+
+La cronologia include prima le dipendenze del titolo e dell’episodio/capitolo,
+anche se la visione o lettura è stata interrotta sulla prima pagina. Per vecchie
+voci ricevute senza metadati, il telefono usa prima i dati locali; soltanto se
+mancano consulta la lista del titolo attraverso l’estensione installata. Accetta
+unicamente un riferimento identico e non ambiguo, conserva stato visto/letto e
+punto di ripresa e non apre video o pagine. Il recupero condivide un solo tentativo
+di rete per ciclo tra anime e manga, con scadenza di 15 secondi, attesa persistente
+di 10 minuti per titolo e cache in memoria limitata a 4096 voci / 8 titoli.
+Solo scaricati, incognito ed elementi privati non avviano questo recupero.
+
+Un passaggio locale una tantum completa inoltre le vecchie cronologie sul telefono
+che conserva i capitoli/episodi originali. Scorre al massimo 50 record per ciclo,
+con cursore e completamento persistenti; invia soltanto i metadati assenti, senza
+nuovi punti di ripresa e senza ripubblicare la libreria intera. Le rimozioni e le
+esclusioni private restano rispettate.

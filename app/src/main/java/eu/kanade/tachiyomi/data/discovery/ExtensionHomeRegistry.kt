@@ -94,7 +94,12 @@ class ExtensionHomeRegistry(
                 emptyList()
             }
         }.distinctBy { it.key }.sortedWith(compareBy({ it.title }, { it.key }))
-        return SourceHomeListing(loading = false, homes = homes)
+        val declared = homes.map { it.id }.toSet()
+        val nativeFallback = homes.none { it.primary } &&
+            installed.any { extension ->
+                extension.sources.any { it.id !in declared && manager.get(it.id) === it && visibility.isEnabled(it) }
+            }
+        return SourceHomeListing(loading = false, homes = homes, nativeFallback = nativeFallback)
     }
 
     fun access(key: String): SourceHomeAccess {

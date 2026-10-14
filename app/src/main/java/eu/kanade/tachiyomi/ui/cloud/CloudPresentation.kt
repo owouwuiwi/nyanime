@@ -3,6 +3,9 @@ package eu.kanade.tachiyomi.ui.cloud
 import android.text.format.Formatter
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -35,6 +38,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -51,7 +55,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import eu.kanade.presentation.theme.NyanimeMark
@@ -122,21 +129,32 @@ internal fun CloudBadge(label: String, icon: ImageVector? = null) {
 
 @Composable
 internal fun CloudActionButton(label: String, enabled: Boolean, busy: Boolean = false, onClick: () -> Unit) {
+    val motion = appMotionEnabled()
     Button(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+        onClick = { if (enabled && !busy) onClick() },
+        // Active work keeps the button's appearance; semantics and the click guard
+        // disable repeat activation without flashing disabled colours across the screen.
+        enabled = enabled || busy,
+        modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).semantics { if (busy) disabled() },
         shape = RoundedCornerShape(16.dp),
     ) {
-        if (busy) {
-            CircularProgressIndicator(
-                Modifier.size(18.dp),
-                strokeWidth = 2.dp,
-                color = MaterialTheme.colorScheme.primary,
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Text(
+                label,
+                Modifier.fillMaxWidth().padding(horizontal = 28.dp),
+                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.labelLarge,
+                textAlign = TextAlign.Center,
             )
-            Spacer(Modifier.width(10.dp))
+            androidx.compose.animation.AnimatedVisibility(
+                visible = busy,
+                modifier = Modifier.align(Alignment.CenterStart),
+                enter = fadeIn(tween(ModernMotion.duration(motion, ModernMotion.SURFACE_EXIT_MILLIS))),
+                exit = fadeOut(tween(ModernMotion.duration(motion, ModernMotion.SURFACE_EXIT_MILLIS))),
+            ) {
+                CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = LocalContentColor.current)
+            }
         }
-        Text(label, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge)
     }
 }
 

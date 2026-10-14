@@ -75,4 +75,7 @@
     <string name="home_named_details">Scheda di %1$s</string>
     <string name="home_hide_resume">Nascondi %1$s da Continua a guardare</string>
     <string name="home_hidden_message">Titolo nascosto. Cronologia conservata.</string>
+    <string name="home_no_extensions_title">Nessuna estensione disponibile</string>
+    <string name="home_no_extensions_summary">Aggiungi o abilita un’estensione nello Store per vedere qui le sue categorie e i suoi contenuti.</string>
+    <string name="home_no_extensions_store">Apri Store</string>
 </resources>

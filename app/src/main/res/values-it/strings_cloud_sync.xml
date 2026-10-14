@@ -90,4 +90,16 @@
     <string name="cloud_sync_wait_content">Alcuni elementi attendono la loro estensione o i contenuti collegati. Le modifiche sono salvate.</string>
     <string name="cloud_sync_credentials">Credenziali portabili delle estensioni</string>
     <string name="cloud_sync_credentials_summary">Disattivato inizialmente. Condivide nell’archivio cifrato solo le credenziali che l’estensione dichiara portabili. Sessioni Telegram e cookie del browser restano su questo telefono.</string>
+
+<string name="cloud_sync_heading_current">Tutto aggiornato</string>
+<string name="cloud_sync_heading_paused">In pausa</string>
+<string name="cloud_sync_heading_network">In attesa della connessione</string>
+<string name="cloud_sync_heading_rate_limit">Pausa richiesta da Telegram</string>
+<string name="cloud_sync_heading_idle">In attesa della fine della sessione</string>
+<string name="cloud_sync_heading_content">Contenuti da collegare</string>
+<string name="cloud_sync_heading_locked">Serve l’approvazione</string>
+<string name="cloud_sync_heading_account">Controlla il tuo account</string>
+<string name="cloud_sync_heading_error">Sincronizzazione non riuscita</string>
+<string name="cloud_sync_heading_active">Sincronizzazione in corso</string>
+<string name="cloud_sync_no_pending">Nessuna modifica in attesa di invio</string>
 </resources>

@@ -454,6 +454,28 @@ internal class CloudSyncStore(context: Context, account: Long, private val space
         it.getLong(0)
     }
 
+    /** Bounded, one-time repair of history emitted before its item metadata was captured. */
+    @Synchronized
+    fun historyReferencePage(after: String, limit: Int = 50): HistoryReferencePage {
+        val size = limit.coerceIn(1, 100)
+        return readableDatabase.rawQuery(
+            "SELECT key, data FROM records WHERE key>? AND key NOT IN (SELECT key FROM excluded) ORDER BY key LIMIT ?",
+            arrayOf(after, size.toString()),
+        ).use { cursor ->
+            var next = after
+            val refs = buildList {
+                while (cursor.moveToNext()) {
+                    next = cursor.getString(0)
+                    val record = syncJson.decodeFromString<SyncRecord>(cursor.getString(1))
+                    if (record.ref.kind in setOf("anime-history", "manga-history") && !record.deleted) add(record.ref)
+                }
+            }
+            HistoryReferencePage(refs, next, cursor.count < size)
+        }
+    }
+
+    data class HistoryReferencePage(val refs: List<SyncRef>, val next: String, val complete: Boolean)
+
     /**
      * The caller applies with journaling suppressed in its source transaction. A crash before this
      * acknowledgment repeats the same projection safely. A newer projection is never cleared.

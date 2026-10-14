@@ -1,6 +1,7 @@
 package eu.kanade.tachiyomi.data.cloud.sync
 
 import android.content.Context
+import eu.kanade.tachiyomi.data.rin.RinManifest
 import eu.kanade.tachiyomi.data.rin.RinRepository
 import eu.kanade.tachiyomi.data.rin.RinSessions
 import kotlinx.coroutines.Dispatchers
@@ -165,6 +166,9 @@ internal class CloudSyncCataloguesPort(
             } else {
                 val enabled = (fields["enabled"] as? JsonPrimitive)?.booleanOrNull ?: return false
                 if (previous == null) {
+                    // A sideloaded package has no download origin. Keep its state pending
+                    // until the same verified package is imported locally, without requiring a catalogue.
+                    if (data.repository.isEmpty()) return false
                     if (android.os.SystemClock.elapsedRealtime() - refreshed > 60_000 || refreshed == 0L) {
                         rin.refresh(scheduleUpdates = false)
                         refreshed = android.os.SystemClock.elapsedRealtime()
@@ -235,8 +239,8 @@ internal data class PortableRin(
 ) {
     fun validate() {
         require(packageName.length in 1..256 && packageName.matches(Regex("[A-Za-z][A-Za-z0-9_.]+")))
-        require(repository.toHttpUrlOrNull()?.scheme == "https" && repository.length <= 4096)
+        require(repository.length <= 4096 && (repository.isEmpty() || repository.toHttpUrlOrNull()?.scheme == "https"))
         require(signer.matches(Regex("[a-f0-9]{64}")))
-        require(medium in setOf("anime", "manga", "addon") && sources.size <= 128 && 0L !in sources)
+        require(medium in RinManifest.supportedMedia && sources.size <= 128 && 0L !in sources)
     }
 }

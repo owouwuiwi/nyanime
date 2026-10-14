@@ -70,6 +70,7 @@ internal class CloudSyncManager private constructor(private val context: Context
     private var retryAtElapsed = 0L
     private var projectionCursor = ""
     private var lastUnexpectedFailure: String? = null
+    private var historyRecovery: CloudSyncHistoryRecovery? = null
 
     init {
         scope.launch(Dispatchers.Main.immediate) {
@@ -187,6 +188,14 @@ internal class CloudSyncManager private constructor(private val context: Context
                 // Save and capture offline changes before waiting for the Telegram transport.
                 configureJournals()
                 ports.forEach { it.capture() }
+                if (!RinSessions.busy.value && current.store.state("history-metadata-v1/done") != "true") {
+                    val page = current.store.historyReferencePage(
+                        current.store.state("history-metadata-v1/cursor").orEmpty(),
+                    )
+                    ports.forEach { it.repairHistoryMetadata(page.refs) }
+                    current.store.state("history-metadata-v1/cursor", page.next)
+                    if (page.complete) current.store.state("history-metadata-v1/done", "true")
+                }
                 val connectedAccount = cloud.ready()
                 if (connectedAccount != current.keys.account) {
                     closeSession()
@@ -212,8 +221,8 @@ internal class CloudSyncManager private constructor(private val context: Context
                     ports.forEach { it.seed() }
                     current.store.state("seeded", "true")
                     current.store.state("initial-checkpoint", "true")
+                    ports.forEach { it.capture() }
                 }
-                ports.forEach { it.capture() }
                 val uncaptured = ports.sumOf { it.pendingCount() }
                 val shouldPull = networkDirty.getAndSet(false) ||
                     current.store.pendingCount() > 0 ||
@@ -406,9 +415,15 @@ internal class CloudSyncManager private constructor(private val context: Context
         }
         val active = SyncActiveContent()
         val name = { CloudPreferences().deviceName().get() }
+        val recovery = CloudSyncHistoryRecovery(
+            clock::now,
+            { store.state(it)?.toLongOrNull() ?: 0 },
+            { key, until -> store.state(key, until.toString()) },
+            { !base.downloadedOnly().get() && !base.incognitoMode().get() && !RinSessions.busy.value },
+        ).also { historyRecovery = it }
         ports = listOf(
-            AnimeCloudSyncPort(store, active, name, clock::now),
-            MangaCloudSyncPort(store, active, name, clock::now),
+            AnimeCloudSyncPort(store, active, name, clock::now, recovery),
+            MangaCloudSyncPort(store, active, name, clock::now, recovery),
             GuidedCloudSyncPort(context, store, preferences, clock::now),
             CloudSyncSettingsPort(context, store, preferences, clock::now),
             CloudSyncContentSettingsPort(context, store, preferences, clock::now),
@@ -496,6 +511,7 @@ internal class CloudSyncManager private constructor(private val context: Context
 
     private suspend fun applyAvailable(): Boolean {
         val store = session?.store ?: return false
+        historyRecovery?.beginPass()
         val values = store.projections(after = projectionCursor)
         if (values.isEmpty()) {
             projectionCursor = ""

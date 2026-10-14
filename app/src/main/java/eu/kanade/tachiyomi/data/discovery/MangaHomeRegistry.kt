@@ -97,7 +97,13 @@ class MangaHomeRegistry(
                 emptyList()
             }
         }.distinctBy { it.key }.sortedWith(compareBy({ it.title }, { it.key }))
-        return SourceHomeListing(loading = false, homes = homes)
+        val declared = homes.map { it.id }.toSet()
+        val nativeFallback = installed.any { extension ->
+            extension.sources.filterIsInstance<CatalogueSource>().any {
+                it.id !in declared && manager.get(it.id) === it && isEnabled(it.id, it.lang, extension)
+            }
+        }
+        return SourceHomeListing(loading = false, homes = homes, nativeFallback = nativeFallback)
     }
 
     /** Local classification uses already validated declarations, independently of feed visibility. */

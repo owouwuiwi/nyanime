@@ -3,15 +3,15 @@ package eu.kanade.tachiyomi.ui.cloud
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import cafe.adriel.voyager.navigator.Navigator
 import eu.kanade.presentation.theme.TachiyomiTheme
 import eu.kanade.presentation.util.DefaultNavigatorScreenTransition
+import eu.kanade.tachiyomi.ui.base.activity.BaseActivity
 
-class CloudActivity : ComponentActivity() {
+class CloudActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()

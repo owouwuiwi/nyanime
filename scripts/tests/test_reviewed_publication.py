@@ -132,7 +132,7 @@ class ReviewedPublicationTest(unittest.TestCase):
         self.run_release('publish', api)
         self.assertEqual(calls, ['GET'])
 
-    def publish_fixture(self, bad_bytes=False, validation_error=False, existing_bot=False):
+    def publish_fixture(self, bad_bytes=False, validation_error=False, existing_bot=False, phase="publish", personal_author=False):
         metadata, _ = self.metadata()
         source_name = 'Nyanime-Source-1.2.3.4.zip'
         archive = io.BytesIO()
@@ -144,6 +144,9 @@ class ReviewedPublicationTest(unittest.TestCase):
                    'uploader': {'login': 'github-actions[bot]' if existing_bot else 'fixture-user'}}
                   for i, name in enumerate(data)]
         release = self.release(assets=assets, body='Reviewed release 1.2.3.4')
+        if personal_author:
+            release['author'] = {'login': 'fixture-user', 'type': 'User'}
+            release['draft'] = False
         events = []
         def api(path, token, method='GET', data=None, binary=False):
             events.append((method, path))
@@ -154,14 +157,19 @@ class ReviewedPublicationTest(unittest.TestCase):
             if binary:
                 asset = next(item for item in assets if str(item['id']) == path.rsplit('/', 1)[1])
                 return b'wrong bytes' if bad_bytes else fixture[asset['name']]
+            if method == 'POST':
+                release.update(self.release(assets=[], body=data['body']))
             if method == 'PATCH':
                 release.update(data)
             return release
         fixture = data
         def upload(command, **kwargs):
             name = Path(command[4]).name
-            asset = next(item for item in assets if item['name'] == name)
-            asset['uploader']['login'] = 'github-actions[bot]'
+            if personal_author:
+                release['assets'].append({'name':name, 'state':'uploaded', 'digest':'sha256:'+expected[name], 'uploader':{'login':'github-actions[bot]'}})
+            else:
+                asset = next(item for item in assets if item['name'] == name)
+                asset['uploader']['login'] = 'github-actions[bot]'
         with tempfile.TemporaryDirectory() as temporary, \
                 patch.dict(publisher.os.environ, {'GITHUB_TOKEN': 'fixture-token', 'RUNNER_TEMP': temporary}), \
                 patch.object(publisher, 'reviewed_release_inputs', return_value=(metadata, expected, {})), \
@@ -170,16 +178,21 @@ class ReviewedPublicationTest(unittest.TestCase):
                 patch.object(publisher.subprocess, 'run', side_effect=upload) as uploads:
             if bad_bytes or validation_error:
                 with self.assertRaises(ValueError):
-                    publisher.reviewed_release({'version': '1.2.3.4', 'phase': 'publish'})
+                    publisher.reviewed_release({'version': '1.2.3.4', 'phase': phase})
                 self.assertFalse(any(method in {'DELETE', 'PATCH'} for method, _ in events))
                 uploads.assert_not_called()
             else:
-                publisher.reviewed_release({'version': '1.2.3.4', 'phase': 'publish'})
+                publisher.reviewed_release({'version': '1.2.3.4', 'phase': phase})
                 validate.assert_called_once()
                 self.assertEqual(uploads.call_count, 0 if existing_bot else 2)
                 self.assertFalse(release['draft'])
                 self.assertFalse(release['prerelease'])
                 self.assertEqual(release['make_latest'], 'true')
+
+    def test_personal_author_repaired_only_after_complete_byte_and_native_validation(self):
+        self.publish_fixture(phase="repair", personal_author=True, bad_bytes=True)
+        self.publish_fixture(phase="repair", personal_author=True, validation_error=True)
+        self.publish_fixture(phase="repair", personal_author=True)
 
     def test_all_bytes_and_native_inventory_verified_before_draft_changes(self):
         self.publish_fixture(bad_bytes=True)

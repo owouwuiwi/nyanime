@@ -3,6 +3,7 @@ plugins {
 }
 
 dependencies {
+    testImplementation("junit:junit:4.13.2")
     implementation(androidx.gradle)
     implementation(kotlinx.gradle)
     implementation(kotlinx.compose.compiler.gradle)

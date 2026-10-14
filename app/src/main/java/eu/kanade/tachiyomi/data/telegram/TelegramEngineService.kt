@@ -44,6 +44,7 @@ class TelegramEngineService : Service() {
     private val scope =
         CoroutineScope(SupervisorJob() + Dispatchers.IO + CoroutineExceptionHandler { _, _ -> fail("session") })
     private val peers = CopyOnWriteArraySet<Messenger>()
+    private val connectionReplay = nyanime.telegram.TelegramConnectionReplay()
 
     @Volatile private var observedChats: Set<Long> = emptySet()
 
@@ -62,7 +63,21 @@ class TelegramEngineService : Service() {
                     }
                 }
                 ATTACH -> {
-                    message.replyTo?.let(peers::add)
+                    val peer = message.replyTo ?: return@Handler true
+                    connectionReplay.attach { snapshot ->
+                        peers.add(peer)
+                        snapshot?.let {
+                            try {
+                                peer.send(
+                                    Message.obtain(null, EVENT).apply {
+                                        data = Bundle().apply { putString("json", it.toString()) }
+                                    },
+                                )
+                            } catch (_: Exception) {
+                                peers.remove(peer)
+                            }
+                        }
+                    }
                     scope.launch {
                         val id = initialized.await()
                         if (id == 0) {
@@ -174,7 +189,11 @@ class TelegramEngineService : Service() {
                             auth != null ||
                             nyanime.telegram.TelegramUpdatePolicy.accepts(event, observedChats)
                         ) {
-                            broadcast(raw)
+                            if (event.type() == "updateConnectionState") {
+                                connectionReplay.update(event) { broadcast(raw) }
+                            } else {
+                                broadcast(raw)
+                            }
                         }
                         if (auth?.type() == "authorizationStateClosed") {
                             closed = true

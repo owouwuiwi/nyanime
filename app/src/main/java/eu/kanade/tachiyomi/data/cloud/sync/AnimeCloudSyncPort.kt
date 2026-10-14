@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.data.cloud.sync
 
+import eu.kanade.domain.entries.anime.model.toSAnime
 import eu.kanade.tachiyomi.data.backup.models.BackupAnimeTracking
 import eu.kanade.tachiyomi.data.backup.models.backupAnimeTrackMapper
 import kotlinx.serialization.json.JsonObject
@@ -29,6 +30,7 @@ internal class AnimeCloudSyncPort(
     private val active: SyncActiveContent,
     deviceName: () -> String,
     private val now: () -> Long,
+    private val historyRecovery: CloudSyncHistoryRecovery,
     private val database: AnimeDatabaseHandler = Injekt.get(),
     private val titles: AnimeRepository = Injekt.get(),
     private val items: EpisodeRepository = Injekt.get(),
@@ -217,7 +219,31 @@ internal class AnimeCloudSyncPort(
         val parent = titles.getAnimeByUrlAndSourceId(title, source) ?: return
         val entry = items.getEpisodeByUrlAndAnimeId(url, parent.id) ?: return
         val history = database.awaitOneOrNull { cloudSyncQueries.historyEntry(entry.id) } ?: return
+        if (store.record(SyncRef("anime-title", source, title)) == null) captureTitle(source, title, initial = true)
+        if (store.record(SyncRef("anime-item", source, title, url)) == null) {
+            captureItem(source, title, url, initial = true)
+        }
         store.capture(ref, mapOf("at" to JsonPrimitive(history.last_seen?.time ?: 0L)) + present, captureTime())
+    }
+
+    override suspend fun repairHistoryMetadata(refs: List<SyncRef>) {
+        for (ref in refs.filter { it.kind == "anime-history" }) {
+            val source = ref.source ?: continue
+            if (!privacy.await(source) && !store.isExcluded(ref) && store.record(ref)?.deleted == false) {
+                val parent = titles.getAnimeByUrlAndSourceId(ref.title, source)
+                val entry = parent?.let { items.getEpisodeByUrlAndAnimeId(ref.item, it.id) }
+                val itemRef = ref.copy(kind = "anime-item")
+                if (entry != null && store.record(itemRef) == null) {
+                    val metadata = PortableItem.from(entry)
+                    if (runCatching { metadata.validate() }.isSuccess) {
+                        if (store.record(ref.copy(kind = "anime-title", item = "")) == null) {
+                            captureTitle(source, ref.title, initial = true)
+                        }
+                        store.capture(itemRef, (metadata.fields() - setOf("completed", "bookmark")) + present, now())
+                    }
+                }
+            }
+        }
     }
 
     private suspend fun captureTracking(source: Long, title: String, service: Long, deleted: Boolean = false) {
@@ -273,6 +299,7 @@ internal class AnimeCloudSyncPort(
         }
         val parentRef = SyncRef("anime-title", ref.source, ref.title)
         if (active.contains(parentRef)) return false
+        if (ref.kind == "anime-history" && !record.deleted) recoverHistoryItem(projection)
         var actualFields = record.fields.mapValues { it.value.resolved()?.value }
         val applied = database.await(true) {
             // Serialize the final local observations with the remote database projection.
@@ -300,8 +327,9 @@ internal class AnimeCloudSyncPort(
                     }
                     "anime-history" -> {
                         val parent =
-                            titles.getAnimeByUrlAndSourceId(ref.title, requireNotNull(ref.source)) ?: return@await false
-                        val entry = items.getEpisodeByUrlAndAnimeId(ref.item, parent.id) ?: return@await false
+                            titles.getAnimeByUrlAndSourceId(ref.title, requireNotNull(ref.source))
+                                ?: return@await record.deleted
+                        val entry = items.getEpisodeByUrlAndAnimeId(ref.item, parent.id) ?: return@await record.deleted
                         val at = if (record.deleted) {
                             0L
                         } else {
@@ -434,5 +462,64 @@ internal class AnimeCloudSyncPort(
         // A crash here repeats an idempotent projection; never acknowledge before the source commit.
         if (applied) store.applied(projection, actualFields)
         return applied
+    }
+
+    private suspend fun recoverHistoryItem(projection: CloudSyncStore.Projection) {
+        val ref = projection.record.ref
+        val itemRef = ref.copy(kind = "anime-item")
+        if (store.record(itemRef) != null || store.isExcluded(ref)) return
+        val sourceId = ref.source ?: return
+        val parent = titles.getAnimeByUrlAndSourceId(ref.title, sourceId) ?: return
+        val existing = items.getEpisodeByUrlAndAnimeId(ref.item, parent.id)
+        val metadata = if (existing != null) {
+            PortableItem.from(existing)
+        } else {
+            val engine = Injekt.get<tachiyomi.domain.source.anime.service.AnimeSourceManager>().get(sourceId) ?: return
+            val recovered = historyRecovery.recover(ref) {
+                engine.getAnimeEpisodeUpdate(
+                    parent.toSAnime(),
+                    emptyList(),
+                    fetchDetails = false,
+                    fetchEpisodes = true,
+                ).episodes.mapIndexed { index, value ->
+                    RecoveredSyncItem(
+                        value.url,
+                        PortableItem(
+                            value.name,
+                            value.episode_number.toDouble(),
+                            index.toLong(),
+                            scanlator = value.scanlator,
+                            dateUpload = value.date_upload.coerceAtLeast(0),
+                            filler = value.fillermark,
+                        ),
+                    )
+                }
+            } ?: return
+            recovered.metadata.also { it.validate() }
+        }
+        val parentRef = ref.copy(kind = "anime-title", item = "")
+        val saved = database.await(true) {
+            if (active.contains(parentRef) ||
+                store.isExcluded(ref) ||
+                store.record(ref) != projection.record ||
+                store.record(itemRef) != null
+            ) {
+                return@await false
+            }
+            if (titles.getAnimeByUrlAndSourceId(ref.title, sourceId)?.id != parent.id) return@await false
+            if (items.getEpisodeByUrlAndAnimeId(ref.item, parent.id) == null) {
+                cloudSyncQueries.suppress(1)
+                try {
+                    items.addAllEpisodes(listOf(metadata.episode(itemRef, parent.id)))
+                } finally {
+                    cloudSyncQueries.suppress(0)
+                }
+            }
+            true
+        }
+        if (saved) {
+            // Metadata repairs do not fabricate progress, reading sessions or completion.
+            store.capture(itemRef, (metadata.fields() - setOf("completed", "bookmark")) + present, now())
+        }
     }
 }

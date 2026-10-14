@@ -31,6 +31,10 @@ internal sealed interface DiscoveryHomePage {
         override val key = "initializing"
     }
 
+    data object Empty : DiscoveryHomePage {
+        override val key = "empty"
+    }
+
     data class Catalog(val model: DiscoveryScreenModel) : DiscoveryHomePage {
         override val key = "catalog"
     }
@@ -63,7 +67,9 @@ internal fun DiscoveryTab.rememberHomePage(
     news: Boolean = false,
     mangaHomeId: String = MangaHomeCategories.DEFAULT_HOME,
     tv: Boolean = false,
+    empty: Boolean = false,
 ): DiscoveryHomePage = when {
+    empty -> DiscoveryHomePage.Empty
     tv -> DiscoveryHomePage.Tv(
         rememberScreenModel(tag = "live-tv") {
             val services = Injekt.get<eu.kanade.tachiyomi.data.tv.TvServices>()
@@ -111,7 +117,7 @@ internal fun DiscoveryHomePage.headerState(homes: List<SourceHomeGroup>): Discov
     val header = when (this) {
         is DiscoveryHomePage.Tv -> return DiscoveryHeaderState(onRefresh = { model.refresh(true) })
         is DiscoveryHomePage.News -> return DiscoveryHeaderState(onRefresh = { model.refresh(true) })
-        DiscoveryHomePage.Initializing -> DiscoveryHeaderState()
+        DiscoveryHomePage.Initializing, DiscoveryHomePage.Empty -> DiscoveryHeaderState()
         is DiscoveryHomePage.Catalog -> {
             val state by model.state.collectAsStateWithLifecycle()
             updateKeys = state.updates.data.orEmpty().mapNotNull { it.updateKey }.toSet()

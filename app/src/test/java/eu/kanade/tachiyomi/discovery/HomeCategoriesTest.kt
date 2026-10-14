@@ -15,9 +15,9 @@ class HomeCategoriesTest {
     )
 
     @Test fun orderSurvivesMissingCategoryAndCyclesInVisibleOrder() {
-        val initial = HomeCategories.choices(homes, "[]")
+        val initial = HomeCategories.choices(homes, "[]", nativeFallback = true)
         val saved = HomeCategories.moveFirst("[]", initial.first { it.id == "reading" })
-        val visible = HomeCategories.choices(homes, saved)
+        val visible = HomeCategories.choices(homes, saved, nativeFallback = true)
         assertEquals(listOf("reading", null, "films", "video"), visible.map { it.id })
         assertEquals(null, HomeCategories.next("reading", visible))
         assertEquals("films", HomeCategories.next(null, visible))
@@ -38,5 +38,14 @@ class HomeCategoriesTest {
         assertTrue(pages.all { it.size <= 2 })
         assertTrue(pages.flatMap { it }.all { row -> row.size * 80f + (row.size - 1) * 12f <= 288f })
         assertEquals(1, categoryPages(listOf(70f, 80f), 288f, 12f).single().size)
+    }
+
+    @Test fun noSourcesHaveNoCategoriesEvenWhenAnOldFallbackSelectionWasSaved() {
+        assertTrue(HomeCategories.choices(emptyList(), "[\"default\"]").isEmpty())
+        assertEquals(listOf(null), HomeCategories.choices(emptyList(), "", nativeFallback = true).map { it.id })
+    }
+
+    @Test fun declaredCategoriesDoNotAdvertiseAnUnavailableNativeFallback() {
+        assertEquals(setOf("video", "reading", "films"), HomeCategories.choices(homes, "").map { it.id }.toSet())
     }
 }

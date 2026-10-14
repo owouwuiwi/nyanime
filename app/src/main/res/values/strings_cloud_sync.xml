@@ -90,4 +90,16 @@
     <string name="cloud_sync_wait_content">Some items are waiting for their extension or related content. Your changes are saved.</string>
     <string name="cloud_sync_credentials">Portable extension credentials</string>
     <string name="cloud_sync_credentials_summary">Off by default. Shares only credentials explicitly declared portable by the installed extension, through your encrypted archive. Telegram sessions and browser cookies stay on this phone.</string>
+
+<string name="cloud_sync_heading_current">Up to date</string>
+<string name="cloud_sync_heading_paused">Paused</string>
+<string name="cloud_sync_heading_network">Waiting for connection</string>
+<string name="cloud_sync_heading_rate_limit">Telegram cooldown</string>
+<string name="cloud_sync_heading_idle">Waiting for playback to finish</string>
+<string name="cloud_sync_heading_content">Content to connect</string>
+<string name="cloud_sync_heading_locked">Approval required</string>
+<string name="cloud_sync_heading_account">Check your account</string>
+<string name="cloud_sync_heading_error">Could not synchronize</string>
+<string name="cloud_sync_heading_active">Synchronizing</string>
+<string name="cloud_sync_no_pending">No changes waiting to send</string>
 </resources>

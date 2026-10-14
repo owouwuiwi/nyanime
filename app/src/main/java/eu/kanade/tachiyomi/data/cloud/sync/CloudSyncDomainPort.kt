@@ -18,6 +18,7 @@ internal interface CloudSyncDomainPort {
     suspend fun seed()
     suspend fun apply(projection: CloudSyncStore.Projection): Boolean
     suspend fun pendingCount(): Long = 0
+    suspend fun repairHistoryMetadata(refs: List<SyncRef>) = Unit
     fun blockedCount(): Int = 0
 }
 

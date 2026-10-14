@@ -61,7 +61,7 @@ class MangaHomeCategoriesTest {
 
     @Test
     fun nativeReadingLibraryRemainsReachableWithoutDeclarations() {
-        val groups = MangaHomeCategories.groups(SourceHomeListing(false))
+        val groups = MangaHomeCategories.groups(SourceHomeListing(false, nativeFallback = true))
         assertEquals(listOf(MangaHomeCategories.DEFAULT_CATEGORY), groups.map { it.id })
         assertTrue(MangaHomeCategories.includesSource(SourceHomeListing(false), MangaHomeCategories.DEFAULT_HOME, 9))
         assertFalse(MangaHomeCategories.includesSource(SourceHomeListing(false), "sequential", 9))
@@ -85,8 +85,13 @@ class MangaHomeCategoriesTest {
     fun readingCategoryNamespaceCannotCollideWithAnIdenticallyNamedVideoCategory() {
         assertFalse(MangaHomeCategories.key("sequential") == "sequential")
         assertEquals(
-            2,
+            1,
             MangaHomeCategories.groups(SourceHomeListing(false, listOf(source(2, "sequential", "Sequential")))).size,
         )
+    }
+
+    @Test fun emptyAndInitializingInventoriesDoNotCreateReadingCategories() {
+        assertTrue(MangaHomeCategories.groups(SourceHomeListing()).isEmpty())
+        assertTrue(MangaHomeCategories.groups(SourceHomeListing(false)).isEmpty())
     }
 }

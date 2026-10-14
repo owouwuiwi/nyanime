@@ -64,7 +64,8 @@ class TelegramClient private constructor(private val context: Context) : Telegra
     private val pending = ConcurrentHashMap<String, CompletableDeferred<JsonObject>>()
     val receipts = MutableStateFlow<Map<Long, JsonObject>>(emptyMap())
     val files = MutableStateFlow<Map<Long, JsonObject>>(emptyMap())
-    private var service: Messenger? = null
+
+    @Volatile private var service: Messenger? = null
     private var bound = false
     private var connected = CompletableDeferred<Unit>()
     private val events = Channel<String>(Channel.UNLIMITED)
@@ -141,18 +142,46 @@ class TelegramClient private constructor(private val context: Context) : Telegra
 
     private fun disconnected() {
         service = null
-        mutableState.update { it.copy(authorization = "disconnected", failure = TelegramFailure.DISCONNECTED) }
+        mutableState.update {
+            it.copy(
+                authorization = "disconnected",
+                connection = "",
+                account = null,
+                failure = TelegramFailure.DISCONNECTED,
+            )
+        }
         pending.values.forEach { it.completeExceptionally(TelegramException(TelegramFailure.DISCONNECTED)) }
         pending.clear()
         if (!connected.isCompleted) connected.completeExceptionally(TelegramException(TelegramFailure.DISCONNECTED))
     }
 
     override suspend fun connect() = lock.withLock {
-        if (service != null) return@withLock
+        val attached = service
+        if (attached != null) {
+            if (mutableState.value.authorization == "disconnected") {
+                // getMe can fail transiently while IPC remains alive. Re-read authorization
+                // instead of keeping a failed account lookup permanently latched.
+                mutableState.update { it.copy(authorization = "connecting", failure = null) }
+                try {
+                    attached.send(
+                        Message.obtain(null, TelegramEngineService.REQUEST).apply {
+                            data = Bundle().apply { putString("json", tdRequest("getAuthorizationState").toString()) }
+                            replyTo = incoming
+                        },
+                    )
+                } catch (_: Exception) {
+                    disconnected()
+                    throw TelegramException(TelegramFailure.DISCONNECTED)
+                }
+            }
+            return@withLock
+        }
         withContext(Dispatchers.Main) {
             if (bound) runCatching { context.unbindService(connection) }
             connected = CompletableDeferred()
-            mutableState.update { it.copy(authorization = "connecting", failure = null) }
+            mutableState.update {
+                it.copy(authorization = "connecting", connection = "", account = null, failure = null)
+            }
             bound =
                 context.bindService(
                     Intent(context, TelegramEngineService::class.java),

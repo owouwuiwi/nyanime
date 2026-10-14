@@ -4,6 +4,15 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 class CloudSyncStatusTest {
+    @Test fun knownUnresolvedDependenciesAndManualEmptyChecksDoNotFlashTheStatusCard() {
+        listOf(CloudSyncPhase.CURRENT, CloudSyncPhase.WAITING_CONTENT).forEach { phase ->
+            val status = CloudSyncStatus(phase = phase, projections = 1, lastVerified = 100)
+            assertEquals(phase, status.receiving(explicit = false, captured = 0))
+            assertEquals(phase, status.receiving(explicit = true, captured = 0))
+            assertEquals(CloudSyncPhase.RECEIVING, status.receiving(explicit = false, captured = 1))
+        }
+    }
+
     @Test fun periodicEmptyChecksDoNotFlashOrHideUnresolvedFailures() {
         listOf(
             CloudSyncPhase.CURRENT,

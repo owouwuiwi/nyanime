@@ -31,7 +31,7 @@ internal class CloudSyncSession(
         private set
     val store = CloudSyncStore(context, keys.account, keys.space).also { it.bindDevice(device.public.id) }
     val files = CloudSyncPacketFiles(context, keys.account, keys.space)
-    val transport = TelegramSyncTransport(context, client, keys.account, keys.chat, keys.space)
+    val transport = TelegramSyncTransport(context, client, keys.account, keys.chat, keys.space, files::retainedDelivery)
     val checkpoints = CloudSyncCheckpoints(store, files, transport, device)
 
     /** Persist a page at a time, then consume in server order; interruption never skips a gap. */

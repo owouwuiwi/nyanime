@@ -9,8 +9,8 @@ data class HomeCategory(val id: String?, val title: String) {
 }
 
 object HomeCategories {
-    fun choices(homes: List<SourceHomeGroup>, savedOrder: String): List<HomeCategory> {
-        val defaults = (if (homes.any { it.primary }) emptyList() else listOf(HomeCategory(null, "Anime"))) +
+    fun choices(homes: List<SourceHomeGroup>, savedOrder: String, nativeFallback: Boolean = false): List<HomeCategory> {
+        val defaults = (if (!nativeFallback) emptyList() else listOf(HomeCategory(null, "Anime"))) +
             homes.sortedWith(compareByDescending<SourceHomeGroup> { it.primary }.thenBy { it.title })
                 .map { HomeCategory(it.id, it.title) }
         val positions = decodeOrder(savedOrder).withIndex().associate { it.value to it.index }

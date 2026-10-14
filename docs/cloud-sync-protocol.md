@@ -105,6 +105,9 @@ An empty archive check updates only local verification metadata, without publish
 Periodic empty checks retain the settled status; explicit checks and pending work show their activity.
 Verification requires a ready Telegram connection and a completed history pass, not cached authorization.
 Operation-owned deadlines produce retryable transport errors while caller cancellation remains cancellation.
+An interrupted send refreshes a failed TDLib message before reading its retry countdown: TDLib
+does not publish updates when that countdown changes. Only successful immutable receipts are
+reused from the event cache. Fractional retry intervals are rounded up before resending.
 This preserves the foreground loop and queued envelope identities after interrupted uploads/downloads.
 
 Preferences use persisted projection intents plus an off-main-thread disk barrier before receipt

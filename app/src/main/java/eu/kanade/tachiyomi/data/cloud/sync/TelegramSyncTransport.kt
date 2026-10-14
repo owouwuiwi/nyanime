@@ -9,6 +9,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.doubleOrNull
 import nyanime.telegram.TelegramException
 import nyanime.telegram.TelegramFailure
 import nyanime.telegram.flag
@@ -29,6 +30,7 @@ import nyanime.telegram.type
 import nyanime.telegram.withTelegramTimeout
 import java.io.File
 import java.util.UUID
+import kotlin.math.ceil
 
 internal class CloudSyncTransferDeferred : IllegalStateException("Bulk synchronization waits for idle playback")
 
@@ -39,6 +41,7 @@ internal class TelegramSyncTransport(
     private val account: Long,
     private val chat: Long,
     private val space: String,
+    private val retained: (Long) -> SyncDelivery? = { null },
 ) : SyncTransport {
     var beforeSend: suspend () -> Unit = {}
     override suspend fun verifyArchive() {
@@ -103,7 +106,8 @@ internal class TelegramSyncTransport(
         require(temporary != 0L)
         onQueued(temporary)
         val receipt = awaitReceipt(queued)
-        outbox(packet.id).delete()
+        // Keep the original document until the confirmed message is staged by pull().
+        // TDLib can still point to this path while resolving a previous interrupted send.
         receipt
     }
 
@@ -137,8 +141,11 @@ internal class TelegramSyncTransport(
         if (temporary == 0L) return null
         beforeSend()
         verifyArchive()
-        var message = client.receipts.value[temporary]?.objectOrNull("message")
-            ?.takeIf { it.number("chat_id") == chat }
+        // Failure snapshots never update retry_after. Ask TDLib for the current countdown;
+        // only a successful receipt is immutable and safe to reuse after a retry.
+        val receipt = client.receipts.value[temporary]?.takeIf { it.type() == "updateMessageSendSucceeded" }
+        var message = receipt?.objectOrNull("message")
+            ?.takeIf { it.number("chat_id") == chat && it["sending_state"] !is JsonObject }
             ?: try {
                 client.request(
                     tdRequest(
@@ -161,7 +168,8 @@ internal class TelegramSyncTransport(
         val failed = message.objectOrNull("sending_state")
         if (failed?.type() == "messageSendingStateFailed") {
             check(failed.flag("can_retry") && failed.number("required_paid_message_star_count") == 0L)
-            val delay = failed.number("retry_after")
+            val delay = (failed["retry_after"] as? JsonPrimitive)?.doubleOrNull
+                ?.takeIf { it.isFinite() && it > 0 }?.let { ceil(it).toLong() } ?: 0L
             if (delay > 0) throw TelegramException(TelegramFailure.RATE_LIMIT, retryAfterSeconds = delay)
             val result = client.request(
                 tdRequest(
@@ -175,7 +183,7 @@ internal class TelegramSyncTransport(
                 ?: throw TelegramException(TelegramFailure.REQUEST)
             onQueued(message.number("id"))
         }
-        return awaitReceipt(message).also { outbox(packet.id).delete() }
+        return awaitReceipt(message)
     }
 
     override suspend fun page(
@@ -207,14 +215,18 @@ internal class TelegramSyncTransport(
                 ) {
                     return@forEach
                 }
-                val payload = SyncWire.text(message) ?: document(message) ?: return@forEach
+                val payload = retainedPayload(message) ?: SyncWire.text(message) ?: document(message) ?: return@forEach
                 // A recognized but unsupported/corrupt payload is an error, not a skipped cursor.
                 val packet = syncJson.decodeFromString<SyncPacket>(payload)
                 packet.validate()
                 require(packet.space == space)
                 if (kinds != null && packet.kind !in kinds) return@forEach
                 // Persist each bounded delivery before downloading the next document.
-                receive(SyncDelivery(packet, SyncReceipt(message.number("id"), message.number("date"))))
+                val delivery = SyncDelivery(packet, SyncReceipt(message.number("id"), message.number("date")))
+                receive(delivery)
+                // Temporary archive-discovery callbacks do not own durable bytes.
+                // Only the stored delivery permits cleanup of TDLib's upload original.
+                if (retained(delivery.receipt.messageId) == delivery) outbox(packet.id).delete()
             }
             val next = messages.minOfOrNull { it.number("id") } ?: 0L
             SyncHistoryPage(
@@ -252,9 +264,8 @@ internal class TelegramSyncTransport(
                 current = client.request(tdRequest("getFile", "file_id" to JsonPrimitive(file.number("id"))))
             }
         }
-        val downloaded = File(current.objectOrNull("local")!!.text("path")).canonicalFile
-        val root = File(context.noBackupFilesDir, "telegram").canonicalPath + File.separator
-        require(downloaded.path.startsWith(root) && downloaded.length() == file.number("size"))
+        val downloaded = CloudSyncDocumentFiles(context.noBackupFilesDir)
+            .verified(current.objectOrNull("local")!!.text("path"), id, file.number("size"))
         return downloaded.readText(Charsets.UTF_8).also {
             val packet = syncJson.decodeFromString<SyncPacket>(it)
             require(packet.id == id && packet.kind == kind)
@@ -267,11 +278,38 @@ internal class TelegramSyncTransport(
             tdRequest("getMessage", "chat_id" to JsonPrimitive(chat), "message_id" to JsonPrimitive(id)),
         )
         require(SyncWire.ownedMessage(message, account, chat))
-        val payload = SyncWire.text(message) ?: document(message) ?: error("Synchronization packet is missing")
+        val payload = retainedPayload(message) ?: SyncWire.text(message) ?: document(message)
+            ?: error("Synchronization packet is missing")
         val packet = syncJson.decodeFromString<SyncPacket>(payload)
         packet.validate()
         require(packet.space == space && message.number("id") == id)
         return SyncDelivery(packet, SyncReceipt(id, message.number("date")))
+    }
+
+    /** A durable local delivery survives a partially downloaded page and TDLib cache eviction. */
+    private fun retainedPayload(message: JsonObject): String? {
+        val cached = retained(message.number("id")) ?: return null
+        cached.packet.validate()
+        require(cached.packet.space == space)
+        require(cached.receipt == SyncReceipt(message.number("id"), message.number("date")))
+        val encoded = syncJson.encodeToString(cached.packet)
+        val text = SyncWire.text(message)
+        if (text != null) {
+            require(text == encoded) { "Synchronization message was modified" }
+        } else {
+            val content = message.objectOrNull("content") ?: error("Missing synchronization content")
+            require(content.type() == "messageDocument")
+            require(
+                content.objectOrNull("caption")?.text("text") ==
+                    SyncEnvelope.MARKER + cached.packet.id + "|" + cached.packet.kind,
+            )
+            val document = content.objectOrNull("document") ?: error("Missing synchronization document")
+            require(document.text("file_name") == "${cached.packet.id}.nysync")
+            require(
+                document.objectOrNull("document")?.number("size") == encoded.toByteArray(Charsets.UTF_8).size.toLong(),
+            )
+        }
+        return encoded
     }
 
     private fun outbox(id: String): File {

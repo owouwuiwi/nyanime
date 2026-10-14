@@ -75,4 +75,7 @@
     <string name="home_named_details">%1$s details</string>
     <string name="home_hide_resume">Hide %1$s from Continue watching</string>
     <string name="home_hidden_message">Title hidden. History kept.</string>
+    <string name="home_no_extensions_title">No extensions available</string>
+    <string name="home_no_extensions_summary">Add or enable an extension in the Store to see its categories and content here.</string>
+    <string name="home_no_extensions_store">Open Store</string>
 </resources>
