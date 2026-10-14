@@ -1,6 +1,6 @@
 # Privacy di Nyanime
 
-Nyanime è un'app Android che gestisce localmente librerie, progressi di visione e lettura, preferenze e download. Non richiede un account Nyanime. Profili social e sincronizzazione personale tra dispositivi sono disattivati.
+Nyanime è un'app Android che gestisce localmente librerie, progressi di visione e lettura, preferenze e download. Non richiede un account Nyanime e non include profili social. Backup e sincronizzazione tramite Cloud rimangono facoltativi e separati dalle stanze.
 
 ## Dati sul dispositivo
 
@@ -44,7 +44,7 @@ adattamenti e seguiti, la sezione Notizie può interrogare AniList usando soltan
 ID di catalogo, senza progressi, credenziali o cronologia. Il controllo periodico
 degli articoli parte solo se si attivano gli avvisi.
 
-Le funzioni disattivate di profilo pubblico, amicizie, chat e sincronizzazione personale non inviano nuovi dati. Eventuali dati locali obsoleti di queste funzioni vengono rimossi dalla versione corrente dell'app. Download e copie Ultra restano locali.
+Il precedente sistema di profili pubblici, amicizie, chat social e sincronizzazione personale su Nostr è stato rimosso. L’app elimina gli eventuali archivi, bozze e chiavi locali appartenenti soltanto a quelle funzioni. Le stanze e il Cloud Telegram conservano i propri dati indipendenti. Download e copie Ultra restano locali.
 
 ## Controlli e contatti
 

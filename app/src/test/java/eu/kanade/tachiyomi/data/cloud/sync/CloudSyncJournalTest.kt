@@ -97,7 +97,9 @@ class CloudSyncJournalTest {
         insertHistory(db, anime, 100, upsert = false)
         val revision = db.scalar("SELECT revision FROM cloud_sync_dirty WHERE kind='history'")
         val schema = if (anime) AnimeDatabase.Schema else Database.Schema
-        schema.migrate(db, schema.version - 1, schema.version)
+        // Test the immutable history repair, even after unrelated migrations are added.
+        val historyRepairVersion = if (anime) 149L else 39L
+        schema.migrate(db, historyRepairVersion, historyRepairVersion + 1)
         assertEquals(revision, db.scalar("SELECT revision FROM cloud_sync_dirty WHERE kind='history'"))
         verifyHistoryUpserts(db, anime)
     }

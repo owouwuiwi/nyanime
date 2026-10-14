@@ -12,11 +12,10 @@ spotless = "7.0.2"
 ktlint-core = "1.7.0"
 
 [libraries]
-community-crypto = "org.bouncycastle:bcprov-jdk18on:1.80.2"
 watch-qr = "com.google.zxing:core:3.5.3"
 telegram-phone = "com.googlecode.libphonenumber:libphonenumber:9.0.40"
 telegram-sync-crypto = "com.google.crypto.tink:tink-android:1.23.0"
-community-scanner = "com.journeyapps:zxing-android-embedded:4.3.0"
+cloud-scanner = "com.journeyapps:zxing-android-embedded:4.3.0"
 watch-secp256k1 = "fr.acinq.secp256k1:secp256k1-kmp:0.24.0"
 watch-secp256k1-android = "fr.acinq.secp256k1:secp256k1-kmp-jni-android:0.24.0"
 watch-secp256k1-jvm = "fr.acinq.secp256k1:secp256k1-kmp-jni-jvm:0.24.0"

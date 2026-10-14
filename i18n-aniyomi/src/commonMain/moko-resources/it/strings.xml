@@ -584,8 +584,6 @@
     <string name="player_error_timeout">La riproduzione non è partita o ripresa in tempo. Riprova per aggiornare il collegamento: il punto salvato viene conservato.</string>
     <string name="player_error_unknown">Riproduzione non riuscita. Riprova o apri la fonte per verificare l’episodio.</string>
     <string name="player_open_source">Apri fonte</string>
-    <string name="personal_sync_title">I miei dispositivi</string>
-    <string name="personal_sync_summary">Riprendi anime e manga sui tuoi dispositivi</string>
     <string name="ready_update_title">Aggiornamento scaricato</string>
     <string name="ready_update_summary">È pronto da installare. Lo ritrovi anche in Altro.</string>
     <string name="ready_update_install">Installa ora</string>

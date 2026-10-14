@@ -138,7 +138,6 @@ class AppModule(
                     setPragma(db, "foreign_keys = ON")
                     setPragma(db, "journal_mode = WAL")
                     setPragma(db, "synchronous = NORMAL")
-                    eu.kanade.tachiyomi.data.community.CommunityDormancy.onDatabaseOpen(db)
                 }
                 private fun setPragma(db: SupportSQLiteDatabase, pragma: String) {
                     val cursor = db.query("PRAGMA $pragma")
@@ -178,7 +177,6 @@ class AppModule(
                     setPragma(db, "foreign_keys = ON")
                     setPragma(db, "journal_mode = WAL")
                     setPragma(db, "synchronous = NORMAL")
-                    eu.kanade.tachiyomi.data.community.CommunityDormancy.onDatabaseOpen(db)
                 }
                 private fun setPragma(db: SupportSQLiteDatabase, pragma: String) {
                     val cursor = db.query("PRAGMA $pragma")

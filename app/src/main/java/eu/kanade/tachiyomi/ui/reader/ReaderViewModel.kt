@@ -260,7 +260,6 @@ class ReaderViewModel @JvmOverloads constructor(
     }
 
     override fun onCleared() {
-        eu.kanade.tachiyomi.data.community.CommunityManager.existing()?.clearActivity(this)
         val currentChapters = state.value.viewerChapters
         if (currentChapters != null) {
             currentChapters.unref()
@@ -508,22 +507,6 @@ class ReaderViewModel @JvmOverloads constructor(
 
         val selectedChapter = page.chapter
         val pages = selectedChapter.pages ?: return
-        if (!incognitoMode) {
-            manga?.let { title ->
-                eu.kanade.tachiyomi.data.community.CommunityManager.existing()?.updateActivity(
-                    this,
-                    eu.kanade.tachiyomi.data.community.SyncReference(
-                        true,
-                        title.source,
-                        title.url,
-                        selectedChapter.chapter.url,
-                    ),
-                    title.title,
-                    selectedChapter.chapter.name,
-                )
-            }
-        }
-
         // A spread's active page and last displayed page have independent meanings.
         if (preserveSelection || progressPage != page) {
             mutableState.update { it.copy(currentPage = page.index + 1) }

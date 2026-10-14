@@ -38,13 +38,9 @@ Lo sfondo del lettore manga resta configurabile indipendentemente.
 | **Manga completo** | Mantieni libreria e lettore legacy, con Home opzionali, aggiornamenti dei capitoli e tutte le modalità di lettura. |
 | **Protezione laterale hardware** | Proteggi video, manga, schede e aree personali sui display compatibili. Comandi temporanei, modalità “Solo in incognito” e opzione NSFW basata sui metadati; [compatibilità e limiti](docs/privacy-display.md). |
 
-Il [sync tra dispositivi](docs/personal-sync.md), profili, amicizie, feed, chat e presenza social sono
-temporaneamente disattivati e non compaiono nell’app. Il codice e i dati locali
-obsoleti vengono rimossi dall’APK e dal telefono: all’avvio vengono eliminati chiavi,
-archivi privati, bozze e code delle funzioni disattivate. Nessuna connessione o raccolta di progressi per il sync viene avviata,
-anche sui dispositivi configurati in precedenza. Le stanze video e manga funzionano senza un profilo:
-si crea una stanza e si condivide il suo codice o link.
-[Documentazione della community dormiente](docs/community-protocol.md).
+Le stanze video e manga funzionano senza un profilo: crea una stanza e condividi
+il suo codice o link. Backup e sincronizzazione personali continuano attraverso
+[Cloud](docs/cloud-sync-protocol.md), indipendentemente dalle stanze.
 
 ## Tutte le aree dell'app
 

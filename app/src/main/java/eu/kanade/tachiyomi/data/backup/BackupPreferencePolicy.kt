@@ -7,6 +7,8 @@ import tachiyomi.core.common.preference.PreferenceStore
 object BackupPreferencePolicy {
     private val retiredPrefixes = listOf("back_tap_", Preference.appStateKey("back_tap_"))
     private val retiredKeys = setOf(
+        "personal_sync_enabled",
+        Preference.appStateKey("personal_sync_enabled"),
         "automatically_trust_extensions",
         "nyanime_title_artwork_automatic",
         Preference.privateKey("fanart_personal_key"),

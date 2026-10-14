@@ -180,16 +180,6 @@ object SettingsMainScreen : Screen() {
     )
 
     private val items = listOfNotNull(
-        if (BuildConfig.PERSONAL_SYNC_ENABLED) {
-            Item(
-                titleRes = AYMR.strings.personal_sync_title,
-                subtitleRes = AYMR.strings.personal_sync_summary,
-                icon = Icons.Outlined.Devices,
-                screen = SettingsPersonalSyncScreen,
-            )
-        } else {
-            null
-        },
         Item(
             titleRes = MR.strings.pref_category_appearance,
             subtitleRes = MR.strings.pref_appearance_summary,

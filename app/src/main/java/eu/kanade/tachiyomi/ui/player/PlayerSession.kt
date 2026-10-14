@@ -921,7 +921,6 @@ class PlayerSession(
         if (nativeReady && model.isInitialized()) {
             viewModel.endHoldSpeed()
             if (!snapshot.value.live) viewModel.saveCurrentEpisodeWatchingProgress()
-            viewModel.detachDevicePlayback()
             viewModel.watchManager.detach(this)
             viewModel.playbackLoad.cancel()
             headphoneCinema.close()
@@ -2554,7 +2553,6 @@ class PlayerSession(
         setupChapters()
         setupTracks()
 
-        viewModel.onDevicePlaybackReady()
         viewModel.startAutoTracking()
 
         viewModel.waitingSkipIntro = playerPreferences.waitingTimeIntroSkip().get()

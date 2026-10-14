@@ -106,7 +106,6 @@ fun DiscoveryHomeHeader(
                         )
                     }
                 }
-                eu.kanade.tachiyomi.ui.community.CommunityAvatarButton()
                 if (onSearch != null) {
                     IconButton(onClick = onSearch) {
                         Icon(

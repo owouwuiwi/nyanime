@@ -155,7 +155,6 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
                 logcat(LogPriority.WARN, error) { "Unable to initialize news extensions" }
             }
         }
-        val preferencesForRetirement = basePreferences
         scope.launch(Dispatchers.IO) {
             try {
                 AnimeLibraryUpdateJob.retireHomeRefresh(this@App)
@@ -173,8 +172,7 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
             eu.kanade.tachiyomi.data.rin.RetiredDocumentData.cleanFiles(this@App)
         }
         scope.launch(Dispatchers.IO) {
-            eu.kanade.tachiyomi.data.community.CommunityDormancy.stopBackgroundWork(this@App)
-            eu.kanade.tachiyomi.data.community.CommunityDormancy.cleanObsoleteData(this@App, preferencesForRetirement)
+            eu.kanade.tachiyomi.data.cleanup.RetiredProfileCleanup.run(this@App, Injekt.get())
         }
         scope.launch(Dispatchers.IO) {
             try {
@@ -350,13 +348,11 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
         }
         RetroactiveTracking.onForeground()
         LibraryAutoTracking.onForeground()
-        eu.kanade.tachiyomi.data.community.CommunityManager.lifecycle(this, true)
     }
 
     override fun onStop(owner: LifecycleOwner) {
         SecureActivityDelegate.onApplicationStopped()
         RetroactiveTracking.onBackground()
-        eu.kanade.tachiyomi.data.community.CommunityManager.lifecycle(this, false)
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {

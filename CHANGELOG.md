@@ -9,6 +9,17 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 14 ottobre 2026 — 0.43.0.3: Rimozione del social dormiente
+
+### Prestazioni
+
+- Eliminati dal progetto profili, amicizie, bacheche, feed, chat social, presenza, Blossom e il precedente sync personale su Nostr, insieme alle schermate, ai test e alle dipendenze esclusive non più utilizzati.
+- Player, lettore e Home non richiamano più il vecchio sistema. Le stanze video e manga e il sync Telegram continuano a usare i propri componenti indipendenti.
+
+### Compatibilità
+
+- L’aggiornamento rimuove soltanto archivi, chiavi, bozze e tabelle delle funzioni eliminate. Libreria, progressi, download, backup e dati Cloud sono preservati; una pulizia interrotta viene ritentata al successivo avvio.
+
 ## 14 ottobre 2026 — 0.43.0.2: RIN manuali senza catalogo
 
 ### Correzioni

@@ -149,7 +149,6 @@ private fun HomeHeaderActions(onUpdates: (() -> Unit)?, hasUpdates: Boolean) {
             }
         }
         eu.kanade.tachiyomi.ui.watch.WatchTogetherButton()
-        eu.kanade.tachiyomi.ui.community.CommunityAvatarButton()
     }
 }
 

@@ -32,9 +32,6 @@ tasks.configureEach {
     }
 }
 
-// Release gates: dormant sources are retained; obsolete on-device data is purged. Rooms are independent.
-val communityEnabled = false
-val personalSyncEnabled = false
 val telegramProperties = Properties().apply {
     rootProject.file(".local/telegram.properties").takeIf { it.exists() }?.inputStream()?.use(::load)
 }
@@ -92,8 +89,6 @@ android {
         buildConfigField("String", "COMMIT_SHA", "\"${getGitSha()}\"")
         buildConfigField("String", "BUILD_TIME", "\"${getBuildTime(useLastCommitTime = false)}\"")
         buildConfigField("boolean", "UPDATER_ENABLED", "${Config.enableUpdater}")
-        buildConfigField("boolean", "COMMUNITY_ENABLED", communityEnabled.toString())
-        buildConfigField("boolean", "PERSONAL_SYNC_ENABLED", personalSyncEnabled.toString())
         buildConfigField("int", "TELEGRAM_API_ID", telegramApiId)
         buildConfigField("String", "TELEGRAM_API_HASH", "\"$telegramApiHash\"")
 
@@ -426,8 +421,7 @@ dependencies {
     implementation(libs.bundles.okhttp)
     implementation(libs.okio)
     implementation(libs.conscrypt.android) // TLS 1.3 support for Android < 10
-    implementation(libs.community.crypto)
-    implementation(libs.community.scanner)
+    implementation(libs.cloud.scanner)
 
     implementation("com.android.tools.build:apksig:8.9.1")
 

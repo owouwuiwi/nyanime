@@ -76,12 +76,7 @@ class BackupRestorer(
         val startTime = System.currentTimeMillis()
 
         eu.kanade.tachiyomi.data.releases.ReleaseRestoreGuard.during {
-            val community = eu.kanade.tachiyomi.data.community.CommunityManager.existing()
-            if (community != null && !isSync) {
-                community.withLibraryImport { restoreFromFile(uri, options) }
-            } else {
-                restoreFromFile(uri, options)
-            }
+            restoreFromFile(uri, options)
         }
         val time = System.currentTimeMillis() - startTime
 

@@ -675,8 +675,6 @@
     <string name="player_error_timeout">Playback did not start or resume in time. Retry to refresh the video link; your saved position is preserved.</string>
     <string name="player_error_unknown">Playback failed. Retry or open the source to check the episode.</string>
     <string name="player_open_source">Open source</string>
-    <string name="personal_sync_title">I miei dispositivi</string>
-    <string name="personal_sync_summary">Riprendi anime e manga sui tuoi dispositivi</string>
     <string name="ready_update_title">Update downloaded</string>
     <string name="ready_update_summary">Ready to install. You can also find it in More.</string>
     <string name="ready_update_install">Install now</string>
