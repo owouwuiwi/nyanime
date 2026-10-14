@@ -16,7 +16,7 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path, PurePosixPath
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from scripts.public_distribution import allowed_source
+from scripts.public_distribution import allowed_source, validate_release_notes
 from scripts.verify_native_distribution import validate as validate_native
 
 PUBLIC = 'owouwuiwi/nyanime'
@@ -92,6 +92,7 @@ def unpack(archive, destination):
                     raise ValueError('Credential in application source')
 
 def validate_bundle(directory):
+    validate_release_notes((directory / "notes.md").read_text(encoding="utf-8"))
     metadata = json.loads((directory / 'publication.json').read_text())
     version = metadata['versionName']
     fields = {'schema', 'versionName', 'versionCode', 'channel', 'applicationId', 'assetPrefix', 'certificateSha256', 'sha256'}
@@ -401,7 +402,7 @@ def reviewed_release_inputs(payload):
     version = payload.get('version', '')
     if not isinstance(version, str) or not re.fullmatch(r'\d+\.\d+\.\d+\.\d+', version):
         raise ValueError('Invalid reviewed release version')
-    if payload.get('phase') not in {'prepare', 'publish'}:
+    if payload.get('phase') not in {'prepare', 'publish', 'repair'}:
         raise ValueError('Unknown reviewed publication phase')
     metadata = json.loads((Path('releases') / (version + '.json')).read_text())
     if (metadata['schema'] != 4 or metadata['versionName'] != version or
@@ -464,6 +465,7 @@ def reviewed_release(payload):
         if not isinstance(notes, str) or not notes.strip() or len(notes.encode()) > 50_000 or version not in notes:
             raise ValueError('Missing reviewed release notes')
         validate_text(notes)
+        validate_release_notes(notes)
         # The immutable tag already exists. Never create/move it with the bot,
         # or ask the release API to replace historical workflow-containing refs.
         release = request(base, token, 'POST', {'tag_name': tag, 'target_commitish': 'main',
@@ -473,7 +475,7 @@ def reviewed_release(payload):
         release = matches[0]
     else:
         raise ValueError('Prepare the reviewed draft before staging verified files')
-    if release['author']['login'] != 'github-actions[bot]' or release['author']['type'] != 'Bot':
+    if phase != 'repair' and (release['author']['login'] != 'github-actions[bot]' or release['author']['type'] != 'Bot'):
         raise ValueError('Reviewed releases must belong to the public GitHub publisher')
     if phase == 'prepare':
         if not release['draft']:
@@ -485,7 +487,7 @@ def reviewed_release(payload):
             assets[name]['state'] != 'uploaded' or assets[name]['digest'] != 'sha256:' + digest
             for name, digest in expected.items()):
         raise ValueError('Reviewed staging assets do not match the pinned manifest')
-    if not release['draft']:
+    if not release['draft'] and phase != 'repair':
         if any(asset['uploader']['login'] != 'github-actions[bot]' for asset in assets.values()):
             raise ValueError('Published assets have unexpected attribution')
         print('Reviewed release is already published; immutable assets left untouched.', flush=True)
@@ -525,6 +527,24 @@ def reviewed_release(payload):
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(archive.read(entry))
     validate_bundle(temp)
+    # Repair is explicitly requested by the owner. Preserve the tag and all verified
+    # bytes/URLs, but recreate a personally authored release with the bot. GitHub
+    # does not support changing a release author in place.
+    if phase == 'repair' and release['author']['login'] != 'github-actions[bot]':
+        notes = (temp / 'notes.md').read_text(encoding='utf-8')
+        validate_release_notes(notes)
+        request(base + '/' + str(release['id']), token, 'DELETE')
+        release = request(base, token, 'POST', {
+            'tag_name': tag, 'target_commitish': 'main', 'name': 'Nyanime ' + version,
+            'body': notes, 'draft': True, 'prerelease': metadata['channel'] == 'preview',
+        })
+        assets = {}
+    if release['author']['login'] != 'github-actions[bot]' or release['author']['type'] != 'Bot':
+        raise ValueError('Bot ownership was not established')
+    for name in expected:
+        if name not in assets:
+            subprocess.run(['gh', 'release', 'upload', tag, str(numeric / name), '--repo', PUBLIC],
+                           check=True, env={**os.environ, 'GH_TOKEN': token})
     for name, asset in assets.items():
         if asset['uploader']['login'] == 'github-actions[bot]':
             continue

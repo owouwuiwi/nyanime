@@ -63,6 +63,13 @@ def assert_public_text(content):
     if re.search(r'(?i)lorenzo\s*garrone|lorenzogarrone|C:[\\/]+Users[\\/]|(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,})', content):
         raise ValueError('Public export contains personal data, a local path or credential')
 
+
+def validate_release_notes(content):
+    """Reject double-decoded UTF-8 before notes reach GitHub or the in-app parser."""
+    assert_public_text(content)
+    if re.search(r'Ã[\u0080-\u00bf]|â[€\u0080-\u00bf]|ðŸ|\ufffd', content):
+        raise ValueError('Release notes contain corrupted UTF-8 text')
+
 def git(*args, cwd=None):
     return subprocess.check_output(['git', *args], cwd=cwd)
 
@@ -138,6 +145,7 @@ def prepare_bundle(output, apk_directory, version, code, channel, notes, revisio
     docs.mkdir(parents=True)
     export_documents(docs, revision)
     notes_text = public_text(notes.read_text(encoding='utf-8'))
+    validate_release_notes(notes_text)
     # A public documentation tag never resolves to the private source revision.
     notes_text = re.sub(r'https://github\.com/[^\s)]+/blob/[^/]+/CHANGELOG\.md',
                         f'https://github.com/{PUBLIC_REPOSITORY}/blob/v{version}/CHANGELOG.md', notes_text)
