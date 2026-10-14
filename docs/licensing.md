@@ -67,6 +67,10 @@ non sostituiscono la verifica dei sorgenti corrispondenti.
 
 ## Marchio, immagini e contenuti
 
+Nyanime non promuove né incoraggia la pirateria in alcuna forma. Adotta il modello
+**bring your own content**; la posizione del progetto e le condizioni d'uso dei
+contenuti sono spiegate in [Uso responsabile](responsible-use.md).
+
 Il nome Nyanime distingue questo progetto dai progetti upstream. Apache 2.0
 non concede automaticamente diritti sui nomi e sui marchi, salvo gli usi
 previsti dal suo testo. Questa pagina non afferma che il marchio sia registrato

@@ -222,4 +222,6 @@ mai come copertine della libreria.
 
 I vecchi collegamenti serializzati hanno un piccolo ponte verso la Home neutra. La vecchia selezione booleana non viene convertita con un cast nel nuovo identificatore testuale. Anime4K, package dell'app, firma e identità delle opere locali rimangono invariati.
 
-La fiducia automatica è una preferenza separata, attiva per default in questo fork, comune ad anime e manga. Non modifica i consensi espliciti né i controlli di firma Android o versione API; disattivandola e riavviando si ripristina la conferma manuale.
+La dichiarazione Home non attribuisce fiducia all'estensione. Firma, compatibilità e
+consenso esplicito vengono verificati separatamente; né il nome della fonte né il
+contenuto del manifest autorizzano l'esecuzione automatica di un editore sconosciuto.

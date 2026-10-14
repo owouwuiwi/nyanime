@@ -20,6 +20,11 @@ Lo sfondo del lettore manga resta configurabile indipendentemente.
 [Sito Nyanime](https://owouwuiwi.github.io/) · [Funzionalità complete](docs/features.md) · [Primi passi e FAQ](docs/getting-started.md) ·
 [Documentazione](docs/README.md) · [Novità](CHANGELOG.md) · [Contribuire](CONTRIBUTING.md)
 
+**Nyanime non promuove né incoraggia la pirateria in alcuna forma.** Adotta il
+modello **bring your own content**: usa file e contenuti che hai il diritto di
+consultare, rispettando copyright, licenze e condizioni di accesso.
+[Uso responsabile e contenuti](docs/responsible-use.md).
+
 ## L'esperienza Nyanime
 
 | Funzione | Cosa puoi fare |

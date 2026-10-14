@@ -28,6 +28,9 @@ I documenti tecnici in inglese conservano i nomi delle API e dei componenti.
 
 ## Funzioni e architettura
 
+Per creare un'estensione, usa il [template pubblico con guida rapida e riferimento tecnico in inglese](https://github.com/owouwuiwi/nyanime-extension-template).
+Il progetto segue il modello [bring your own content](responsible-use.md).
+
 | Guida | Contenuto |
 | --- | --- |
 | [AnimeSchedule facoltativo](animeschedule.md) | Collegamento guidato, RAW/SUB/DUB, limiti e widget. |

@@ -6,8 +6,10 @@ and displays its name, installed/new version and publisher fingerprint before th
 user confirms. The original file may have any document MIME type; contents must
 be a signed, compatible RIN. No destination or Android APK installation is needed.
 
-The publisher must match a user-configured catalogue. Unknown publishers are not
-silently trusted: add/review their catalogue first. The Store accepts unified HTTPS
+Local import does not require a catalogue. After signature and compatibility
+verification, the user explicitly approves the selected package and its publisher;
+this does not grant blanket trust to other extensions. A removed catalogue does
+not prevent a compatible manually approved update. The Store accepts unified HTTPS
 catalogue JSON links; the video and manga catalogue managers also accept their
 existing native catalogue formats through the restored address field. Website and
 deep-link import remain available and keep their review/confirmation flow.

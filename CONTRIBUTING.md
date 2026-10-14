@@ -27,6 +27,18 @@ Per una proposta descrivi il bisogno concreto e il comportamento desiderato,
 incluse le interazioni con legacy, manga, incognito, offline, Cast o stanze se pertinenti.
 Non occorre indirizzare gli utenti al supporto AniYomi per funzioni di Nyanime.
 
+## Creare un'estensione
+
+Il [template pubblico delle estensioni](https://github.com/owouwuiwi/nyanime-extension-template)
+offre una **guida rapida in cinque passi** e un **riferimento tecnico completo**,
+entrambi in inglese. Include esempi video, manga, notizie e TV, SDK corrispondente,
+strumenti di firma, test e contenuti dimostrativi originali.
+
+Le estensioni dichiarano categorie e sezioni Home tramite contratti pubblici;
+l'app non deduce categorie dal nome di una fonte. Endpoint, selettori e parser
+rimangono nel progetto dell'estensione. Usa materiali autorizzati e rispetta
+il modello [bring your own content](docs/responsible-use.md).
+
 ## Preparare l'ambiente
 
 Usa Git, **JDK 17**, Android Studio o gli strumenti Android da riga di comando,
