@@ -322,11 +322,7 @@ class RinRepository private constructor(private val context: Context) {
                 Injekt.get<MangaExtensionRepoRepository>().getAll().map {
                     it.baseUrl to it.signingKeyFingerprint.lowercase()
                 }
-            val origin = if (previous != null) {
-                previous.repository.takeIf { previous.signer == signer && (it to signer) in origins }
-            } else {
-                origins.firstOrNull { it.second == signer }?.first
-            } ?: throw RinImportException(RinImportFailure.UNTRUSTED)
+            val origin = RinLocalImportPolicy.origin(signer, previous, origins)
             val record = storage.stage(file, signer, RinArchive.sha256(file.readBytes()), origin)
             if (!RinLocalImportPolicy.accepts(record, previous)) throw RinImportException(RinImportFailure.CHANGED)
             RinLocalImport(record, previous)
@@ -348,7 +344,9 @@ class RinRepository private constructor(private val context: Context) {
         if (!RinLocalImportPolicy.accepts(candidate.record, candidate.previous)) {
             throw RinImportException(RinImportFailure.CHANGED)
         }
-        activate(candidate.record, candidate.previous, requireUnchanged = true)
+        // This path follows the user's explicit file confirmation, not catalogue authority.
+        // Approval applies only to this package; updates remain pinned to its signer and identity.
+        activateVerified(candidate.record, candidate.previous, requireUnchanged = true)
     }
 
     suspend fun activate(
@@ -356,9 +354,21 @@ class RinRepository private constructor(private val context: Context) {
         expected: RinRecord? = null,
         preserveEnabled: Boolean = true,
         requireUnchanged: Boolean = false,
+    ) {
+        check(trusted(RinEntry(record.manifest, "", record.sha256, record.signer, record.repository)))
+        activateVerified(record, expected, preserveEnabled, requireUnchanged)
+    }
+
+    private suspend fun activateVerified(
+        record: RinRecord,
+        expected: RinRecord?,
+        preserveEnabled: Boolean = true,
+        requireUnchanged: Boolean = false,
     ) = withContext(Dispatchers.IO) {
         require(!legacyPresent(record.manifest.packageName)) { "Remove the previous extension first" }
-        check(trusted(RinEntry(record.manifest, "", record.sha256, record.signer, record.repository)))
+        check(!requireUnchanged && expected == null || storage.record(record.manifest.packageName) == expected) {
+            "Extension was removed or changed before activation"
+        }
         RinLoader.instantiate(context, record)
         withContext(Dispatchers.Main.immediate) {
             check(!RinSessions.busy.value && !eu.kanade.tachiyomi.data.addon.RinAddonRuntime.busy.value) {

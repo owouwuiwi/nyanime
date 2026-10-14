@@ -135,7 +135,7 @@ class RinImportScreen(private val uri: String) : Screen() {
                                     Text(stringResource(R.string.rin_previous_version, it.manifest.versionName))
                                 }
                                 Text(
-                                    stringResource(R.string.rin_verified_publisher),
+                                    stringResource(R.string.rin_verified_signature),
                                     style = MaterialTheme.typography.labelLarge,
                                 )
                                 Text(
@@ -169,7 +169,6 @@ class RinImportScreen(private val uri: String) : Screen() {
                     }
                     is RinImportModel.State.Failed -> {
                         val message = when (current.reason) {
-                            RinImportFailure.UNTRUSTED -> R.string.rin_untrusted
                             RinImportFailure.INCOMPATIBLE -> R.string.rin_incompatible
                             RinImportFailure.LEGACY -> R.string.rin_legacy
                             RinImportFailure.CHANGED -> R.string.rin_changed

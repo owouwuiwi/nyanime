@@ -9,6 +9,14 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 14 ottobre 2026 — 0.43.0.2: RIN manuali senza catalogo
+
+### Correzioni
+
+- I file RIN si possono caricare direttamente anche senza cataloghi. La conferma verifica firma e compatibilità e autorizza soltanto l’estensione scelta; aggiornamenti manuali protetti contro cambi di editore, identità e downgrade.
+- Un catalogo rimosso non impedisce più di aggiornare manualmente una propria estensione già installata.
+- Le traduzioni descrivono in modo uniforme la gestione generica delle estensioni.
+
 ## 14 ottobre 2026 — 0.43.0.1: Riallineamento delle versioni installate
 
 ### Distribuzione

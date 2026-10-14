@@ -4,7 +4,6 @@ data class RinLocalImport(val record: RinRecord, val previous: RinRecord?)
 
 enum class RinImportFailure {
     INVALID,
-    UNTRUSTED,
     INCOMPATIBLE,
     LEGACY,
     CHANGED,
@@ -15,6 +14,10 @@ class RinImportException(val reason: RinImportFailure) : Exception("RIN import: 
 
 /** Manual selection never grants publisher changes, downgrades or a new media/source identity. */
 object RinLocalImportPolicy {
+    /** A catalogue is optional. An installed package keeps its origin even after catalogue removal. */
+    fun origin(signer: String, previous: RinRecord?, catalogues: List<Pair<String, String>>): String =
+        previous?.repository ?: catalogues.firstOrNull { it.second == signer }?.first.orEmpty()
+
     fun accepts(record: RinRecord, previous: RinRecord?): Boolean =
         RinRepository.compatible(record.manifest) &&
             record.manifest.validSourceIdentities() &&

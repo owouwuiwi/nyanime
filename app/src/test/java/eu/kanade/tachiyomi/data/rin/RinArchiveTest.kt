@@ -14,6 +14,17 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
 class RinArchiveTest {
+    @Test fun `a manually selected file verifies its own signature without catalogue authority`() {
+        val file = archive()
+        assertEquals(signer, RinArchive.publisher(file))
+        assertEquals(manifest, RinArchive.verify(file, RinArchive.publisher(file)))
+        val corrupted = archive(corruptSignature = true)
+        assertEquals(signer, RinArchive.publisher(corrupted))
+        assertThrows(IllegalArgumentException::class.java) {
+            RinArchive.verify(corrupted, RinArchive.publisher(corrupted))
+        }
+    }
+
     @Test fun `TV executable payload is signed separately from legacy source APIs`() {
         val live = manifest.copy(schema = 2, medium = "tv", extensionLib = 1.0)
         assertEquals(live, RinArchive.verify(archive(live), signer))

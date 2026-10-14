@@ -10,7 +10,9 @@ and optional Android addons remain supported alongside RIN.
 fully qualified entry points, exact 64-bit source IDs and SHA-256 payload hashes.
 `META-INF/rin.cert` contains the publisher's X.509 certificate;
 `META-INF/rin.sig` signs the exact manifest bytes with SHA256withRSA or
-SHA256withECDSA. The publisher fingerprint must match the configured catalogue.
+SHA256withECDSA. Catalogue downloads require the catalogue's approved publisher
+fingerprint. Manual file imports verify the embedded certificate and ask the user
+to authorize that package before any executable code is loaded; no catalogue is required.
 Every executable and asset is included in the signed hash map. Unexpected files,
 duplicate ZIP names, traversal, oversized contents and invalid identities are
 rejected before class loading.
@@ -99,5 +101,10 @@ Backups mark RIN payloads separately while retaining older APK protobuf fields.
 Restoration authenticates the package against the imported catalogue's trust.
 
 RIN code executes with the host's permissions, like existing source extensions;
-signatures authenticate a publisher, not a sandbox. Packages must therefore come
-from a catalogue the user has chosen to trust.
+signatures bind the file to a publisher key, not a sandbox or an endorsement.
+Users explicitly authorize a manually selected package, or choose a trusted
+catalogue for catalogue downloads. Local approval does not trust other packages
+from the same publisher. Manual updates retain package, signer, medium, source
+identities and the existing origin, including when that catalogue has been removed.
+A standalone import has no update origin; adding a catalogue later does not
+silently link it to automatic updates.
