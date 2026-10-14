@@ -67,7 +67,7 @@ def assert_public_text(content):
 def validate_release_notes(content):
     """Reject double-decoded UTF-8 before notes reach GitHub or the in-app parser."""
     assert_public_text(content)
-    if re.search(r'Ã[\u0080-\u00bf]|â[€\u0080-\u00bf]|ðŸ|\ufffd', content):
+    if re.search(r'Ã[\u0080-\u00bf]|â[€\u201a\u0153\u0080-\u00bf]|ðŸ|\ufffd', content):
         raise ValueError('Release notes contain corrupted UTF-8 text')
 
 def git(*args, cwd=None):
