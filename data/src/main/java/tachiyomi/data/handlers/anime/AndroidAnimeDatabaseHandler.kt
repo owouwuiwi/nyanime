@@ -17,8 +17,8 @@ import tachiyomi.mi.data.AnimeDatabase
 class AndroidAnimeDatabaseHandler(
     val db: AnimeDatabase,
     private val driver: SqlDriver,
-    val queryDispatcher: CoroutineDispatcher = Dispatchers.IO,
-    val transactionDispatcher: CoroutineDispatcher = queryDispatcher,
+    val queryDispatcher: CoroutineDispatcher = Dispatchers.IO.limitedParallelism(2),
+    val transactionDispatcher: CoroutineDispatcher = Dispatchers.IO.limitedParallelism(1),
 ) : AnimeDatabaseHandler {
 
     val suspendingTransactionId = ThreadLocal<Int>()

@@ -44,13 +44,19 @@ class MangaRestorer(
 
     suspend fun sortByNew(backupMangas: List<BackupManga>): List<BackupManga> {
         val urlsBySource = handler.awaitList { mangasQueries.getAllMangaSourceAndUrl() }
-            .groupBy({ it.source }, { it.url })
+            .groupBy({ it.source }, { it.url }).mapValues { it.value.toHashSet() }
 
         return backupMangas
             .sortedWith(
                 compareBy<BackupManga> { it.url in urlsBySource[it.source].orEmpty() }
                     .then(compareByDescending { it.lastModifiedAt }),
             )
+    }
+
+    suspend fun restoreBatch(entries: List<BackupManga>, categories: List<BackupCategory>) {
+        handler.await(inTransaction = true) {
+            entries.forEach { restore(it, categories) }
+        }
     }
 
     suspend fun restore(
@@ -278,7 +284,7 @@ class MangaRestorer(
         restoreCategories(manga, categories, backupCategories)
         restoreChapters(manga, chapters)
         restoreTracking(manga, tracks)
-        restoreHistory(history)
+        restoreHistory(manga.id, history)
         restoreExcludedScanlators(manga, excludedScanlators)
         updateManga.awaitUpdateFetchInterval(manga, now, currentFetchWindow)
         return manga
@@ -318,20 +324,16 @@ class MangaRestorer(
         }
     }
 
-    private suspend fun restoreHistory(backupHistory: List<BackupHistory>) {
+    private suspend fun restoreHistory(mangaId: Long, backupHistory: List<BackupHistory>) {
+        val chapters = getChaptersByMangaId.await(mangaId).associateBy { it.url }
+        val existing = handler.awaitList { historyQueries.getHistoryByMangaId(mangaId) }.associateBy { it.chapter_id }
         val toUpdate = backupHistory.mapNotNull { history ->
-            val dbHistory = handler.awaitOneOrNull { historyQueries.getHistoryByChapterUrl(history.url) }
+            val chapter = chapters[history.url] ?: return@mapNotNull null
+            val dbHistory = existing[chapter.id]
             val item = history.getHistoryImpl()
 
             if (dbHistory == null) {
-                val chapter = handler.awaitOneOrNull { chaptersQueries.getChapterByUrl(history.url) }
-                return@mapNotNull if (chapter == null) {
-                    // Chapter doesn't exist; skip
-                    null
-                } else {
-                    // New history entry
-                    item.copy(chapterId = chapter._id)
-                }
+                return@mapNotNull item.copy(chapterId = chapter.id)
             }
 
             // Update history entry

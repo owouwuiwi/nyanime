@@ -11,8 +11,10 @@ import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.util.lang.compareToCaseInsensitiveNaturalOrder
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.ensureActive
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import logcat.LogPriority
@@ -48,6 +50,7 @@ import java.nio.charset.StandardCharsets
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.coroutineContext
 import kotlin.math.abs
 
 actual class LocalMangaSource(
@@ -242,20 +245,22 @@ actual class LocalMangaSource(
 
     // Chapters
     override suspend fun getChapterList(manga: SManga): List<SChapter> = withIOContext {
-        val chaptersData = fileSystem.getFilesInMangaDirectory(manga.url)
+        val files = fileSystem.getFilesInMangaDirectory(manga.url)
+        val chaptersData = files
             .firstOrNull {
                 it.extension == "json" && it.nameWithoutExtension == "chapters"
             }?.let { file ->
                 runCatching {
-                    json.decodeFromStream<List<ChapterDetails>>(file.openInputStream())
+                    file.openInputStream().use { json.decodeFromStream<List<ChapterDetails>>(it) }
                 }.getOrNull()
             }
 
-        val chapters = fileSystem.getFilesInMangaDirectory(manga.url)
+        val chapters = files
             // Only keep supported formats
             .filterNot { it.name.orEmpty().startsWith('.') }
             .filter { it.isDirectory || ArchiveManga.isSupported(it) || it.extension.equals("epub", true) }
             .map { chapterFile ->
+                coroutineContext.ensureActive()
                 SChapter.create().apply {
                     url = "${manga.url}/${chapterFile.name}"
                     name = if (chapterFile.isDirectory) {
@@ -270,18 +275,31 @@ actual class LocalMangaSource(
                         .toFloat()
                     chapter_number = chapterNumber
 
-                    val format = Format.valueOf(chapterFile)
-                    if (format is Format.Epub) {
-                        format.file.epubReader(context).use { epub ->
-                            epub.fillMetadata(manga, this)
+                    try {
+                        val format = Format.valueOf(chapterFile)
+                        if (format is Format.Epub) {
+                            format.file.epubReader(context).use { epub -> epub.fillMetadata(manga, this) }
+                        } else {
+                            readChapterComicInfo(chapterFile)?.let { copyFromComicInfo(it) }
                         }
+                    } catch (error: Exception) {
+                        if (error is CancellationException) throw error
+                        logcat(LogPriority.WARN) { "Could not read local chapter metadata" }
                     }
 
                     // Overwrite data from chapters.json file
                     chaptersData?.also { dataList ->
-                        dataList.firstOrNull { it.chapter_number.equalsTo(chapterNumber) }?.also { data ->
+                        (
+                            dataList.firstOrNull { it.chapter_number.equalsTo(chapter_number) }
+                                ?: dataList.firstOrNull { it.chapter_number.equalsTo(chapterNumber) }
+                            )?.also { data ->
                             data.name?.also { name = it }
-                            data.date_upload?.also { date_upload = parseDate(it) }
+                            data.date_upload?.also { value ->
+                                runCatching { parseDate(value) }.getOrNull()?.let {
+                                    date_upload =
+                                        it
+                                }
+                            }
                             scanlator = data.scanlator
                         }
                     }
@@ -300,6 +318,17 @@ actual class LocalMangaSource(
         }
 
         chapters
+    }
+
+    private fun readChapterComicInfo(file: UniFile): ComicInfo? {
+        fun parse(stream: InputStream): ComicInfo = stream.use {
+            xml.decodeFromReader<ComicInfo>(AndroidXmlReader(it, StandardCharsets.UTF_8.name()))
+        }
+        return if (file.isDirectory) {
+            file.findFile(COMIC_INFO_FILE)?.openInputStream()?.let(::parse)
+        } else {
+            file.archiveReader(context).use { it.getInputStream(COMIC_INFO_FILE)?.let(::parse) }
+        }
     }
 
     private fun parseDate(isoDate: String): Long {

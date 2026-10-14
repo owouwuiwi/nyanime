@@ -7,6 +7,10 @@ import eu.kanade.tachiyomi.source.MangaSource
 import eu.kanade.tachiyomi.source.online.HttpSource
 import eu.kanade.tachiyomi.ui.reader.model.ReaderChapter
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
+import eu.kanade.tachiyomi.util.system.isConnectedToWifi
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.sync.withLock
 import mihon.core.archive.archiveReader
 import mihon.core.archive.epubReader
 import tachiyomi.core.common.i18n.stringResource
@@ -18,6 +22,7 @@ import tachiyomi.i18n.MR
 import tachiyomi.source.local.entries.manga.LocalMangaSource
 import tachiyomi.source.local.io.Format
 import uy.kohesive.injekt.injectLazy
+import kotlin.coroutines.coroutineContext
 
 /**
  * Loader used to retrieve the [PageLoader] for a given chapter.
@@ -31,14 +36,27 @@ class ChapterLoader(
 ) {
 
     private val readerPreferences: ReaderPreferences by injectLazy()
+    private val pageBudget = ReaderLoadBudget()
+
+    private fun canLoadAhead() = !readerPreferences.preloadOnlyOnWifi().get() || context.isConnectedToWifi()
+
+    fun canPreload(chapter: ReaderChapter): Boolean {
+        if (source !is HttpSource || canLoadAhead() || chapter.pageLoader?.isLocal == true) return true
+        return downloadManager.isChapterDownloaded(
+            chapter.chapter.name,
+            chapter.chapter.scanlator,
+            manga.title,
+            manga.source,
+        )
+    }
 
     /**
      * Assigns the chapter's page loader and loads the its pages. Returns immediately if the chapter
      * is already loaded.
      */
-    suspend fun loadChapter(chapter: ReaderChapter) {
+    suspend fun loadChapter(chapter: ReaderChapter) = chapter.loadMutex.withLock {
         if (chapterIsReady(chapter)) {
-            return
+            return@withLock
         }
 
         chapter.state = ReaderChapter.State.Loading
@@ -60,9 +78,13 @@ class ChapterLoader(
                     chapter.requestedPage = chapter.chapter.last_page_read
                 }
 
+                coroutineContext.ensureActive()
                 chapter.state = ReaderChapter.State.Loaded(pages)
             } catch (e: Throwable) {
-                chapter.state = ReaderChapter.State.Error(e)
+                chapter.pageLoader?.recycle()
+                chapter.pageLoader = null
+                chapter.state =
+                    if (e is CancellationException) ReaderChapter.State.Wait else ReaderChapter.State.Error(e)
                 throw e
             }
         }
@@ -102,7 +124,7 @@ class ChapterLoader(
                     is Format.Epub -> EpubPageLoader(format.file.epubReader(context))
                 }
             }
-            source is HttpSource -> HttpPageLoader(chapter, source)
+            source is HttpSource -> HttpPageLoader(chapter, source, budget = pageBudget, canLoadAhead = ::canLoadAhead)
             source is StubMangaSource -> error(
                 context.stringResource(MR.strings.source_not_installed, source.toString()),
             )

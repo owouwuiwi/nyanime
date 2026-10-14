@@ -261,7 +261,9 @@ class SyncEpisodesWithSource(
                 val episodeUpdates = updatedEpisodes.map { it.toEpisodeUpdate() }
                 episodeRepository.updateAllEpisodes(episodeUpdates)
             }
-            check(updateAnime.awaitUpdateFetchInterval(anime, now, fetchWindow))
+            check(
+                updateAnime.awaitUpdateFetchInterval(anime, now, fetchWindow, foundRelease = updatedToAdd.isNotEmpty()),
+            )
 
             // Set this anime as updated since episodes were changed
             // Note that last_update actually represents last time the episode list changed at all

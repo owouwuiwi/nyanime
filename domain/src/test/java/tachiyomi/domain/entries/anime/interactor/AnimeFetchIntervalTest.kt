@@ -126,11 +126,11 @@ class AnimeFetchIntervalTest {
     }
 
     @Test
-    fun `returns interval of 1 day when episodes are released just below every 2 days`() {
+    fun `returns median interval of 2 days when episodes are released just below every 2 days`() {
         val episodes = (1..20).map {
             episodeWithTime(episode, (43 * it).hours)
         }
-        fetchInterval.calculateInterval(episodes, testZoneId) shouldBe 1
+        fetchInterval.calculateInterval(episodes, testZoneId) shouldBe 2
     }
 
     private fun episodeWithTime(episode: Episode, duration: Duration): Episode {
@@ -139,5 +139,5 @@ class AnimeFetchIntervalTest {
     }
 
     private fun List<Episode>.lastUploadDate() =
-        last().dateUpload.toDuration(DurationUnit.MILLISECONDS)
+        (last().dateUpload - testTime.toInstant().toEpochMilli()).toDuration(DurationUnit.MILLISECONDS)
 }

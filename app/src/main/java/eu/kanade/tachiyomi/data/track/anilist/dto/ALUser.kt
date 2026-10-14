@@ -18,6 +18,7 @@ data class ALUserViewer(
 data class ALUserViewerData(
     val id: Int,
     val mediaListOptions: ALUserListOptions,
+    val name: String = "",
 )
 
 @Serializable

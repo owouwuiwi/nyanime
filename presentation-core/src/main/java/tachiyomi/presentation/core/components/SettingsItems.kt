@@ -309,7 +309,7 @@ fun SelectItem(
 
     ExposedDropdownMenuBox(
         expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
+        onExpandedChange = { expanded = options.isNotEmpty() && !expanded },
     ) {
         OutlinedTextField(
             modifier = Modifier
@@ -320,7 +320,7 @@ fun SelectItem(
                     vertical = SettingsItemsPaddings.Vertical,
                 ),
             label = { Text(text = label) },
-            value = options[selectedIndex].toString(),
+            value = options.getOrNull(selectedIndex)?.toString().orEmpty(),
             onValueChange = {},
             readOnly = true,
             singleLine = true,
@@ -418,7 +418,7 @@ fun <T> SelectItem(
     ExposedDropdownMenuBox(
         modifier = modifier,
         expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
+        onExpandedChange = { expanded = options.isNotEmpty() && !expanded },
     ) {
         OutlinedTextField(
             modifier = Modifier
@@ -429,7 +429,7 @@ fun <T> SelectItem(
                     vertical = SettingsItemsPaddings.Vertical,
                 ),
             label = { Text(text = label) },
-            value = toString(options[selectedIndex]),
+            value = if (selectedIndex in options.indices) toString(options[selectedIndex]) else "",
             onValueChange = {},
             readOnly = true,
             singleLine = true,

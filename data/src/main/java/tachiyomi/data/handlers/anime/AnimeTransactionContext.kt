@@ -41,10 +41,11 @@ internal suspend fun <T> AndroidAnimeDatabaseHandler.withAnimeTransaction(block:
         coroutineContext[AnimeTransactionElement]?.transactionDispatcher ?: createTransactionContext()
     return withContext(transactionContext) {
         val transactionElement = coroutineContext[AnimeTransactionElement]!!
+        val transactionScope = coroutineContext
         transactionElement.acquire()
         try {
             db.transactionWithResult {
-                runBlocking(transactionContext) {
+                runBlocking(transactionScope) {
                     block()
                 }
             }
@@ -74,15 +75,11 @@ internal suspend fun <T> AndroidAnimeDatabaseHandler.withAnimeTransaction(block:
  */
 
 private suspend fun AndroidAnimeDatabaseHandler.createTransactionContext(): CoroutineContext {
-    val controlJob = Job()
+    val controlJob = Job(coroutineContext[Job])
     // make sure to tie the control job to this context to avoid blocking the transaction if
     // context get cancelled before we can even start using this job. Otherwise, the acquired
     // transaction thread will forever wait for the controlJob to be cancelled.
     // see b/148181325
-    coroutineContext[Job]?.invokeOnCompletion {
-        controlJob.cancel()
-    }
-
     val dispatcher = transactionDispatcher.acquireTransactionThread(controlJob)
     val transactionElement = AnimeTransactionElement(controlJob, dispatcher)
     val threadLocalElement =

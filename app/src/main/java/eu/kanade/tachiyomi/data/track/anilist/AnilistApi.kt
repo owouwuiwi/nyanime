@@ -510,12 +510,17 @@ class AnilistApi(val client: OkHttpClient, interceptor: AnilistInterceptor) {
         return ALOAuth(token, "Bearer", System.currentTimeMillis() + 31536000000, 31536000000)
     }
 
-    suspend fun getCurrentUser(): Pair<Int, String> {
+    suspend fun getCurrentUser(): Pair<Int, String> = getCurrentUserProfile().let {
+        it.id to it.mediaListOptions.scoreFormat
+    }
+
+    suspend fun getCurrentUserProfile(): eu.kanade.tachiyomi.data.track.anilist.dto.ALUserViewerData {
         return withIOContext {
             val query = """
             |query User {
                 |Viewer {
                     |id
+                    |name
                     |mediaListOptions {
                         |scoreFormat
                     |}
@@ -535,10 +540,7 @@ class AnilistApi(val client: OkHttpClient, interceptor: AnilistInterceptor) {
                 )
                     .awaitSuccess()
                     .parseAs<ALCurrentUserResult>()
-                    .let {
-                        val viewer = it.data.viewer
-                        Pair(viewer.id, viewer.mediaListOptions.scoreFormat)
-                    }
+                    .let { it.data.viewer }
             }
         }
     }

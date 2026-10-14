@@ -24,9 +24,28 @@ abstract class BaseTracker(
 
     override val supportsPrivateTracking: Boolean = false
 
+    private val accountRefresh = TrackerAccountRefresh { getUsername().takeIf { isLoggedIn } }
+    val isRefreshingAccount = accountRefresh.state
+    open val supportsAccountRefresh: Boolean = false
+
+    suspend fun refreshAccountSettings(): Boolean {
+        if (!supportsAccountRefresh) return false
+        return accountRefresh.execute(::loadAccountSettings, ::applyAccountSettings)
+    }
+
+    protected open suspend fun loadAccountSettings(account: String): TrackerAccountSettings =
+        error("Account metadata refresh is unavailable")
+
+    protected open fun applyAccountSettings(settings: TrackerAccountSettings) {
+        trackPreferences.trackDisplayName(this).set(settings.displayName)
+    }
+
     @CallSuper
     override fun logout() {
-        trackPreferences.setCredentials(this, "", "")
+        accountRefresh.invalidate {
+            trackPreferences.setCredentials(this, "", "")
+            trackPreferences.trackDisplayName(this).delete()
+        }
     }
 
     override val isLoggedIn: Boolean
@@ -47,6 +66,7 @@ abstract class BaseTracker(
     override fun getPassword() = trackPreferences.trackPassword(this).get()
 
     override fun saveCredentials(username: String, password: String) {
+        if (getUsername() != username) trackPreferences.trackDisplayName(this).delete()
         trackPreferences.setCredentials(this, username, password)
         if (username.isNotBlank() && password.isNotBlank()) {
             RetroactiveTracking.onTrackerLogin()

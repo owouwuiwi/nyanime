@@ -32,6 +32,47 @@ LEFT JOIN mangas_categories AS MC
 ON MC.manga_id = M._id
 WHERE M.favorite = 1;
 
+-- Only aggregate library entries; keep the existing view for database compatibility.
 library:
-SELECT *
-FROM libraryView;
+SELECT
+    M.*,
+    coalesce(C.total, 0) AS totalCount,
+    coalesce(C.readCount, 0) AS readCount,
+    coalesce(C.latestUpload, 0) AS latestUpload,
+    coalesce(C.fetchedAt, 0) AS chapterFetchedAt,
+    coalesce(H.lastRead, 0) AS lastRead,
+    coalesce(C.bookmarkCount, 0) AS bookmarkCount,
+    coalesce(MC.category_id, 0) AS category
+FROM mangas M
+LEFT JOIN(
+    SELECT
+        chapters.manga_id,
+        count(*) AS total,
+        sum(read) AS readCount,
+        coalesce(max(chapters.date_upload), 0) AS latestUpload,
+        coalesce(max(chapters.date_fetch), 0) AS fetchedAt,
+        sum(chapters.bookmark) AS bookmarkCount
+    FROM chapters
+    LEFT JOIN excluded_scanlators
+    ON chapters.manga_id = excluded_scanlators.manga_id
+    AND chapters.scanlator = excluded_scanlators.scanlator
+    WHERE excluded_scanlators.scanlator IS NULL
+    AND chapters.manga_id IN (SELECT _id FROM mangas WHERE favorite = 1)
+    GROUP BY chapters.manga_id
+) AS C
+ON M._id = C.manga_id
+LEFT JOIN (
+    SELECT chapters.manga_id, max(history.last_read) AS lastRead
+    FROM history
+    JOIN chapters ON chapters._id = history.chapter_id
+    WHERE chapters.manga_id IN (SELECT _id FROM mangas WHERE favorite = 1)
+    AND NOT EXISTS (
+        SELECT 1 FROM excluded_scanlators
+        WHERE excluded_scanlators.manga_id = chapters.manga_id
+        AND excluded_scanlators.scanlator = chapters.scanlator
+    )
+    GROUP BY chapters.manga_id
+) AS H ON H.manga_id = M._id
+LEFT JOIN mangas_categories AS MC
+ON MC.manga_id = M._id
+WHERE M.favorite = 1;

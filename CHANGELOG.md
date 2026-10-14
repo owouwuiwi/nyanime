@@ -9,14 +9,39 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
-## In sviluppo
+## 14 ottobre 2026 — 0.44.0.0: Lettura e archivi più affidabili
+
+### Correzioni
+
+- Le richieste simultanee allo stesso dominio condividono la verifica nel browser, compresi i fallimenti. La chiusura del processo WebView non deve più trascinare con sé l’app.
+- Corrette le date iniziali ricavate dalla cronologia dei tracker: il cambio di fuso non sposta più il giorno registrato. Coordinati i rinnovi dell’accesso e la disconnessione dell’account.
+- I filtri con selezioni vuote o non valide si possono aprire e correggere senza arrestare la schermata.
+- Corrette la gestione delle pagine divise tra capitoli, le aree da ridisegnare nello scorrimento continuo e i tocchi ritardati dopo la chiusura del lettore.
+- L’indice dei download viene salvato in modo atomico e ricostruito in caso di cache danneggiata; una cartella temporaneamente inaccessibile non cancella l’ultimo indice valido.
+- L’annullamento delle transazioni libera correttamente il database e annulla le scritture incomplete, evitando che un lavoro interrotto blocchi le operazioni successive.
+- Il ripristino della cronologia distingue il titolo proprietario: percorsi uguali in opere o fonti diverse non causano più errori né associazioni al capitolo o episodio sbagliato.
+
+### Prestazioni
+
+- Caricamento delle pagine in parallelo con un budget condiviso tra capitolo corrente e successivo, precedenza alle pagine visibili e cancellazione dei trasferimenti superati.
+- Gli accodamenti multipli leggono una sola volta la cartella del titolo. I ripristini grandi procedono in blocchi: gli elementi non validi sono isolati e segnalati, conservando progressi e dati aggiuntivi.
+- Ridotti i ricalcoli dei filtri di tracking e le scansioni della cronologia per la libreria, mantenendo categorie e conteggi delle stagioni.
+- Limitate le letture simultanee e serializzate le transazioni separatamente nei due database; i dispositivi con poca memoria usano un budget di lettura più piccolo.
+- I controlli programmati riconoscono periodicità settimanali, mensili e uscite a gruppi, gestendo ritardi e pause senza lasciare i titoli esclusi per sempre. Le previsioni non sostituiscono le date verificate di agenda e notifiche.
+
+### Interfaccia
+
+- Aggiunte due scelte facoltative nel lettore: precaricamento solo su Wi-Fi e navigatore delle pagine verticale. Il trascinamento del controllo pagine mostra l’anteprima del numero e applica un solo salto al rilascio.
+- Nelle impostazioni di tracking si possono aggiornare esplicitamente i dati dell’account AniList e scegliere una scala di voto locale, mantenendo la scala dell’account come impostazione iniziale. La ricerca manuale accetta anche `id:123`.
 
 ### Compatibilità
 
+- I capitoli locali leggono numero, titolo, traduttore e date complete da ComicInfo, conservando i metadati precedenti se la data non è valida. Mantenuta la compatibilità delle API, delle preferenze e dei backup.
 - Pubblicato un template separato per creare estensioni generiche, con esempi compilabili e un'unica guida completa in inglese: API con esempi, categorie Home, filtri, compilazione, firma, installazione, verifica e risoluzione dei problemi.
 
 ### Distribuzione
 
+- Nella schermata Info, aggiunta una scheda sul modello bring your own content e sul rispetto del copyright, con dichiarazione contro la pirateria e collegamento alla posizione del progetto. Testi in italiano e inglese, traducibili tramite le risorse dell'app.
 - Esplicitato il modello bring your own content e il rispetto del copyright, con una dichiarazione contro la pirateria e materiali demo originali. Aggiornate le istruzioni sui consensi per i RIN locali.
 
 ## 14 ottobre 2026 — 0.43.0.3: Rimozione del social dormiente

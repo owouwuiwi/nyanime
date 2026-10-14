@@ -187,6 +187,16 @@ object SettingsReaderScreen : SearchableSettings {
                     title = stringResource(MR.strings.pref_skip_read_chapters),
                 ),
                 Preference.PreferenceItem.SwitchPreference(
+                    preference = readerPreferences.preloadOnlyOnWifi(),
+                    title = stringResource(MR.strings.pref_reader_preload_wifi),
+                    subtitle = stringResource(MR.strings.pref_reader_preload_wifi_summary),
+                ),
+                Preference.PreferenceItem.SwitchPreference(
+                    preference = readerPreferences.verticalNavigator(),
+                    title = stringResource(MR.strings.pref_reader_vertical_navigator),
+                    subtitle = stringResource(MR.strings.pref_reader_vertical_navigator_summary),
+                ),
+                Preference.PreferenceItem.SwitchPreference(
                     preference = readerPreferences.skipFiltered(),
                     title = stringResource(MR.strings.pref_skip_filtered_chapters),
                 ),

@@ -348,13 +348,18 @@ class AnimeDownloader(
 
         val source = sourceManager.get(anime.source) as? AnimeHttpSource ?: return
 
+        // Inspect the title directory once for the entire batch, keeping all existing filename variants.
+        val files = provider.findAnimeDir(anime.title, source)?.listFiles()
+            .orEmpty().mapNotNull { it.name }.toHashSet()
+        val queuedIds = queueState.value.map { it.episode.id }.toHashSet()
         val episodesToQueue = episodes.asSequence()
             // Filter out those already downloaded.
-            .filter { provider.findEpisodeDir(it.name, it.scanlator, anime.title, source) == null }
+            .filter { provider.getValidEpisodeDirNames(it.name, it.scanlator).none(files::contains) }
             // Add episodes to queue from the start.
             .sortedByDescending { it.sourceOrder }
             // Filter out those already enqueued.
-            .filter { episode -> queueState.value.none { it.episode.id == episode.id } }
+            .filter { it.id !in queuedIds }
+            .distinctBy { it.id }
             // Create a download for each one.
             .map { AnimeDownload(source, anime, it, changeDownloader, video) }
             .toList()

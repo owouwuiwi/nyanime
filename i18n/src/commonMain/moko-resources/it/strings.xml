@@ -318,6 +318,12 @@
     <string name="pref_cutout_short">Mostra il contenuto dell\'area ritagliata</string>
     <string name="information_cloudflare_bypass_failure">Impossibile bypassare Cloudflare</string>
     <string name="information_webview_outdated">Per favore aggiorna l\'app WebView per una migliore compatibilità</string>
+    <string name="information_webview_crashed">Il browser si è chiuso. Riapri la pagina per riprovare.</string>
+    <string name="pref_reader_preload_wifi">Precarica solo su Wi-Fi</string>
+    <string name="pref_reader_preload_wifi_summary">Carica le pagine aggiuntive e il prossimo capitolo online solo su Wi-Fi. Le pagine scaricate restano disponibili.</string>
+    <string name="pref_reader_vertical_navigator">Navigatore pagine verticale</string>
+    <string name="reader_page_navigator">Navigatore delle pagine</string>
+    <string name="pref_reader_vertical_navigator_summary">Sposta il controllo delle pagine sul lato destro quando il menu del lettore è aperto.</string>
     <string name="channel_new_chapters">Aggiornamenti capitoli</string>
     <string name="secure_screen_summary">Schermo sicuro nasconde i contenuti dell\'app quando cambi applicazione e blocca gli screenshot</string>
     <string name="pref_category_display">Visualizzazione</string>
@@ -559,6 +565,10 @@
     <string name="database_clean">Niente da Pulire</string>
     <string name="extension_api_error">Impossibile ottenere l\'elenco estensioni</string>
     <string name="privacy_policy">Politica sulla privacy</string>
+    <string name="responsible_use_title">I tuoi contenuti, la tua scelta</string>
+    <string name="responsible_use_statement">Nyanime non promuove né incoraggia la pirateria in alcuna forma.</string>
+    <string name="responsible_use_summary">Seguiamo il modello «bring your own content»: aggiungi i tuoi file e le estensioni compatibili che scegli. Usa solo contenuti che hai il diritto di consultare, rispettando autori, licenze e diritto d’autore.</string>
+    <string name="responsible_use_learn_more">Il nostro impegno</string>
     <string name="pref_update_only_completely_read">Con capitoli non letti</string>
     <string name="library_errors_help">Per un aiuto su come risolvere gli errori di aggiornamento della libreria vedi %1$s</string>
     <string name="save_chapter_as_cbz">Salva come archivio CBZ</string>
@@ -874,4 +884,12 @@
     <string name="continuity_movie">Film</string>
     <string name="continuity_web">Serie web</string>
     <string name="continuity_special">Speciale</string>
+    <string name="tracker_refresh_account">Aggiorna informazioni account</string>
+    <string name="tracker_account_updated">Informazioni account aggiornate</string>
+    <string name="tracker_account_failed">Impossibile aggiornare le informazioni account. Le impostazioni salvate restano invariate.</string>
+    <string name="tracker_score_format">Scala di valutazione AniList</string>
+    <string name="tracker_score_account">Usa preferenza dell’account</string>
+    <string name="tracker_score_stars">5 stelle</string>
+    <string name="tracker_score_faces">3 reazioni</string>
+    <string name="tracker_search_id_hint">Nelle ricerche AniList e MyAnimeList, usa id:123 per trovare una voce esatta del catalogo. Cambiare la scala non modifica i voti salvati.</string>
 </resources>

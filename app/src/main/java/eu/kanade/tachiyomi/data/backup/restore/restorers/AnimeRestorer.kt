@@ -49,13 +49,23 @@ class AnimeRestorer(
 
     suspend fun sortByNew(backupAnimes: List<BackupAnime>): List<BackupAnime> {
         val urlsBySource = handler.awaitList { animesQueries.getAllAnimeSourceAndUrl() }
-            .groupBy({ it.source }, { it.url })
+            .groupBy({ it.source }, { it.url }).mapValues { it.value.toHashSet() }
 
         return backupAnimes
             .sortedWith(
                 compareBy<BackupAnime> { it.url in urlsBySource[it.source].orEmpty() }
                     .then(compareByDescending { it.lastModifiedAt }),
             )
+    }
+
+    suspend fun restoreBatch(
+        entries: List<BackupAnime>,
+        categories: List<BackupCategory>,
+        seasonsByParent: Map<Long?, List<BackupAnime>>,
+    ) {
+        handler.await(inTransaction = true) {
+            entries.forEach { restore(it, categories, seasonsByParent[it.id].orEmpty()) }
+        }
     }
 
     suspend fun restore(
@@ -348,7 +358,7 @@ class AnimeRestorer(
         restoreCategories(anime, categories, backupCategories)
         restoreEpisodes(anime, episodes)
         restoreTracking(anime, tracks)
-        restoreHistory(history)
+        restoreHistory(anime.id, history)
         updateAnime.awaitUpdateFetchInterval(anime, now, currentFetchWindow)
         return anime
     }
@@ -387,20 +397,18 @@ class AnimeRestorer(
         }
     }
 
-    private suspend fun restoreHistory(backupHistory: List<BackupAnimeHistory>) {
+    private suspend fun restoreHistory(animeId: Long, backupHistory: List<BackupAnimeHistory>) {
+        val episodes = getEpisodesByAnimeId.await(animeId).associateBy { it.url }
+        val existing = handler.awaitList {
+            animehistoryQueries.getHistoryByAnimeId(animeId)
+        }.associateBy { it.episode_id }
         val toUpdate = backupHistory.mapNotNull { history ->
-            val dbHistory = handler.awaitOneOrNull { animehistoryQueries.getHistoryByEpisodeUrl(history.url) }
+            val episode = episodes[history.url] ?: return@mapNotNull null
+            val dbHistory = existing[episode.id]
             val item = history.getHistoryImpl()
 
             if (dbHistory == null) {
-                val episode = handler.awaitOneOrNull { episodesQueries.getEpisodeByUrl(history.url) }
-                return@mapNotNull if (episode == null) {
-                    // Episode doesn't exist; skip
-                    null
-                } else {
-                    // New history entry
-                    item.copy(episodeId = episode._id)
-                }
+                return@mapNotNull item.copy(episodeId = episode.id)
             }
 
             // Update history entry

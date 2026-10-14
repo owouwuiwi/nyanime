@@ -649,6 +649,11 @@
     <string name="library_licenses">Library licenses</string>
     <string name="feature_not_yet_available">This feature is not available yet</string>
     <string name="privacy_policy">Privacy policy</string>
+    <!-- Responsible use in About. Translations belong in the matching locale resources; English is the fallback. -->
+    <string name="responsible_use_title">Your content, your choice</string>
+    <string name="responsible_use_statement">Nyanime does not promote piracy in any way or form.</string>
+    <string name="responsible_use_summary">Bring your own content: add your own files and compatible extensions. Use only content you are entitled to access, and respect creators, licences and copyright.</string>
+    <string name="responsible_use_learn_more">Read our position</string>
     <string name="check_for_updates">Check for updates</string>
     <string name="updated_version">Updated to v%1$s</string>
 
@@ -967,6 +972,12 @@
     <string name="information_webview_required">WebView is required for the app to function</string>
     <!-- Do not translate "WebView" -->
     <string name="information_webview_outdated">Please update the WebView app for better compatibility</string>
+    <string name="information_webview_crashed">The browser stopped. Please open the page again.</string>
+    <string name="pref_reader_preload_wifi">Preload only on Wi-Fi</string>
+    <string name="pref_reader_preload_wifi_summary">Load extra pages and the next online chapter only on Wi-Fi. Downloaded pages remain available.</string>
+    <string name="pref_reader_vertical_navigator">Vertical page navigator</string>
+    <string name="reader_page_navigator">Page navigator</string>
+    <string name="pref_reader_vertical_navigator_summary">Move the page control to the right side while the reader menu is open.</string>
     <string name="chapter_settings_updated">Updated default chapter settings</string>
 
     <!-- Download Notification -->
@@ -1029,4 +1040,12 @@
     <string name="continuity_movie">Movie</string>
     <string name="continuity_web">Web series</string>
     <string name="continuity_special">Special</string>
+    <string name="tracker_refresh_account">Refresh account details</string>
+    <string name="tracker_account_updated">Account details updated</string>
+    <string name="tracker_account_failed">Account details could not be updated. Your saved settings are unchanged.</string>
+    <string name="tracker_score_format">AniList rating scale</string>
+    <string name="tracker_score_account">Use account preference</string>
+    <string name="tracker_score_stars">5 stars</string>
+    <string name="tracker_score_faces">3 reactions</string>
+    <string name="tracker_search_id_hint">In AniList and MyAnimeList searches, use id:123 to find an exact catalog entry. Changing the rating scale does not change saved ratings.</string>
 </resources>

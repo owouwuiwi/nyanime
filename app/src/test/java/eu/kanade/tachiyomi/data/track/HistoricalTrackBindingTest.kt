@@ -13,6 +13,10 @@ import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
+import tachiyomi.domain.history.anime.model.AnimeHistory
+import tachiyomi.domain.history.manga.model.MangaHistory
 import tachiyomi.domain.items.chapter.interactor.GetChaptersByMangaId
 import tachiyomi.domain.items.chapter.model.Chapter
 import tachiyomi.domain.items.episode.interactor.GetEpisodesByAnimeId
@@ -21,10 +25,88 @@ import tachiyomi.domain.track.anime.interactor.InsertAnimeTrack
 import tachiyomi.domain.track.anime.repository.AnimeTrackRepository
 import tachiyomi.domain.track.manga.interactor.InsertMangaTrack
 import tachiyomi.domain.track.manga.repository.MangaTrackRepository
+import java.util.Date
+import java.util.TimeZone
 import tachiyomi.domain.track.anime.model.AnimeTrack as DomainAnimeTrack
 import tachiyomi.domain.track.manga.model.MangaTrack as DomainMangaTrack
 
 class HistoricalTrackBindingTest {
+    @ParameterizedTest
+    @ValueSource(strings = ["UTC", "America/Los_Angeles", "Pacific/Kiritimati"])
+    fun `historical anime start date keeps its instant in every timezone`(zone: String) = runTest {
+        val previousZone = TimeZone.getDefault()
+        TimeZone.setDefault(TimeZone.getTimeZone(zone))
+        try {
+            val started = 1_700_005_000_000L
+            val episodes = mockk<GetEpisodesByAnimeId>()
+            coEvery { episodes.await(5) } returns listOf(
+                Episode.create().copy(animeId = 5, seen = true, episodeNumber = 1.0),
+            )
+            val stored = mutableListOf<DomainAnimeTrack>()
+            val repository = mockk<AnimeTrackRepository>()
+            coEvery { repository.insertAnime(any()) } answers { stored += firstArg<DomainAnimeTrack>() }
+            val sync = mockk<SyncEpisodeProgressWithTrack>()
+            coJustRun { sync.await(any(), any(), any()) }
+            val tracker = mockk<AnimeTracker>()
+            val item = AnimeTrack.create(7).apply {
+                anime_id = 5
+                remote_id = 23
+                title = "Example"
+                last_episode_seen = 1.0
+            }
+            coEvery { tracker.bind(item, true) } returns item
+            coJustRun { tracker.setRemoteStartDate(any(), any()) }
+            val dates = listOf(null, Date(0), Date(-1), Date(started + 10_000), Date(started))
+            val history = dates.map { AnimeHistory.create().copy(seenAt = it) }
+
+            AddAnimeTracks(InsertAnimeTrack(repository), sync, episodes, mockk(), { history })
+                .bind(tracker, item, 5)
+
+            assertEquals(started, stored.last().startDate)
+            coVerify(exactly = 1) { tracker.setRemoteStartDate(any(), started) }
+        } finally {
+            TimeZone.setDefault(previousZone)
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["UTC", "America/Los_Angeles", "Pacific/Kiritimati"])
+    fun `historical manga start date keeps its instant in every timezone`(zone: String) = runTest {
+        val previousZone = TimeZone.getDefault()
+        TimeZone.setDefault(TimeZone.getTimeZone(zone))
+        try {
+            val started = 1_700_005_000_000L
+            val chapters = mockk<GetChaptersByMangaId>()
+            coEvery { chapters.await(5, any()) } returns listOf(
+                Chapter.create().copy(mangaId = 5, read = true, chapterNumber = 1.0),
+            )
+            val stored = mutableListOf<DomainMangaTrack>()
+            val repository = mockk<MangaTrackRepository>()
+            coEvery { repository.insertManga(any()) } answers { stored += firstArg<DomainMangaTrack>() }
+            val sync = mockk<SyncChapterProgressWithTrack>()
+            coJustRun { sync.await(any(), any(), any()) }
+            val tracker = mockk<MangaTracker>()
+            val item = MangaTrack.create(7).apply {
+                manga_id = 5
+                remote_id = 23
+                title = "Example"
+                last_chapter_read = 1.0
+            }
+            coEvery { tracker.bind(item, true) } returns item
+            coJustRun { tracker.setRemoteStartDate(any(), any()) }
+            val dates = listOf(null, Date(0), Date(-1), Date(started + 10_000), Date(started))
+            val history = dates.map { MangaHistory.create().copy(readAt = it) }
+
+            AddMangaTracks(InsertMangaTrack(repository), sync, chapters, mockk(), { history })
+                .bind(tracker, item, 5)
+
+            assertEquals(started, stored.last().startDate)
+            coVerify(exactly = 1) { tracker.setRemoteStartDate(any(), started) }
+        } finally {
+            TimeZone.setDefault(previousZone)
+        }
+    }
+
     @Test
     fun `binding an unstarted library anime does not send progress to the tracker`() = runTest {
         val episodes = mockk<GetEpisodesByAnimeId>()

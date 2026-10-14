@@ -344,13 +344,18 @@ class MangaDownloader(
         if (chapters.isEmpty()) return
 
         val source = sourceManager.get(manga.source) as? HttpSource ?: return
+        // Inspect the title directory once for the entire batch, keeping all existing filename variants.
+        val files = provider.findMangaDir(manga.title, source)?.listFiles()
+            .orEmpty().mapNotNull { it.name }.toHashSet()
+        val queuedIds = queueState.value.map { it.chapter.id }.toHashSet()
         val chaptersToQueue = chapters.asSequence()
             // Filter out those already downloaded.
-            .filter { provider.findChapterDir(it.name, it.scanlator, manga.title, source) == null }
+            .filter { provider.getValidChapterDirNames(it.name, it.scanlator).none(files::contains) }
             // Add chapters to queue from the start.
             .sortedByDescending { it.sourceOrder }
             // Filter out those already enqueued.
-            .filter { chapter -> queueState.value.none { it.chapter.id == chapter.id } }
+            .filter { it.id !in queuedIds }
+            .distinctBy { it.id }
             // Create a download for each one.
             .map { MangaDownload(source, manga, it) }
             .toList()

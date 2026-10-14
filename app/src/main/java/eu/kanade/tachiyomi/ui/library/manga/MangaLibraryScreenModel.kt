@@ -236,15 +236,15 @@ class MangaLibraryScreenModel(
             }
         }
 
+        val trackerIdsByEntry = trackMap.mapValues { entry -> entry.value.map { it.trackerId }.toSet() }
         val filterFnTracking: (MangaLibraryItem) -> Boolean = tracking@{ item ->
             if (isNotLoggedInAnyTrack || trackFiltersIsIgnored) return@tracking true
 
-            val mangaTracks = trackMap
-                .mapValues { entry -> entry.value.map { it.trackerId } }[item.libraryManga.id]
+            val mangaTracks = trackerIdsByEntry[item.libraryManga.id]
                 .orEmpty()
 
-            val isExcluded = excludedTracks.isNotEmpty() && mangaTracks.fastAny { it in excludedTracks }
-            val isIncluded = includedTracks.isEmpty() || mangaTracks.fastAny { it in includedTracks }
+            val isExcluded = excludedTracks.isNotEmpty() && mangaTracks.any { it in excludedTracks }
+            val isIncluded = includedTracks.isEmpty() || mangaTracks.any { it in includedTracks }
 
             !isExcluded && isIncluded
         }

@@ -1,12 +1,14 @@
 package eu.kanade.tachiyomi.data.track.bangumi
 
 import eu.kanade.tachiyomi.BuildConfig
+import eu.kanade.tachiyomi.data.track.TrackerTokenSession
 import eu.kanade.tachiyomi.data.track.bangumi.dto.BGMOAuth
 import eu.kanade.tachiyomi.data.track.bangumi.dto.isExpired
 import kotlinx.serialization.json.Json
 import okhttp3.Interceptor
 import okhttp3.Response
 import uy.kohesive.injekt.injectLazy
+import java.io.IOException
 
 class BangumiInterceptor(private val bangumi: Bangumi) : Interceptor {
 
@@ -15,20 +17,18 @@ class BangumiInterceptor(private val bangumi: Bangumi) : Interceptor {
     /**
      * OAuth object used for authenticated requests.
      */
-    private var oauth: BGMOAuth? = bangumi.restoreToken()
+    private val session = TrackerTokenSession(bangumi.restoreToken(), bangumi::saveToken)
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val originalRequest = chain.request()
 
-        var currAuth: BGMOAuth = oauth ?: throw Exception("Not authenticated with Bangumi")
-
-        if (currAuth.isExpired()) {
-            val response = chain.proceed(BangumiApi.refreshTokenRequest(currAuth.refreshToken!!))
-            if (response.isSuccessful) {
-                currAuth = json.decodeFromString<BGMOAuth>(response.body.string())
-                newAuth(currAuth)
-            } else {
-                response.close()
+        val currAuth = session.valid(BGMOAuth::isExpired) { current ->
+            val refreshToken = current.refreshToken ?: throw IOException("Account login has expired")
+            chain.proceed(BangumiApi.refreshTokenRequest(refreshToken)).use { response ->
+                if (!response.isSuccessful) throw IOException("Account renewal failed (HTTP ${response.code})")
+                json.decodeFromString<BGMOAuth>(response.body.string()).let {
+                    it.copy(userId = it.userId ?: current.userId)
+                }
             }
         }
 
@@ -38,26 +38,13 @@ class BangumiInterceptor(private val bangumi: Bangumi) : Interceptor {
                 "jmir1/Aniyomi/v${BuildConfig.VERSION_NAME} (Android) (https://github.com/aniyomiorg/aniyomi)",
             )
             .apply {
-                addHeader("Authorization", "Bearer ${currAuth.accessToken}")
+                header("Authorization", "Bearer ${currAuth.accessToken}")
             }
             .build()
             .let(chain::proceed)
     }
 
     fun newAuth(oauth: BGMOAuth?) {
-        this.oauth = if (oauth == null) {
-            null
-        } else {
-            BGMOAuth(
-                oauth.accessToken,
-                oauth.tokenType,
-                System.currentTimeMillis() / 1000,
-                oauth.expiresIn,
-                oauth.refreshToken,
-                this.oauth?.userId,
-            )
-        }
-
-        bangumi.saveToken(oauth)
+        session.set(oauth)
     }
 }

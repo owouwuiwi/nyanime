@@ -31,6 +31,27 @@ to independently supplied media, cover artwork, metadata or trademarks. Read
 This statement explains the project's position; it does not replace those
 obligations or applicable law.
 
+## In the app
+
+Open **More → About** to read the project's position and its bring-your-own-content
+model. The card links to the public policy above; it does not load remote text
+to display the statement.
+
+### Translating the statement
+
+All four visible texts use the existing Moko resource system, through
+`MR.strings.responsible_use_title`, `responsible_use_statement`,
+`responsible_use_summary` and `responsible_use_learn_more`.
+English defaults live in `i18n/src/commonMain/moko-resources/base/strings.xml`;
+Italian overrides live in the sibling `it/strings.xml`.
+
+To add a language, translate these same keys in its locale's `strings.xml`,
+following the existing locale directories. The existing locale-config task detects
+non-empty locale resources and includes them in the app's language selector.
+Missing translations use the English defaults. No source-specific logic, new
+language switch, hardcoded text or Compose changes are required. The card uses
+wrapping text and the current layout direction, without fixed text heights.
+
 ## In italiano
 
 **Nyanime non promuove né incoraggia la pirateria in alcuna forma.**

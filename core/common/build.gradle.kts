@@ -42,6 +42,7 @@ dependencies {
     api(libs.preferencektx)
 
     implementation(libs.jsoup)
+    implementation(libs.androidx.webkit)
 
     // Sort
     implementation(libs.natural.comparator)

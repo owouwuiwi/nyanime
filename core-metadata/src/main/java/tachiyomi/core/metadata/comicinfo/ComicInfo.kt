@@ -1,10 +1,14 @@
 package tachiyomi.core.metadata.comicinfo
 
+import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
 import kotlinx.serialization.Serializable
 import nl.adaptivity.xmlutil.serialization.XmlElement
 import nl.adaptivity.xmlutil.serialization.XmlSerialName
 import nl.adaptivity.xmlutil.serialization.XmlValue
+import java.time.DateTimeException
+import java.time.LocalDate
+import java.time.ZoneId
 
 const val COMIC_INFO_FILE = "ComicInfo.xml"
 
@@ -84,6 +88,23 @@ data class ComicInfo(
     val categories: CategoriesTachiyomi?,
     val source: SourceAniyomi?,
 ) {
+    // Body fields preserve the existing constructor/copy JVM signatures used by older clients.
+    var year: Year? = null
+    var month: Month? = null
+    var day: Day? = null
+
+    @Serializable
+    @XmlSerialName("Year", "", "")
+    data class Year(@XmlValue(true) val value: Int = -1)
+
+    @Serializable
+    @XmlSerialName("Month", "", "")
+    data class Month(@XmlValue(true) val value: Int = -1)
+
+    @Serializable
+    @XmlSerialName("Day", "", "")
+    data class Day(@XmlValue(true) val value: Int = -1)
+
     @XmlElement(false)
     @XmlSerialName("xmlns:xsd", "", "")
     val xmlSchema: String = "http://www.w3.org/2001/XMLSchema"
@@ -185,5 +206,20 @@ enum class ComicInfoPublishingStatus(
             return entries.firstOrNull { it.comicInfoValue == value }?.sMangaModelValue
                 ?: UNKNOWN.sMangaModelValue
         }
+    }
+}
+
+/** Apply only declared, valid chapter metadata; incomplete dates preserve the filesystem fallback. */
+fun SChapter.copyFromComicInfo(info: ComicInfo, zone: ZoneId = ZoneId.systemDefault()) {
+    info.title?.value?.takeIf { it.isNotBlank() }?.let { name = it }
+    info.number?.value?.toFloatOrNull()?.takeIf { it.isFinite() && it >= 0 }?.let { chapter_number = it }
+    info.translator?.value?.takeIf { it.isNotBlank() }?.let { scanlator = it }
+    val year = info.year?.value?.takeIf { it > 0 } ?: return
+    val month = info.month?.value ?: return
+    val day = info.day?.value ?: return
+    try {
+        date_upload = LocalDate.of(year, month, day).atStartOfDay(zone).toInstant().toEpochMilli()
+    } catch (_: DateTimeException) {
+        // A malformed date must not discard the entire local chapter list.
     }
 }

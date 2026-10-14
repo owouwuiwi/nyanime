@@ -72,6 +72,7 @@ Il progetto segue il modello [bring your own content](responsible-use.md).
 - [Dipendenze conservate localmente](../vendor/README.md).
 - [Manutenzione FFmpeg e build nativa](../tools/native/README.md).
 - [Crediti e licenze](credits.md).
+- [Integrazione Mihon](mihon-integration.md): riferimento stabile, adattamenti, compatibilità e verifiche.
 - [Licenza e copyright Nyanime](licensing.md).
 - [Changelog storico AniYomi](history/aniyomi-changelog.md): archivio upstream,
   non elenco delle release Nyanime.

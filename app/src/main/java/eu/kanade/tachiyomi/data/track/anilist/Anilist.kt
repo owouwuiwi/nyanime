@@ -12,9 +12,11 @@ import eu.kanade.tachiyomi.data.track.BaseTracker
 import eu.kanade.tachiyomi.data.track.DeletableAnimeTracker
 import eu.kanade.tachiyomi.data.track.DeletableMangaTracker
 import eu.kanade.tachiyomi.data.track.MangaTracker
+import eu.kanade.tachiyomi.data.track.TrackerAccountSettings
 import eu.kanade.tachiyomi.data.track.anilist.dto.ALOAuth
 import eu.kanade.tachiyomi.data.track.model.AnimeTrackSearch
 import eu.kanade.tachiyomi.data.track.model.MangaTrackSearch
+import eu.kanade.tachiyomi.data.track.trackerSearchId
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
@@ -22,6 +24,7 @@ import kotlinx.serialization.json.Json
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
 import uy.kohesive.injekt.injectLazy
+import java.io.IOException
 import tachiyomi.domain.track.anime.model.AnimeTrack as DomainAnimeTrack
 import tachiyomi.domain.track.manga.model.MangaTrack as DomainMangaTrack
 
@@ -51,6 +54,7 @@ class Anilist(id: Long) :
         const val POINT_10_DECIMAL = "POINT_10_DECIMAL"
         const val POINT_5 = "POINT_5"
         const val POINT_3 = "POINT_3"
+        private val SCORE_FORMATS = setOf(POINT_10, POINT_100, POINT_5, POINT_3, POINT_10_DECIMAL)
     }
 
     private val json: Json by injectLazy()
@@ -73,6 +77,26 @@ class Anilist(id: Long) :
             logout()
             scorePreference.delete()
         }
+    }
+
+    override val supportsAccountRefresh = true
+
+    private fun effectiveScoreFormat(): String = trackPreferences.anilistDisplayScoreType().get()
+        .takeIf { it in SCORE_FORMATS } ?: scorePreference.get()
+
+    override suspend fun loadAccountSettings(account: String): TrackerAccountSettings {
+        val user = api.getCurrentUserProfile()
+        if (user.id.toString() != account) throw IOException("Account identity changed")
+        return TrackerAccountSettings(user.name, user.mediaListOptions.scoreFormat)
+    }
+
+    override fun applyAccountSettings(settings: TrackerAccountSettings) {
+        val format = settings.scoreFormat
+        if (format !in SCORE_FORMATS) {
+            throw IOException("Unsupported account score format")
+        }
+        scorePreference.set(format!!)
+        super.applyAccountSettings(settings)
     }
 
     override fun getLogo() = R.drawable.ic_tracker_anilist
@@ -118,7 +142,7 @@ class Anilist(id: Long) :
     override fun getCompletionStatus(): Long = COMPLETED
 
     override fun getScoreList(): ImmutableList<String> {
-        return when (scorePreference.get()) {
+        return when (effectiveScoreFormat()) {
             // 10 point
             POINT_10 -> IntRange(0, 10).map(Int::toString).toImmutableList()
             // 100 point
@@ -144,7 +168,7 @@ class Anilist(id: Long) :
     }
 
     override fun indexToScore(index: Int): Double {
-        return when (scorePreference.get()) {
+        return when (effectiveScoreFormat()) {
             // 10 point
             POINT_10 -> index * 10.0
             // 100 point
@@ -168,7 +192,7 @@ class Anilist(id: Long) :
     override fun displayScore(track: DomainMangaTrack): String {
         val score = track.score
 
-        return when (scorePreference.get()) {
+        return when (effectiveScoreFormat()) {
             POINT_5 -> when (score) {
                 0.0 -> "0 ★"
                 else -> "${((score + 10) / 20).toInt()} ★"
@@ -179,14 +203,14 @@ class Anilist(id: Long) :
                 score <= 60 -> "😐"
                 else -> "😊"
             }
-            else -> track.toApiScore()
+            else -> displayNumericScore(score, effectiveScoreFormat())
         }
     }
 
     override fun displayScore(track: DomainAnimeTrack): String {
         val score = track.score
 
-        return when (scorePreference.get()) {
+        return when (effectiveScoreFormat()) {
             POINT_5 -> when (score) {
                 0.0 -> "0 ★"
                 else -> "${((score + 10) / 20).toInt()} ★"
@@ -197,7 +221,7 @@ class Anilist(id: Long) :
                 score <= 60 -> "😐"
                 else -> "😊"
             }
-            else -> track.toApiScore()
+            else -> displayNumericScore(score, effectiveScoreFormat())
         }
     }
 
@@ -318,10 +342,12 @@ class Anilist(id: Long) :
     }
 
     override suspend fun searchManga(query: String): List<MangaTrackSearch> {
+        trackerSearchId(query)?.let { return listOfNotNull(findMangaById(it)) }
         return api.search(query)
     }
 
     override suspend fun searchAnime(query: String): List<AnimeTrackSearch> {
+        trackerSearchId(query)?.let { return listOfNotNull(findAnimeById(it)) }
         return api.searchAnime(query)
     }
 

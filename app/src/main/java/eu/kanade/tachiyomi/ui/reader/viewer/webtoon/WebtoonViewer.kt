@@ -142,6 +142,7 @@ class WebtoonViewer(val activity: ReaderActivity, val isContinuous: Boolean = tr
         }
 
         config.imagePropertyChangedListener = {
+            recycler.sidePaddingPercent = config.sidePadding
             refreshAdapter()
         }
 
@@ -163,6 +164,7 @@ class WebtoonViewer(val activity: ReaderActivity, val isContinuous: Boolean = tr
         }
 
         frame.layoutParams = ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+        recycler.sidePaddingPercent = config.sidePadding
         frame.addView(recycler)
     }
 
@@ -284,6 +286,7 @@ class WebtoonViewer(val activity: ReaderActivity, val isContinuous: Boolean = tr
      */
     private fun scrollUp() {
         if (config.usePageTransitions) {
+            recycler.onManualScroll()
             recycler.smoothScrollBy(0, -scrollDistance)
         } else {
             recycler.scrollBy(0, -scrollDistance)
@@ -295,6 +298,7 @@ class WebtoonViewer(val activity: ReaderActivity, val isContinuous: Boolean = tr
      */
     private fun scrollDown() {
         if (config.usePageTransitions) {
+            recycler.onManualScroll()
             recycler.smoothScrollBy(0, scrollDistance)
         } else {
             recycler.scrollBy(0, scrollDistance)
@@ -354,10 +358,9 @@ class WebtoonViewer(val activity: ReaderActivity, val isContinuous: Boolean = tr
     private fun refreshAdapter() {
         val position = layoutManager.findLastEndVisibleItemPosition()
         adapter.refresh()
-        adapter.notifyItemRangeChanged(
-            max(0, position - 3),
-            min(position + 3, adapter.itemCount - 1),
-        )
+        pageRebindRange(position, adapter.itemCount)?.let {
+            adapter.notifyItemRangeChanged(it.first, it.last - it.first + 1)
+        }
     }
 }
 

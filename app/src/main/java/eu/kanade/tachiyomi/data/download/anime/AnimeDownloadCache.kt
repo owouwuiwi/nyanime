@@ -2,15 +2,21 @@ package eu.kanade.tachiyomi.data.download.anime
 
 import android.app.Application
 import android.content.Context
+import android.util.AtomicFile
 import androidx.core.net.toUri
+import androidx.core.util.writeBytes
 import com.hippo.unifile.UniFile
 import eu.kanade.tachiyomi.animesource.AnimeSource
+import eu.kanade.tachiyomi.data.download.MAX_DOWNLOAD_INDEX_BYTES
+import eu.kanade.tachiyomi.data.download.listDownloadIndexFiles
+import eu.kanade.tachiyomi.data.download.readDownloadIndex
 import eu.kanade.tachiyomi.extension.anime.AnimeExtensionManager
 import eu.kanade.tachiyomi.util.size
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.Channel
@@ -27,6 +33,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
@@ -53,6 +60,9 @@ import tachiyomi.domain.storage.service.StorageManager
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.io.File
+import java.io.FileNotFoundException
+import java.io.IOException
+import java.util.Locale
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.seconds
 
@@ -70,9 +80,10 @@ class AnimeDownloadCache(
     private val storageManager: StorageManager = Injekt.get(),
 ) {
 
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val indexDispatcher = Dispatchers.IO.limitedParallelism(4)
 
-    private val _changes: Channel<Unit> = Channel(Channel.UNLIMITED)
+    private val _changes: Channel<Unit> = Channel(Channel.CONFLATED)
     val changes = _changes.receiveAsFlow()
         .onStart { emit(Unit) }
         .shareIn(scope, SharingStarted.Lazily, 1)
@@ -86,7 +97,12 @@ class AnimeDownloadCache(
     /**
      * The last time the cache was refreshed.
      */
+    @Volatile
     private var lastRenew = 0L
+
+    @Volatile
+    private var retryAfter = 0L
+    private val initJob: Job
     private var renewalJob: Job? = null
 
     private val _isInitializing = MutableStateFlow(false)
@@ -94,29 +110,36 @@ class AnimeDownloadCache(
         .debounce(1000L) // Don't notify if it finishes quickly enough
         .stateIn(scope, SharingStarted.WhileSubscribed(), false)
 
-    private val diskCacheFile: File
-        get() = File(context.cacheDir, "dl_anime_index_cache_v3")
+    private val diskCacheFile: AtomicFile
+        get() = AtomicFile(File(context.cacheDir, "dl_anime_index_cache_v3"))
 
     private val rootDownloadsDirMutex = Mutex()
+
+    @Volatile
     private var rootDownloadsDir = RootDirectory(storageManager.getDownloadsDirectory())
 
     init {
-        // Attempt to read cache file
-        scope.launch {
+        // Read the last complete snapshot immediately; reconcile real files asynchronously afterward.
+        initJob = scope.launch {
             rootDownloadsDirMutex.withLock {
                 try {
-                    if (diskCacheFile.exists()) {
-                        val diskCache = diskCacheFile.inputStream().use {
-                            ProtoBuf.decodeFromByteArray<RootDirectory>(it.readBytes())
-                        }
-                        rootDownloadsDir = diskCache
-                        lastRenew = System.currentTimeMillis()
+                    val diskCache = diskCacheFile.openRead().use {
+                        ProtoBuf.decodeFromByteArray<RootDirectory>(readDownloadIndex(it))
                     }
-                } catch (e: Throwable) {
-                    logcat(LogPriority.ERROR, e) { "Failed to initialize disk cache" }
+                    if (diskCache.dir?.uri == storageManager.getDownloadsDirectory()?.uri) {
+                        rootDownloadsDir = diskCache
+                    } else {
+                        diskCacheFile.delete()
+                    }
+                } catch (_: FileNotFoundException) {
+                    // A fresh installation has no index.
+                } catch (e: Exception) {
+                    if (e is CancellationException) throw e
+                    logcat(LogPriority.WARN, e) { "Could not load the download index; rebuilding it" }
                     diskCacheFile.delete()
                 }
             }
+            notifyChanges(persist = false)
         }
 
         storageManager.changes
@@ -317,106 +340,109 @@ class AnimeDownloadCache(
     }
 
     fun invalidateCache() {
-        lastRenew = 0L
         renewalJob?.cancel()
-        diskCacheFile.delete()
-        renewCache()
+        updateDiskCacheJob?.cancel()
+        lastRenew = 0L
+        retryAfter = 0L
+        scope.launch {
+            initJob.join()
+            rootDownloadsDirMutex.withLock {
+                diskCacheFile.delete()
+                val directory = storageManager.getDownloadsDirectory()
+                if (rootDownloadsDir.dir?.uri != directory?.uri) {
+                    rootDownloadsDir = RootDirectory(directory)
+                }
+            }
+            renewCache()
+        }
     }
 
-    /**
-     * Renews the downloads cache.
-     */
+    /** Publish a complete scan only after success; an unavailable source list must not erase the old index. */
+    @Synchronized
     private fun renewCache() {
-        // Avoid renewing cache if in the process nor too often
-        if (lastRenew + renewInterval >= System.currentTimeMillis() || renewalJob?.isActive == true) {
-            return
-        }
-
+        val now = System.currentTimeMillis()
+        if (lastRenew + renewInterval >= now || renewalJob?.isActive == true || now < retryAfter) return
         renewalJob = scope.launchIO {
-            if (lastRenew == 0L) {
-                _isInitializing.emit(true)
-            }
-
-            // Try to wait until extensions and sources have loaded
-            var sources = emptyList<AnimeSource>()
-            withTimeoutOrNull(30.seconds) {
-                extensionManager.isInitialized.first { it }
-                sourceManager.isInitialized.first { it }
-
-                sources = getSources()
-            }
-
-            val sourceMap = sources.associate {
-                provider.getSourceDirName(it).lowercase() to it.id
-            }
-
-            rootDownloadsDirMutex.withLock {
-                val updatedRootDir = RootDirectory(storageManager.getDownloadsDirectory())
-
-                updatedRootDir.sourceDirs = updatedRootDir.dir?.listFiles().orEmpty()
-                    .filter { it.isDirectory && !it.name.isNullOrBlank() }
-                    .mapNotNull { dir ->
-                        val sourceId = sourceMap[dir.name!!.lowercase()]
+            initJob.join()
+            if (lastRenew == 0L) _isInitializing.emit(true)
+            try {
+                val ready = withTimeoutOrNull(30.seconds) {
+                    extensionManager.isInitialized.first { it }
+                    sourceManager.isInitialized.first { it }
+                    true
+                } == true
+                if (!ready) throw IOException("Sources are not initialized")
+                val sourceMap = getSources().associate {
+                    provider.getSourceDirName(it).lowercase(Locale.ROOT) to it.id
+                }
+                rootDownloadsDirMutex.withLock {
+                    val updatedRootDir = RootDirectory(storageManager.getDownloadsDirectory())
+                    if (updatedRootDir.dir != null && !updatedRootDir.dir.canRead()) {
+                        throw IOException("Download directory is unavailable")
+                    }
+                    val previous = rootDownloadsDir.takeIf { it.dir?.uri == updatedRootDir.dir?.uri }
+                    val knownDirectories = previous?.sourceDirs.orEmpty()
+                        .entries.associate { it.value.dir?.uri to it.key }
+                    val directories = updatedRootDir.dir.listDownloadIndexFiles()
+                        .filter { it.isDirectory && !it.name.isNullOrBlank() }
+                    updatedRootDir.sourceDirs = directories.mapNotNull { dir ->
+                        val sourceId = sourceMap[dir.name!!.lowercase(Locale.ROOT)] ?: knownDirectories[dir.uri]
                         sourceId?.let { it to SourceDirectory(dir) }
-                    }
-                    .toMap()
+                    }.toMap()
+                    supervisorScope {
+                        updatedRootDir.sourceDirs.values.map { sourceDir ->
+                            async(indexDispatcher) {
+                                sourceDir.animeDirs = sourceDir.dir.listDownloadIndexFiles()
+                                    .filter { it.isDirectory && !it.name.isNullOrBlank() }
+                                    .associate { it.name!! to AnimeDirectory(it) }
+                                sourceDir.animeDirs.values.forEach { animeDir ->
+                                    val episodeDirs = animeDir.dir.listDownloadIndexFiles()
+                                        .mapNotNull {
+                                            when {
+                                                // Ignore incomplete downloads
+                                                it.name?.endsWith(AnimeDownloader.TMP_DIR_SUFFIX) == true -> null
+                                                // Folder of videos
+                                                it.isDirectory -> it.name
+                                                // MP4 files
+                                                it.isFile && it.extension == "mp4" -> it.nameWithoutExtension
+                                                // MKV files
+                                                it.isFile && it.extension == "mkv" -> it.nameWithoutExtension
+                                                // Anything else is irrelevant
+                                                else -> null
+                                            }
+                                        }
+                                        .toSet()
 
-                updatedRootDir.sourceDirs.values.map { sourceDir ->
-                    async {
-                        sourceDir.animeDirs = sourceDir.dir?.listFiles().orEmpty()
-                            .filter { it.isDirectory && !it.name.isNullOrBlank() }
-                            .associate { it.name!! to AnimeDirectory(it) }
-                        sourceDir.animeDirs.values.forEach { animeDir ->
-                            val episodeDirs = animeDir.dir?.listFiles().orEmpty()
-                                .mapNotNull {
-                                    when {
-                                        // Ignore incomplete downloads
-                                        it.name?.endsWith(AnimeDownloader.TMP_DIR_SUFFIX) == true -> null
-                                        // Folder of videos
-                                        it.isDirectory -> it.name
-                                        // MP4 files
-                                        it.isFile && it.extension == "mp4" -> it.nameWithoutExtension
-                                        // MKV files
-                                        it.isFile && it.extension == "mkv" -> it.nameWithoutExtension
-                                        // Anything else is irrelevant
-                                        else -> null
-                                    }
+                                    animeDir.episodeDirs = episodeDirs
                                 }
-                                .toMutableSet()
-
-                            animeDir.episodeDirs = episodeDirs
-                        }
+                            }
+                        }.awaitAll()
                     }
+                    ensureActive()
+                    rootDownloadsDir = updatedRootDir
+                    lastRenew = System.currentTimeMillis()
+                    retryAfter = 0L
                 }
-                    .awaitAll()
-
-                rootDownloadsDir = updatedRootDir
-            }
-
-            _isInitializing.emit(false)
-        }.also {
-            it.invokeOnCompletion(onCancelling = true) { exception ->
-                if (exception != null && exception !is CancellationException) {
-                    logcat(LogPriority.ERROR, exception) { "Failed to create download cache" }
-                }
-                lastRenew = System.currentTimeMillis()
                 notifyChanges()
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                retryAfter = System.currentTimeMillis() + 60_000
+                logcat(LogPriority.WARN, e) { "Download index reconciliation deferred" }
+            } finally {
+                _isInitializing.emit(false)
             }
         }
-
-        // Mainly to notify the indexing notifier UI
-        notifyChanges()
     }
 
     private fun getSources(): List<AnimeSource> {
         return sourceManager.getAll() + sourceManager.getStubSources()
     }
 
-    private fun notifyChanges() {
+    private fun notifyChanges(persist: Boolean = true) {
         scope.launchNonCancellable {
             _changes.send(Unit)
         }
-        updateDiskCache()
+        if (persist) updateDiskCache()
     }
 
     private var updateDiskCacheJob: Job? = null
@@ -426,16 +452,16 @@ class AnimeDownloadCache(
         updateDiskCacheJob = scope.launchIO {
             delay(1000)
             ensureActive()
-            val bytes = ProtoBuf.encodeToByteArray(rootDownloadsDir)
-            ensureActive()
-            try {
-                diskCacheFile.writeBytes(bytes)
-            } catch (e: Throwable) {
-                logcat(
-                    priority = LogPriority.ERROR,
-                    throwable = e,
-                    message = { "Failed to write disk cache file" },
-                )
+            rootDownloadsDirMutex.withLock {
+                try {
+                    val bytes = ProtoBuf.encodeToByteArray(rootDownloadsDir)
+                    ensureActive()
+                    if (bytes.size > MAX_DOWNLOAD_INDEX_BYTES) throw IOException("Download index is too large")
+                    diskCacheFile.writeBytes(bytes)
+                } catch (e: Exception) {
+                    if (e is CancellationException) throw e
+                    logcat(LogPriority.WARN, e) { "Could not persist the complete download index" }
+                }
             }
         }
     }
@@ -445,30 +471,30 @@ class AnimeDownloadCache(
  * Class to store the files under the root downloads directory.
  */
 @Serializable
-private class RootDirectory(
+internal class RootDirectory(
     @Serializable(with = UniFileAsStringSerializer::class)
     val dir: UniFile?,
-    var sourceDirs: Map<Long, SourceDirectory> = mapOf(),
+    @Volatile var sourceDirs: Map<Long, SourceDirectory> = mapOf(),
 )
 
 /**
  * Class to store the files under a source directory.
  */
 @Serializable
-private class SourceDirectory(
+internal class SourceDirectory(
     @Serializable(with = UniFileAsStringSerializer::class)
     val dir: UniFile?,
-    var animeDirs: Map<String, AnimeDirectory> = mapOf(),
+    @Volatile var animeDirs: Map<String, AnimeDirectory> = mapOf(),
 )
 
 /**
  * Class to store the files under a manga directory.
  */
 @Serializable
-private class AnimeDirectory(
+internal class AnimeDirectory(
     @Serializable(with = UniFileAsStringSerializer::class)
     val dir: UniFile?,
-    var episodeDirs: MutableSet<String> = mutableSetOf(),
+    @Volatile var episodeDirs: Set<String> = emptySet(),
 )
 
 private object UniFileAsStringSerializer : KSerializer<UniFile?> {

@@ -57,6 +57,12 @@ fun ChapterNavigator(
     val horizontalPadding = if (isTabletUi) 24.dp else 8.dp
     val layoutDirection = if (isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr
     val haptic = LocalHapticFeedback.current
+    var preview by remember(totalPages) { mutableIntStateOf(currentPage) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val sliderDragged by interactionSource.collectIsDraggedAsState()
+    LaunchedEffect(currentPage, totalPages) {
+        if (!sliderDragged) preview = currentPage
+    }
 
     // Match with toolbar background color set in ReaderActivity
     val backgroundColor = MaterialTheme.colorScheme
@@ -99,14 +105,12 @@ fun ChapterNavigator(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Box(contentAlignment = Alignment.CenterEnd) {
-                            Text(text = currentPage.toString())
+                            Text(text = preview.toString())
                             // Taking up full length so the slider doesn't shift when 'currentPage' length changes
                             Text(text = totalPages.toString(), color = Color.Transparent)
                         }
 
-                        val interactionSource = remember { MutableInteractionSource() }
-                        val sliderDragged by interactionSource.collectIsDraggedAsState()
-                        LaunchedEffect(currentPage) {
+                        LaunchedEffect(preview) {
                             if (sliderDragged) {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             }
@@ -116,12 +120,13 @@ fun ChapterNavigator(
                             modifier = Modifier
                                 .weight(1f)
                                 .padding(horizontal = 8.dp),
-                            value = currentPage,
+                            value = preview.coerceIn(1, totalPages),
                             valueRange = 1..totalPages,
                             onValueChange = f@{
-                                if (it == currentPage) return@f
-                                onPageIndexChange(it - 1)
+                                if (it == preview) return@f
+                                preview = it
                             },
+                            onValueChangeFinished = { onPageIndexChange(preview - 1) },
                             interactionSource = interactionSource,
                         )
 

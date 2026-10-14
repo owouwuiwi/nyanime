@@ -8,24 +8,24 @@ import eu.kanade.tachiyomi.data.track.MangaTracker
 import eu.kanade.tachiyomi.data.track.Tracker
 import eu.kanade.tachiyomi.data.track.TrackerManager
 import eu.kanade.tachiyomi.source.MangaSource
-import eu.kanade.tachiyomi.util.lang.convertEpochMillisZone
 import logcat.LogPriority
 import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.lang.withNonCancellableContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.entries.manga.model.Manga
 import tachiyomi.domain.history.manga.interactor.GetMangaHistory
+import tachiyomi.domain.history.manga.model.MangaHistory
 import tachiyomi.domain.items.chapter.interactor.GetChaptersByMangaId
 import tachiyomi.domain.track.manga.interactor.InsertMangaTrack
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
-import java.time.ZoneOffset
 
 class AddMangaTracks(
     private val insertTrack: InsertMangaTrack,
     private val syncChapterProgressWithTrack: SyncChapterProgressWithTrack,
     private val getChaptersByMangaId: GetChaptersByMangaId,
     private val trackerManager: TrackerManager,
+    private val history: suspend (Long) -> List<MangaHistory> = { Injekt.get<GetMangaHistory>().await(it) },
 ) {
 
     // TODO: update all trackers based on common data
@@ -60,16 +60,14 @@ class AddMangaTracks(
                 }
 
                 if (track.startDate <= 0) {
-                    val firstReadChapterDate = Injekt.get<GetMangaHistory>().await(mangaId)
-                        .sortedBy { it.readAt }
-                        .firstOrNull()
-                        ?.readAt
+                    val firstReadChapterDate = history(mangaId)
+                        .mapNotNull { it.readAt }
+                        .filter { it.time > 0 }
+                        .minByOrNull { it.time }
 
                     firstReadChapterDate?.let {
-                        val startDate = firstReadChapterDate.time.convertEpochMillisZone(
-                            ZoneOffset.systemDefault(),
-                            ZoneOffset.UTC,
-                        )
+                        // History already stores an instant; shifting it again changes the calendar day.
+                        val startDate = firstReadChapterDate.time
                         track = track.copy(
                             startDate = startDate,
                         )

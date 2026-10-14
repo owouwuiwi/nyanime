@@ -12,6 +12,7 @@ class MyAnimeListInterceptor(private val myanimelist: MyAnimeList) : Interceptor
 
     private val json: Json by injectLazy()
 
+    @Volatile
     private var oauth: MALOAuth? = myanimelist.loadOAuth()
     private val tokenExpired get() = myanimelist.getIfAuthExpired()
 
@@ -21,17 +22,16 @@ class MyAnimeListInterceptor(private val myanimelist: MyAnimeList) : Interceptor
         }
         val originalRequest = chain.request()
 
-        if (oauth?.isExpired() == true) {
+        val currentAuth = if (oauth?.isExpired() == true) {
             refreshToken(chain)
+        } else {
+            oauth
         }
-
-        if (oauth == null) {
-            throw IOException("MAL: User is not authenticated")
-        }
+            ?: throw IOException("MAL: User is not authenticated")
 
         // Add the authorization header to the original request
         val authRequest = originalRequest.newBuilder()
-            .addHeader("Authorization", "Bearer ${oauth!!.accessToken}")
+            .header("Authorization", "Bearer ${currentAuth.accessToken}")
             // .header("User-Agent", "Aniyomi v${BuildConfig.VERSION_NAME} (${BuildConfig.APPLICATION_ID})")
             .build()
 
@@ -42,6 +42,7 @@ class MyAnimeListInterceptor(private val myanimelist: MyAnimeList) : Interceptor
      * Called when the user authenticates with MyAnimeList for the first time. Sets the refresh token
      * and the oauth object.
      */
+    @Synchronized
     fun setAuth(oauth: MALOAuth?) {
         this.oauth = oauth
         myanimelist.saveOAuth(oauth)
@@ -58,6 +59,7 @@ class MyAnimeListInterceptor(private val myanimelist: MyAnimeList) : Interceptor
         }
 
         if (response.code == 401) {
+            response.close()
             myanimelist.setAuthExpired()
             throw MALTokenExpired()
         }

@@ -52,6 +52,7 @@ import eu.kanade.tachiyomi.data.track.LibraryAutoTracking
 import eu.kanade.tachiyomi.data.track.RetroactiveTracking
 import eu.kanade.tachiyomi.data.track.Tracker
 import eu.kanade.tachiyomi.data.track.TrackerManager
+import eu.kanade.tachiyomi.data.track.anilist.Anilist
 import eu.kanade.tachiyomi.data.track.anilist.AnilistApi
 import eu.kanade.tachiyomi.data.track.bangumi.BangumiApi
 import eu.kanade.tachiyomi.data.track.myanimelist.MyAnimeListApi
@@ -105,6 +106,7 @@ object SettingsTrackingScreen : SearchableSettings {
         val recovery by RetroactiveTracking.state.collectAsState()
         val hasAccount = trackerManager.loggedInTrackers().isNotEmpty()
         val autoTrackEnabled by trackPreferences.autoUpdateTrack().collectPreferenceAsState()
+        val aniListLoggedIn by trackerManager.aniList.isLoggedInFlow.collectAsState(trackerManager.aniList.isLoggedIn)
         val incognito by basePreferences.incognitoMode().collectPreferenceAsState()
         LaunchedEffect(autoTrackEnabled, incognito) {
             if (autoTrackEnabled && !incognito) {
@@ -200,6 +202,20 @@ object SettingsTrackingScreen : SearchableSettings {
                     .toPersistentMap(),
                 title = stringResource(AYMR.strings.pref_auto_update_manga_on_mark_read),
             ),
+            Preference.PreferenceItem.ListPreference(
+                preference = trackPreferences.anilistDisplayScoreType(),
+                title = stringResource(MR.strings.tracker_score_format),
+                enabled = aniListLoggedIn,
+                entries = mapOf(
+                    "account" to stringResource(MR.strings.tracker_score_account),
+                    Anilist.POINT_10 to "0–10",
+                    Anilist.POINT_100 to "0–100",
+                    Anilist.POINT_5 to stringResource(MR.strings.tracker_score_stars),
+                    Anilist.POINT_3 to stringResource(MR.strings.tracker_score_faces),
+                    Anilist.POINT_10_DECIMAL to "0–10 · 0.1",
+                ).toPersistentMap(),
+            ),
+            Preference.PreferenceItem.InfoPreference(stringResource(MR.strings.tracker_search_id_hint)),
             Preference.PreferenceGroup(
                 title = stringResource(MR.strings.services),
                 preferenceItems = persistentListOf(

@@ -68,6 +68,16 @@ internal fun ColumnScope.GeneralPage(screenModel: ReaderSettingsScreenModel) {
     )
 
     CheckboxItem(
+        label = stringResource(MR.strings.pref_reader_vertical_navigator),
+        pref = screenModel.preferences.verticalNavigator(),
+    )
+
+    CheckboxItem(
+        label = stringResource(MR.strings.pref_reader_preload_wifi),
+        pref = screenModel.preferences.preloadOnlyOnWifi(),
+    )
+
+    CheckboxItem(
         label = stringResource(MR.strings.pref_fullscreen),
         pref = screenModel.preferences.fullscreen(),
     )

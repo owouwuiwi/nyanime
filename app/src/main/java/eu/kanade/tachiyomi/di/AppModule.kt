@@ -1,8 +1,10 @@
 package eu.kanade.tachiyomi.di
 
+import android.app.ActivityManager
 import android.app.Application
 import android.os.Build
 import androidx.core.content.ContextCompat
+import androidx.core.content.getSystemService
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import aniyomi.core.common.torrent.TorrentServerApi
@@ -36,6 +38,7 @@ import eu.kanade.tachiyomi.source.anime.AndroidAnimeSourceManager
 import eu.kanade.tachiyomi.source.manga.AndroidMangaSourceManager
 import eu.kanade.tachiyomi.ui.player.ExternalIntents
 import io.requery.android.database.sqlite.RequerySQLiteOpenHelperFactory
+import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.protobuf.ProtoBuf
 import nl.adaptivity.xmlutil.XmlDeclMode.Charset
@@ -138,6 +141,7 @@ class AppModule(
                     setPragma(db, "foreign_keys = ON")
                     setPragma(db, "journal_mode = WAL")
                     setPragma(db, "synchronous = NORMAL")
+                    setPragma(db, "busy_timeout = 3000")
                 }
                 private fun setPragma(db: SupportSQLiteDatabase, pragma: String) {
                     val cursor = db.query("PRAGMA $pragma")
@@ -177,6 +181,7 @@ class AppModule(
                     setPragma(db, "foreign_keys = ON")
                     setPragma(db, "journal_mode = WAL")
                     setPragma(db, "synchronous = NORMAL")
+                    setPragma(db, "busy_timeout = 3000")
                 }
                 private fun setPragma(db: SupportSQLiteDatabase, pragma: String) {
                     val cursor = db.query("PRAGMA $pragma")
@@ -221,6 +226,15 @@ class AppModule(
             AndroidMangaDatabaseHandler(
                 get(),
                 sqlDriverManga,
+                queryDispatcher = Dispatchers.IO.limitedParallelism(
+                    if (app.getSystemService<ActivityManager>()?.isLowRamDevice ==
+                        true
+                    ) {
+                        1
+                    } else {
+                        2
+                    },
+                ),
             )
         }
 
@@ -228,6 +242,15 @@ class AppModule(
             AndroidAnimeDatabaseHandler(
                 get(),
                 sqlDriverAnime,
+                queryDispatcher = Dispatchers.IO.limitedParallelism(
+                    if (app.getSystemService<ActivityManager>()?.isLowRamDevice ==
+                        true
+                    ) {
+                        1
+                    } else {
+                        2
+                    },
+                ),
             )
         }
 

@@ -229,12 +229,13 @@ class ReaderActivity : BaseActivity() {
                 Notifications.ID_NEW_CHAPTERS,
             )
 
-            lifecycleScope.launchNonCancellable {
+            lifecycleScope.launchIO {
                 val initResult = viewModel.init(
                     manga,
                     chapter,
                     intent.getIntExtra(SHARED_PAGE, -1).takeIf { it >= 1 },
                 )
+                if (isFinishing || isDestroyed) return@launchIO
                 if (initResult.getOrDefault(false)) intent.removeExtra(SHARED_PAGE)
                 if (!initResult.getOrDefault(false)) {
                     val exception = initResult.exceptionOrNull() ?: IllegalStateException(
@@ -453,6 +454,7 @@ class ReaderActivity : BaseActivity() {
 
             val isHttpSource = viewModel.getSource() is HttpSource
             val isFullscreen by readerPreferences.fullscreen().collectAsState()
+            val verticalNavigator by readerPreferences.verticalNavigator().collectAsState()
             val flashOnPageChange by readerPreferences.flashOnPageChange().collectAsState()
 
             val colorOverlayEnabled by readerPreferences.colorFilter().collectAsState()
@@ -476,6 +478,7 @@ class ReaderActivity : BaseActivity() {
             ReaderAppBars(
                 visible = state.menuVisible,
                 fullscreen = isFullscreen,
+                verticalNavigator = verticalNavigator,
 
                 mangaTitle = state.manga?.title,
                 chapterTitle = state.currentChapter?.chapter?.name,

@@ -447,6 +447,8 @@ class ReaderViewModel @JvmOverloads constructor(
      * that the user doesn't have to wait too long to continue reading.
      */
     suspend fun preload(chapter: ReaderChapter) {
+        val loader = loader ?: return
+        if (!loader.canPreload(chapter)) return
         if (chapter.state is ReaderChapter.State.Loaded || chapter.state == ReaderChapter.State.Loading) {
             return
         }
@@ -470,10 +472,10 @@ class ReaderViewModel @JvmOverloads constructor(
             return
         }
 
-        val loader = loader ?: return
         try {
             logcat { "Preloading ${chapter.chapter.url}" }
             loader.loadChapter(chapter)
+            chapter.pageLoader?.preload()
         } catch (e: Throwable) {
             if (e is CancellationException) {
                 throw e
@@ -507,6 +509,7 @@ class ReaderViewModel @JvmOverloads constructor(
 
         val selectedChapter = page.chapter
         val pages = selectedChapter.pages ?: return
+        selectedChapter.pageLoader?.setActivePage(page.index)
         // A spread's active page and last displayed page have independent meanings.
         if (preserveSelection || progressPage != page) {
             mutableState.update { it.copy(currentPage = page.index + 1) }

@@ -240,15 +240,15 @@ class AnimeLibraryScreenModel(
             }
         }
 
+        val trackerIdsByEntry = trackMap.mapValues { entry -> entry.value.map { it.trackerId }.toSet() }
         val filterFnTracking: (AnimeLibraryItem) -> Boolean = tracking@{ item ->
             if (isNotLoggedInAnyTrack || trackFiltersIsIgnored) return@tracking true
 
-            val animeTracks = trackMap
-                .mapValues { entry -> entry.value.map { it.trackerId } }[item.libraryAnime.id]
+            val animeTracks = trackerIdsByEntry[item.libraryAnime.id]
                 .orEmpty()
 
-            val isExcluded = excludedTracks.isNotEmpty() && animeTracks.fastAny { it in excludedTracks }
-            val isIncluded = includedTracks.isEmpty() || animeTracks.fastAny { it in includedTracks }
+            val isExcluded = excludedTracks.isNotEmpty() && animeTracks.any { it in excludedTracks }
+            val isIncluded = includedTracks.isEmpty() || animeTracks.any { it in includedTracks }
 
             !isExcluded && isIncluded
         }

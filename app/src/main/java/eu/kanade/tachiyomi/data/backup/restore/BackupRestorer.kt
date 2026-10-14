@@ -231,41 +231,38 @@ class BackupRestorer(
     ) = launch {
         val idsInBackup = backupAnimes.mapNotNull { it.id }.toSet()
         val seasonsByParent = backupAnimes.filter { it.parentId in idsInBackup }.groupBy { it.parentId }
-        animeRestorer.sortByNew(backupAnimes.filter { it.parentId !in idsInBackup })
-            .forEach {
-                ensureActive()
-
-                val seasons = seasonsByParent[it.id].orEmpty()
-                try {
-                    animeRestorer.restore(it, backupAnimeCategories, seasons)
-                } catch (e: Exception) {
-                    val sourceName = animeSourceMapping[it.source] ?: it.source.toString()
-                    errors.add(Date() to "${it.title} [$sourceName]: ${e.message}")
-                }
-
-                restoreProgress += 1 + seasons.size
-                reportProgress(it.title, restoreProgress, restoreAmount, isSync)
-            }
+        restoreInBatches(
+            entries = animeRestorer.sortByNew(backupAnimes.filter { it.parentId !in idsInBackup }),
+            restoreBatch = { animeRestorer.restoreBatch(it, backupAnimeCategories, seasonsByParent) },
+            restoreEntry = { animeRestorer.restore(it, backupAnimeCategories, seasonsByParent[it.id].orEmpty()) },
+            onError = { entry, error ->
+                val sourceName = animeSourceMapping[entry.source] ?: entry.source.toString()
+                errors.add(Date() to "${entry.title} [$sourceName]: ${error.message}")
+            },
+            onBatchComplete = { chunk ->
+                restoreProgress += chunk.sumOf { 1 + seasonsByParent[it.id].orEmpty().size }
+                reportProgress(chunk.last().title, restoreProgress, restoreAmount, isSync)
+            },
+        )
     }
 
     private fun CoroutineScope.restoreManga(
         backupMangas: List<BackupManga>,
         backupMangaCategories: List<BackupCategory>,
     ) = launch {
-        mangaRestorer.sortByNew(backupMangas)
-            .forEach {
-                ensureActive()
-
-                try {
-                    mangaRestorer.restore(it, backupMangaCategories)
-                } catch (e: Exception) {
-                    val sourceName = mangaSourceMapping[it.source] ?: it.source.toString()
-                    errors.add(Date() to "${it.title} [$sourceName]: ${e.message}")
-                }
-
-                restoreProgress += 1
-                reportProgress(it.title, restoreProgress, restoreAmount, isSync)
-            }
+        restoreInBatches(
+            entries = mangaRestorer.sortByNew(backupMangas),
+            restoreBatch = { mangaRestorer.restoreBatch(it, backupMangaCategories) },
+            restoreEntry = { mangaRestorer.restore(it, backupMangaCategories) },
+            onError = { entry, error ->
+                val sourceName = mangaSourceMapping[entry.source] ?: entry.source.toString()
+                errors.add(Date() to "${entry.title} [$sourceName]: ${error.message}")
+            },
+            onBatchComplete = { chunk ->
+                restoreProgress += chunk.size
+                reportProgress(chunk.last().title, restoreProgress, restoreAmount, isSync)
+            },
+        )
     }
 
     private fun CoroutineScope.restoreAppPreferences(

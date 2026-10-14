@@ -2,6 +2,7 @@ package eu.kanade.presentation.webview
 
 import android.content.pm.ApplicationInfo
 import android.graphics.Bitmap
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import androidx.compose.foundation.clickable
@@ -18,6 +19,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,8 +41,13 @@ import eu.kanade.presentation.components.WarningBanner
 import eu.kanade.tachiyomi.BuildConfig
 import eu.kanade.tachiyomi.util.system.getHtml
 import eu.kanade.tachiyomi.util.system.setDefaultSettings
+import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+import logcat.LogPriority
+import tachiyomi.core.common.util.system.logcat
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.components.material.Scaffold
 import tachiyomi.presentation.core.i18n.stringResource
@@ -63,10 +70,18 @@ fun WebViewScreenContent(
 
     var currentUrl by remember { mutableStateOf(url) }
     var showCloudflareHelp by remember { mutableStateOf(false) }
+    var htmlJob by remember { mutableStateOf<Job?>(null) }
+    var rendererGone by remember { mutableStateOf(false) }
+
+    DisposableEffect(Unit) {
+        onDispose { htmlJob?.cancel() }
+    }
 
     val webClient = remember {
         object : AccompanistWebViewClient() {
             override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
+                if (rendererGone) return
+                htmlJob?.cancel()
                 super.onPageStarted(view, url, favicon)
                 url?.let {
                     currentUrl = it
@@ -75,10 +90,14 @@ fun WebViewScreenContent(
             }
 
             override fun onPageFinished(view: WebView, url: String?) {
+                if (rendererGone) return
                 super.onPageFinished(view, url)
-                scope.launch {
-                    val html = view.getHtml()
-                    showCloudflareHelp = "window._cf_chl_opt" in html || "Ray ID is" in html
+                htmlJob?.cancel()
+                htmlJob = scope.launch {
+                    val html = withTimeoutOrNull(1_500) { view.getHtml() } ?: return@launch
+                    if (!rendererGone) {
+                        showCloudflareHelp = "window._cf_chl_opt" in html || "Ray ID is" in html
+                    }
                 }
             }
 
@@ -98,6 +117,7 @@ fun WebViewScreenContent(
                 view: WebView?,
                 request: WebResourceRequest?,
             ): Boolean {
+                if (rendererGone) return true
                 request?.let {
                     // Don't attempt to open blobs as webpages
                     if (it.url.toString().startsWith("blob:http")) {
@@ -113,6 +133,18 @@ fun WebViewScreenContent(
                     view?.loadUrl(it.url.toString(), headers)
                 }
                 return super.shouldOverrideUrlLoading(view, request)
+            }
+
+            override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+                // The screen owns disposal of the affected view. No more JS or navigation may reach it.
+                rendererGone = true
+                htmlJob?.cancel()
+                logcat(LogPriority.ERROR) {
+                    "WebView renderer gone: crashed=${detail.didCrash()}, priority=${detail.rendererPriorityAtExit()}"
+                }
+                view.context.toast(MR.strings.information_webview_crashed)
+                onNavigateUp()
+                return true
             }
         }
     }

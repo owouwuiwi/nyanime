@@ -263,6 +263,20 @@ possono impedire scoperta e riproduzione.
 
 ## Lettore manga e file locali
 
+Il lettore carica in parallelo con un budget condiviso fra capitoli e dà precedenza
+alle pagine visibili. **Precaricamento solo su Wi-Fi** e **Navigatore verticale**
+sono scelte facoltative, inizialmente disattivate. I capitoli scaricati o locali
+restano disponibili anche senza Wi-Fi.
+
+I capitoli locali leggono da ComicInfo anche numero, titolo, traduttore e una data
+completa valida, mantenendo il riferimento del file quando manca. Le personalizzazioni
+di chapters.json conservano la precedenza.
+
+In **Impostazioni → Tracking**, AniList offre un aggiornamento manuale dei dati
+dell'account e una scala di voto locale facoltativa. Il formato predefinito segue
+l'account; i voti già salvati non vengono riscritti. La ricerca manuale nei tracker
+compatibili accetta anche identificativi con prefisso `id:`.
+
 La sezione manga conserva biblioteca, dettagli e lettore indipendenti dal restyling video.
 
 - [Due pagine affiancate](two-page-reading.md), anche in verticale, con coppie paginate

@@ -242,7 +242,9 @@ class SyncChaptersWithSource(
                 val chapterUpdates = updatedChapters.map { it.toChapterUpdate() }
                 chapterRepository.updateAllChapters(chapterUpdates)
             }
-            check(updateManga.awaitUpdateFetchInterval(manga, now, fetchWindow))
+            check(
+                updateManga.awaitUpdateFetchInterval(manga, now, fetchWindow, foundRelease = updatedToAdd.isNotEmpty()),
+            )
 
             // Set this manga as updated since chapters were changed
             // Note that last_update actually represents last time the chapter list changed at all

@@ -4,9 +4,11 @@ import eu.kanade.domain.items.chapter.model.toDbChapter
 import eu.kanade.tachiyomi.data.database.models.manga.Chapter
 import eu.kanade.tachiyomi.ui.reader.loader.PageLoader
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.sync.Mutex
 import tachiyomi.core.common.util.system.logcat
 
 data class ReaderChapter(val chapter: Chapter) {
+    internal val loadMutex = Mutex()
 
     val stateFlow = MutableStateFlow<State>(State.Wait)
     var state: State

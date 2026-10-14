@@ -1,12 +1,14 @@
 package eu.kanade.tachiyomi.data.track.shikimori
 
 import eu.kanade.tachiyomi.BuildConfig
+import eu.kanade.tachiyomi.data.track.TrackerTokenSession
 import eu.kanade.tachiyomi.data.track.shikimori.dto.SMOAuth
 import eu.kanade.tachiyomi.data.track.shikimori.dto.isExpired
 import kotlinx.serialization.json.Json
 import okhttp3.Interceptor
 import okhttp3.Response
 import uy.kohesive.injekt.injectLazy
+import java.io.IOException
 
 class ShikimoriInterceptor(private val shikimori: Shikimori) : Interceptor {
 
@@ -15,27 +17,21 @@ class ShikimoriInterceptor(private val shikimori: Shikimori) : Interceptor {
     /**
      * OAuth object used for authenticated requests.
      */
-    private var oauth: SMOAuth? = shikimori.restoreToken()
+    private val session = TrackerTokenSession(shikimori.restoreToken(), shikimori::saveToken)
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val originalRequest = chain.request()
 
-        val currAuth = oauth ?: throw Exception("Not authenticated with Shikimori")
-
-        val refreshToken = currAuth.refreshToken!!
-
-        // Refresh access token if expired.
-        if (currAuth.isExpired()) {
-            val response = chain.proceed(ShikimoriApi.refreshTokenRequest(refreshToken))
-            if (response.isSuccessful) {
-                newAuth(json.decodeFromString<SMOAuth>(response.body.string()))
-            } else {
-                response.close()
+        val currAuth = session.valid(SMOAuth::isExpired) { current ->
+            val refreshToken = current.refreshToken ?: throw IOException("Account login has expired")
+            chain.proceed(ShikimoriApi.refreshTokenRequest(refreshToken)).use { response ->
+                if (!response.isSuccessful) throw IOException("Account renewal failed (HTTP ${response.code})")
+                json.decodeFromString<SMOAuth>(response.body.string())
             }
         }
         // Add the authorization header to the original request.
         val authRequest = originalRequest.newBuilder()
-            .addHeader("Authorization", "Bearer ${oauth!!.accessToken}")
+            .header("Authorization", "Bearer ${currAuth.accessToken}")
             .header("User-Agent", "Aniyomi v${BuildConfig.VERSION_NAME} (${BuildConfig.APPLICATION_ID})")
             .build()
 
@@ -43,7 +39,6 @@ class ShikimoriInterceptor(private val shikimori: Shikimori) : Interceptor {
     }
 
     fun newAuth(oauth: SMOAuth?) {
-        this.oauth = oauth
-        shikimori.saveToken(oauth)
+        session.set(oauth)
     }
 }

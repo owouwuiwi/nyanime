@@ -29,6 +29,12 @@ abstract class PageLoader {
      */
     open suspend fun loadPage(page: ReaderPage) {}
 
+    /** Prioritizes the actual selection independently of off-screen page holders. */
+    open fun setActivePage(index: Int) {}
+
+    /** Optional low-priority warmup for an adjacent chapter. */
+    open fun preload() {}
+
     /**
      * Retries the given [page] in case it failed to load. This method only makes sense when an
      * online source is used.

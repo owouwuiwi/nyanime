@@ -66,6 +66,10 @@ class ReaderPreferences(
         false,
     )
 
+    fun preloadOnlyOnWifi() = preferenceStore.getBoolean("reader_preload_only_wifi", false)
+
+    fun verticalNavigator() = preferenceStore.getBoolean("reader_vertical_navigator", false)
+
     fun cropBorders() = preferenceStore.getBoolean("crop_borders", false)
 
     fun navigateToPan() = preferenceStore.getBoolean("navigate_pan", true)

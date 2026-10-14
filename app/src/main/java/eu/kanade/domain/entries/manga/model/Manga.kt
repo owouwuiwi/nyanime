@@ -124,4 +124,13 @@ fun getComicInfo(
     letterer = null,
     coverArtist = null,
     tags = null,
-)
+).apply {
+    if (chapter.dateUpload > 0) {
+        val date = java.time.Instant.ofEpochMilli(
+            chapter.dateUpload,
+        ).atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+        year = ComicInfo.Year(date.year)
+        month = ComicInfo.Month(date.monthValue)
+        day = ComicInfo.Day(date.dayOfMonth)
+    }
+}

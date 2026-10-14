@@ -81,9 +81,10 @@ class UpdateManga(
         manga: Manga,
         dateTime: ZonedDateTime = ZonedDateTime.now(),
         window: Pair<Long, Long> = mangaFetchInterval.getWindow(dateTime),
+        foundRelease: Boolean = false,
     ): Boolean {
         return mangaRepository.updateManga(
-            mangaFetchInterval.toMangaUpdate(manga, dateTime, window),
+            mangaFetchInterval.toMangaUpdate(manga, dateTime, window, foundRelease),
         )
     }
 

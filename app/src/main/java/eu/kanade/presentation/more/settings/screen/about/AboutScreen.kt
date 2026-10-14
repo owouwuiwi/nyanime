@@ -152,6 +152,12 @@ object AboutScreen : Screen() {
                 }
 
                 item {
+                    ResponsibleUseCard(
+                        onLearnMore = { uriHandler.openUri("https://owouwuiwi.github.io/responsible-use/") },
+                    )
+                }
+
+                item {
                     TextPreferenceWidget(
                         title = stringResource(MR.strings.licenses),
                         onPreferenceClick = {

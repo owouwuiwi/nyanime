@@ -25,9 +25,10 @@ class UpdateAnime(
         anime: Anime,
         dateTime: ZonedDateTime = ZonedDateTime.now(),
         window: Pair<Long, Long> = animeFetchInterval.getWindow(dateTime),
+        foundRelease: Boolean = false,
     ): Boolean {
         return animeRepository.updateAnime(
-            animeFetchInterval.toAnimeUpdate(anime, dateTime, window),
+            animeFetchInterval.toAnimeUpdate(anime, dateTime, window, foundRelease),
         )
     }
 
