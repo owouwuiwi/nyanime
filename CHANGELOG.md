@@ -13,7 +13,8 @@ distribuito come APK.
 
 ### Compatibilità
 
-- Pubblicato un template separato per creare estensioni generiche, con esempi compilabili, guida rapida e riferimento tecnico in inglese. Documentati categorie Home dichiarative, filtri, API, firma e aggiornamenti.
+- Pubblicato un template separato per creare estensioni generiche, con esempi compilabili e un'unica guida completa in inglese: API con esempi, categorie Home, filtri, compilazione, firma, installazione, verifica e risoluzione dei problemi.
+
 ### Distribuzione
 
 - Esplicitato il modello bring your own content e il rispetto del copyright, con una dichiarazione contro la pirateria e materiali demo originali. Aggiornate le istruzioni sui consensi per i RIN locali.

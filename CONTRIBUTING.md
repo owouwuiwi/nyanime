@@ -30,8 +30,9 @@ Non occorre indirizzare gli utenti al supporto AniYomi per funzioni di Nyanime.
 ## Creare un'estensione
 
 Il [template pubblico delle estensioni](https://github.com/owouwuiwi/nyanime-extension-template)
-offre una **guida rapida in cinque passi** e un **riferimento tecnico completo**,
-entrambi in inglese. Include esempi video, manga, notizie e TV, SDK corrispondente,
+offre un'unica [guida completa in inglese](https://owouwuiwi.github.io/example/guide/)
+con API, esempi, categorie Home, compilazione, firma, installazione e verifica.
+Include esempi video, manga, notizie e TV, SDK corrispondente,
 strumenti di firma, test e contenuti dimostrativi originali.
 
 Le estensioni dichiarano categorie e sezioni Home tramite contratti pubblici;

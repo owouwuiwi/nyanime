@@ -28,7 +28,8 @@ I documenti tecnici in inglese conservano i nomi delle API e dei componenti.
 
 ## Funzioni e architettura
 
-Per creare un'estensione, usa il [template pubblico con guida rapida e riferimento tecnico in inglese](https://github.com/owouwuiwi/nyanime-extension-template).
+Per creare un'estensione, usa il [template pubblico](https://github.com/owouwuiwi/nyanime-extension-template)
+e l'unica [guida completa in inglese](https://owouwuiwi.github.io/example/guide/): API, esempi, Home, compilazione, firma, installazione e verifica.
 Il progetto segue il modello [bring your own content](responsible-use.md).
 
 | Guida | Contenuto |
