@@ -8,12 +8,33 @@ from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 from scripts.public_distribution import allowed_document, allowed_source, export_documents, public_text, prepare_bundle
+from scripts.release_notes import release_notes
+
+NOTES = release_notes('## 1.2.3.4: Update\n### Distribuzione\n- Verified generic release.\n', None, 'v1.2.3.4')
 
 spec = importlib.util.spec_from_file_location('publisher', Path(__file__).resolve().parents[2] / 'distribution/scripts/publish_release.py')
 publisher = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(publisher)
 
 class PublicDistributionTest(unittest.TestCase):
+    def test_raw_changelog_is_rejected_before_exporting_source_or_reading_apks(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            notes = root / 'notes.md'
+            notes.write_text('## 1.2.3.4: Update\n### Correzioni\n- Fixed.\n', encoding='utf-8')
+            with patch('scripts.public_distribution.export_documents') as export:
+                with self.assertRaisesRegex(ValueError, 'structured changelog format'):
+                    prepare_bundle(root / 'bundle', root / 'missing-apks', '1.2.3.4', 200, 'preview', notes, 'HEAD')
+                export.assert_not_called()
+            self.assertFalse((root / 'bundle').exists())
+
+    def test_public_publisher_rejects_a_manually_staged_unstructured_body(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / 'notes.md').write_text('## 1.2.3.4: Update\n### Novità\n- Feature.\n', encoding='utf-8')
+            with self.assertRaisesRegex(ValueError, 'structured changelog format'):
+                publisher.validate_bundle(root)
+
     def test_native_bundle_requires_delivered_materials_and_exact_binary_inventory(self):
         import hashlib
         with tempfile.TemporaryDirectory() as temporary:
@@ -37,7 +58,7 @@ class PublicDistributionTest(unittest.TestCase):
                     for architecture in abis if abi == 'universal' else (abi,):
                         archive.writestr(f'lib/{architecture}/libfixture.so', native)
             notes = root / 'notes.md'
-            notes.write_text('Generic release.')
+            notes.write_text(NOTES, encoding='utf-8')
             def docs(target, *_):
                 (target / 'CHANGELOG.md').write_text('Generic release.')
                 (target / 'tools/native').mkdir(parents=True)
@@ -69,7 +90,7 @@ class PublicDistributionTest(unittest.TestCase):
             for abi in publisher.ABIS:
                 (apks / f'Nyanime-Production-1.2.3.4-{abi}.apk').write_bytes(b'generic fixture')
             notes = root / 'notes.md'
-            notes.write_text('- Updated distribution.\n')
+            notes.write_text(NOTES, encoding='utf-8')
             def docs(target, *_):
                 (target / 'CHANGELOG.md').write_text('Generic release notes.')
             with patch('scripts.public_distribution.export_documents', side_effect=docs):
@@ -162,7 +183,7 @@ class PublicDistributionTest(unittest.TestCase):
             for abi in publisher.ABIS:
                 (apks / f'Nyanime-Production-1.2.3.4-{abi}.apk').write_bytes(b'signed test fixture ' + abi.encode())
             notes = root / 'notes.md'
-            notes.write_text('## Changes\n\n- Updated publication.\n')
+            notes.write_text(NOTES, encoding='utf-8')
             from unittest.mock import patch
             def docs(target, *_):
                 (target / 'CHANGELOG.md').write_text('Release changes.')
@@ -262,7 +283,7 @@ class PublicDistributionTest(unittest.TestCase):
             checksums = ''.join(f'{hashlib.sha256((apks / name).read_bytes()).hexdigest()}  {name}\n' for name in reversed(names))
             (apks / 'SHA256SUMS').write_text(checksums)
             notes = root / 'notes.md'
-            notes.write_text('- Verified release.\n')
+            notes.write_text(NOTES, encoding='utf-8')
             def docs(target, *_):
                 (target / 'CHANGELOG.md').write_text('Release changes.')
             with patch('scripts.public_distribution.export_documents', side_effect=docs):

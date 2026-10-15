@@ -1,10 +1,38 @@
 import unittest
 from unittest.mock import patch
 
-from scripts.release_notes import CATEGORIES, previous_tag, release_notes
+from scripts.release_notes import CATEGORIES, FORMAT_MARKER, previous_tag, release_notes, validate_notes_format
 
 
 class ReleaseNotesTest(unittest.TestCase):
+    def test_generated_categorized_notes_pass_publication_validation(self):
+        current = "## 15 October — 1.2.3.4: Update\n" + "".join(
+            f"### {category}\n- Entry {index}.\n" for index, category in enumerate(CATEGORIES)
+        )
+        notes = release_notes(current, None, "v1.2.3.4")
+        validate_notes_format(notes)
+        validate_notes_format(notes.replace("\n", "\r\n"))
+        self.assertEqual(notes.count("\n- "), len(CATEGORIES))
+
+    def test_raw_changelog_cannot_be_published_as_ota_notes(self):
+        raw = "## 15 October — 1.2.3.4: Update\n### Novità\n- Feature.\n"
+        for notes in (raw, FORMAT_MARKER + "\n" + raw):
+            with self.subTest(notes=notes), self.assertRaises(ValueError):
+                validate_notes_format(notes)
+
+    def test_marker_alone_does_not_make_incomplete_notes_structured(self):
+        for body in ("", "### 1.2.3.4\n- Missing category.",
+                     "#### Novità\n- Missing version.", "### Current\n#### Novità\n- Missing number.",
+                     "### 1.2.3.4\n#### Unknown category\n- Unknown.",
+                     "### 1.2.3.4\n#### Novità\nNo list entries."):
+            with self.subTest(body=body), self.assertRaises(ValueError):
+                validate_notes_format(FORMAT_MARKER + "\n" + body)
+
+    def test_nested_markdown_and_release_links_remain_valid(self):
+        validate_notes_format(FORMAT_MARKER + "\n### 1.2.3.4: Update\n#### Novità\n"
+                              "- Entry.\n  - Detail.\n  ```\n### Not a version\n  ```\n\n"
+                              "[Changelog completo](https://example.invalid/changes).\n")
+
     def test_additional_categories_keep_entries_without_republishing_history(self):
         old = "## Older\n- Previously released.\n"
         current = "## Older\n### Compatibilità\n- Previously released.\n"

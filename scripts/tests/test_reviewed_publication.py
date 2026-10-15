@@ -8,6 +8,9 @@ import unittest
 import zipfile
 from pathlib import Path
 from unittest.mock import patch
+from scripts.release_notes import release_notes
+
+NOTES = release_notes('## 1.2.3.4: Update\n### Distribuzione\n- Reviewed generic release.\n', None, 'v1.2.3.4')
 
 root = Path(__file__).resolve().parents[2]
 script = root / 'scripts/publish_release.py'
@@ -98,11 +101,20 @@ class ReviewedPublicationTest(unittest.TestCase):
         def api(path, token, method='GET', data=None):
             calls.append((path, method, data))
             return [] if method == 'GET' else self.release()
-        self.run_release('prepare', api, notes='Reviewed release 1.2.3.4')
+        self.run_release('prepare', api, notes=NOTES)
         self.assertEqual([method for _, method, _ in calls], ['GET', 'POST'])
         self.assertTrue(calls[-1][2]['draft'])
         self.assertEqual(calls[-1][2]['tag_name'], 'v1.2.3.4')
         self.assertEqual(calls[-1][2]['target_commitish'], 'main')
+
+    def test_unstructured_manual_notes_cannot_create_a_public_draft(self):
+        calls = []
+        def api(path, token, method='GET', data=None):
+            calls.append(method)
+            return []
+        with self.assertRaisesRegex(ValueError, 'structured changelog format'):
+            self.run_release('prepare', api, notes='## 1.2.3.4: Update\n### Novità\n- Feature.\n')
+        self.assertEqual(calls, ['GET'])
 
     def test_prepare_never_replaces_a_published_release(self):
         calls = []
@@ -143,7 +155,7 @@ class ReviewedPublicationTest(unittest.TestCase):
         assets = [{'id': i + 1, 'name': name, 'state': 'uploaded', 'digest': 'sha256:' + expected[name],
                    'uploader': {'login': 'github-actions[bot]' if existing_bot else 'fixture-user'}}
                   for i, name in enumerate(data)]
-        release = self.release(assets=assets, body='Reviewed release 1.2.3.4')
+        release = self.release(assets=assets, body=NOTES)
         if personal_author:
             release['author'] = {'login': 'fixture-user', 'type': 'User'}
             release['draft'] = False

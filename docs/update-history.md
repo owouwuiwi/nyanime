@@ -22,6 +22,15 @@ le categorie aggiuntive compaiono soltanto quando contengono note.
 Le categorie vengono dichiarate nel changelog
 con titoli `###`; nessuna classificazione viene dedotta dalle parole delle frasi.
 
+Anche per una pubblicazione manuale, generare `notes.md` con
+`scripts/release_notes.py`: non copiare direttamente una sezione di `CHANGELOG.md`.
+Il formato del file sorgente usa livelli di intestazione diversi da quello OTA.
+Preparazione del pacchetto e pubblicazione verificano marcatore, versioni e
+categorie prima di accettare le note; un testo non strutturato viene rifiutato.
+Una correzione alle sole note di una release già pubblicata non richiede un nuovo
+APK: mantenere firma, versione, canale e file invariati, poi verificare il corpo
+pubblicato e la suddivisione nella pagina aggiornamenti.
+
 L'app conserva Markdown, liste annidate, paragrafi e codice. I conteggi comprendono
 soltanto le voci della lista principale. “Mostra tutte” accorcia soltanto liste
 separabili, conservando ogni voce completa. I vecchi corpi delle release privi del

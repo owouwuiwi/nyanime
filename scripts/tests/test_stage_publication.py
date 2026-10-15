@@ -14,6 +14,7 @@ from unittest.mock import patch
 from scripts import stage_publication as staging
 from scripts import request_publication as publication
 from scripts.public_distribution import prepare_bundle, ABIS
+from scripts.release_notes import release_notes
 
 spec = importlib.util.spec_from_file_location('staging_publisher', Path(__file__).resolve().parents[2] / 'distribution/scripts/publish_release.py')
 publisher = importlib.util.module_from_spec(spec)
@@ -27,7 +28,7 @@ class StagePublicationTest(unittest.TestCase):
         for abi in ABIS:
             (apks / f'Nyanime-Production-1.2.3.4-{abi}.apk').write_bytes(b'signed generic fixture ' + abi.encode())
         notes = root / 'notes.md'
-        notes.write_text('- Verified generic update.\n')
+        notes.write_text(release_notes('## 1.2.3.4: Update\n### Correzioni\n- Fixed.\n', None, 'v1.2.3.4'), encoding='utf-8')
         def documents(target, *_):
             (target / 'CHANGELOG.md').write_text('Generic changes.\n')
         with patch('scripts.public_distribution.export_documents', side_effect=documents):

@@ -15,6 +15,8 @@ from pathlib import Path, PurePosixPath
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from scripts.release_notes import validate_notes_format
+
 PUBLIC_REPOSITORY = 'owouwuiwi/nyanime'
 CERTIFICATE = '7DD368792C4D94D1186CC4B0E2AD6C2F34FCE5DD37F19C6A1BAB45106FFC136B'
 APPLICATION_ID = 'it.owouwuiwi.nyanime'
@@ -65,10 +67,11 @@ def assert_public_text(content):
 
 
 def validate_release_notes(content):
-    """Reject double-decoded UTF-8 before notes reach GitHub or the in-app parser."""
+    """Reject corrupted text or unstructured notes before GitHub publication."""
     assert_public_text(content)
     if re.search(r'Ã[\u0080-\u00bf]|â[€\u201a\u0153\u0080-\u00bf]|ðŸ|\ufffd', content):
         raise ValueError('Release notes contain corrupted UTF-8 text')
+    validate_notes_format(content)
 
 def git(*args, cwd=None):
     return subprocess.check_output(['git', *args], cwd=cwd)
@@ -141,11 +144,11 @@ def prepare_bundle(output, apk_directory, version, code, channel, notes, revisio
         raise ValueError('Invalid channel')
     if output.exists() and any(output.iterdir()):
         raise ValueError('Bundle output must be empty')
+    notes_text = public_text(notes.read_text(encoding='utf-8'))
+    validate_release_notes(notes_text)
     docs = output / 'public'
     docs.mkdir(parents=True)
     export_documents(docs, revision)
-    notes_text = public_text(notes.read_text(encoding='utf-8'))
-    validate_release_notes(notes_text)
     # A public documentation tag never resolves to the private source revision.
     notes_text = re.sub(r'https://github\.com/[^\s)]+/blob/[^/]+/CHANGELOG\.md',
                         f'https://github.com/{PUBLIC_REPOSITORY}/blob/v{version}/CHANGELOG.md', notes_text)

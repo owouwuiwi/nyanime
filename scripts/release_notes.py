@@ -27,6 +27,48 @@ CATEGORIES = ("Novità", "Correzioni", "Prestazioni", "Interfaccia", "Compatibil
               "Sicurezza", "Distribuzione", "Verifiche", "Limitazioni")
 
 
+def validate_notes_format(markdown: str) -> None:
+    """Require the versioned structure understood by the native OTA timeline."""
+    markdown = markdown.replace("\r\n", "\n")
+    if not markdown.lstrip().startswith(FORMAT_MARKER + "\n"):
+        raise ValueError("Release notes must use the structured changelog format; run scripts/release_notes.py")
+    version = False
+    category = False
+    entries = 0
+    fence = None
+    for line in markdown.splitlines():
+        trimmed = line.strip()
+        marker = trimmed[:3] if trimmed[:3] in {"```", "~~~"} else None
+        if marker:
+            fence = None if fence == marker else fence or marker
+        elif fence:
+            continue
+        elif not trimmed or trimmed == FORMAT_MARKER:
+            continue
+        elif re.fullmatch(r"## Novità di Nyanime \d+\.\d+\.\d+\.\d+", line):
+            continue
+        elif line.startswith("### "):
+            if not re.search(r"(?<![\d.])\d+\.\d+\.\d+\.\d+(?![\d.])", line[4:]):
+                raise ValueError("Release notes need a numeric version heading at level three")
+            version, category = True, False
+        elif line.startswith("#### "):
+            if not version or line[5:].strip() not in (*CATEGORIES, "Note originali"):
+                raise ValueError("Release note categories must follow a version heading and use a declared category")
+            category = True
+        elif trimmed.startswith("[Changelog completo]("):
+            continue
+        elif line.startswith("#"):
+            raise ValueError("Release notes have incorrect heading levels; run scripts/release_notes.py")
+        elif line.startswith("- "):
+            if not category:
+                raise ValueError("Every release note must belong to a category")
+            entries += 1
+        elif not category:
+            raise ValueError("Uncategorized text in release notes")
+    if not entries:
+        raise ValueError("Release notes must contain categorized changes")
+
+
 def categorized_sections(markdown: str) -> list[tuple[str, list[tuple[str | None, list[str]]]]]:
     result = []
     heading = ""
@@ -108,6 +150,7 @@ def main() -> None:
     if not re.search(r"(?m)^- ", notes):
         raise SystemExit("No new changelog entries since the previous release; add release notes before publishing.")
     notes += f"\n[Changelog completo](https://github.com/{args.repository}/blob/{args.tag}/CHANGELOG.md).\n"
+    validate_notes_format(notes)
     args.output.write_text(notes, encoding="utf-8")
 
 

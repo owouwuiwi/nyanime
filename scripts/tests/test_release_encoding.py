@@ -7,6 +7,7 @@ class ReleaseEncodingTest(unittest.TestCase):
     def test_real_accents_and_versioned_notes_remain_intact(self):
         validate_release_notes(
             "<!-- nyanime-changelog:1 -->\n## Novità di Nyanime 1.2.3.4\n"
+            "### 1.2.3.4: Update\n"
             "#### Compatibilità\n- Più stabilità. São, française, 日本語."
         )
 
