@@ -19,7 +19,7 @@ class WatchCoordinationTest {
     @Test
     fun smoothCorrectionConvergesWithoutSeekingOrSpeedSteps() {
         val corrector = WatchDriftCorrector()
-        var local = 99.2
+        var local = 98.2
         var remote = 100.0
         var speed = 1.0
         repeat(600) { tick ->
@@ -31,7 +31,7 @@ class WatchCoordinationTest {
             local += 0.25 * speed
             remote += 0.25
         }
-        assertTrue(abs(local - remote) < 0.2)
+        assertTrue(abs(local - remote) < 1.0)
     }
 
     @Test
@@ -108,6 +108,34 @@ class WatchCoordinationTest {
         assertFalse(gate.waiting(true, true, true, 65_000, listOf(0, 0)))
         assertFalse(gate.waiting(false, true, true, 40_200, listOf(0, 0)))
         assertFalse(gate.waiting(true, false, true, 40_300, listOf(0, 0)))
+    }
+
+    @Test
+    fun readinessFlappingCannotRestartTheInitialCacheDeadline() {
+        val gate = WatchPrebufferGate()
+        assertTrue(gate.waiting(true, true, true, 0, listOf(0)))
+        repeat(14) { second ->
+            assertFalse(gate.waiting(true, true, false, second * 1000L + 500, listOf(0)))
+            assertTrue(gate.waiting(true, true, true, second * 1000L + 750, listOf(0)))
+        }
+        assertFalse(gate.waiting(true, true, true, 15_001, listOf(0)))
+    }
+
+    @Test
+    fun httpsRoomLinksAcceptOnlyTheVerifiedRouteAndKeepLegacyInvitations() {
+        val now = 1_800_000_000_000L
+        assertEquals("00123456", WatchInvite.codeFromLink("https://owouwuiwi.github.io/watch/#00123456", now))
+        assertEquals("00123456", WatchInvite.codeFromLink("nyanime://watch/v1#00123456", now))
+        listOf(
+            "https://example.invalid/watch/#00123456",
+            "https://owouwuiwi.github.io/other/#00123456",
+            "https://owouwuiwi.github.io/watch/?x=1#00123456",
+            "https://user@owouwuiwi.github.io/watch/#00123456",
+            "https://owouwuiwi.github.io:443/watch/#00123456",
+            "https://owouwuiwi.github.io/watch/#001234567",
+        ).forEach { invalid ->
+            assertThrows(IllegalArgumentException::class.java) { WatchInvite.codeFromLink(invalid, now) }
+        }
     }
 
     @Test

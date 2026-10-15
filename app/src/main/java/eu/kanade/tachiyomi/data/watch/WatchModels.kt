@@ -119,6 +119,7 @@ data class WatchMember(
     val reading: Boolean = false,
     val bufferedAheadSeconds: Int? = null,
     val observer: Boolean = false,
+    val interactionVersion: Int = 0,
 )
 
 @Serializable
@@ -161,6 +162,7 @@ data class WatchRoomState(
     val sharedReadingMode: Boolean = false,
     val observer: Boolean = false,
     val observerSupported: Boolean = false,
+    val memberRequests: List<WatchMember> = emptyList(),
 ) {
     val wantsPlayback: Boolean get() = pendingPlaybackPaused?.not() ?: playRequested
     val preparingPlayback: Boolean get() = active &&
@@ -201,6 +203,7 @@ data class WatchPeerStatus(
     val observer: Boolean = false,
     val observerVersion: Int = 0,
     val readingSessionVersion: Int = 0,
+    val interactionVersion: Int = 0,
 )
 
 @Serializable
@@ -251,6 +254,11 @@ data class WatchMessage(
     val observerVersion: Int = 0,
     val readingSessionVersion: Int = 0,
     val readingSession: eu.kanade.tachiyomi.data.reading.ReadingSessionEnvelope? = null,
+    val interactionVersion: Int = 0,
+    val interaction: WatchInteractionSealed? = null,
+    val interactionSession: String = "",
+    val removedMembers: Set<String> = emptySet(),
+    val admissionLocked: Boolean = false,
 ) {
     fun valid(): Boolean = version == 1 &&
         sequence > 0 &&
@@ -268,6 +276,21 @@ data class WatchMessage(
         coordinationVersion in 1..2 &&
         readingVersion in 0..2 &&
         readingSessionVersion in 0..1 &&
+        interactionVersion in 0..1 &&
+        (interactionSession.isEmpty() || interactionSession.matches(Regex("[0-9a-f]{32}"))) &&
+        (
+            interaction == null ||
+                (
+                    interactionVersion == 1 &&
+                        interaction.valid() &&
+                        target.matches(Regex("[0-9a-f]{64}")) &&
+                        reading == null &&
+                        readingSession == null &&
+                        tv == null
+                    )
+            ) &&
+        removedMembers.size <= 32 &&
+        removedMembers.all { it.matches(Regex("[0-9a-f]{64}")) } &&
         (
             readingSession == null ||
                 (
@@ -309,6 +332,7 @@ data class WatchMessage(
                 value.name.length <= 32 &&
                 value.tvVersion in 0..1 &&
                 value.readingSessionVersion in 0..1 &&
+                value.interactionVersion in 0..1 &&
                 value.observerVersion in 0..1 &&
                 (!value.observer || value.observerVersion == 1) &&
                 (

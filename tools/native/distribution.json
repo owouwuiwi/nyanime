@@ -8,6 +8,10 @@
     "Nyanime-Native-0.42.0.2-supplemental.tar.gz": {
       "sha256": "c822fa8fe4e81f82d4135f1b8ea944fe8f6dad1f1a311ef92e354c58a16dc210",
       "url": "https://github.com/owouwuiwi/nyanime/releases/download/v0.42.0.2/Nyanime-Native-0.42.0.2-supplemental.tar.gz"
+    },
+    "Nyanime-Native-0.47.0.2-webrtc.tar.gz": {
+      "sha256": "1b3cb47f9c287b8b7b88eda45bb733c2f8c829410b146a25f42d80bd19900139",
+      "url": "https://github.com/owouwuiwi/nyanime/releases/download/v0.47.0.2/Nyanime-Native-0.47.0.2-webrtc.tar.gz"
     }
   },
   "components": {
@@ -267,6 +271,27 @@
         "lib/armeabi-v7a/libzstd-kmp.so": "4b30671d21e9c6953dc84e4b4602e33b88740d61417af96dbc4ddf44b22a8e15",
         "lib/x86/libzstd-kmp.so": "2daf9a5f2984289b93568a96bc4234a9e405aa4905c990b85ef887c5de7fb010",
         "lib/x86_64/libzstd-kmp.so": "fefcbdcd59580a3043c62380a83d92f13c031c278481e22591a2c75112296e28"
+      }
+    },
+    "room-voice": {
+      "requiredJavaClasses": [
+        "org.jni_zero.JniInit",
+        "org.jni_zero.JniUtil",
+        "org.webrtc.PeerConnectionFactory",
+        "org.webrtc.NativeLibrary"
+      ],
+      "license": "BSD-3-Clause and bundled third-party licenses; MIT Android distribution binding",
+      "sourceIdentity": "io.github.webrtc-sdk:android:144.7559.15; webrtc-sdk/webrtc 30d5e63ae91da483e06577b5c35ee91cc5e5c3db",
+      "buildRecipe": "webrtc-sdk/webrtc-build 5c75bb9e7e558b80cda5dc8e9d07ec309ebe895f; tools_webrtc/android/build_aar.py; published AAR unchanged",
+      "sourcePackages": [
+        "Nyanime-Native-0.47.0.2-webrtc.tar.gz"
+      ],
+      "sourceCoverage": "Pinned WebRTC source tree including Android Java wrapper, DEPS, upstream build scripts and full license notices. Unmodified Maven artifact; no claim of a reproduced upstream internal compiler environment.",
+      "libraries": {
+        "lib/armeabi-v7a/libjingle_peerconnection_so.so": "58e3fd27ef738fb11a66f8d8548dc7aed4225986207d3b32b498125ce6735815",
+        "lib/arm64-v8a/libjingle_peerconnection_so.so": "5d68547da3fad7679846187577a0333c10d9ff4d39322bce61f366426924612e",
+        "lib/x86_64/libjingle_peerconnection_so.so": "6fa42eba21bcf4d02234d63e007b58966d9919d0d1eb0c887b8ef005964f7158",
+        "lib/x86/libjingle_peerconnection_so.so": "d14971f27acc4f4c242cc6b77f4077a665d45b3dff33b026c3c42a61fccb00e7"
       }
     }
   }

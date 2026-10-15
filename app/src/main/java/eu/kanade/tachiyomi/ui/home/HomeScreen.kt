@@ -170,6 +170,9 @@ object HomeScreen : Screen() {
         }
         val navStyle = eu.kanade.domain.ui.model.NavStyle.DISCOVERY
         val navigator = LocalNavigator.currentOrThrow
+        // A retained Home can still be composed behind the next destination during navigation.
+        // Only the active Home route may own the room/Cast controllers; MainActivity owns other routes.
+        val ownsMiniControllers = navigator.lastItem is HomeScreen && navigator.lastItem.key == key
         val atlas = rememberScreenModel { AtlasSearchScreenModel() }
         val news = rememberScreenModel { eu.kanade.tachiyomi.ui.news.NewsScreenModel() }
         var newsSearch by rememberSaveable { mutableStateOf(false) }
@@ -273,6 +276,7 @@ object HomeScreen : Screen() {
                                         motion,
                                         tabNavigator.current,
                                         navStyle.visibleTabs,
+                                        ownsMiniControllers = ownsMiniControllers,
                                     )
                                 }
                             },
@@ -342,7 +346,8 @@ object HomeScreen : Screen() {
                                 motion,
                                 tabNavigator.current,
                                 navStyle.visibleTabs,
-                                Modifier.align(Alignment.BottomCenter).onSizeChanged {
+                                ownsMiniControllers = ownsMiniControllers,
+                                modifier = Modifier.align(Alignment.BottomCenter).onSizeChanged {
                                     measuredFooter = with(density) { it.height.toDp() }
                                 },
                             )
@@ -476,14 +481,17 @@ object HomeScreen : Screen() {
         motion: Boolean,
         currentTab: cafe.adriel.voyager.navigator.tab.Tab,
         tabs: List<eu.kanade.presentation.util.Tab>,
+        ownsMiniControllers: Boolean,
         modifier: Modifier = Modifier,
     ) {
         val searching = currentTab == AtlasSearchTab
         val atlas = LocalAtlasSearch.current
         Column(modifier.posterForeground(zIndex = 3f).then(if (searching) Modifier.imePadding() else Modifier)) {
             if (currentTab != MoreTab) ReadyAppUpdateSurface(allowDismiss = true)
-            eu.kanade.tachiyomi.ui.watch.WatchMiniController(includeNavigationInsets = !showNavigation)
-            CastMiniController(includeNavigationInsets = !showNavigation)
+            if (ownsMiniControllers) {
+                eu.kanade.tachiyomi.ui.watch.WatchMiniController(includeNavigationInsets = !showNavigation)
+                CastMiniController(includeNavigationInsets = !showNavigation)
+            }
             AnimatedVisibility(
                 visible = showNavigation,
                 enter = if (modern) {

@@ -85,7 +85,13 @@ class WatchTogetherManager private constructor(private val application: Applicat
         controller.join(invite, name)
     }
 
-    val controller = WatchRoomController(
+    val interactions: WatchInteractionSession =
+        WatchInteractionSession(scope, SystemClock::elapsedRealtime) { target, envelope ->
+            controller.sendInteraction(target, envelope)
+        }
+    val voice = WatchRoomVoiceCoordinator(application, scope, interactions)
+
+    val controller: WatchRoomController = WatchRoomController(
         scope,
         text,
         object : WatchPlayer {
@@ -108,10 +114,12 @@ class WatchTogetherManager private constructor(private val application: Applicat
         },
         SystemClock::elapsedRealtime,
         onSessionStarted = { invite, identity, name ->
+            interactions.start(WatchInteractionCrypto(invite, identity))
             roomArchive.begin(invite, identity, name)
             mutableRecoverable.value = false
         },
         onSessionEnded = {
+            interactions.close()
             eu.kanade.tachiyomi.data.reading.ReadingTogetherManager.existing()?.forgetRoom()
             shortRooms.close()
             roomArchive.clear()
@@ -296,6 +304,10 @@ class WatchTogetherManager private constructor(private val application: Applicat
     }
 
     init {
+        controller.onInteractionMessage = { sender, value ->
+            interactions.roomChanged(controller.interactionContext())
+            interactions.receive(sender, value)
+        }
         controller.onReadingMessage = reading::receive
         controller.onReadingSessionMessage = { sender, value ->
             readingSession.roomChanged(controller.readingSessionContext())
@@ -307,6 +319,7 @@ class WatchTogetherManager private constructor(private val application: Applicat
         }
         scope.launch {
             controller.state.collect { room ->
+                interactions.roomChanged(controller.interactionContext())
                 readingSession.roomChanged(controller.readingSessionContext())
                 if (room.host && !room.sharedReadingMode) readingSession.exitReading()
                 tv.roomChanged(controller.tvContext())

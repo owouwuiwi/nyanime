@@ -144,9 +144,13 @@ internal fun TvPlayerControls(
     val room by rooms.controller.state.collectAsState()
     val liveRoom by rooms.tv.state.collectAsState()
     var roomSheet by remember { mutableStateOf(false) }
+    var socialPanel by remember { mutableStateOf(false) }
     var castDialog by remember { mutableStateOf(false) }
     val native by output.status.collectAsState()
     val inPip by pip.collectAsState()
+    LaunchedEffect(inPip, room.active) {
+        if (inPip || !room.active) socialPanel = false
+    }
     val personal by services.personal.changes.collectAsState(initial = "")
     val favourites = remember(personal) { services.personal.read().favourites }
     var visible by remember { mutableStateOf(true) }
@@ -420,9 +424,13 @@ internal fun TvPlayerControls(
                         }, enabled = !room.active || room.host) {
                             Icon(Icons.Outlined.LiveTv, stringResource(R.string.tv_channels), tint = Color.White)
                         }
-                        IconButton(onClick = {
-                            if (room.active) roomSheet = true else channel?.let(onRoom)
-                        }) { Icon(Icons.Outlined.Group, stringResource(R.string.tv_room), tint = Color.White) }
+                        if (room.active) {
+                            eu.kanade.tachiyomi.ui.watch.WatchPlayerRoomAccess(room) { socialPanel = true }
+                        } else {
+                            IconButton(onClick = { channel?.let(onRoom) }) {
+                                Icon(Icons.Outlined.Group, stringResource(R.string.tv_room), tint = Color.White)
+                            }
+                        }
                         IconButton(onClick = {
                             panel = "volume"
                             interaction++
@@ -446,6 +454,16 @@ internal fun TvPlayerControls(
                     }
                 }
             }
+        }
+        eu.kanade.tachiyomi.ui.watch.WatchPlayerRoomPanel(
+            visible = socialPanel && room.active && panel == null && !roomSheet && !castDialog,
+            onRoomDetails = { roomSheet = true },
+            onDismiss = { socialPanel = false },
+        )
+        if (room.active && panel == null && !roomSheet && !castDialog) {
+            eu.kanade.tachiyomi.ui.watch.WatchRoomPlayerSocial(
+                modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(end = 16.dp, top = 68.dp),
+            )
         }
         if (state.loading || state.buffering || state.failed) {
             Column(

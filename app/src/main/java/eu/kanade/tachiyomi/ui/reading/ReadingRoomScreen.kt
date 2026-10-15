@@ -1,6 +1,8 @@
 package eu.kanade.tachiyomi.ui.reading
 
 import android.app.Activity
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -29,9 +31,14 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Draw
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.PersonAddAlt1
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
@@ -39,7 +46,10 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -62,7 +72,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
@@ -85,6 +94,11 @@ import eu.kanade.tachiyomi.data.reading.ReadingTogetherManager
 import eu.kanade.tachiyomi.data.reading.ReadingTools
 import eu.kanade.tachiyomi.data.watch.WatchInvite
 import eu.kanade.tachiyomi.data.watch.WatchShortRooms
+import eu.kanade.tachiyomi.data.watch.WatchShortState
+import eu.kanade.tachiyomi.ui.watch.RoomLoungeNotice
+import eu.kanade.tachiyomi.ui.watch.RoomLoungeSheet
+import eu.kanade.tachiyomi.ui.watch.RoomLoungeSurface
+import eu.kanade.tachiyomi.ui.watch.WatchLoungeInvite
 import eu.kanade.tachiyomi.ui.watch.WatchQrDialog
 import eu.kanade.tachiyomi.ui.watch.WatchTogetherPanel
 import eu.kanade.tachiyomi.ui.watch.rememberRoomText
@@ -131,13 +145,21 @@ fun ReadingRoomPanel(
     val session by manager.watch.readingSession.state.collectAsState()
     val short by manager.watch.shortRooms.state.collectAsState()
     var qr by remember { mutableStateOf(false) }
+    var copied by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(copied) {
+        if (copied) {
+            kotlinx.coroutines.delay(2000)
+            copied = false
+        }
+    }
     var leaving by remember { mutableStateOf(false) }
     var addingNote by remember { mutableStateOf(false) }
     var noteText by remember { mutableStateOf("") }
     var copyDialog by remember { mutableStateOf(false) }
     if (copyDialog) ReadingCopyDialog(manager) { copyDialog = false }
-    val link = remember(room.invite, short.code) {
-        if (short.code.isNotBlank()) {
+    val shortReady = short.code.isNotBlank() && short.relayCount > 0 && room.relayCount > 0
+    val link = remember(room.invite, short.code, shortReady) {
+        if (shortReady) {
             WatchShortRooms.link(short.code)
         } else {
             runCatching { WatchInvite.parse(room.invite, System.currentTimeMillis()).link() }.getOrNull()
@@ -210,7 +232,7 @@ fun ReadingRoomPanel(
                         type = "text/plain"
                         putExtra(
                             Intent.EXTRA_TEXT,
-                            if (short.code.isNotBlank()) {
+                            if (shortReady) {
                                 WatchShortRooms.shareText(short.code, text)
                             } else {
                                 text(R.string.room_share_full_invite, link.orEmpty(), room.invite)
@@ -222,6 +244,16 @@ fun ReadingRoomPanel(
             )
         },
         onQr = { qr = true },
+        onCopy = {
+            activity?.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(
+                ClipData.newPlainText(text(R.string.room_code), short.code),
+            )
+            copied = true
+        },
+        copied = copied,
+        short = short,
+        onApprove = manager.watch.shortRooms::approve,
+        onReject = manager.watch.shortRooms::reject,
         onLeave = { leaving = true },
         onVideo = onVideo,
         onRetry = manager.watch.controller::retryConnection,
@@ -240,6 +272,7 @@ fun ReadingRoomPanel(
                 },
             )
         },
+        socialContent = { eu.kanade.tachiyomi.ui.watch.WatchRoomSocialBar() },
     )
 }
 
@@ -271,13 +304,59 @@ fun ReadingRoomContent(
     onDismissProposal: (ReadingProposal) -> Unit = {},
     onUseCopy: () -> Unit = {},
     onExtensions: () -> Unit = {},
+    short: WatchShortState = WatchShortState(),
+    copied: Boolean = false,
+    onCopy: () -> Unit = {},
+    onApprove: (String) -> Unit = {},
+    onReject: (String) -> Unit = {},
+    socialContent: (@Composable () -> Unit)? = null,
 ) {
     val text = rememberRoomText()
     val colors = MaterialTheme.colorScheme
+    val motion = modernMotionEnabled()
     val interventions = remember(history) {
         history.filter { it.kind in setOf(ReadingEditKind.Stroke, ReadingEditKind.Note) }
     }
     var visibleHistory by rememberSaveable { mutableStateOf(50) }
+    var invite by rememberSaveable { mutableStateOf(false) }
+    var options by rememberSaveable { mutableStateOf(false) }
+    var annotations by rememberSaveable { mutableStateOf(false) }
+    var readingOptions by rememberSaveable { mutableStateOf(false) }
+    if (invite) {
+        RoomLoungeSheet(onDismiss = { invite = false }, title = text(R.string.room_invite_friend)) {
+            if (short.code.isNotBlank()) {
+                WatchLoungeInvite(
+                    short.code,
+                    short.relayCount > 0 && room.relayCount > 0,
+                    copied,
+                    onCopy,
+                    onShare,
+                    onQr,
+                    inviteReady = room.invite.isNotBlank(),
+                )
+            } else {
+                Text(text(R.string.room_lounge_share_hint), color = colors.onSurfaceVariant)
+                Button(onClick = onShare, modifier = Modifier.fillMaxWidth()) { Text(text(R.string.room_invite_room)) }
+                TextButton(onClick = onQr, modifier = Modifier.fillMaxWidth()) { Text(text(R.string.room_qr_title)) }
+            }
+        }
+    }
+    if (options) {
+        RoomLoungeSheet(onDismiss = { options = false }, title = text(R.string.room_options)) {
+            Text(room.status(text), color = colors.onSurfaceVariant)
+            TextButton(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
+                Text(text(R.string.room_retry_connection))
+            }
+            onVideo?.let { action ->
+                TextButton(onClick = action, modifier = Modifier.fillMaxWidth()) {
+                    Text(text(R.string.room_video_controls))
+                }
+            }
+            TextButton(onClick = onLeave, modifier = Modifier.fillMaxWidth()) {
+                Text(if (room.host) text(R.string.room_close) else text(R.string.room_leave), color = colors.error)
+            }
+        }
+    }
     var openedNote by remember { mutableStateOf<ReadingEdit?>(null) }
     openedNote?.let { edit ->
         AlertDialog(
@@ -292,91 +371,130 @@ fun ReadingRoomContent(
         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
-        item {
-            Column(
-                Modifier.fillMaxWidth().background(
-                    Brush.linearGradient(listOf(colors.primaryContainer, colors.surfaceContainer)),
-                    RoundedCornerShape(26.dp),
-                ).padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+        item(key = "reading-lounge-header") {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Icon(Icons.Default.MenuBook, null, Modifier.size(26.dp), tint = colors.onPrimaryContainer)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         text(R.string.room_read),
-                        Modifier.weight(1f),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                     )
-                    IconButton(onClick = onShare) { Icon(Icons.Default.Share, text(R.string.room_invite_room)) }
-                }
-                Text(room.status(text), style = MaterialTheme.typography.labelLarge, color = colors.onPrimaryContainer)
-                if (saveFailed) {
                     Text(
-                        text(R.string.room_reading_save_failed),
-                        color = colors.error,
+                        text(R.string.room_lounge_people, room.members.size),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.onSurfaceVariant,
                     )
                 }
-                if (room.relayCount == 0 ||
-                    !room.connected
-                ) {
-                    TextButton(onClick = onRetry) {
-                        Text(text(R.string.room_retry_connection), color = colors.onPrimaryContainer)
+                FilledTonalButton(onClick = { invite = true }) {
+                    Icon(Icons.Default.PersonAddAlt1, text(R.string.room_invite_friend), Modifier.size(20.dp))
+                }
+                IconButton(onClick = { options = true }) { Icon(Icons.Default.Tune, text(R.string.room_options)) }
+            }
+        }
+        if (saveFailed) item { RoomLoungeNotice(text(R.string.room_reading_save_failed), error = true) }
+        if (room.relayCount == 0 || !room.connected) {
+            item(key = "reading-connection") {
+                RoomLoungeSurface {
+                    Text(
+                        room.status(text),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.onSurfaceVariant,
+                    )
+                    TextButton(onClick = onRetry) { Text(text(R.string.room_retry_connection)) }
+                }
+            }
+        }
+        if (room.host && short.requests.isNotEmpty()) {
+            item(key = "reading-join-requests") {
+                RoomLoungeSurface(accent = true) {
+                    Text(
+                        text(R.string.room_join_requests),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    short.requests.forEach { request ->
+                        Text(request.name, style = MaterialTheme.typography.titleMedium)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(onClick = {
+                                onApprove(request.id)
+                            }, modifier = Modifier.weight(1f)) { Text(text(R.string.room_accept)) }
+                            OutlinedButton(onClick = {
+                                onReject(request.id)
+                            }, modifier = Modifier.weight(1f)) { Text(text(R.string.room_reject)) }
+                        }
                     }
                 }
             }
         }
+        if (socialContent != null) item(key = "reading-conversation") { socialContent() }
         session.selection?.let { selected ->
             item(key = "shared-selection") {
-                Surface(shape = RoundedCornerShape(24.dp), color = colors.surfaceContainerHigh) {
-                    Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text(
-                            text(R.string.room_shared_reading),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = colors.primary,
-                        )
-                        Text(
-                            selected.chapter.title,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            selected.chapter.chapterName,
-                            style = MaterialTheme.typography.bodyMedium,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            color = colors.onSurfaceVariant,
-                        )
-                        if (!room.host) {
-                            Button(
-                                onClick = onReachShared,
-                                enabled = !tools.opening,
-                                modifier = Modifier.fillMaxWidth(),
-                            ) { Text(text(R.string.room_reach_shared)) }
-                            TextButton(
-                                onClick = { onPersonal(!session.personal) },
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                val label = if (session.personal) {
-                                    R.string.room_return_shared
-                                } else {
-                                    R.string.room_read_personally
-                                }
-                                Text(text(label))
+                RoomLoungeSurface {
+                    Text(
+                        text(R.string.room_shared_reading),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = colors.primary,
+                    )
+                    Text(
+                        selected.chapter.title,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        selected.chapter.chapterName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        color = colors.onSurfaceVariant,
+                    )
+                    if (!room.host) {
+                        Button(
+                            onClick = onReachShared,
+                            enabled = !tools.opening,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) { Text(text(R.string.room_reach_shared)) }
+                        Box(Modifier.align(Alignment.CenterHorizontally)) {
+                            TextButton(onClick = { readingOptions = true }) {
+                                Icon(Icons.Default.MoreHoriz, null, Modifier.padding(end = 8.dp).size(18.dp))
+                                Text(text(R.string.room_lounge_reading_options))
                             }
-                            TextButton(onClick = onUseCopy, modifier = Modifier.fillMaxWidth()) {
-                                Text(text(R.string.room_use_my_copy))
+                            DropdownMenu(expanded = readingOptions, onDismissRequest = { readingOptions = false }) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text(
+                                                if (session.personal) {
+                                                    R.string.room_return_shared
+                                                } else {
+                                                    R.string.room_read_personally
+                                                },
+                                            ),
+                                        )
+                                    },
+                                    onClick = {
+                                        readingOptions = false
+                                        onPersonal(!session.personal)
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(text(R.string.room_use_my_copy)) },
+                                    onClick = {
+                                        readingOptions = false
+                                        onUseCopy()
+                                    },
+                                )
                             }
                         }
-                        if (tools.error != null) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                TextButton(onClick = onExtensions) { Text(text(R.string.room_find_extension)) }
-                            }
+                    }
+                    if (tools.error != null) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            TextButton(onClick = onExtensions) { Text(text(R.string.room_find_extension)) }
                         }
                     }
                 }
@@ -490,10 +608,10 @@ fun ReadingRoomContent(
             val position = peer.position
             Card(
                 Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(22.dp),
-                colors = CardDefaults.cardColors(containerColor = colors.surfaceContainer),
+                shape = RoundedCornerShape(26.dp),
+                colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
             ) {
-                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -523,6 +641,23 @@ fun ReadingRoomContent(
                                 },
                                 style = MaterialTheme.typography.labelMedium,
                                 color = colors.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    if (position != null) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = colors.primary.copy(alpha = .1f),
+                            modifier = Modifier.align(Alignment.End).semantics {
+                                contentDescription = text(R.string.room_page_count, position.page + 1, position.pages)
+                            },
+                        ) {
+                            Text(
+                                text(R.string.room_lounge_page_short, position.page + 1, position.pages),
+                                Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.primary,
                             )
                         }
                     }
@@ -559,17 +694,13 @@ fun ReadingRoomContent(
                             )
                             LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
                         }
-                        Text(
-                            text(R.string.room_page_count, position.page + 1, position.pages) +
-                                if (!peer.reading ||
-                                    (!room.connected && !own)
-                                ) {
-                                    text(R.string.room_last_position_suffix)
-                                } else {
-                                    ""
-                                },
-                            style = MaterialTheme.typography.labelLarge,
-                        )
+                        if (!peer.reading && (room.connected || own)) {
+                            Text(
+                                text(R.string.room_last_position),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = colors.onSurfaceVariant,
+                            )
+                        }
                         if (!own) {
                             val same = current?.pageKey == position.pageKey
                             OutlinedButton(
@@ -589,135 +720,178 @@ fun ReadingRoomContent(
                 }
             }
         }
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(
-                    text(R.string.room_leave_mark),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text(R.string.room_drawing_hint),
-                    color = colors.onSurfaceVariant,
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text(R.string.room_show_sketches), Modifier.weight(1f))
-                    Switch(checked = tools.visible, onCheckedChange = onVisible)
-                }
-                if (current !=
-                    null
+        item(key = "reading-annotation-entry") {
+            Surface(onClick = {
+                annotations = !annotations
+            }, shape = RoundedCornerShape(24.dp), color = colors.surfaceContainerLow) {
+                Row(
+                    Modifier.fillMaxWidth().padding(18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = onDraw, enabled = room.supported) {
-                            Icon(Icons.Default.Draw, null)
-                            Text(text(R.string.room_draw), Modifier.padding(start = 8.dp))
-                        }
-                        if (room.crdtEnabled) {
-                            OutlinedButton(onClick = onAddNote) { Text(text(R.string.room_add_note)) }
-                        }
-                    }
-                }
-                Text(
-                    if (room.crdtEnabled) {
-                        text(R.string.room_annotations_hint)
-                    } else {
-                        text(R.string.room_old_drawing)
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.onSurfaceVariant,
-                )
-                Text(
-                    text(R.string.room_page_alignment),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.onSurfaceVariant,
-                )
-            }
-        }
-        if (room.crdtEnabled && interventions.isNotEmpty()) {
-            item {
-                Text(
-                    text(R.string.room_annotations),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-            items(
-                interventions.take(visibleHistory),
-                key = { it.id },
-            ) { edit ->
-                val visible = room.strokes(edit.page).any { it.id == edit.id } ||
-                    room.notes(edit.page).any { it.id == edit.id }
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Column(
-                        Modifier.weight(1f).then(
-                            if (edit.kind ==
-                                ReadingEditKind.Note
-                            ) {
-                                Modifier.clickable { openedNote = edit }
-                            } else {
-                                Modifier
-                            },
-                        ),
-                    ) {
+                    Icon(Icons.Default.Draw, null, tint = colors.primary)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
-                            (
-                                room.members[edit.author]?.name
-                                    ?: if (edit.author ==
-                                        room.localId
-                                    ) {
-                                        text(R.string.room_you)
-                                    } else {
-                                        text(R.string.room_participant)
-                                    }
-                                ) +
-                                " · " +
-                                if (edit.kind ==
-                                    ReadingEditKind.Note
-                                ) {
-                                    edit.note?.text.orEmpty()
-                                } else {
-                                    text(R.string.room_sketch)
-                                },
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
+                            text(R.string.room_lounge_annotations),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
                         )
                         Text(
-                            text(R.string.room_annotation_page, edit.page.chapterName, edit.page.page + 1),
+                            text(R.string.room_lounge_annotations_hint),
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.onSurfaceVariant,
                         )
-                        if (edit.kind == ReadingEditKind.Note) {
-                            Text(
-                                text(R.string.room_read_note),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = colors.primary,
-                            )
-                        }
                     }
-                    if (room.host || edit.author == room.localId) {
-                        TextButton(onClick = { onSharedVisibility(edit, !visible) }) {
-                            Text(if (visible) text(R.string.room_hide) else text(R.string.room_restore))
-                        }
-                    }
-                }
-            }
-            if (interventions.size > visibleHistory) {
-                item {
-                    TextButton(onClick = { visibleHistory += 50 }) { Text(text(R.string.room_more_annotations)) }
+                    Icon(if (annotations) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null)
                 }
             }
         }
-        item {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onChooseManga) { Text(text(R.string.room_other_manga)) }
-                OutlinedButton(onClick = onShare) {
-                    Icon(Icons.Default.Share, null, Modifier.size(18.dp))
-                    Text(text(R.string.room_invite), Modifier.padding(start = 6.dp))
+        if (annotations) {
+            item(key = "reading-annotation-tools") {
+                Column(
+                    Modifier.then(if (motion) Modifier.animateItem() else Modifier),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Text(
+                        text(R.string.room_leave_mark),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text(R.string.room_drawing_hint),
+                        color = colors.onSurfaceVariant,
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text(R.string.room_show_sketches), Modifier.weight(1f))
+                        Switch(checked = tools.visible, onCheckedChange = onVisible)
+                    }
+                    if (current !=
+                        null
+                    ) {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(onClick = onDraw, enabled = room.supported) {
+                                Icon(Icons.Default.Draw, null)
+                                Text(text(R.string.room_draw), Modifier.padding(start = 8.dp))
+                            }
+                            if (room.crdtEnabled) {
+                                OutlinedButton(onClick = onAddNote) { Text(text(R.string.room_add_note)) }
+                            }
+                        }
+                    }
+                    Text(
+                        if (room.crdtEnabled) {
+                            text(R.string.room_annotations_hint)
+                        } else {
+                            text(R.string.room_old_drawing)
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant,
+                    )
+                    Text(
+                        text(R.string.room_page_alignment),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant,
+                    )
                 }
-                TextButton(onClick = onQr) { Text(text(R.string.room_qr_code)) }
-                onVideo?.let { TextButton(onClick = it) { Text(text(R.string.room_video_controls)) } }
-                TextButton(onClick = onLeave) {
-                    Text(if (room.host) text(R.string.room_close_short) else text(R.string.room_leave_short))
+            }
+            if (room.crdtEnabled && interventions.isNotEmpty()) {
+                item(key = "reading-annotation-heading") {
+                    Text(
+                        text(R.string.room_annotations),
+                        modifier = if (motion) Modifier.animateItem() else Modifier,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+                items(
+                    interventions.take(visibleHistory),
+                    key = { it.id },
+                ) { edit ->
+                    val visible = room.strokes(edit.page).any { it.id == edit.id } ||
+                        room.notes(edit.page).any { it.id == edit.id }
+                    Row(
+                        Modifier.fillMaxWidth().then(if (motion) Modifier.animateItem() else Modifier),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(
+                            Modifier.weight(1f).then(
+                                if (edit.kind ==
+                                    ReadingEditKind.Note
+                                ) {
+                                    Modifier.clickable { openedNote = edit }
+                                } else {
+                                    Modifier
+                                },
+                            ),
+                        ) {
+                            Text(
+                                (
+                                    room.members[edit.author]?.name
+                                        ?: if (edit.author ==
+                                            room.localId
+                                        ) {
+                                            text(R.string.room_you)
+                                        } else {
+                                            text(R.string.room_participant)
+                                        }
+                                    ) +
+                                    " · " +
+                                    if (edit.kind ==
+                                        ReadingEditKind.Note
+                                    ) {
+                                        edit.note?.text.orEmpty()
+                                    } else {
+                                        text(R.string.room_sketch)
+                                    },
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text(R.string.room_annotation_page, edit.page.chapterName, edit.page.page + 1),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = colors.onSurfaceVariant,
+                            )
+                            if (edit.kind == ReadingEditKind.Note) {
+                                Text(
+                                    text(R.string.room_read_note),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = colors.primary,
+                                )
+                            }
+                        }
+                        if (room.host || edit.author == room.localId) {
+                            TextButton(onClick = { onSharedVisibility(edit, !visible) }) {
+                                Text(if (visible) text(R.string.room_hide) else text(R.string.room_restore))
+                            }
+                        }
+                    }
+                }
+                if (interventions.size > visibleHistory) {
+                    item {
+                        TextButton(onClick = { visibleHistory += 50 }) { Text(text(R.string.room_more_annotations)) }
+                    }
+                }
+            }
+        }
+        item(key = "reading-room-actions") {
+            Column(
+                Modifier.fillMaxWidth().then(if (motion) Modifier.animateItem() else Modifier),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                FilledTonalButton(onClick = onChooseManga, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Default.MenuBook, null, Modifier.size(18.dp))
+                    Text(text(R.string.room_other_manga), Modifier.padding(start = 8.dp))
+                }
+                onVideo?.let { action ->
+                    TextButton(onClick = action, modifier = Modifier.fillMaxWidth()) {
+                        Text(text(R.string.room_video_controls))
+                    }
+                }
+                TextButton(onClick = onLeave, modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        if (room.host) text(R.string.room_close_short) else text(R.string.room_leave_short),
+                        color = colors.onSurfaceVariant,
+                    )
                 }
             }
         }

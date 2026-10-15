@@ -4,6 +4,73 @@ import eu.kanade.tachiyomi.R
 import kotlin.math.abs
 import kotlin.math.roundToLong
 
+/** The room clock belongs to playback intent, never to a decoder that happens to be buffering. */
+internal class WatchPlaybackTimeline {
+    private var key: String? = null
+    private var position = 0.0
+    private var at = 0L
+    private var moving = false
+    private var speed = 1.0
+
+    fun reset() {
+        key = null
+        position = 0.0
+        at = 0L
+        moving = false
+        speed = 1.0
+    }
+
+    fun bind(mediaKey: String?, localPosition: Double, now: Long) {
+        if (key == mediaKey && key != null) return
+        reset()
+        key = mediaKey
+        position = localPosition.coerceAtLeast(0.0)
+        at = now
+    }
+
+    fun position(now: Long, duration: Double): Double =
+        (position + if (moving) (now - at).coerceAtLeast(0) / 1000.0 * speed else 0.0)
+            .coerceIn(0.0, duration.takeIf { it > 0 } ?: 86_400.0)
+
+    fun update(running: Boolean, value: Double, now: Long) {
+        if (moving == running && speed == value) return
+        position = position(now, 86_400.0)
+        at = now
+        moving = running
+        speed = value
+    }
+
+    fun seek(value: Double, now: Long) {
+        position = value.coerceIn(0.0, 86_400.0)
+        at = now
+    }
+
+    fun speed(value: Double, now: Long) = update(moving, value, now)
+}
+
+/** Provisional manifest durations must settle before an otherwise exact episode is rejected. */
+internal class WatchDurationVerifier {
+    private var value: Triple<String, Double, Double>? = null
+    private var since = 0L
+
+    fun incompatible(local: WatchMedia, remote: WatchMedia, now: Long): Boolean {
+        val next = Triple(local.key + "|" + remote.key, local.duration, remote.duration)
+        if (next != value) {
+            value = next
+            since = now
+        }
+        return local.duration > 0 &&
+            remote.duration > 0 &&
+            now - since >= 3000 &&
+            !local.compatibleDuration(remote)
+    }
+
+    fun reset() {
+        value = null
+        since = 0L
+    }
+}
+
 /** Retains a single shared deadline; every interruption invalidates it before another start is planned. */
 internal class WatchStartGate {
     private var readySince: Long? = null
@@ -35,10 +102,11 @@ internal class WatchPrebufferGate {
     }
 
     fun waiting(enabled: Boolean, firstStart: Boolean, ready: Boolean, now: Long, buffers: List<Int?>): Boolean {
-        if (!enabled || !firstStart || !ready) {
+        if (!enabled || !firstStart) {
             reset()
             return false
         }
+        if (!ready) return false
         val since = waitingSince ?: now.also { waitingSince = it }
         val elapsed = now - since
         return elapsed < MAX_WAIT_MS &&
@@ -82,13 +150,13 @@ internal class WatchDriftCorrector {
         val drift = target - position
         if (paused) {
             reset()
-            return WatchCorrection(if (canSeek && abs(drift) > 4.0) target else null, speed)
+            return WatchCorrection(if (canSeek && abs(drift) > 3.0) target else null, speed)
         }
         val dt = ((previousAt?.let { now - it } ?: 250).coerceIn(1, 1000)) / 1000.0
         val alpha = dt / (0.8 + dt)
         filtered = if (previousAt == null) drift else filtered + alpha * (drift - filtered)
         previousAt = now
-        if (abs(drift) > 4.0) {
+        if (abs(drift) > 3.0) {
             if (largeSince == null) largeSince = now
         } else {
             largeSince = null
@@ -97,8 +165,8 @@ internal class WatchDriftCorrector {
             reset()
             return WatchCorrection(target, speed)
         }
-        if (!adjusting && abs(filtered) > 0.35) adjusting = true
-        if (adjusting && abs(filtered) < 0.12) adjusting = false
+        if (!adjusting && abs(filtered) > 1.0) adjusting = true
+        if (adjusting && abs(filtered) < 0.75) adjusting = false
         val desired = if (adjusting) 1.0 + (filtered * 0.025).coerceIn(-0.03, 0.03) else 1.0
         factor += (desired - factor).coerceIn(-0.012 * dt, 0.012 * dt)
         factor = factor.coerceIn(0.97, 1.03)

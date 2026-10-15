@@ -207,8 +207,10 @@ e un'azione di recupero.
 
 - Episodio scelto dall'host, play/pausa, spostamenti e velocità condivisi.
 - Opzioni dell'host per limitare i controlli e attendere tutti i partecipanti.
-- Attesa della disponibilità, conto alla rovescia comune e pausa coordinata
-  durante il buffering.
+- Timeline comune indipendente dal decoder dell'host. In Continuità il buffering
+  rimane locale; la pausa coordinata richiede «Aspetta tutti».
+- Preparazione iniziale parallela e limitata nel tempo, conto alla rovescia comune
+  e controllo delle durate soltanto quando stabili e conosciute.
 - Correzioni graduali della velocità entro il 3% e riallineamento per scostamenti
   persistenti; i messaggi vecchi non ripristinano posizioni superate.
 - Indicatore centrale animato play/cuore/cerchio, nomi e iniziali dei partecipanti
@@ -222,6 +224,12 @@ e un'azione di recupero.
   ritorno al player e accesso ai dettagli.
 - Servizio e notifica per mantenere la connessione mentre si usa l'app,
   con uscita esplicita dalla stanza.
+- Salotto nativo, chat temporanea cifrata e reazioni disattivabili. Chat e voce
+  sono accessibili anche durante video, manga e TV; il pannello si adatta
+  all'orientamento e i messaggi sopra il video sono facoltativi.
+- Voce WebRTC facoltativa, microfono inizialmente spento e permesso richiesto
+  soltanto per attivarlo. Volume della conversazione separato dal video,
+  comandi di silenziamento e uscita nella notifica. Nessuna condivisione video.
 - Timer scaduto, perdita del focus audio e passaggio in background creano una
   pausa locale protetta: il Play remoto non la rimuove senza una ripresa locale.
 
@@ -231,6 +239,11 @@ una connessione ai relay. Non è P2P puro e non trasferisce il video tra amici.
 I relay possono osservare indirizzi IP, tempi e dimensioni dei messaggi, ma non
 leggere i dati cifrati della stanza. Il codice è una credenziale d'accesso:
 condividerlo significa invitare chi lo riceve.
+
+La chat mantiene al massimo 200 messaggi in memoria ed è esclusa dai backup.
+La voce usa collegamenti diretti e STUN gratuiti: alcune reti possono impedirla,
+senza rendere indisponibili anche chat e visione. I partecipanti vocali possono
+vedere l'indirizzo IP degli altri. Dettagli nella [guida delle stanze](watch-together.md).
 
 La stanza scade dopo 24 ore; l'app non conserva le sue chiavi dopo la chiusura.
 Se l'host scompare, gli ospiti attendono e tentano di riconnettersi: non è previsto

@@ -9,6 +9,36 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 15 ottobre 2026 — 0.47.0.2: Il salotto delle stanze
+
+### Novità
+
+- Nuovo salotto con partecipanti, posti, microfoni e stato di caricamento. Inviti, voce e chat riuniti nella stessa stanza per video, manga e TV.
+- Chat temporanea cifrata, reazioni disattivabili e pannello adattato a verticale e orizzontale. La bozza rimane quando chiudi il pannello; la lettura dei messaggi precedenti non viene interrotta dai nuovi arrivi.
+- Voce facoltativa con microfono inizialmente spento, volume separato e comandi nella notifica. Nessuna videocamera, registrazione o condivisione del video: ciascuno mantiene il proprio streaming.
+- Link HTTPS apribili con Nyanime, con codice di otto cifre e download dell’app come alternative. QR e inviti precedenti rimangono compatibili.
+- Un solo accesso alla stanza nel player apre direttamente la conversazione, con microfono e opzioni nella testata. Partecipanti e inviti si raggiungono dalla stessa riga; bozza e posizione della chat restano disponibili alla riapertura. Il pannello lascia più spazio al video e non lo oscura. I messaggi sopra il video sono facoltativi e inizialmente disattivati.
+
+### Correzioni
+
+- Corretto il crash entrando in voce o attivando il microfono nelle build ottimizzate; le classi JNI sono conservate e controllate nell’APK finale.
+- I frame silenziosi della voce rispettano il tempo reale anche senza acquisire il microfono, evitando invii incontrollati e arresti nel motore audio.
+- Attivare il microfono non imposta più la modalità telefonata: video e voce conservano l'uscita multimediale scelta in Android, senza passare all'auricolare superiore.
+- Corretto il doppio riquadro della stanza nella Home dopo il ripristino Android; un solo contenitore gestisce stanza e Cast.
+- Un nuovo invito o un errore del collegamento resta visibile anche quando la stanza è in modalità lettura.
+- In orizzontale la chat resta utilizzabile con la tastiera aperta, senza sottrarre due volte lo spazio dei comandi.
+- Corretti backup e sincronizzazione Telegram che potevano restare in attesa con archivi grandi: le risposte non vengono più perse nel trasporto tra processi Android.
+- In Continuità il buffering resta locale, anche per l’host. «Aspetta tutti» rimane una scelta esplicita; timer e pause locali di sicurezza non vengono annullati dai comandi remoti.
+- La timeline comune non segue più gli arresti del decoder dell’host. Durate ancora sconosciute o instabili non vengono presentate subito come edizioni diverse.
+- Invii offline con tentativi limitati, conferme e riprova senza duplicati. Espulsioni e nuove sessioni vocali aggiornano destinatari e chiavi, ignorando messaggi e callback ormai superati.
+- Corretto il salvataggio Android della navigazione nelle impostazioni del player, evitando chiusure durante il ripristino della schermata.
+
+### Prestazioni
+
+- Correzioni graduali dei piccoli scarti e riallineamenti locali con attesa minima fra i seek, per ridurre le interruzioni della visione.
+- Preparazione iniziale parallela e limitata nel tempo, senza moltiplicare l’attesa per il numero di partecipanti.
+- Motore vocale caricato soltanto entrando in voce; i collegamenti sani vengono mantenuti mentre si recupera quello guasto. Chat limitata a 200 messaggi, esclusa dai backup e cancellata all’uscita.
+
 ## 15 ottobre 2026 — 0.45.0.1: Estensioni installate o importate
 
 ### Novità

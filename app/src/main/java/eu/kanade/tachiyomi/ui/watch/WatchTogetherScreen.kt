@@ -12,15 +12,16 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -28,21 +29,24 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.PersonAddAlt1
+import androidx.compose.material.icons.filled.PersonOutline
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -51,7 +55,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -66,13 +70,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import eu.kanade.presentation.motion.ModernMotion
 import eu.kanade.presentation.motion.modernMotionEnabled
 import eu.kanade.presentation.player.components.PlayerSheet
 import eu.kanade.presentation.theme.TachiyomiTheme
@@ -86,7 +90,6 @@ import eu.kanade.tachiyomi.data.watch.WatchRoomState
 import eu.kanade.tachiyomi.data.watch.WatchShortRooms
 import eu.kanade.tachiyomi.data.watch.WatchShortState
 import eu.kanade.tachiyomi.data.watch.WatchTogetherManager
-import eu.kanade.tachiyomi.data.watch.description
 import eu.kanade.tachiyomi.data.watch.roomMessage
 import eu.kanade.tachiyomi.ui.base.activity.BaseActivity
 
@@ -131,10 +134,13 @@ class WatchTogetherActivity : BaseActivity() {
         setContent {
             TachiyomiTheme {
                 val text = rememberRoomText()
+                val room by WatchTogetherManager.get(this@WatchTogetherActivity).controller.state.collectAsState()
                 Scaffold(
                     topBar = {
                         TopAppBar(
-                            title = { Text(text(R.string.room_title)) },
+                            title = {
+                                Text(text(if (room.active) R.string.room_lounge_title else R.string.room_watch))
+                            },
                             navigationIcon = {
                                 IconButton(onClick = ::finish) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, text(R.string.room_back))
@@ -158,6 +164,7 @@ class WatchTogetherActivity : BaseActivity() {
                             },
                             incomingCode = incomingCode,
                             inviteError = inviteError,
+                            showHeading = false,
                             onInviteConsumed = {
                                 incomingCode = ""
                                 inviteError = null
@@ -193,6 +200,7 @@ fun WatchTogetherPanel(
     onChooseVideo: () -> Unit,
     incomingCode: String = "",
     inviteError: String? = null,
+    showHeading: Boolean = true,
     onInviteConsumed: () -> Unit = {},
 ) {
     val text = rememberRoomText()
@@ -206,8 +214,17 @@ fun WatchTogetherPanel(
     val recoverable by manager.recoverable.collectAsState()
     val saveFailed by manager.roomSaveFailed.collectAsState()
     var showQr by remember { mutableStateOf(false) }
-    val invitationLink = remember(short.code) {
-        runCatching { WatchShortRooms.link(short.code) }.getOrNull()
+    val shortReady = short.code.isNotBlank() && short.relayCount > 0 && room.relayCount > 0
+    val invitationLink = remember(short.code, shortReady, room.invite) {
+        runCatching {
+            if (shortReady) {
+                WatchShortRooms.link(
+                    short.code,
+                )
+            } else {
+                WatchInvite.parse(room.invite, System.currentTimeMillis()).link()
+            }
+        }.getOrNull()
     }
     if (showQr && room.active && invitationLink != null) {
         WatchQrDialog(invitationLink) { showQr = false }
@@ -225,7 +242,10 @@ fun WatchTogetherPanel(
         onDispose {}
     }
     var readingPanel by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(room.sharedReadingMode) { readingPanel = room.sharedReadingMode }
+    val incomingRoom = incomingCode.isNotBlank() && incomingCode != room.invite && incomingCode != short.code
+    LaunchedEffect(room.sharedReadingMode, incomingCode, inviteError) {
+        readingPanel = room.sharedReadingMode && !incomingRoom && inviteError == null
+    }
     if (readingPanel && room.active) {
         eu.kanade.tachiyomi.ui.reading.ReadingRoomPanel(
             manager = eu.kanade.tachiyomi.data.reading.ReadingTogetherManager.get(context),
@@ -242,7 +262,9 @@ fun WatchTogetherPanel(
         return
     }
     WatchTogetherContent(
-        room = room, liveChannel = live.selection?.name, short = short, opening = opening, name = name, onName = {
+        room = room, liveChannel = live.selection?.name, short = short, opening = opening, name = name,
+        showHeading = showHeading,
+        onName = {
             name =
                 it.take(32)
         },
@@ -282,10 +304,20 @@ fun WatchTogetherPanel(
         },
         copied = copied,
         onShare = {
-            if (short.code.isNotBlank() && short.relayCount > 0 && room.relayCount > 0) {
+            if (invitationLink != null) {
                 val intent = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
-                    putExtra(Intent.EXTRA_TEXT, WatchShortRooms.shareText(short.code, text))
+                    putExtra(
+                        Intent.EXTRA_TEXT,
+                        if (shortReady) {
+                            WatchShortRooms.shareText(
+                                short.code,
+                                text,
+                            )
+                        } else {
+                            text(R.string.room_share_full_invite, invitationLink, room.invite)
+                        },
+                    )
                 }
                 context.startActivity(Intent.createChooser(intent, text(R.string.room_invite_friend)))
             }
@@ -308,6 +340,7 @@ fun WatchTogetherPanel(
         onSharedControls = manager.controller::setSharedControls,
         onWaitForEveryone = manager.controller::setWaitForEveryone,
         onPrebufferOnStart = manager.controller::setPrebufferOnStart,
+        socialContent = { WatchRoomSocialBar(includeLounge = true) },
         onChooseVideo = onChooseVideo,
         onOpenPlayer = if (context is eu.kanade.tachiyomi.ui.player.PlayerActivity) {
             null
@@ -317,7 +350,8 @@ fun WatchTogetherPanel(
     )
 }
 
-/** Pure UI so phone, landscape and large-text layouts can be verified without a running player. */
+/** One room surface, shared by the lobby and player; transport details live in its options. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WatchTogetherContent(
     room: WatchRoomState,
@@ -356,196 +390,279 @@ fun WatchTogetherContent(
     onResumeRoom: () -> Boolean = { false },
     onDiscardRoom: () -> Unit = {},
     liveChannel: String? = null,
+    showHeading: Boolean = true,
+    socialContent: @Composable () -> Unit = { WatchLounge(room.members) },
 ) {
     val text = rememberRoomText()
+    val colors = MaterialTheme.colorScheme
+    val motion = modernMotionEnabled()
     var joining by rememberSaveable { mutableStateOf(false) }
     var editingName by rememberSaveable { mutableStateOf(false) }
     var code by remember { mutableStateOf("") }
+    var options by rememberSaveable { mutableStateOf(false) }
+    var invite by rememberSaveable { mutableStateOf(false) }
+    var leaving by rememberSaveable { mutableStateOf(false) }
+    var resumeError by remember { mutableStateOf(false) }
     LaunchedEffect(incomingCode) {
         if (incomingCode.isNotBlank()) {
             code = incomingCode
             joining = true
         }
     }
-    var options by rememberSaveable { mutableStateOf(false) }
-    var resumeError by remember { mutableStateOf(false) }
-    val colors = MaterialTheme.colorScheme
-    val motionDuration = if (modernMotionEnabled()) 180 else 0
-    Column(
-        Modifier.widthIn(max = 560.dp).fillMaxWidth().imePadding().verticalScroll(rememberScrollState()).padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Box(
-                Modifier.size(56.dp).background(
-                    Brush.linearGradient(listOf(colors.primary, colors.tertiary)),
-                    RoundedCornerShape(18.dp),
-                ),
-                contentAlignment = Alignment.Center,
-            ) { Icon(Icons.Default.Group, null, Modifier.size(30.dp), tint = colors.onPrimary) }
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text(R.string.room_watch),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    if (room.active) text(R.string.room_your_room) else text(R.string.room_intro),
-                    color = colors.onSurfaceVariant,
-                )
-            }
+    LaunchedEffect(room.active) {
+        if (!room.active) {
+            options = false
+            invite = false
+            leaving = false
         }
-        if (inviteError != null) Text(inviteError, color = colors.error)
-        if (room.active && saveFailed) {
-            Text(
-                text(R.string.room_save_pending),
-                color = colors.error,
+    }
+    if (room.active && invite) {
+        RoomLoungeSheet(onDismiss = { invite = false }, title = text(R.string.room_invite_friend)) {
+            WatchLoungeInvite(
+                short.code,
+                short.relayCount > 0 && room.relayCount > 0,
+                copied,
+                onCopy,
+                onShare,
+                onQr,
+                inviteReady = room.invite.isNotBlank(),
             )
         }
+    }
+    if (room.active && options) {
+        RoomLoungeSheet(onDismiss = { options = false }, title = text(R.string.room_options)) {
+            if (room.host && !room.liveMode) {
+                RoomLoungeOption(
+                    text(R.string.room_shared_controls),
+                    text(R.string.room_lounge_shared_hint),
+                    room.sharedControls,
+                    onSharedControls,
+                )
+                RoomLoungeOption(
+                    text(R.string.room_lounge_wait_title),
+                    text(R.string.room_lounge_wait_hint),
+                    room.waitForEveryone,
+                    onWaitForEveryone,
+                )
+                RoomLoungeOption(
+                    text(R.string.room_prebuffer),
+                    text(R.string.room_prebuffer_hint),
+                    room.prebufferOnStart,
+                    onPrebufferOnStart,
+                )
+                HorizontalDivider(Modifier.padding(vertical = 4.dp))
+            }
+            Text(
+                text(R.string.room_lounge_connection),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text(R.string.room_connections, room.relayCount) +
+                    (room.latencyMs?.let { text(R.string.room_latency, it) } ?: ""),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.onSurfaceVariant,
+            )
+            TextButton(onClick = onResync, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Default.Refresh, null, Modifier.padding(end = 8.dp).size(18.dp))
+                Text(text(R.string.room_resync))
+            }
+            TextButton(onClick = { leaving = true }, modifier = Modifier.fillMaxWidth()) {
+                Text(if (room.host) text(R.string.room_close) else text(R.string.room_leave), color = colors.error)
+            }
+        }
+    }
+    if (leaving && room.active) {
+        AlertDialog(
+            onDismissRequest = { leaving = false },
+            title = { Text(if (room.host) text(R.string.room_close) else text(R.string.room_leave)) },
+            text = {
+                Text(text(if (room.host) R.string.room_lounge_close_hint else R.string.room_lounge_leave_hint))
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    leaving = false
+                    onLeave()
+                }) {
+                    Text(if (room.host) text(R.string.room_close) else text(R.string.room_leave), color = colors.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { leaving = false }) { Text(text(R.string.room_cancel)) }
+            },
+        )
+    }
+    Column(
+        Modifier.widthIn(max = 600.dp).fillMaxWidth().imePadding()
+            .verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+    ) {
+        if (inviteError != null) RoomLoungeNotice(inviteError, error = true)
+        if (room.active && saveFailed) RoomLoungeNotice(text(R.string.room_save_pending), error = true)
         if (room.active && incomingCode.isNotBlank() && incomingCode != room.invite && incomingCode != short.code) {
-            Card {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(text(R.string.room_another_invite), style = MaterialTheme.typography.titleMedium)
-                    Text(text(R.string.room_switch_hint), color = colors.onSurfaceVariant)
-                    Button(onClick = { onJoin(incomingCode) }) { Text(text(R.string.room_switch)) }
+            RoomLoungeSurface {
+                Text(text(R.string.room_another_invite), style = MaterialTheme.typography.titleMedium)
+                Text(text(R.string.room_switch_hint), color = colors.onSurfaceVariant)
+                Button(onClick = { onJoin(incomingCode) }, modifier = Modifier.fillMaxWidth()) {
+                    Text(text(R.string.room_switch))
                 }
             }
         }
         if (!room.active) {
+            RoomLoungeWelcome(showHeading)
             if (short.waiting) {
-                Card(
-                    shape = RoundedCornerShape(22.dp),
-                    colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerHigh),
-                ) {
-                    Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(
-                            text(R.string.room_confirmation),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            short.code,
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontFamily = FontFamily.Monospace,
-                        )
-                        LinearProgressIndicator(Modifier.fillMaxWidth())
-                        Text(
-                            if (short.relayCount > 0) {
-                                text(R.string.room_request_sent)
-                            } else {
-                                short.message
-                            },
-                            color = colors.onSurfaceVariant,
-                        )
-                        TextButton(onClick = onCancelShort) { Text(text(R.string.room_cancel)) }
+                RoomLoungeSurface {
+                    Text(
+                        text(R.string.room_confirmation),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        short.code.chunked(4).joinToString(" "),
+                        fontFamily = FontFamily.Monospace,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    LinearProgressIndicator(Modifier.fillMaxWidth().padding(vertical = 8.dp))
+                    Text(
+                        if (short.relayCount > 0) text(R.string.room_request_sent) else short.message,
+                        color = colors.onSurfaceVariant,
+                    )
+                    TextButton(onClick = onCancelShort, modifier = Modifier.fillMaxWidth()) {
+                        Text(text(R.string.room_cancel))
                     }
                 }
-            }
-            if (!short.waiting && recoverable) {
-                Card(shape = RoundedCornerShape(22.dp)) {
-                    Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text(
-                            text(R.string.room_resume_room),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(text(R.string.room_previous_session), color = colors.onSurfaceVariant)
+            } else {
+                if (recoverable) {
+                    RoomLoungeSurface {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Icon(Icons.Default.History, null, tint = colors.primary)
+                            Column(Modifier.weight(1f)) {
+                                Text(text(R.string.room_resume_room), style = MaterialTheme.typography.titleMedium)
+                                Text(
+                                    text(R.string.room_previous_session),
+                                    color = colors.onSurfaceVariant,
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                        }
                         Button(onClick = { resumeError = !onResumeRoom() }, modifier = Modifier.fillMaxWidth()) {
                             Text(text(R.string.room_rejoin))
                         }
-                        TextButton(onClick = onDiscardRoom) { Text(text(R.string.room_discard_session)) }
-                        if (resumeError) {
-                            Text(text(R.string.room_rejoin_failed), color = colors.error)
+                        TextButton(onClick = onDiscardRoom, modifier = Modifier.fillMaxWidth()) {
+                            Text(text(R.string.room_discard_session))
                         }
+                        if (resumeError) Text(text(R.string.room_rejoin_failed), color = colors.error)
                     }
                 }
-            }
-            if (!short.waiting) {
                 if (room.message.isNotBlank()) {
-                    Text(
-                        room.message,
-                        color = if (room.phase ==
-                            WatchPhase.Failed
-                        ) {
-                            colors.error
-                        } else {
-                            colors.onSurfaceVariant
-                        },
-                    )
+                    RoomLoungeNotice(room.message, error = room.phase == WatchPhase.Failed)
                 }
-                Card(
-                    shape = RoundedCornerShape(22.dp),
-                    colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerHigh),
-                ) {
-                    Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Text(
-                            if (joining) text(R.string.room_join_title) else text(R.string.room_create_title),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            if (joining) {
-                                text(R.string.room_enter_code)
-                            } else {
-                                text(R.string.room_create_hint)
-                            },
-                            color = colors.onSurfaceVariant,
-                        )
-                        AnimatedVisibility(
-                            visible = joining,
-                            enter = fadeIn(tween(motionDuration)),
-                            exit = fadeOut(tween(motionDuration)),
-                        ) {
-                            OutlinedTextField(
-                                value = code,
-                                onValueChange = { code = WatchShortRooms.normalizeInput(it) },
-                                modifier = Modifier.fillMaxWidth(),
-                                label = {
-                                    Text(
+                RoomLoungeSurface {
+                    RoomLoungeEntrySelector(joining, onSelect = { joining = it })
+                    Text(
+                        if (joining) text(R.string.room_enter_code) else text(R.string.room_create_hint),
+                        color = colors.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    AnimatedVisibility(
+                        joining,
+                        enter = ModernMotion.enter(if (motion) 180 else 0),
+                        exit = fadeOut(tween(if (motion) 120 else 0)),
+                    ) {
+                        OutlinedTextField(
+                            value = code,
+                            onValueChange = { code = WatchShortRooms.normalizeInput(it) },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = {
+                                Text(
+                                    text(
                                         if (code.length >
                                             8
                                         ) {
-                                            text(R.string.room_received_invite)
+                                            R.string.room_received_invite
                                         } else {
-                                            text(R.string.room_eight_digit_code)
+                                            R.string.room_eight_digit_code
                                         },
-                                    )
+                                    ),
+                                )
+                            },
+                            singleLine = true,
+                            textStyle = if (code.length <=
+                                8
+                            ) {
+                                MaterialTheme.typography.headlineSmall.copy(fontFamily = FontFamily.Monospace)
+                            } else {
+                                MaterialTheme.typography.bodyLarge
+                            },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = if (code.length >
+                                    8
+                                ) {
+                                    KeyboardType.Text
+                                } else {
+                                    KeyboardType.Number
                                 },
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(
-                                    keyboardType = if (code.length > 8) KeyboardType.Text else KeyboardType.Number,
-                                ),
-                                shape = RoundedCornerShape(14.dp),
-                            )
-                        }
-                        val canJoin = code.matches(Regex("[0-9]{8}")) ||
-                            runCatching { WatchInvite.parse(code, System.currentTimeMillis()) }.isSuccess
-                        Button(
-                            onClick = { if (joining) onJoin(code) else onCreate() },
-                            enabled = !joining || canJoin,
-                            modifier = Modifier.fillMaxWidth().height(52.dp),
-                            shape = RoundedCornerShape(14.dp),
-                        ) { Text(if (joining) text(R.string.room_request_join) else text(R.string.room_create)) }
-                        TextButton(onClick = { joining = !joining }, modifier = Modifier.fillMaxWidth()) {
-                            Text(if (joining) text(R.string.room_create_instead) else text(R.string.room_have_code))
-                        }
+                            ),
+                            shape = RoundedCornerShape(18.dp),
+                        )
+                    }
+                    val canJoin = code.matches(Regex("[0-9]{8}")) ||
+                        runCatching { WatchInvite.parse(code, System.currentTimeMillis()) }.isSuccess
+                    Button(
+                        onClick = { if (joining) onJoin(code) else onCreate() },
+                        enabled = !joining || canJoin,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp),
+                        shape = RoundedCornerShape(18.dp),
+                    ) {
+                        Icon(
+                            if (joining) Icons.AutoMirrored.Filled.Login else Icons.Default.Add,
+                            null,
+                            Modifier.padding(end = 8.dp).size(20.dp),
+                        )
+                        Text(if (joining) text(R.string.room_request_join) else text(R.string.room_create))
                     }
                 }
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text(R.string.room_name_label, name.ifBlank { text(R.string.room_viewer) }),
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.onSurfaceVariant,
-                    )
-                    TextButton(onClick = { editingName = !editingName }) {
-                        Text(if (editingName) text(R.string.room_done) else text(R.string.room_edit))
+                Surface(
+                    onClick = { editingName = !editingName },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    color = colors.surfaceContainerLow,
+                ) {
+                    Row(
+                        Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Icon(Icons.Default.PersonOutline, null, tint = colors.onSurfaceVariant)
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                text(R.string.room_your_name),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = colors.onSurfaceVariant,
+                            )
+                            Text(
+                                name.ifBlank {
+                                    text(R.string.room_viewer)
+                                },
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                        }
+                        Icon(
+                            Icons.Default.Edit,
+                            text(R.string.room_edit),
+                            Modifier.size(18.dp),
+                            tint = colors.onSurfaceVariant,
+                        )
                     }
                 }
                 AnimatedVisibility(
                     editingName,
-                    enter = fadeIn(tween(motionDuration)),
-                    exit = fadeOut(tween(motionDuration)),
+                    enter = fadeIn(tween(if (motion) 180 else 0)),
+                    exit = fadeOut(tween(if (motion) 120 else 0)),
                 ) {
                     OutlinedTextField(
                         value = name,
@@ -553,308 +670,114 @@ fun WatchTogetherContent(
                         modifier = Modifier.fillMaxWidth(),
                         label = { Text(text(R.string.room_your_name)) },
                         singleLine = true,
-                        shape = RoundedCornerShape(14.dp),
+                        trailingIcon = {
+                            IconButton(onClick = {
+                                editingName = false
+                            }) { Icon(Icons.Default.Check, text(R.string.room_done)) }
+                        },
+                        shape = RoundedCornerShape(18.dp),
                     )
                 }
             }
         } else {
-            if (room.host && short.code.isNotBlank()) {
-                val invitationsReady = short.relayCount > 0 && room.relayCount > 0
-                Card(
-                    shape = RoundedCornerShape(22.dp),
-                    colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerHigh),
-                ) {
-                    Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text(R.string.room_invite_friend),
-                                Modifier.weight(1f),
-                                style = MaterialTheme.typography.titleMedium,
-                            )
-                            TextButton(onClick = onQr, enabled = invitationsReady) { Text("QR") }
-                        }
-                        SelectionContainer {
-                            Text(
-                                short.code,
-                                fontFamily = FontFamily.Monospace,
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                            )
-                        }
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Column(Modifier.weight(1f)) {
+                    if (showHeading) {
                         Text(
-                            when {
-                                invitationsReady -> text(R.string.room_temporary_code)
-                                room.relayCount == 0 -> room.message
-                                else -> short.message
-                            },
-                            color = colors.onSurfaceVariant,
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            OutlinedButton(
-                                onClick = onCopy,
-                                enabled = invitationsReady,
-                                modifier = Modifier.weight(1f),
-                            ) {
-                                Icon(
-                                    if (copied) Icons.Default.CheckCircle else Icons.Default.ContentCopy,
-                                    null,
-                                    Modifier.size(18.dp),
-                                )
-                                Text(if (copied) text(R.string.room_copied) else text(R.string.room_copy))
-                            }
-                            Button(onClick = onShare, enabled = invitationsReady, modifier = Modifier.weight(1f)) {
-                                Icon(Icons.Default.Share, null, Modifier.size(18.dp))
-                                Text(text(R.string.room_share))
-                            }
-                        }
-                    }
-                }
-            }
-            if (room.host && short.requests.isNotEmpty()) {
-                Card(shape = RoundedCornerShape(22.dp)) {
-                    Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(
-                            text(R.string.room_join_requests),
-                            style = MaterialTheme.typography.titleMedium,
+                            text(R.string.room_lounge_title),
+                            style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                         )
-                        short.requests.forEach { request ->
-                            Text("${request.name} · ${request.id.takeLast(6)}")
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Button(onClick = { onApproveShort(request.id) }) { Text(text(R.string.room_accept)) }
+                    }
+                    Text(
+                        text(R.string.room_lounge_people, room.members.size),
+                        color = colors.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                if (room.host) {
+                    FilledTonalButton(onClick = {
+                        invite = true
+                    }, contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)) {
+                        Icon(Icons.Default.PersonAddAlt1, text(R.string.room_invite_friend), Modifier.size(20.dp))
+                        if (LocalDensity.current.fontScale <= 1.3f) {
+                            Text(text(R.string.room_lounge_invite), Modifier.padding(start = 8.dp))
+                        }
+                    }
+                }
+                IconButton(onClick = { options = true }) { Icon(Icons.Default.Tune, text(R.string.room_options)) }
+            }
+            if (room.host && short.requests.isNotEmpty()) {
+                RoomLoungeSurface(accent = true) {
+                    Text(
+                        text(R.string.room_join_requests),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    short.requests.forEach { request ->
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(request.name, style = MaterialTheme.typography.titleMedium)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Button(onClick = {
+                                    onApproveShort(request.id)
+                                }, modifier = Modifier.weight(1f)) { Text(text(R.string.room_accept)) }
                                 OutlinedButton(onClick = {
                                     onRejectShort(request.id)
-                                }) { Text(text(R.string.room_reject)) }
+                                }, modifier = Modifier.weight(1f)) { Text(text(R.string.room_reject)) }
                             }
                         }
                     }
                 }
             }
-            OutlinedButton(onClick = onRead, modifier = Modifier.fillMaxWidth()) {
-                Text(text(R.string.room_read))
-            }
-            Card(
-                colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerHigh),
-                shape = RoundedCornerShape(20.dp),
-            ) {
-                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        liveChannel ?: room.media?.title
-                            ?: if (room.host) text(R.string.room_choose_watch) else text(R.string.room_friend_choosing),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    room.media?.episode?.takeIf { it.isNotBlank() }?.let { Text(it, color = colors.onSurfaceVariant) }
-                    if (opening.loading ||
-                        room.preparingPlayback ||
-                        room.phase in listOf(WatchPhase.Connecting, WatchPhase.Reconnecting, WatchPhase.Buffering)
-                    ) {
-                        LinearProgressIndicator(Modifier.fillMaxWidth().padding(vertical = 4.dp))
-                    }
-                    Text(
-                        opening.error ?: when {
-                            opening.loading -> text(R.string.room_opening_episode)
-                            room.preparingPlayback -> room.playbackPreparationMessage(text)
-                            room.host && room.relayCount > 0 && short.relayCount == 0 -> text(
-                                R.string.room_preparing_invites,
-                            )
-                            else -> room.message
-                        },
-                        color = if (opening.error != null) colors.error else colors.onSurfaceVariant,
-                    )
-                    if (opening.error != null) {
-                        TextButton(
-                            onClick = if (opening.problem ==
-                                WatchProblem.MissingSource
-                            ) {
-                                onExtensions
-                            } else {
-                                onResync
-                            },
-                        ) {
-                            Text(
-                                if (opening.problem ==
-                                    WatchProblem.MissingSource
-                                ) {
-                                    text(R.string.room_open_extensions)
-                                } else {
-                                    text(R.string.room_retry)
-                                },
-                            )
-                        }
-                    }
-                    if (room.host &&
-                        room.media == null &&
-                        !room.liveMode
-                    ) {
-                        Button(onClick = onChooseVideo) { Text(text(R.string.room_choose_video)) }
-                    }
-                    if ((room.media != null || room.liveMode) && onOpenPlayer != null) {
-                        OutlinedButton(onClick = onOpenPlayer, enabled = !opening.loading) {
-                            Text(text(R.string.room_open_player))
-                        }
-                    }
-                }
-            }
-            if (room.members.isNotEmpty()) {
-                Text(text(R.string.room_member_count, room.members.size), style = MaterialTheme.typography.titleSmall)
-                room.members.forEachIndexed { index, member ->
-                    val participant: @Composable (Modifier) -> Unit = { nameModifier ->
-                        Text(member.name + if (index == 0) " · Host" else "", nameModifier)
-                    }
-                    val status: @Composable () -> Unit = {
-                        Text(
-                            if (member.observer) {
-                                text(R.string.playback_observing_short)
-                            } else if (member.problem != WatchProblem.None) {
-                                member.problem.description(text)
-                            } else if (member.buffering) {
-                                text(R.string.room_loading)
-                            } else if (room.prebuffering && member.ready) {
-                                member.bufferedAheadSeconds?.let {
-                                    text(R.string.room_buffered, it.coerceAtMost(15))
-                                } ?: text(R.string.room_prebuffering)
-                            } else if (member.reading) {
-                                text(R.string.room_reading)
-                            } else if (member.ready && member.positionSeconds != null) {
-                                val seconds = member.positionSeconds.toInt().coerceAtLeast(0)
-                                text(
-                                    R.string.room_watch_position,
-                                    "${seconds / 60}:${(seconds % 60).toString().padStart(2, '0')}",
-                                )
-                            } else if (member.ready) {
-                                text(R.string.room_ready)
-                            } else {
-                                text(R.string.room_waiting)
-                            },
-                            style = MaterialTheme.typography.labelMedium,
-                            color = if (member.ready && !member.buffering) colors.primary else colors.onSurfaceVariant,
-                        )
-                    }
-                    if (member.problem != WatchProblem.None || LocalDensity.current.fontScale > 1.3f) {
-                        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            participant(Modifier)
-                            status()
-                        }
-                    } else {
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            participant(Modifier.weight(1f).padding(end = 12.dp))
-                            status()
-                        }
-                    }
-                }
-            }
+            RoomLoungeNowPlaying(
+                room = room,
+                opening = opening,
+                liveChannel = liveChannel,
+                onChooseVideo = onChooseVideo,
+                onOpenPlayer = onOpenPlayer,
+                onTogglePlayback = onTogglePlayback,
+                onRetry = if (opening.problem == WatchProblem.MissingSource) onExtensions else onResync,
+            )
+            socialContent()
             WatchRoomCues(room, onSkip, onCancelSkip, onNext, onCancelNext)
             if (preparation.error != null) {
-                Text(text(R.string.room_next_error, preparation.error), color = colors.error)
-                TextButton(
-                    onClick = if (preparation.problem ==
-                        WatchProblem.MissingSource
-                    ) {
-                        onExtensions
-                    } else {
-                        onResync
-                    },
-                ) {
-                    Text(
-                        if (preparation.problem ==
+                RoomLoungeSurface {
+                    Text(text(R.string.room_next_error, preparation.error), color = colors.error)
+                    TextButton(
+                        onClick = if (preparation.problem ==
                             WatchProblem.MissingSource
                         ) {
-                            text(R.string.room_open_extensions)
+                            onExtensions
                         } else {
-                            text(R.string.room_retry_preparation)
+                            onResync
                         },
-                    )
-                }
-            }
-            if (room.media != null && (room.sharedControls || room.host || room.localHold)) {
-                Button(
-                    onClick = onTogglePlayback,
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    enabled =
-                    room.phase !in listOf(
-                        WatchPhase.Connecting,
-                        WatchPhase.Reconnecting,
-                        WatchPhase.DifferentVideo,
-                    ),
-                    shape = RoundedCornerShape(14.dp),
-                ) {
-                    Icon(
-                        if (room.wantsPlayback &&
-                            !room.localHold
-                        ) {
-                            Icons.Default.Pause
-                        } else {
-                            Icons.Default.PlayArrow
-                        },
-                        null,
-                    )
-                    Text(
-                        when {
-                            !room.sharedControls && !room.host -> text(R.string.room_return_watch)
-                            room.wantsPlayback && !room.localHold -> text(R.string.room_pause_all)
-                            else -> text(R.string.room_resume_together)
-                        },
-                    )
-                }
-            }
-            if (!room.liveMode) {
-                TextButton(onClick = {
-                    options = !options
-                }) { Text(if (options) text(R.string.room_hide_options) else text(R.string.room_options)) }
-            }
-            AnimatedVisibility(
-                options && !room.liveMode,
-                enter = fadeIn(tween(motionDuration)),
-                exit = fadeOut(tween(motionDuration)),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    if (room.host) {
-                        WatchOption(text(R.string.room_shared_controls), room.sharedControls, onSharedControls)
-                        WatchOption(text(R.string.room_wait_for_everyone), room.waitForEveryone, onWaitForEveryone)
-                        WatchOption(text(R.string.room_prebuffer), room.prebufferOnStart, onPrebufferOnStart)
-                        if (room.prebufferOnStart) {
-                            Text(
-                                text(R.string.room_prebuffer_hint),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = colors.onSurfaceVariant,
-                            )
-                        }
-                        if (!room.waitForEveryone) {
-                            Text(
-                                text(R.string.room_buffer_grace_hint),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = colors.onSurfaceVariant,
-                            )
-                        }
+                    ) {
+                        Text(
+                            text(
+                                if (preparation.problem ==
+                                    WatchProblem.MissingSource
+                                ) {
+                                    R.string.room_open_extensions
+                                } else {
+                                    R.string.room_retry_preparation
+                                },
+                            ),
+                        )
                     }
-                    Text(
-                        text(R.string.room_connections, room.relayCount) +
-                            (room.latencyMs?.let { text(R.string.room_latency, it) } ?: ""),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.onSurfaceVariant,
-                    )
-                    TextButton(onClick = onResync) { Text(text(R.string.room_resync)) }
                 }
             }
-            HorizontalDivider()
-            TextButton(onClick = onLeave, modifier = Modifier.fillMaxWidth()) {
-                Text(if (room.host) text(R.string.room_close) else text(R.string.room_leave), color = colors.error)
+            RoomLoungeMediaActions(onChooseVideo = onChooseVideo, onRead = onRead, host = room.host)
+            if (!room.host) {
+                TextButton(onClick = { leaving = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text(text(R.string.room_leave), color = colors.onSurfaceVariant)
+                }
             }
         }
-        Spacer(Modifier.height(4.dp))
-    }
-}
-
-@Composable
-private fun WatchOption(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, Modifier.weight(1f))
-        Switch(checked = checked, onCheckedChange = onChange)
+        Spacer(Modifier.height(8.dp))
     }
 }
 

@@ -206,17 +206,19 @@ class WatchShortRooms(
 
     companion object {
         fun normalizeInput(input: String): String {
-            val shortLink = Regex("nyanime://watch/v1#[0-9]{8}(?![0-9])").find(input)?.value
+            val shortLink = Regex("(?:nyanime://watch/v1#[^\\s]+|https://[^\\s]+)").find(input)?.value
             return when {
-                shortLink != null -> WatchInvite.codeFromLink(shortLink, System.currentTimeMillis())
+                shortLink != null -> runCatching {
+                    WatchInvite.codeFromLink(shortLink, System.currentTimeMillis())
+                }.getOrDefault(input.trim().take(5000))
                 "NY1." in input || "nyanime://watch/" in input -> input.trim().take(5000)
-                else -> input.filter(Char::isDigit).take(8)
+                else -> input.filter { it in '0'..'9' }.take(8)
             }
         }
 
         fun link(code: String): String {
             require(code.matches(Regex("[0-9]{8}")))
-            return "nyanime://watch/v1#$code"
+            return "https://owouwuiwi.github.io/watch/#$code"
         }
 
         fun shareText(code: String, text: RoomText): String = text(R.string.room_share_invite, code, link(code))

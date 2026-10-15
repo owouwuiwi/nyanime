@@ -36,6 +36,8 @@ Lo [storico AniYomi](history/aniyomi-changelog.md) rimane archiviato separatamen
 | Nostr | Protocollo di trasporto delle stanze; [implementazione e riferimenti](watch-together.md). |
 | ACINQ secp256k1-kmp | Firme delle identità effimere delle stanze; riferimenti nella stessa guida. |
 | ZXing | Generazione locale dei QR d'invito; riferimenti nella guida delle stanze. |
+| Piik | Ispirazione per il salotto nativo e il recupero limitato dei collegamenti; MIT, TNTcraft e contributori. Il backend e la condivisione video non sono incorporati. |
+| WebRTC e webrtc-sdk/android | Collegamenti vocali facoltativi, separati dal player; BSD-3-Clause e licenze dei componenti inclusi, binding MIT. [Versioni e provenienza](../core/room-voice/README.md). |
 | Google Cast e UPnP/DLNA | SDK e protocolli per i ricevitori; [integrazione Cast](casting.md). |
 | AniSkip | Dati facoltativi per il salto dei segmenti; [integrazione](aniskip.md). |
 | AniList e Kitsu | Metadati e cataloghi, distinti dalle fonti di riproduzione; [scoperta](discovery-home.md). |

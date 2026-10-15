@@ -29,3 +29,14 @@ and docs/licensing.md for attribution and distribution information.
 
 This NOTICE provides attribution; it does not modify any license, grant
 additional trademark rights or replace third-party license texts.
+
+Room lounge and bounded connection-recovery design inspired by Piik,
+Copyright (c) 2026 TNTcraft and Piik contributors, MIT License. Its desktop
+backend and host-video transmission are not included. Full MIT license in
+app/src/main/assets/licenses/Piik-LICENSE.txt.
+
+Optional audio-only WebRTC binding: WebRTC SDKs, Copyright (c) 2023, MIT.
+WebRTC project authors, BSD-3-Clause, with separately licensed third-party
+components and patent grant. Version 144.7559.15, source revision
+30d5e63ae91da483e06577b5c35ee91cc5e5c3db. Full notices and licenses are bundled
+in core/room-voice/src/main/assets/licenses and accessible in the app.

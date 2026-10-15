@@ -2,6 +2,7 @@ import hashlib
 import importlib.util
 from pathlib import Path
 import tempfile
+import struct
 import unittest
 import zipfile
 
@@ -11,6 +12,28 @@ spec.loader.exec_module(module)
 
 
 class NativeDistributionTest(unittest.TestCase):
+    @staticmethod
+    def dex(defined, referenced=()):
+        names = list(dict.fromkeys([*defined, *referenced]))
+        data = bytearray(112 + len(names) * 8 + len(defined) * 32)
+        data[:8] = b'dex\n035\x00'
+        def word(offset, value): struct.pack_into('<I', data, offset, value)
+        word(40, 0x12345678)
+        word(56, len(names)); word(60, 112)
+        types = 112 + len(names) * 4
+        word(64, len(names)); word(68, types)
+        classes = types + len(names) * 4
+        word(96, len(defined)); word(100, classes)
+        for index, name in enumerate(names):
+            encoded = ('L' + name.replace('.', '/') + ';').encode()
+            assert len(encoded) < 128
+            word(112 + index * 4, len(data))
+            word(types + index * 4, index)
+            data.extend(bytes([len(encoded)]) + encoded + b'\x00')
+        for index, name in enumerate(defined): word(classes + index * 32, names.index(name))
+        word(32, len(data))
+        return bytes(data)
+
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
@@ -69,6 +92,32 @@ class NativeDistributionTest(unittest.TestCase):
     def test_missing_architecture_entry(self):
         self.manifest['components']['fixture']['libraries']['lib/arm64-v8a/libmissing.so'] = '0' * 64
         with self.assertRaisesRegex(ValueError, 'inventory differs'):
+            self.check()
+
+    def test_required_jni_class_is_defined_in_a_secondary_dex(self):
+        self.manifest['components']['fixture']['requiredJavaClasses'] = ['fixture.bridge.NativeEntry']
+        with zipfile.ZipFile(self.apk, 'a') as archive:
+            archive.writestr('classes.dex', self.dex(['fixture.Main']))
+            archive.writestr('classes2.dex', self.dex(['fixture.bridge.NativeEntry']))
+        self.assertEqual(self.check()['nativeLibraries'], 1)
+
+    def test_string_reference_does_not_replace_removed_jni_definition(self):
+        self.manifest['components']['fixture']['requiredJavaClasses'] = ['fixture.bridge.NativeEntry']
+        with zipfile.ZipFile(self.apk, 'a') as archive:
+            archive.writestr('classes.dex', self.dex(['fixture.Main'], ['fixture.bridge.NativeEntry']))
+        with self.assertRaisesRegex(ValueError, 'classes removed or renamed'):
+            self.check()
+
+    def test_invalid_dex_never_passes_jni_validation(self):
+        self.manifest['components']['fixture']['requiredJavaClasses'] = ['fixture.bridge.NativeEntry']
+        with zipfile.ZipFile(self.apk, 'a') as archive:
+            archive.writestr('classes.dex', self.dex(['fixture.Main'])[:-1])
+        with self.assertRaisesRegex(ValueError, 'DEX size'):
+            self.check()
+
+    def test_invalid_jni_abi_declaration_is_rejected(self):
+        self.manifest['components']['fixture']['requiredJavaClasses'] = '../fixture'
+        with self.assertRaisesRegex(ValueError, 'required Java ABI'):
             self.check()
 
 

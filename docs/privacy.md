@@ -12,6 +12,24 @@ Nyanime contatta servizi esterni quando usi le relative funzioni: cataloghi e tr
 
 Le stanze Guarda/Leggi insieme usano relay Nostr. Un codice o invito consente ai partecipanti di coordinare la sessione; gli eventi necessari alla stanza passano attraverso i relay scelti. Non condividere il codice con persone che non vuoi far entrare nella stanza. Le stanze non pubblicano automaticamente la cronologia della libreria.
 
+La chat delle stanze è cifrata anche fra i singoli destinatari ammessi: conserva
+al massimo 200 messaggi in memoria, esclusi dai backup e rimossi quando esci.
+Non viene pubblicata una cronologia sociale. I relay possono osservare indirizzi
+IP, identificatori temporanei, orari e dimensioni degli eventi, senza leggerne il
+contenuto. L’espulsione impedisce di leggere i nuovi messaggi fra i partecipanti
+rimasti, senza poter cancellare copie già ricevute o avvisare immediatamente un
+dispositivo offline.
+
+La voce è facoltativa, usa WebRTC e si collega soltanto dopo «Entra in voce».
+Il microfono parte spento e il permesso viene richiesto solo quando lo attivi.
+I partecipanti vocali e i servizi STUN gratuiti possono conoscere il tuo indirizzo
+IP. La voce è trasportata cifrata direttamente fra i dispositivi, senza registrazione,
+videocamera o condivisione dello schermo. In background resta la notifica Android
+con i comandi per silenziare o uscire. Alcune reti impediscono il collegamento
+diretto; in quel caso la voce non è disponibile, mentre chat e coordinamento
+possono continuare. Ogni partecipante carica autonomamente il proprio video.
+Ulteriori dettagli sono nella [guida alle stanze](watch-together.md).
+
 L'approfondimento facoltativo delle schede contatta AniList, TVmaze e Wikidata
 soltanto dopo l'attivazione. I cataloghi ricevono titoli e identificatori pubblici,
 senza URL delle fonti, cookie, credenziali o progressi personali. Le informazioni

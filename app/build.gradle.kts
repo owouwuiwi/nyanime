@@ -365,6 +365,7 @@ dependencies {
     implementation(projects.core.archive)
     implementation(projects.core.common)
     implementation(projects.core.panels)
+    implementation(projects.core.roomVoice)
     implementation(projects.core.telegram)
     implementation(projects.core.privacyDisplay)
     implementation(projects.coreMetadata)

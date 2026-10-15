@@ -50,6 +50,8 @@ class WatchRoomController(
     private var clock = WatchClock()
     private var timeline: WatchMessage? = null
     private var ownerKey = ""
+    private var interactionEpoch = watchRandom(16).watchHex()
+    private var ownerInteractionEpoch = ""
     private var ownerModeSequence = 0L
     private val pings = mutableSetOf<Long>()
     private val peers = linkedMapOf<String, Pair<WatchPeerStatus, Long>>()
@@ -57,6 +59,8 @@ class WatchRoomController(
     private val sequences = mutableMapOf<String, Long>()
     private val acknowledgements = mutableMapOf<String, Long>()
     private val departed = linkedMapOf<String, Long>()
+    private val removedMembers = linkedSetOf<String>()
+    private val memberRequests = linkedMapOf<String, WatchPeerStatus>()
     private var name = ""
     private var desiredPaused = true
     private var hasPlayedCurrentMedia = false
@@ -81,6 +85,8 @@ class WatchRoomController(
     private val startGate = WatchStartGate()
     private val prebufferGate = WatchPrebufferGate()
     private val driftCorrector = WatchDriftCorrector()
+    private val hostTimeline = WatchPlaybackTimeline()
+    private val durationVerifier = WatchDurationVerifier()
     private var pausedBy = ""
     private var cueSequence = 0L
     private var skipKey: String? = null
@@ -115,6 +121,79 @@ class WatchRoomController(
         private set
     var onReadingMessage: ((String, ReadingEnvelope, Boolean) -> Unit)? = null
     var onReadingSessionMessage: ((String, eu.kanade.tachiyomi.data.reading.ReadingSessionEnvelope) -> Unit)? = null
+    var onInteractionMessage: ((String, WatchInteractionSealed) -> Unit)? = null
+
+    fun interactionContext(): WatchInteractionContext {
+        val own = transport?.publicKey.orEmpty()
+        val members = if (state.value.host) {
+            peers.filterValues { it.first.interactionVersion == 1 }.mapValues { it.value.first.name } + (own to name)
+        } else {
+            state.value.members.filter { it.interactionVersion == 1 }.associate { it.id to it.name }
+        }
+        return WatchInteractionContext(
+            active,
+            state.value.invite,
+            own,
+            if (state.value.host) own else ownerKey,
+            members,
+            state.value.relayCount > 0,
+            if (state.value.host) interactionEpoch else ownerInteractionEpoch,
+        )
+    }
+
+    fun sendInteraction(target: String, value: WatchInteractionSealed) {
+        if (active && value.valid() && target in interactionContext().members) {
+            send(message(WatchMessageType.Status).copy(target = target, interaction = value))
+        }
+    }
+
+    fun removeMember(id: String) {
+        if (!active || !state.value.host || id !in peers) return
+        removedMembers.add(id)
+        while (removedMembers.size > 32) removedMembers.remove(removedMembers.first())
+        peers.remove(id)
+        acknowledgements.remove(id)
+        memberRequests.remove(id)
+        publishMembership()
+        lastBroadcast = -10_000
+    }
+
+    fun approveMember(id: String) {
+        if (!active || !state.value.host || peers.size >= 7) return
+        val pending = memberRequests.remove(id) ?: return
+        peers[id] = pending to now()
+        publishMembership()
+        lastBroadcast = -10_000
+    }
+
+    fun rejectMember(id: String) {
+        if (!active || !state.value.host) return
+        if (memberRequests.remove(id) == null) return
+        removedMembers.add(id)
+        while (removedMembers.size > 32) removedMembers.remove(removedMembers.first())
+        lastBroadcast = -10_000
+        publishMembership()
+    }
+
+    private fun publishMembership() {
+        val own = transport?.publicKey
+        mutableState.value = state.value.copy(
+            members = state.value.members.filter { it.id == own } +
+                peers.map { (id, entry) ->
+                    val peer = entry.first
+                    WatchMember(
+                        id,
+                        peer.name,
+                        peer.ready,
+                        peer.buffering,
+                        reading = peer.reading,
+                        observer = peer.observer,
+                        interactionVersion = peer.interactionVersion,
+                    )
+                },
+            memberRequests = memberRequests.map { (id, peer) -> WatchMember(id, peer.name, false, false) },
+        )
+    }
 
     fun readingSessionContext(): eu.kanade.tachiyomi.data.reading.ReadingSessionContext {
         val own = transport?.publicKey.orEmpty()
@@ -342,6 +421,8 @@ class WatchRoomController(
         prebufferGate.reset()
         driftCorrector.reset()
         pausedBy = ""
+        hostTimeline.reset()
+        durationVerifier.reset()
         cueSequence = 0L
         skipKey = null
         skipCue = null
@@ -359,6 +440,10 @@ class WatchRoomController(
         sequences.clear()
         acknowledgements.clear()
         departed.clear()
+        removedMembers.clear()
+        interactionEpoch = watchRandom(16).watchHex()
+        ownerInteractionEpoch = ""
+        memberRequests.clear()
         lastStatusValue = null
         pendingCommand = null
         pendingSeek = null
@@ -414,10 +499,10 @@ class WatchRoomController(
         if (!active || readingMode || liveMode || observing) return
         expectsPaused = true
         cancelNext()
-        startGate.reset()
+        if (state.value.waitForEveryone) startGate.reset()
         mutableState.value = state.value.copy(localHold = true)
         player.pause(true)
-        requestPause(true)
+        if (state.value.waitForEveryone) requestPause(true)
         lastStatus = -10_000
     }
 
@@ -426,7 +511,7 @@ class WatchRoomController(
         expectsPaused = true
         appliedSpeed = null
         driftCorrector.reset()
-        if (!observing) {
+        if (!observing && (!hasPlayedCurrentMedia || state.value.waitForEveryone)) {
             startGate.reset()
             prebufferGate.reset()
         }
@@ -503,7 +588,7 @@ class WatchRoomController(
             position = if (action ==
                 "seek"
             ) {
-                value.coerceIn(0.0, sample.media?.duration ?: 0.0)
+                value.coerceIn(0.0, sample.media?.duration?.takeIf { it > 0 } ?: 86_400.0)
             } else {
                 sample.position.coerceAtLeast(0.0)
             },
@@ -539,6 +624,7 @@ class WatchRoomController(
         when (request.command) {
             "pause" -> {
                 desiredPaused = true
+                hostTimeline.update(false, baseSpeed, now())
                 mutableState.value = state.value.copy(playRequested = false, prebuffering = false, resumeSeconds = null)
                 pausedBy = actor
                 startGate.reset()
@@ -547,7 +633,7 @@ class WatchRoomController(
                 nextCue = null
                 skipCue = skipCue?.copy(deadline = null)
             }
-            "play" -> if (!state.value.localHold) {
+            "play" -> {
                 desiredPaused = false
                 mutableState.value =
                     state.value.copy(playRequested = true, message = text(R.string.room_prepare_playback))
@@ -580,12 +666,17 @@ class WatchRoomController(
                 suppressedNext = null
                 advancedFrom = null
                 val duration = player.sample().media?.duration ?: return
-                pendingSeek = request.position.coerceIn(0.0, duration)
+                pendingSeek = request.position.coerceIn(0.0, duration.takeIf { it > 0 } ?: 86_400.0)
                 pendingSeekSince = now()
                 seekRevision++
+                hostTimeline.seek(pendingSeek!!, now())
+                hostTimeline.update(false, baseSpeed, now())
                 player.seek(pendingSeek!!)
             }
-            "speed" -> baseSpeed = request.speed
+            "speed" -> {
+                hostTimeline.speed(request.speed, now())
+                baseSpeed = request.speed
+            }
             else -> return
         }
         if (announce && request.command in listOf("pause", "play", "seek", "speed")) {
@@ -682,9 +773,16 @@ class WatchRoomController(
 
     private fun receive(sender: String, incoming: WatchMessage) {
         if (!active || sender == transport?.publicKey || !incoming.valid()) return
+        if (sender in removedMembers) return
         val isOwner = invite?.owns(sender) == true
-        if (!state.value.host && !isOwner) return
         if (isOwner) ownerKey = sender
+        incoming.interaction?.let {
+            if (incoming.target == transport?.publicKey && sender in interactionContext().members) {
+                onInteractionMessage?.invoke(sender, it)
+            }
+            return
+        }
+        if (!state.value.host && !isOwner) return
         incoming.readingSession?.let { session ->
             if (incoming.target == transport?.publicKey && (isOwner || sender in peers)) {
                 if (isOwner && session.kind == eu.kanade.tachiyomi.data.reading.ReadingSessionKind.Snapshot) {
@@ -745,24 +843,29 @@ class WatchRoomController(
         when (incoming.type) {
             WatchMessageType.Hello, WatchMessageType.Status -> if (state.value.host) {
                 val same = !readingMode && !liveMode && incoming.media?.key == player.sample().media?.key
-                peers[sender] =
-                    WatchPeerStatus(
-                        incoming.name,
-                        incoming.ready && same,
-                        incoming.buffering,
-                        incoming.media,
-                        incoming.problem,
-                        incoming.canAdvance,
-                        incoming.preparedNextKey,
-                        incoming.nextProblem,
-                        incoming.readingMode,
-                        incoming.position.takeIf { incoming.media != null && !incoming.readingMode },
-                        incoming.bufferedAheadSeconds,
-                        incoming.tvVersion,
-                        incoming.observer,
-                        incoming.observerVersion,
-                        incoming.readingSessionVersion,
-                    ) to now()
+                val status = WatchPeerStatus(
+                    incoming.name,
+                    incoming.ready && same,
+                    incoming.buffering,
+                    incoming.media,
+                    incoming.problem,
+                    incoming.canAdvance,
+                    incoming.preparedNextKey,
+                    incoming.nextProblem,
+                    incoming.readingMode,
+                    incoming.position.takeIf { incoming.media != null && !incoming.readingMode },
+                    incoming.bufferedAheadSeconds,
+                    incoming.tvVersion,
+                    incoming.observer,
+                    incoming.observerVersion,
+                    incoming.readingSessionVersion,
+                    incoming.interactionVersion,
+                )
+                if (removedMembers.isNotEmpty() && sender !in peers) {
+                    if (memberRequests.size < 8 || sender in memberRequests) memberRequests[sender] = status
+                } else {
+                    peers[sender] = status to now()
+                }
                 lastBroadcast = -10_000
             }
             WatchMessageType.Ping -> if (state.value.host) {
@@ -775,12 +878,17 @@ class WatchRoomController(
                 clock.accept(incoming.ping, now(), incoming.at)
             }
             WatchMessageType.Timeline -> if (isOwner) {
+                if (transport?.publicKey in incoming.removedMembers) {
+                    stop(WatchPhase.Closed, text(R.string.room_removed))
+                    return
+                }
                 if (incoming.peers.size >= 8 && transport?.publicKey !in incoming.peers) {
                     stop(WatchPhase.Failed, text(R.string.room_room_full))
                     return
                 }
                 val alreadyConnected = timeline != null
                 timeline = incoming
+                ownerInteractionEpoch = incoming.interactionSession
                 mutableState.value = state.value.copy(
                     readingSupported = incoming.readingVersion in 1..2,
                     readingVersion = incoming.readingVersion,
@@ -844,6 +952,7 @@ class WatchRoomController(
                             peer.reading,
                             peer.bufferedAheadSeconds,
                             peer.observer,
+                            peer.interactionVersion,
                         )
                     },
                 )
@@ -926,6 +1035,7 @@ class WatchRoomController(
             mutableState.value = state.value.copy(pendingPlaybackPaused = null, commandFailed = true)
         }
         if (state.value.relayCount == 0) {
+            hostTimeline.update(false, baseSpeed, time)
             startGate.reset()
             prebufferGate.reset()
             driftCorrector.reset()
@@ -993,13 +1103,21 @@ class WatchRoomController(
                         observer = observing,
                         observerVersion = 1,
                         readingSessionVersion = 1,
+                        interactionVersion = 1,
                     ),
             )
             peers.forEach { (id, peer) -> all[id] = peer.first }
             mutableState.value =
                 state.value.copy(
                     members = all.map { (id, peer) ->
-                        WatchMember(id, peer.name, peer.ready, false, observer = peer.observer)
+                        WatchMember(
+                            id,
+                            peer.name,
+                            peer.ready,
+                            false,
+                            observer = peer.observer,
+                            interactionVersion = peer.interactionVersion,
+                        )
                     },
                 )
             if (time - lastBroadcast >= 4000) {
@@ -1033,6 +1151,7 @@ class WatchRoomController(
                             observer = observing,
                             observerVersion = 1,
                             readingSessionVersion = 1,
+                            interactionVersion = 1,
                         ),
                 )
             peers.forEach { (id, peer) -> all[id] = peer.first }
@@ -1048,6 +1167,7 @@ class WatchRoomController(
                         peer.buffering,
                         reading = peer.reading,
                         observer = peer.observer,
+                        interactionVersion = peer.interactionVersion,
                     )
                 },
                 message = text(R.string.room_shared_reading),
@@ -1094,6 +1214,7 @@ class WatchRoomController(
         mutableState.value = room.copy(
             waitingSeconds = waitingSince?.let { ((time - it) / 1000).toInt().coerceAtLeast(0) } ?: 0,
             commandFailed = failedCommand != null,
+            memberRequests = memberRequests.map { (id, peer) -> WatchMember(id, peer.name, false, false) },
             activity = room.activity?.takeIf { time < activityUntil && it.mediaKey == room.media?.key },
         )
     }
@@ -1105,6 +1226,7 @@ class WatchRoomController(
             acknowledgements.remove(it)
         }
         val media = sample.media
+        hostTimeline.bind(media?.key, sample.position, time)
         if (sample.ended) dismissSkip()
         if (state.value.media?.key != media?.key) {
             seekRevision++
@@ -1129,52 +1251,74 @@ class WatchRoomController(
                 pendingSeek = null
             }
         }
-        val position = (pendingSeek ?: sample.position).coerceIn(0.0, media?.duration ?: 0.0)
-        val waiting = peers.map { (id, entry) ->
-            val (peer, lastSeen) = entry
-            if (peer.reading || peer.observer) {
-                peerLoadingSince.remove(id)
-                false
-            } else {
-                val stale = time - lastSeen > 12_000
-                val loading = !peer.ready || peer.buffering
-                if (!loading) peerLoadingSince.remove(id)
-                val since = if (loading) peerLoadingSince.getOrPut(id) { time } else time
-                val unsafe = when (peer.problem) {
-                    WatchProblem.LocalPause,
-                    WatchProblem.SourceError,
-                    WatchProblem.MissingSource,
-                    WatchProblem.DifferentEdition,
-                    -> true
-                    else -> false
+        val waiting = state.value.waitForEveryone &&
+            peers.map { (id, entry) ->
+                val (peer, lastSeen) = entry
+                if (peer.reading || peer.observer) {
+                    peerLoadingSince.remove(id)
+                    false
+                } else {
+                    val stale = time - lastSeen > 12_000
+                    val loading = !peer.ready || peer.buffering
+                    if (!loading) peerLoadingSince.remove(id)
+                    stale || loading
                 }
-                val graceExpired = time - since >= 5_000
-                stale || (loading && (unsafe || state.value.waitForEveryone || !hasPlayedCurrentMedia || graceExpired))
-            }
-        }.any { it }
-        val buffering = (!observing && (!sample.ready || sample.buffering)) || pendingSeek != null || waiting
+            }.any { it }
+        val localBuffering = !observing && (!sample.ready || sample.buffering || pendingSeek != null)
+        val buffering = media == null ||
+            waiting ||
+            (localBuffering && (state.value.waitForEveryone || !hasPlayedCurrentMedia))
         val prebuffering = prebufferGate.waiting(
             enabled = state.value.prebufferOnStart &&
                 peers.values.any { !it.first.reading && !it.first.observer } &&
                 (media?.duration ?: 0.0) - sample.position > WatchPrebufferGate.TARGET_SECONDS,
             firstStart = !hasPlayedCurrentMedia,
-            ready = !buffering && !state.value.localHold && !desiredPaused && !sample.ended,
+            ready = !buffering && !desiredPaused && !sample.ended,
             now = time,
             buffers = (if (observing) emptyList() else listOf(sample.bufferedAheadSeconds?.toInt())) +
                 peers.values.filter { !it.first.reading && !it.first.observer }.map { it.first.bufferedAheadSeconds },
         )
         val previousDeadline = startGate.deadline
+        val reachedEnd = sample.ended ||
+            (
+                media != null &&
+                    media.duration > 0 &&
+                    hostTimeline.position(time, media.duration) >= media.duration
+                )
         val running = startGate.update(
-            !buffering && !prebuffering && !state.value.localHold && !sample.ended,
+            !buffering &&
+                !prebuffering &&
+                !reachedEnd &&
+                (!state.value.waitForEveryone || !state.value.localHold),
             !desiredPaused,
             time,
         )
         if (previousDeadline != startGate.deadline) lastBroadcast = -10_000
         val paused = !running
+        hostTimeline.update(running, baseSpeed, time)
+        val position = hostTimeline.position(time, media?.duration ?: 0.0)
         if (running) hasPlayedCurrentMedia = true
-        expectsPaused = paused
-        if (sample.paused != paused) player.pause(paused)
-        setSpeed(baseSpeed)
+        val localPaused = paused || localBuffering || state.value.localHold
+        expectsPaused = localPaused
+        if (!localBuffering && !state.value.localHold && !observing) {
+            val correction = driftCorrector.correct(
+                sample.position,
+                position,
+                baseSpeed,
+                paused,
+                time - lastSeek >= 15_000,
+                time,
+            )
+            correction.seek?.let {
+                player.seek(it)
+                lastSeek = time
+            }
+            setSpeed(correction.speed)
+        } else {
+            driftCorrector.reset()
+            setSpeed(baseSpeed)
+        }
+        if (sample.paused != localPaused) player.pause(localPaused)
 
         skipCue?.let { cue ->
             if (paused) {
@@ -1213,7 +1357,7 @@ class WatchRoomController(
                         )
             }
             nextCue?.let { cue ->
-                if (!sample.canAdvance || state.value.localHold || !everyonePrepared) {
+                if (!sample.canAdvance || state.value.localHold || (state.value.waitForEveryone && !everyonePrepared)) {
                     if (cue.deadline != null) lastBroadcast = -10_000
                     nextCue = cue.copy(deadline = null)
                 } else if (cue.deadline == null) {
@@ -1255,6 +1399,7 @@ class WatchRoomController(
                 observer = observing,
                 observerVersion = 1,
                 readingSessionVersion = 1,
+                interactionVersion = 1,
             ),
         )
         peers.forEach { (id, peer) ->
@@ -1287,7 +1432,7 @@ class WatchRoomController(
         val countdown = remainingSeconds(startGate.deadline, time)?.takeIf { it > 0 }
         val phase = when {
             peers.isEmpty() && desiredPaused -> WatchPhase.Waiting
-            buffering || prebuffering -> WatchPhase.Buffering
+            buffering || localBuffering || prebuffering -> WatchPhase.Buffering
             countdown != null -> WatchPhase.Starting
             paused -> WatchPhase.Paused
             else -> WatchPhase.Playing
@@ -1324,7 +1469,8 @@ class WatchRoomController(
                     prebufferingMember.name,
                     prebufferingMember.bufferedAheadSeconds?.let { "$it/15 s" } ?: text(R.string.room_preparing_short),
                 )
-            buffering -> problem.description(text)
+            buffering || localBuffering -> problem.description(text)
+            running && abs(position - sample.position) > 3.0 -> text(R.string.room_catching_up)
             countdown != null -> text(R.string.room_resume_seconds, countdown)
             paused && !desiredPaused -> text(R.string.room_checking_ready)
             paused && pausedBy.isNotBlank() -> text(R.string.room_paused_by, pausedBy)
@@ -1332,7 +1478,8 @@ class WatchRoomController(
             else -> text(R.string.room_watching_together)
         }
         mutableState.value = state.value.copy(
-            phase = phase, media = media, playRequested = !desiredPaused,
+            phase = phase, media = media, playRequested = !desiredPaused && !reachedEnd,
+            driftMs = ((position - sample.position) * 1000).roundToLong(),
             prebuffering = prebuffering,
             members = all.map { (id, peer) ->
                 WatchMember(
@@ -1346,10 +1493,12 @@ class WatchRoomController(
                     peer.reading,
                     peer.bufferedAheadSeconds,
                     peer.observer,
+                    peer.interactionVersion,
                 )
             },
             message = if (peers.isEmpty() && media == null) text(R.string.room_share_code_hint) else statusText,
             resumeSeconds = countdown, skip = skipCue,
+            memberRequests = memberRequests.map { (id, peer) -> WatchMember(id, peer.name, false, false) },
             skipSeconds = remainingSeconds(skipCue?.deadline, time),
             upcoming = upcoming, next = nextCue, nextSeconds = remainingSeconds(nextCue?.deadline, time),
         )
@@ -1367,7 +1516,7 @@ class WatchRoomController(
         if (peers.isNotEmpty() && time - lastBroadcast >= interval) {
             send(
                 message(WatchMessageType.Timeline).copy(
-                    media = media, position = position, paused = paused, playRequested = !desiredPaused,
+                    media = media, position = position, paused = paused, playRequested = !desiredPaused && !reachedEnd,
                     speed = baseSpeed, seekRevision = seekRevision, resumeAt = startGate.deadline,
                     buffering = buffering, sharedControls = state.value.sharedControls,
                     waitForEveryone = state.value.waitForEveryone,
@@ -1388,10 +1537,11 @@ class WatchRoomController(
         val localMedia = sample.media
         val same = localMedia != null &&
             remote?.media?.let {
-                localMedia.matches(it) ||
+                (localMedia.key == it.key && !durationVerifier.incompatible(localMedia, it, time)) ||
                     (acceptedMedia == localMedia.key + "|" + it.key && localMedia.compatibleDuration(it))
             } == true
-        val localReady = sample.ready && same && !state.value.localHold
+        val admitted = remote == null || !remote.admissionLocked || transport?.publicKey in remote.peers
+        val localReady = sample.ready && same && !state.value.localHold && admitted
         val problem = when {
             observing -> WatchProblem.None
             state.value.localHold -> WatchProblem.LocalPause
@@ -1425,6 +1575,7 @@ class WatchRoomController(
             tvVersion = 1,
             observer = observing,
             observerVersion = 1,
+            interactionVersion = 1,
         )
         if (status != lastStatusValue || time - lastStatus >= 4000) {
             send(
@@ -1446,6 +1597,13 @@ class WatchRoomController(
             lastStatus = time
         }
         if (readingMode) return
+        if (!admitted) {
+            expectsPaused = true
+            player.pause(true)
+            mutableState.value =
+                state.value.copy(phase = WatchPhase.Waiting, message = text(R.string.room_waiting_approval))
+            return
+        }
         probeClock(time)
         pendingCommand?.let {
             if (time - lastRetry >= 1500) {
@@ -1540,10 +1698,11 @@ class WatchRoomController(
         val elapsed = ((hostTime - maxOf(remote.at, scheduled ?: remote.at)) / 1000.0).coerceIn(0.0, 12.0)
         val target = (remote.position + if (moving) elapsed * remote.speed else 0.0).coerceIn(
             0.0,
-            localMedia!!.duration,
+            localMedia!!.duration.takeIf { it > 0 } ?: remote.media?.duration?.takeIf { it > 0 } ?: 86_400.0,
         )
         val pausePending = pendingCommand?.command == "pause"
-        val shouldPause = !moving || sample.buffering || pausePending
+        val atEnd = sample.ended && localMedia.duration > 0 && target >= localMedia.duration - .5
+        val shouldPause = !moving || sample.buffering || pausePending || atEnd
         expectsPaused = shouldPause
         if (sample.paused != shouldPause) player.pause(shouldPause)
         if (!sample.buffering && sample.ready) {
@@ -1553,7 +1712,7 @@ class WatchRoomController(
                 target,
                 baseSpeed,
                 shouldPause,
-                forced || time - lastSeek > 5000,
+                forced || time - lastSeek >= 15_000,
                 time,
             )
             if (forced || correction.seek != null) {
@@ -1586,6 +1745,7 @@ class WatchRoomController(
                 state.value.resumeSeconds != null -> text(R.string.room_resume_seconds, state.value.resumeSeconds!!)
                 shouldPause && remote.pausedBy.isNotBlank() -> text(R.string.room_paused_by, remote.pausedBy)
                 shouldPause -> text(R.string.room_paused_sentence)
+                abs(target - sample.position) > 3.0 -> text(R.string.room_catching_up)
                 else -> text(R.string.room_watching_together)
             },
         )
@@ -1614,6 +1774,10 @@ class WatchRoomController(
         coordinationVersion = 2,
         readingVersion = 2,
         readingSessionVersion = 1,
+        interactionVersion = 1,
+        interactionSession = interactionEpoch,
+        removedMembers = removedMembers.toSet(),
+        admissionLocked = removedMembers.isNotEmpty(),
         tvVersion = 1,
         observer = observing,
         observerVersion = 1,

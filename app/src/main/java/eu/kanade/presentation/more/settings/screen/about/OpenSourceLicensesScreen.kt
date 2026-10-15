@@ -117,6 +117,26 @@ class OpenSourceLicensesScreen : Screen() {
                             "deeppanel/NOTICE.txt",
                         ),
                         BundledAsset(
+                            "Piik — lounge and connection recovery inspiration",
+                            "https://github.com/TNTcraftHIM/Piik",
+                            "MIT",
+                            "licenses/Piik-LICENSE.txt",
+                        ),
+                        BundledAsset(
+                            "WebRTC — optional room voice",
+                            "https://github.com/webrtc-sdk/webrtc/tree/30d5e63ae91da483e06577b5c35ee91cc5e5c3db",
+                            "BSD-3-Clause and third-party licenses",
+                            "licenses/WebRTC-LICENSE.txt",
+                            "licenses/WebRTC-ThirdParty.md",
+                        ),
+                        BundledAsset(
+                            "WebRTC SDKs — Android binding",
+                            "https://github.com/webrtc-sdk/android",
+                            "MIT",
+                            "licenses/WebRTC-SDK-LICENSE.txt",
+                            "licenses/WebRTC-PATENTS.txt",
+                        ),
+                        BundledAsset(
                             "Downpour — adapted connection tuner",
                             "https://github.com/AlirezaJavan/Downpour",
                             "Apache-2.0",

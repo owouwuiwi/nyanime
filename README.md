@@ -108,6 +108,9 @@ Le app TV possono diventare ricevitori tramite [Nyanime Companion](docs/companio
   protetta quando scade il timer o il telefono perde il focus audio.
 - Stanze cifrate tramite relay Nostr: nessun account Nyanime e nessuna apertura
   di porte; i video, i cookie e gli indirizzi degli streaming non sono condivisi.
+- Salotto con partecipanti, chat temporanea cifrata, reazioni e voce facoltativa
+  WebRTC con microfono inizialmente spento. In Continuità il buffering resta locale,
+  anche per l'host; «Aspetta tutti» rimane una scelta esplicita. [Guida e limiti di rete](docs/watch-together.md).
 - Google Cast, UPnP/DLNA e Nyanime Companion sulla rete locale, con play, pausa, avanzamento,
   episodio precedente/successivo, volume, notifica e telecomando persistente.
 - Cambio del video mentre si naviga nell'app, ripresa sul telefono e luminosità

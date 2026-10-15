@@ -87,7 +87,7 @@ fun TopRightPlayerControls(
     onWatchTogetherClick: () -> Unit = {},
 ) {
     Column(modifier, horizontalAlignment = Alignment.End) {
-        eu.kanade.tachiyomi.ui.watch.WatchRoomChip(watchRoom, onWatchTogetherClick)
+        eu.kanade.tachiyomi.ui.watch.WatchPlayerRoomAccess(watchRoom, onWatchTogetherClick)
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Absolute.SpaceEvenly,

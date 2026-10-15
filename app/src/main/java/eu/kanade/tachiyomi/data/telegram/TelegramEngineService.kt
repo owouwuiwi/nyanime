@@ -6,11 +6,13 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.os.DeadObjectException
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.Message
 import android.os.Messenger
+import android.os.RemoteException
 import eu.kanade.tachiyomi.BuildConfig
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -93,8 +95,14 @@ class TelegramEngineService : Service() {
                 }
                 // Handler recycles Message as soon as this callback returns. Never retain it
                 // (or its mutable Bundle) in asynchronous work: copy the immutable payload now.
-                REQUEST -> message.data.getString("json")?.let { request ->
+                REQUEST -> {
+                    val payload = try {
+                        TelegramIpcPayload.receive(message.data)
+                    } catch (_: Exception) {
+                        return@Handler true
+                    }
                     scope.launch {
+                        val request = payload.use { it.read() }
                         val id = initialized.await()
                         if (id != 0 && request.length <= 128_000) {
                             JsonClient.send(id, request)
@@ -111,7 +119,7 @@ class TelegramEngineService : Service() {
                                 }.toString(),
                             )
                         }
-                    }
+                    }.invokeOnCompletion { payload.close() }
                 }
             }
             true
@@ -239,9 +247,7 @@ class TelegramEngineService : Service() {
     private fun engineFailure(): String = "{\"@type\":\"nyanimeEngineFailure\",\"reason\":\"$failureReason\"}"
 
     private fun broadcast(raw: String) {
-        // Binder has a bounded transaction buffer. Fail oversized replies explicitly.
-        // Never lose an acknowledgement silently.
-        val safe = if (raw.toByteArray(Charsets.UTF_8).size > 450_000) {
+        val safe = if (raw.toByteArray(Charsets.UTF_8).size > TelegramIpcPayload.MAX_BYTES) {
             val extra = runCatching { telegramJson.parseToJsonElement(raw).jsonObject["@extra"] }.getOrNull()
             buildJsonObject {
                 put("@type", "error")
@@ -252,14 +258,26 @@ class TelegramEngineService : Service() {
         } else {
             raw
         }
-        val bundle = Bundle().apply { putString("json", safe) }
         peers.forEach { peer ->
             try {
-                peer.send(Message.obtain(null, EVENT).apply { data = bundle })
-            } catch (
-                _: Exception,
-            ) {
+                TelegramIpcPayload.send(this, peer, Message.obtain(null, EVENT), safe)
+            } catch (_: DeadObjectException) {
                 peers.remove(peer)
+            } catch (error: Exception) {
+                // A full Binder buffer does not mean the receiver died. Never silently
+                // discard a live subscriber and leave all its future requests hanging.
+                android.util.Log.w("NyanimeCloud", "Telegram IPC delivery failed: ${error.javaClass.simpleName}")
+                try {
+                    peer.send(
+                        Message.obtain(null, EVENT).apply {
+                            data = Bundle().apply {
+                                putString("json", "{\"@type\":\"nyanimeTransportFailure\"}")
+                            }
+                        },
+                    )
+                } catch (_: RemoteException) {
+                    // The client retains its durable outbox and reconnects after timeout.
+                }
             }
         }
     }

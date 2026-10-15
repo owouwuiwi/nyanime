@@ -83,6 +83,7 @@ internal fun ReadingPresenceControl(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                eu.kanade.tachiyomi.ui.watch.WatchRoomSocialBar(compact = true)
                 IconButton(onClick = { expanded = !expanded }) {
                     Icon(
                         if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,

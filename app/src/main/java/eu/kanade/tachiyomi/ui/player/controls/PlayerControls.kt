@@ -49,6 +49,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
@@ -197,6 +198,7 @@ fun PlayerControls(
     val indexedChapters by viewModel.chapters.collectAsState()
     val currentBrightness by viewModel.currentBrightness.collectAsState()
     val playerRoom by viewModel.watchTogether.state.collectAsState()
+    var playerRoomPanel by rememberSaveable { mutableStateOf(false) }
     val currentVideo by viewModel.currentVideo.collectAsState()
     val ultraVideo = UltraFiles.isUltra(currentVideo)
     val sheetShown by viewModel.sheetShown.collectAsState()
@@ -209,6 +211,9 @@ fun PlayerControls(
         panel == Panels.None &&
         dialog == Dialogs.None
     val sharedPlaybackVisible = !toolsOnly && playerRoom.active && playerOverlayVisible
+    LaunchedEffect(inPip, areControlsLocked, playerRoom.active) {
+        if (inPip || areControlsLocked || !playerRoom.active) playerRoomPanel = false
+    }
     val sharedPlaybackBusy = sharedPlaybackVisible &&
         (
             playerRoom.showPreparationFeedback ||
@@ -617,7 +622,7 @@ fun PlayerControls(
                             onMoreClick = { viewModel.showSheet(Sheets.More) },
                             onMoreLongClick = { viewModel.showPanel(Panels.VideoFilters) },
                             watchRoom = watchRoom,
-                            onWatchTogetherClick = { viewModel.showSheet(Sheets.WatchTogether) },
+                            onWatchTogetherClick = { playerRoomPanel = true },
                         )
                     }
                     // Bottom right controls
@@ -835,6 +840,20 @@ fun PlayerControls(
             }
         }
         val watchRoom by viewModel.watchTogether.state.collectAsState()
+
+        eu.kanade.tachiyomi.ui.watch.WatchPlayerRoomPanel(
+            visible = playerRoomPanel && sharedPlaybackVisible && !areControlsLocked,
+            onRoomDetails = { viewModel.showSheet(Sheets.WatchTogether) },
+            onDismiss = { playerRoomPanel = false },
+        )
+
+        if (sharedPlaybackVisible && !areControlsLocked) {
+            Box(Modifier.fillMaxSize().safeDrawingPadding().padding(end = 20.dp, top = 68.dp)) {
+                eu.kanade.tachiyomi.ui.watch.WatchRoomPlayerSocial(
+                    modifier = Modifier.align(Alignment.TopEnd),
+                )
+            }
+        }
 
         Box(
             Modifier.fillMaxSize().safeDrawingPadding().padding(horizontal = 24.dp),

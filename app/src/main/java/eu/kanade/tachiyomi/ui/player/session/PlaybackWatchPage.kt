@@ -46,10 +46,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -321,6 +323,16 @@ internal fun PlaybackWatchPage(
     var related by remember { mutableStateOf(PlaybackSuggestions()) }
     var filters by remember { mutableStateOf(false) }
     val episodeList = rememberLazyListState()
+    var roomConversation by rememberSaveable { mutableStateOf(false) }
+    val pageVisible by remember(visibility) { derivedStateOf { visibility() > 0f } }
+    LaunchedEffect(room.active, pageVisible) {
+        if (!room.active || !pageVisible) roomConversation = false
+    }
+    eu.kanade.tachiyomi.ui.watch.WatchPlayerRoomPanel(
+        visible = roomConversation && room.active && pageVisible,
+        onRoomDetails = { session.viewModel.showSheet(Sheets.WatchTogether) },
+        onDismiss = { roomConversation = false },
+    )
     LaunchedEffect(title?.id) {
         related = PlaybackSuggestions()
         val anime = title ?: return@LaunchedEffect
@@ -376,8 +388,11 @@ internal fun PlaybackWatchPage(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 item {
-                    WatchAction(Icons.Filled.People, stringResource(R.string.playback_room)) {
-                        session.viewModel.showSheet(Sheets.WatchTogether)
+                    WatchAction(
+                        Icons.Filled.People,
+                        stringResource(if (room.active) R.string.room_chat else R.string.playback_room),
+                    ) {
+                        if (room.active) roomConversation = true else session.viewModel.showSheet(Sheets.WatchTogether)
                     }
                 }
                 title?.let { anime ->

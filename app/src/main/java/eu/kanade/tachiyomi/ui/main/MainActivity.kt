@@ -291,7 +291,9 @@ class MainActivity : BaseActivity() {
                                 )
                             },
                             bottomBar = {
-                                if (navigator.lastItem != HomeScreen) {
+                                // Restored object screens are not guaranteed to be the canonical singleton.
+                                // The Home destination owns these controllers beside its floating navigation.
+                                if (navigator.lastItem !is HomeScreen) {
                                     androidx.compose.foundation.layout.Column {
                                         eu.kanade.tachiyomi.ui.watch.WatchMiniController()
                                         CastMiniController()

@@ -10,6 +10,7 @@ import android.os.IBinder
 import android.os.Looper
 import android.os.Message
 import android.os.Messenger
+import android.os.RemoteException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -68,7 +69,10 @@ class TelegramClient private constructor(private val context: Context) : Telegra
     @Volatile private var service: Messenger? = null
     private var bound = false
     private var connected = CompletableDeferred<Unit>()
-    private val events = Channel<String>(Channel.UNLIMITED)
+    private val events = Channel<TelegramIpcPayload>(
+        Channel.UNLIMITED,
+        onUndeliveredElement = { it.close() },
+    )
     private val leases = ConcurrentHashMap.newKeySet<String>()
 
     private val chatSubscriptions = nyanime.telegram.TelegramChatSubscriptions()
@@ -105,15 +109,20 @@ class TelegramClient private constructor(private val context: Context) : Telegra
     }
     private val incoming = Messenger(
         Handler(Looper.getMainLooper()) { msg ->
-            msg.data.getString("json")?.let(events::trySend)
+            try {
+                val payload = TelegramIpcPayload.receive(msg.data)
+                if (!events.trySend(payload).isSuccess) payload.close()
+            } catch (_: Exception) {
+                disconnected()
+            }
             true
         },
     )
     init {
         scope.launch {
-            for (raw in events) {
+            for (payload in events) {
                 try {
-                    accept(telegramJson.parseToJsonElement(raw).jsonObject)
+                    payload.use { accept(telegramJson.parseToJsonElement(it.read()).jsonObject) }
                 } catch (
                     cancel: CancellationException,
                 ) {
@@ -220,12 +229,14 @@ class TelegramClient private constructor(private val context: Context) : Telegra
         try {
             val json = JsonObject(request + ("@extra" to JsonPrimitive(id))).toString()
             val destination = service ?: throw TelegramException(TelegramFailure.DISCONNECTED, mayHaveBeenSent = false)
-            destination.send(
-                Message.obtain(null, TelegramEngineService.REQUEST).apply {
-                    data = Bundle().apply { putString("json", json) }
-                    replyTo = incoming
-                },
-            )
+            withContext(Dispatchers.IO) {
+                TelegramIpcPayload.send(
+                    context,
+                    destination,
+                    Message.obtain(null, TelegramEngineService.REQUEST).apply { replyTo = incoming },
+                    json,
+                )
+            }
             return withTelegramTimeout(45_000) { result.await() }
         } catch (failure: TelegramException) {
             android.util.Log.w(
@@ -233,6 +244,10 @@ class TelegramClient private constructor(private val context: Context) : Telegra
                 "Telegram method failed: ${request.type()} (${failure.failure}, code=${failure.code})",
             )
             throw failure
+        } catch (_: RemoteException) {
+            disconnected()
+            // Sending may have succeeded. Durable callers reconcile before another send.
+            throw TelegramException(TelegramFailure.DISCONNECTED)
         } finally {
             pending.remove(id)
         }
@@ -260,6 +275,7 @@ class TelegramClient private constructor(private val context: Context) : Telegra
             }
         }
         when (event.type()) {
+            "nyanimeTransportFailure" -> disconnected()
             "nyanimeEngineFailure" -> {
                 val failure = if (event.text("reason") ==
                     "configuration"

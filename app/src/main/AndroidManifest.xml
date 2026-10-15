@@ -20,6 +20,9 @@
     <!-- For background jobs -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.RUN_USER_INITIATED_JOBS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
@@ -117,11 +120,17 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="nyanime" android:host="watch" android:path="/v1" />
             </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="owouwuiwi.github.io" android:path="/watch/" />
+            </intent-filter>
         </activity>
         <service
             android:name=".data.watch.WatchSessionService"
             android:exported="false"
-            android:foregroundServiceType="connectedDevice" />
+            android:foregroundServiceType="connectedDevice|mediaPlayback|microphone" />
 
         <service android:name=".ui.player.session.PlaybackSessionService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
 

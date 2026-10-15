@@ -77,6 +77,18 @@ data class WatchInvite(
         fun codeFromLink(text: String, now: Long): String {
             roomRequire(text.length <= 5000, R.string.room_invite_too_long)
             val uri = URI(text)
+            if (uri.scheme == "https") {
+                roomRequire(
+                    uri.host == "owouwuiwi.github.io" &&
+                        uri.path == "/watch/" &&
+                        uri.rawUserInfo == null &&
+                        uri.port == -1 &&
+                        uri.rawQuery == null &&
+                        uri.rawFragment?.matches(Regex("[0-9]{8}")) == true,
+                    R.string.room_invite_link_invalid,
+                )
+                return uri.rawFragment
+            }
             roomRequire(
                 uri.scheme == "nyanime" &&
                     uri.host == "watch" &&
@@ -130,6 +142,10 @@ class WatchIdentity(private val secret: ByteArray = generateSecret()) {
         return watchHash("nyanime-short-ecdh-v1:".toByteArray() + point.copyOfRange(1, 33) + code.toByteArray())
     }
     fun clear() = secret.fill(0)
+    internal fun interactionSharedSecret(peer: String): ByteArray {
+        require(peer.matches(Regex("[0-9a-f]{64}")))
+        return Secp256k1.pubKeyTweakMul(byteArrayOf(2) + peer.watchBytes(), secret).copyOfRange(1, 33)
+    }
     internal fun sessionSecret(): ByteArray = secret.copyOf()
 
     companion object {
