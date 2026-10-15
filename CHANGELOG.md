@@ -9,6 +9,17 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+
+## 16 ottobre 2026 — 0.48.0.1: Ritorno alla versione consolidata
+
+### Correzioni
+
+- Ripristinati il codice e le dipendenze della versione consolidata, mantenendo le correzioni audio già rilasciate.
+
+### Distribuzione
+
+- Nuova versione Consigliata con numerazione superiore alle prove locali, per aggiornare normalmente i dispositivi senza disinstallare l’app.
+
 ## 15 ottobre 2026 — 0.47.0.3: Audio e selezione delle tracce
 
 ### Correzioni
