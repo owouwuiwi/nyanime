@@ -20,37 +20,47 @@ class ExtensionsRestorer(
         val failures = mutableListOf<String>()
         extensions.forEach {
             try {
-                if (it.format == "rin") {
+                require(it.pkgName.matches(Regex("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+")))
+                require(it.apk.size.toLong() in 1..eu.kanade.tachiyomi.extension.ExtensionPackageArchive.MAX_BYTES)
+                if (it.format == "rin" || it.privatelyInstalled) {
                     val storage = eu.kanade.tachiyomi.data.rin.RinStorage(context)
                     kotlinx.coroutines.runBlocking {
-                        val approved = Injekt.get<AnimeExtensionStoreRepository>().getAll().any { store ->
-                            store.indexUrl == it.rinRepository && store.signingKey.lowercase() == it.rinSigner
-                        } ||
-                            Injekt.get<MangaExtensionRepoRepository>().getAll().any { store ->
-                                store.baseUrl == it.rinRepository &&
-                                    store.signingKeyFingerprint.lowercase() == it.rinSigner
-                            }
-                        require(approved) {
-                            "Restore the trusted extension catalogue before RIN packages"
-                        }
                         val file = File.createTempFile("rin-restore-", ".tmp", context.cacheDir)
                         try {
                             file.writeBytes(it.apk)
+                            val signer = if (it.format == "apk") {
+                                val inspected = eu.kanade.tachiyomi.extension.ExtensionPackageArchive.inspect(
+                                    context,
+                                    file,
+                                )
+                                eu.kanade.tachiyomi.extension.ExtensionPackageInspector.inspect(inspected.info) {
+                                    0
+                                }.signers.first()
+                            } else {
+                                it.rinSigner
+                            }
                             val record = storage.stage(
                                 file,
-                                it.rinSigner,
+                                signer,
                                 RinArchive.sha256(it.apk),
                                 it.rinRepository,
                             )
                             require(record.manifest.packageName == it.pkgName)
+                            require(it.storagePublisher.isEmpty() || it.storagePublisher in record.publisherHistory)
+                            val staged = record.copy(storagePublisher = it.storagePublisher.ifEmpty { record.signer })
                             val previous = storage.record(it.pkgName)
                             // A catalogue pin authenticates bytes; it is not consent to execute a new extension.
                             val enabled = previous?.enabled == true && previous.signer == record.signer && it.rinEnabled
+                            val restored = staged.copy(
+                                enabled = enabled,
+                                trusted = previous?.trusted == true,
+                                automaticUpdates = it.automaticUpdates,
+                            )
                             if (emergency) {
-                                storage.activate(record.copy(enabled = enabled))
+                                storage.activate(restored)
                             } else {
                                 eu.kanade.tachiyomi.data.rin.RinRepository.get(context)
-                                    .activate(record.copy(enabled = enabled), preserveEnabled = false)
+                                    .restoreDormant(restored)
                             }
                         } finally {
                             file.delete()

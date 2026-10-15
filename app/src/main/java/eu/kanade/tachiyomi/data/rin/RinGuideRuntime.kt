@@ -13,10 +13,15 @@ internal object RinGuideRuntime {
     fun load(context: Context, packageName: String): Loaded {
         val storage = RinStorage(context)
         val record = requireNotNull(storage.record(packageName))
-        require(record.enabled && record.manifest.medium == "guide" && RinRepository.compatible(record.manifest))
+        require(
+            record.enabled &&
+                eu.kanade.tachiyomi.extension.ExtensionPackageConsent.trusted(record) &&
+                record.manifest.medium == "guide" &&
+                RinRepository.compatible(record.manifest, record.format),
+        )
         loaded[record.sha256]?.let { return it }
         val file = storage.file(record)
-        require(RinArchive.verify(file, record.signer, record.sha256) == record.manifest)
+        require(eu.kanade.tachiyomi.extension.ExtensionPackageArchive.verify(context, file, record) == record.manifest)
         val loader = ChildFirstPathClassLoader(file.absolutePath, null, context.classLoader, addon = true)
         val provider = RinLoading.guard {
             Class.forName(

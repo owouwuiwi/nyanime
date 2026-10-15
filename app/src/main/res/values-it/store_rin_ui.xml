@@ -17,7 +17,7 @@
     <string name="store_clear_search">Cancella ricerca</string>
     <string name="store_reset_filters">Rimuovi i filtri</string>
     <string name="store_rin_description">Si installa dentro Nyanime e si aggiorna automaticamente. Gli aggiornamenti attendono la fine della riproduzione o lettura.</string>
-    <string name="store_disable_hint">Disattivarla conserva preferenze, libreria e progressi. Gli aggiornamenti automatici restano attivi.</string>
+    <string name="store_disable_hint">Disattivarla conserva preferenze, libreria e progressi.</string>
     <string name="store_session_busy">Chiudi la riproduzione, il lettore o la sessione Cast prima di modificare le estensioni.</string>
     <string name="store_activation_error">Non è stato possibile cambiare lo stato. La versione installata è conservata; riprova.</string>
     <string name="store_package_installed">Installata</string>

@@ -27,6 +27,6 @@ internal object StorePresentation {
             it.matchesLanguages(languages) &&
             it.matchesQuery(query)
     }.sortedWith(
-        compareBy<StoreEntry> { !it.isRin }.thenBy { it.name.lowercase(Locale.ROOT) }.thenBy { it.id },
+        compareBy<StoreEntry> { it.name.lowercase(Locale.ROOT) }.thenBy { it.id },
     ).toList()
 }

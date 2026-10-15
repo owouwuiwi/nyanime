@@ -48,6 +48,24 @@ data class StoreEntry(
         ?.supports(eu.kanade.tachiyomi.BuildConfig.VERSION_CODE.toLong()) != false
     val isRin get() = rinRecord != null || rinCandidate != null
     val enabled get() = rinRecord?.enabled ?: addon?.enabled ?: true
+    val canImport get() = when {
+        rinRecord != null -> true // Stored records were already verified as component-free.
+        addonCandidate != null -> !addonCandidate.requiresAndroid
+        addon != null -> false // Legacy Android addon declarations require registered components.
+        else -> rinCandidate?.requiresAndroid != true
+    }
+    val installedVersion get() = rinRecord?.manifest?.versionCode ?: (anime as? AnimeExtension.Installed)?.versionCode
+        ?: (manga as? MangaExtension.Installed)?.versionCode ?: news?.versionCode ?: addon?.versionCode
+    val installedMetadata get() = (anime as? AnimeExtension.Installed)?.metadata
+        ?: (manga as? MangaExtension.Installed)?.metadata ?: news?.metadata ?: addon?.metadata
+        ?: rinRecord?.let {
+            eu.kanade.domain.extension.ExtensionPackageMetadata(
+                signers = it.publisherSigners,
+                signerHistory = it.publisherHistory,
+            )
+        }
+    val imported get() = rinRecord?.isShared == false || privatelyInstalled
+    val automaticUpdates get() = rinRecord?.automaticUpdates ?: true
     private val searchTerms = buildList {
         add(name)
         add(packageName)
@@ -131,7 +149,7 @@ object StoreCatalogue {
             val updateCandidate = variants.singleOrNull()
                 ?: variants.singleOrNull { it.store.indexUrl == old.store?.indexUrl }
             val ready = old.metadata.home in setOf(ExtensionHomeSupport.READY, ExtensionHomeSupport.PARTIAL)
-            // APK-to-Ready proposals are retired. RIN migration owns the blocking transition.
+            // Optional Home capabilities do not change the package installation mode.
             val candidate = updateCandidate
             val action = if (old.hasUpdate) StoreAction.UPDATE else StoreAction.OPEN
             StoreEntry(
@@ -192,7 +210,7 @@ object StoreCatalogue {
                 .values.mapNotNull { it.maxByOrNull(MangaExtension.Available::versionCode) }
             val updateCandidate = variants.singleOrNull() ?: variants.singleOrNull { it.repoUrl == old.repoUrl }
             val ready = old.metadata.home in setOf(ExtensionHomeSupport.READY, ExtensionHomeSupport.PARTIAL)
-            // APK-to-Ready proposals are retired. RIN migration owns the blocking transition.
+            // Optional Home capabilities do not change the package installation mode.
             val candidate = updateCandidate
             val action = if (old.hasUpdate) StoreAction.UPDATE else StoreAction.OPEN
             StoreEntry(

@@ -40,6 +40,10 @@ internal fun StoreDetails(
     onUninstall: () -> Unit,
     onAnime: (Long) -> Unit,
     onManga: (Long) -> Unit,
+    onInstallMode: (eu.kanade.tachiyomi.data.extensionstore.StoreInstallMode) -> Unit,
+    onAutomaticUpdates: (Boolean) -> Unit,
+    onAssociateOrigin: () -> Unit,
+    progress: Float? = null,
 ) {
     val c = LocalStoreColors.current
     StoreSheet(onDismiss) {
@@ -56,21 +60,13 @@ internal fun StoreDetails(
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            StoreBadge(if (entry.isRin) "RIN" else "APK", c.accent, c.tint)
-        }
-        if (entry.isRin &&
-            entry.medium !in
-            setOf(
-                eu.kanade.tachiyomi.data.extensionstore.StoreMedium.ADDON,
-                eu.kanade.tachiyomi.data.extensionstore.StoreMedium.GUIDE,
-                eu.kanade.tachiyomi.data.extensionstore.StoreMedium.TV,
-            )
-        ) {
-            Text(
-                stringResource(R.string.store_rin_description),
-                color = c.muted,
-                style = MaterialTheme.typography.bodyMedium,
-            )
+            if (entry.installed) {
+                StoreBadge(
+                    stringResource(if (entry.imported) R.string.package_imported else R.string.package_system),
+                    c.accent,
+                    c.tint,
+                )
+            }
         }
         val locale = LocalConfiguration.current.locales[0]
         val descriptions =
@@ -115,7 +111,95 @@ internal fun StoreDetails(
                 )
             }
         }
-        EntryButton(entry, step, Modifier.fillMaxWidth(), { onAction() }, { onCancel() }, changing)
+        val busy = step in setOf(InstallStep.Pending, InstallStep.Downloading, InstallStep.Installing)
+        if ((
+                entry.action in setOf(StoreAction.INSTALL, StoreAction.UPDATE) ||
+                    entry.candidateVersion == entry.installedVersion &&
+                    entry.candidateUrl != null
+                ) &&
+            !busy
+        ) {
+            androidx.compose.foundation.layout.FlowRow(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (entry.rinCandidate?.format != "rin") {
+                    StoreButton(
+                        stringResource(R.string.package_install),
+                        {
+                            onInstallMode(eu.kanade.tachiyomi.data.extensionstore.StoreInstallMode.SYSTEM)
+                        },
+                        outlined = true,
+                    )
+                }
+                if (entry.canImport) {
+                    StoreButton(
+                        stringResource(R.string.package_import),
+                        {
+                            onInstallMode(eu.kanade.tachiyomi.data.extensionstore.StoreInstallMode.PRIVATE)
+                        },
+                        outlined = true,
+                    )
+                }
+            }
+            Text(
+                stringResource(if (entry.canImport) R.string.package_modes_hint else R.string.package_system_required),
+                color = c.muted,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        } else {
+            EntryButton(entry, step, Modifier.fillMaxWidth(), { onAction() }, { onCancel() }, changing)
+        }
+        if (step == InstallStep.Error) {
+            Text(
+                stringResource(R.string.package_update_failed),
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+        if (step == InstallStep.Installed) {
+            Text(stringResource(R.string.package_ready), color = c.muted, style = MaterialTheme.typography.bodyMedium)
+        }
+        if (step == InstallStep.Downloading) {
+            if (progress == null) {
+                androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth())
+            } else {
+                androidx.compose.material3.LinearProgressIndicator(progress = {
+                    progress
+                }, modifier = Modifier.fillMaxWidth())
+            }
+        }
+        entry.installedMetadata?.signers?.takeIf { it.isNotEmpty() }?.let { signers ->
+            Text(
+                stringResource(R.string.package_publisher),
+                style = MaterialTheme.typography.labelMedium,
+                color = c.muted,
+            )
+            Text(
+                signers.joinToString("\n") {
+                    it.chunked(8).joinToString(" ")
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = c.muted,
+            )
+        }
+        if (entry.imported && entry.installed) {
+            if (entry.repository.isNullOrBlank()) {
+                Text(stringResource(R.string.package_manual_updates), color = c.muted)
+                StoreButton(
+                    stringResource(R.string.package_associate_origin),
+                    onAssociateOrigin,
+                    Modifier.fillMaxWidth(),
+                    outlined = true,
+                )
+            } else {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.package_auto_updates), Modifier.weight(1f))
+                    Switch(entry.automaticUpdates, onAutomaticUpdates, enabled = !changing && !busy)
+                }
+            }
+        }
         val anime = (entry.anime as? AnimeExtension.Installed)?.sources.orEmpty()
         val manga = (entry.manga as? MangaExtension.Installed)?.sources.orEmpty()
         val unavailableRin = entry.rinRecord != null &&
@@ -125,6 +209,7 @@ internal fun StoreDetails(
                 eu.kanade.tachiyomi.data.extensionstore.StoreMedium.ADDON,
                 eu.kanade.tachiyomi.data.extensionstore.StoreMedium.GUIDE,
                 eu.kanade.tachiyomi.data.extensionstore.StoreMedium.TV,
+                eu.kanade.tachiyomi.data.extensionstore.StoreMedium.NEWS,
             ) &&
             anime.isEmpty() &&
             manga.isEmpty()
@@ -174,7 +259,7 @@ internal fun StoreDetails(
                 Text(stringResource(R.string.store_uninstall))
             }
         }
-        entry.repository?.let {
+        entry.repository?.takeIf { it.isNotBlank() }?.let {
             HorizontalDivider(color = c.line)
             Text(
                 stringResource(R.string.store_catalogue),

@@ -30,7 +30,21 @@ fun AddonModeGesture(modifier: Modifier = Modifier, content: @Composable () -> U
     val context = LocalContext.current
     val repository = remember(context) { AddonRepository.get(context) }
     val installed by repository.registry.state.collectAsState()
-    val addons = installed.filter { it.usable && it.activation?.isMoreAction == false }
+    val rin = remember(context) { eu.kanade.tachiyomi.data.rin.RinRepository.get(context) }
+    val bundles by rin.installed.collectAsState()
+    data class Mode(val packageName: String, val label: String, val hold: Long, val hosted: Boolean)
+    val addons = installed.filter { it.usable && it.activation?.isMoreAction == false }.map {
+        Mode(it.packageName, it.label, requireNotNull(it.activation).holdMillis, false)
+    } +
+        bundles.filter {
+            it.enabled &&
+                it.trusted &&
+                it.manifest.medium == "addon" &&
+                it.manifest.addon?.isLogoHold == true &&
+                eu.kanade.tachiyomi.data.rin.RinRepository.compatible(it.manifest)
+        }.map {
+            Mode(it.manifest.packageName, it.manifest.name, requireNotNull(it.manifest.addon).holdMillis, true)
+        }
     LifecycleResumeEffect(repository) {
         repository.refreshInstalled()
         onPauseOrDispose { }
@@ -38,7 +52,7 @@ fun AddonModeGesture(modifier: Modifier = Modifier, content: @Composable () -> U
     val scope = rememberCoroutineScope()
     val haptics = LocalHapticFeedback.current
     val configuration = LocalViewConfiguration.current
-    val hold = addons.singleOrNull()?.activation?.holdMillis ?: 1_500L
+    val hold = addons.singleOrNull()?.hold ?: 1_500L
     val held = remember(configuration, hold) {
         object : ViewConfiguration by configuration {
             override val longPressTimeoutMillis = hold
@@ -64,7 +78,13 @@ fun AddonModeGesture(modifier: Modifier = Modifier, content: @Composable () -> U
                         ) {
                             choosing = true
                         } else {
-                            scope.launch { repository.open(addon.packageName, context) }
+                            scope.launch {
+                                if (addon.hosted) {
+                                    eu.kanade.tachiyomi.data.addon.RinAddonRuntime.open(context, addon.packageName)
+                                } else {
+                                    repository.open(addon.packageName, context)
+                                }
+                            }
                         }
                     },
                 )
@@ -80,7 +100,13 @@ fun AddonModeGesture(modifier: Modifier = Modifier, content: @Composable () -> U
                     addons.forEach { addon ->
                         TextButton(onClick = {
                             choosing = false
-                            scope.launch { repository.open(addon.packageName, context) }
+                            scope.launch {
+                                if (addon.hosted) {
+                                    eu.kanade.tachiyomi.data.addon.RinAddonRuntime.open(context, addon.packageName)
+                                } else {
+                                    repository.open(addon.packageName, context)
+                                }
+                            }
                         }) { Text(addon.label) }
                     }
                 }

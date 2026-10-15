@@ -19,6 +19,7 @@ import eu.kanade.tachiyomi.extension.anime.model.AnimeExtension
 import eu.kanade.tachiyomi.util.storage.getUriCompat
 import eu.kanade.tachiyomi.util.system.isPackageInstalled
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -46,6 +47,7 @@ internal class AnimeExtensionInstaller(private val context: Context) {
     /**
      * The system's download manager
      */
+    private val privateJobs = java.util.concurrent.ConcurrentHashMap<Long, kotlinx.coroutines.Job>()
     private val downloadManager = context.getSystemService<DownloadManager>()!!
 
     /**
@@ -237,33 +239,35 @@ internal class AnimeExtensionInstaller(private val context: Context) {
                 context.startActivity(intent)
             }
             BasePreferences.ExtensionInstaller.PRIVATE -> {
-                val extensionManager = Injekt.get<AnimeExtensionManager>()
-                val tempFile = File(context.cacheDir, "temp_$downloadId")
-
-                if (tempFile.exists() && !tempFile.delete()) {
-                    // Unlikely but just in case
-                    extensionManager.updateInstallStep(downloadId, InstallStep.Error)
-                    return
-                }
-
-                try {
-                    context.contentResolver.openInputStream(uri)?.use { input ->
-                        tempFile.outputStream().use { output ->
-                            input.copyTo(output)
-                        }
+                val manager = Injekt.get<AnimeExtensionManager>()
+                val task = manager.scope.launch(
+                    kotlinx.coroutines.Dispatchers.IO,
+                    start = kotlinx.coroutines.CoroutineStart.LAZY,
+                ) {
+                    val file = File.createTempFile("extension-import-", ".apk", context.cacheDir)
+                    try {
+                        context.contentResolver.openInputStream(uri)?.use { input ->
+                            file.outputStream().use { output -> input.copyTo(output) }
+                        } ?: error("Downloaded extension unavailable")
+                        kotlinx.coroutines.currentCoroutineContext().ensureActive()
+                        check(downloadId in activeDownloads.values)
+                        val installed = AnimeExtensionLoader.installPrivateExtensionFile(context, file)
+                        manager.updateInstallStep(
+                            downloadId,
+                            if (installed) InstallStep.Installed else InstallStep.Error,
+                        )
+                    } catch (cancel: kotlinx.coroutines.CancellationException) {
+                        throw cancel
+                    } catch (error: Exception) {
+                        logcat(LogPriority.ERROR, error) { "Private installation retained the previous extension" }
+                        manager.updateInstallStep(downloadId, InstallStep.Error)
+                    } finally {
+                        file.delete()
+                        privateJobs.remove(downloadId)
                     }
-
-                    if (AnimeExtensionLoader.installPrivateExtensionFile(context, tempFile)) {
-                        extensionManager.updateInstallStep(downloadId, InstallStep.Installed)
-                    } else {
-                        extensionManager.updateInstallStep(downloadId, InstallStep.Error)
-                    }
-                } catch (e: Exception) {
-                    logcat(LogPriority.ERROR, e) { "Failed to read downloaded extension file." }
-                    extensionManager.updateInstallStep(downloadId, InstallStep.Error)
                 }
-
-                tempFile.delete()
+                privateJobs[downloadId] = task
+                task.start()
             }
             else -> {
                 val intent =
@@ -278,6 +282,7 @@ internal class AnimeExtensionInstaller(private val context: Context) {
      */
     fun cancelInstall(pkgName: String) {
         val downloadId = activeDownloads.remove(pkgName) ?: return
+        privateJobs.remove(downloadId)?.cancel()
         downloadsStateFlows[downloadId]?.value = InstallStep.Idle
         expectedPackages.remove(downloadId)
         verifiedFiles.remove(downloadId)?.delete()

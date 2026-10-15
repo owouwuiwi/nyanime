@@ -40,15 +40,15 @@ class ImportExtensionCatalogueTest {
     )
     private fun reader(url: String, signer: String = key) = ExtensionRepo(url, "Example", "Example", url, signer)
 
-    @Test fun oneImportMigratesBothRegistriesAndPreservesOtherPublishers(): Unit = runBlocking {
+    @Test fun addingACatalogueCannotImposeReplacementOfOtherConfiguredOrigins(): Unit = runBlocking {
         val anime = AnimeRegistry(listOf(video(oldUrl), video(unrelatedUrl, "b".repeat(64))))
         val manga = MangaRegistry(listOf(reader(oldUrl), reader(unrelatedUrl, "b".repeat(64))))
         ImportExtensionCatalogue(anime, manga).await(newUrl, catalogue)
-        assertEquals(setOf(newUrl, unrelatedUrl), anime.values.keys)
-        assertEquals(setOf(newUrl, unrelatedUrl), manga.values.keys)
+        assertEquals(setOf(oldUrl, newUrl, unrelatedUrl), anime.values.keys)
+        assertEquals(setOf(oldUrl, newUrl, unrelatedUrl), manga.values.keys)
         ImportExtensionCatalogue(anime, manga).await(newUrl, catalogue)
-        assertEquals(2, anime.values.size)
-        assertEquals(2, manga.values.size)
+        assertEquals(3, anime.values.size)
+        assertEquals(3, manga.values.size)
     }
 
     @Test fun failureInSecondRegistryRestoresFirstWithoutLosingOldCatalogues(): Unit = runBlocking {
@@ -115,6 +115,10 @@ class ImportExtensionCatalogueTest {
             website: String,
             signingKeyFingerprint: String,
         ) {
+            if (failNextReplace) {
+                failNextReplace = false
+                error("Simulated storage error")
+            }
             values[baseUrl] = ExtensionRepo(baseUrl, name, shortName, website, signingKeyFingerprint)
         }
         override suspend fun replaceRepo(newRepo: ExtensionRepo) {

@@ -469,6 +469,11 @@ object SettingsAdvancedScreen : SearchableSettings {
                     onClick = {
                         trustMangaExtension.revokeAll()
                         trustAnimeExtension.revokeAll()
+                        eu.kanade.domain.extension.ExtensionExecutionTrust(Injekt.get()).revokeAll()
+                        val catalogues = eu.kanade.domain.extension.ExtensionCatalogueTrust(Injekt.get())
+                        catalogues.get().forEach { catalogues.remove(it.url) }
+                        val packages = eu.kanade.tachiyomi.data.rin.RinStorage(context)
+                        packages.revokeTrust()
                         context.toast(MR.strings.requires_app_restart)
                     },
                 ),

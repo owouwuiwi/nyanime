@@ -43,8 +43,9 @@ Il progetto segue il modello [bring your own content](responsible-use.md).
 | [Home e scoperta](discovery-home.md) | Cataloghi, associazione alle fonti, calendario, cache e ripresa. |
 | [Home Panorama](home-panorama.md) | Carosello circolare, ripresa compatta, caricamento e interazioni. |
 | [Fluidità](ui-fluidity.md) | Rendering, immagini, aggiornamenti locali e prove di scorrimento su dispositivo. |
-| [Store Vetrina](extension-store.md) | Estensioni Ready e Legacy, inventario, installazione e sostituzione guidata. |
-| [RIN locali e cataloghi](rin-manual-import.md) | Caricamento e aggiornamento di pacchetti verificati e collegamenti ai cataloghi. |
+| [Store](extension-store.md) | Inventario, Installa o Importa, fiducia e aggiornamenti delle estensioni. |
+| [Importazione manuale](rin-manual-import.md) | APK e vecchi archivi, senza catalogo obbligatorio. |
+| [Interoperabilità delle estensioni](extension-interoperability.md) | Contratti, capacità facoltative, SDK, identità e verifiche. |
 | [Estensioni Notizie](news-extensions.md) | Fonti separate, lettore nativo, articoli salvati e avvisi facoltativi. |
 | [Addon opzionali](addons.md) | Modalità installabili, logo e attivazione dichiarati, isolamento, tema e aggiornamenti. |
 | [API Home anime](extension-home-api.md) | Contratto dichiarativo generico delle estensioni. |

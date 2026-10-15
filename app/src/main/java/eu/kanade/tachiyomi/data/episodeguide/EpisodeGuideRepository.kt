@@ -60,6 +60,7 @@ class EpisodeGuideRepository private constructor(private val context: Context) {
             RinRepository.get(context).installed.collect { records ->
                 activeProviders = records.filter {
                     it.enabled &&
+                        it.trusted &&
                         RinRepository.compatible(it.manifest) &&
                         "episode-guides.v1" in it.manifest.guide?.capabilities.orEmpty()
                 }.mapTo(mutableSetOf()) { it.manifest.packageName + ":" + it.signer }
@@ -89,6 +90,7 @@ class EpisodeGuideRepository private constructor(private val context: Context) {
     fun snapshot(anime: Anime) = states.value[key(anime)] ?: GuideSnapshot()
     fun available() = RinRepository.get(context).installed.value.any {
         it.enabled &&
+            it.trusted &&
             RinRepository.compatible(it.manifest) &&
             "episode-guides.v1" in it.manifest.guide?.capabilities.orEmpty()
     }
@@ -192,6 +194,7 @@ class EpisodeGuideRepository private constructor(private val context: Context) {
         val providers = withContext(Dispatchers.IO) {
             RinRepository.get(context).installed.value.filter {
                 it.enabled &&
+                    it.trusted &&
                     "episode-guides.v1" in it.manifest.guide?.capabilities.orEmpty() &&
                     RinRepository.compatible(it.manifest)
             }.mapNotNull {

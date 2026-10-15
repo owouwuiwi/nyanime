@@ -2,11 +2,11 @@ package eu.kanade.tachiyomi.data.rin
 
 import android.content.Context
 import eu.kanade.domain.base.BasePreferences
-import eu.kanade.domain.extension.ExtensionCatalogueAuthorities
 import eu.kanade.tachiyomi.extension.anime.AnimeExtensionManager
 import eu.kanade.tachiyomi.extension.anime.util.AnimeExtensionInstallReceiver
 import eu.kanade.tachiyomi.extension.manga.MangaExtensionManager
 import eu.kanade.tachiyomi.extension.manga.util.MangaExtensionInstallReceiver
+import eu.kanade.tachiyomi.extension.manga.util.MangaExtensionLoader
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.network.awaitSuccess
@@ -19,6 +19,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -48,6 +49,8 @@ data class RinEntry(
     val signer: String,
     val repository: String = "",
     val resources: RinResources = RinResources(),
+    val format: String = "rin",
+    val requiresAndroid: Boolean = false,
 ) {
     val iconUrl: String? get() = resources.iconUrl?.takeIf(RinArchive::validBundleUrl)
 }
@@ -55,12 +58,15 @@ data class RinEntry(
 object RinUpdatePolicy {
     fun accepts(entry: RinEntry, installed: RinRecord): Boolean =
         entry.manifest.packageName == installed.manifest.packageName &&
-            entry.signer == installed.signer &&
+            (entry.signer in installed.publisherSigners || entry.signer in installed.publisherHistory) &&
             entry.repository == installed.repository &&
             entry.manifest.medium == installed.manifest.medium &&
             entry.manifest.versionCode > installed.manifest.versionCode &&
-            RinRepository.compatible(entry.manifest) &&
-            entry.manifest.preservesSourceIds(installed.manifest.knownSourceIds)
+            RinRepository.compatible(entry.manifest, entry.format) &&
+            (
+                installed.manifest.knownSourceIds.isEmpty() ||
+                    entry.manifest.preservesSourceIds(installed.manifest.knownSourceIds)
+                )
 
     /** Catalogue presence alone NEVER grants permission to install a new source. */
     fun updates(entries: List<RinEntry>, installed: List<RinRecord>): List<RinEntry> = installed.mapNotNull { old ->
@@ -75,27 +81,145 @@ class RinRepository private constructor(private val context: Context) {
 
     val storage = RinStorage(context)
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-    private val mutex = Mutex()
     private val refreshMutex = Mutex()
     private val preferences = context.getSharedPreferences("rin_state", Context.MODE_PRIVATE)
     private val mutableEntries = MutableStateFlow(cachedEntries())
     val entries = mutableEntries.asStateFlow()
-    private val mutableInstalled = MutableStateFlow(storage.records())
+    private val mutableInstalled = MutableStateFlow(
+        storage.records().map {
+            it.copy(trusted = eu.kanade.tachiyomi.extension.ExtensionPackageConsent.trusted(it))
+        },
+    )
     val installed = mutableInstalled.asStateFlow()
     private val mutableProgress = MutableStateFlow<Pair<String, Float?>?>(null)
     val progress = mutableProgress.asStateFlow()
-    val migrationRequests = MutableStateFlow(0)
     private val network get() = Injekt.get<NetworkHelper>()
     private val anime get() = Injekt.get<AnimeExtensionManager>()
     private val manga get() = Injekt.get<MangaExtensionManager>()
+    private val inventoryMutex = Mutex()
+    private var inventoryRetry: kotlinx.coroutines.Job? = null
 
     init {
-        val prepared = runCatching {
-            RinArchive.json.decodeFromString<RinMigrationState>(
-                context.getSharedPreferences("rin_migration", Context.MODE_PRIVATE).getString("pending", "")!!,
-            ).prepared
-        }.getOrDefault(emptyList())
-        storage.pruneOnColdStart(prepared)
+        val migration = context.getSharedPreferences("rin_migration", Context.MODE_PRIVATE)
+        runCatching {
+            val raw = migration.getString("pending", null) ?: return@runCatching
+            require(raw.length <= 256 * 1024)
+            val prepared = RinArchive.json.parseToJsonElement(raw).jsonObject["prepared"]?.jsonArray.orEmpty()
+            prepared.forEach { encoded ->
+                val record = RinArchive.json.decodeFromJsonElement<RinRecord>(encoded)
+                if (storage.record(record.manifest.packageName) == null &&
+                    !legacyPresent(record.manifest.packageName)
+                ) {
+                    storage.activate(record.copy(enabled = false, trusted = false))
+                }
+            }
+        }
+        migration.edit().remove("pending").apply()
+        storage.pruneOnColdStart(emptyList())
+        scope.launch(Dispatchers.IO) { reloadInstalled() }
+        androidx.core.content.ContextCompat.registerReceiver(
+            context,
+            object : android.content.BroadcastReceiver() {
+                override fun onReceive(context: Context, intent: android.content.Intent) {
+                    if (intent.action == android.content.Intent.ACTION_PACKAGE_REMOVED &&
+                        intent.getBooleanExtra(android.content.Intent.EXTRA_REPLACING, false)
+                    ) {
+                        return
+                    }
+                    eu.kanade.tachiyomi.extension.ExtensionPackageDiscovery.invalidate()
+                    scope.launch(Dispatchers.IO) { reloadInstalled() }
+                }
+            },
+            android.content.IntentFilter().apply {
+                addAction(android.content.Intent.ACTION_PACKAGE_ADDED)
+                addAction(android.content.Intent.ACTION_PACKAGE_REPLACED)
+                addAction(android.content.Intent.ACTION_PACKAGE_REMOVED)
+                addDataScheme("package")
+            },
+            androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
+        scope.launch {
+            eu.kanade.domain.extension.ExtensionCatalogueTrust(Injekt.get()).changes.drop(1).collect {
+                reloadInstalled()
+                eu.kanade.tachiyomi.data.addon.AddonRepository.get(context).registry.reload()
+                Injekt.get<eu.kanade.tachiyomi.data.news.NewsRepository>().initialize()
+                storage.records().filter { it.manifest.medium in setOf("anime", "manga") }.forEach {
+                    notifyChanged(it)
+                }
+            }
+        }
+    }
+
+    suspend fun reloadInstalled(): Unit = withContext(Dispatchers.IO) {
+        inventoryMutex.withLock {
+            storage.records().filter {
+                it.isShared &&
+                    eu.kanade.tachiyomi.extension.ExtensionPackageDiscovery.exists(context, it.manifest.packageName) ==
+                    false
+            }.forEach {
+                storage.remove(it.manifest.packageName)
+            }
+            val records = eu.kanade.tachiyomi.extension.ExtensionPackageInventory.hosted(context, storage)
+            mutableInstalled.value = records.map {
+                it.copy(trusted = eu.kanade.tachiyomi.extension.ExtensionPackageConsent.trusted(it))
+            }
+            if (eu.kanade.tachiyomi.extension.ExtensionPackageDiscovery.unavailable.value &&
+                inventoryRetry?.isActive != true
+            ) {
+                inventoryRetry = scope.launch(Dispatchers.IO) {
+                    var retryDelay = 1_000L
+                    while (eu.kanade.tachiyomi.extension.ExtensionPackageDiscovery.unavailable.value) {
+                        kotlinx.coroutines.delay(retryDelay)
+                        retryDelay = (retryDelay * 2).coerceAtMost(60_000)
+                        eu.kanade.tachiyomi.extension.ExtensionPackageDiscovery.invalidate()
+                        eu.kanade.tachiyomi.extension.ExtensionPackageDiscovery.retryFailed(context)
+                        reloadInstalled()
+                    }
+                    Injekt.get<eu.kanade.tachiyomi.data.news.NewsRepository>().initialize()
+                    eu.kanade.tachiyomi.data.addon.AddonRepository.get(context).registry.reload()
+                    val native = eu.kanade.tachiyomi.extension.ExtensionPackageDiscovery.candidates(
+                        context,
+                        android.content.pm.PackageManager.GET_CONFIGURATIONS,
+                        setOf("tachiyomi.animeextension", "tachiyomi.extension"),
+                    )
+                    native.forEach { info ->
+                        if (info.reqFeatures.orEmpty().any { it.name == "tachiyomi.animeextension" }) {
+                            AnimeExtensionInstallReceiver.notifyAdded(context, info.packageName)
+                        } else {
+                            MangaExtensionInstallReceiver.notifyAdded(context, info.packageName)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun notifyChanged(record: RinRecord) {
+        when (record.manifest.medium) {
+            "anime" -> AnimeExtensionInstallReceiver.notifyAdded(context, record.manifest.packageName)
+            "manga" -> MangaExtensionInstallReceiver.notifyAdded(context, record.manifest.packageName)
+        }
+    }
+
+    suspend fun restoreDormant(record: RinRecord) = withContext(Dispatchers.IO) {
+        storage.activate(record)
+        reloadInstalled()
+        notifyChanged(record)
+    }
+
+    suspend fun trustPackage(packageName: String) {
+        val previous = installed.value.firstOrNull { it.manifest.packageName == packageName } ?: return
+        activateVerified(
+            previous.copy(trusted = true, catalogueConsent = null),
+            storage.record(packageName),
+            approveConsent = true,
+        )
+    }
+
+    suspend fun setAutomaticUpdates(packageName: String, enabled: Boolean) {
+        val previous = storage.record(packageName) ?: return
+        storage.activate(previous.copy(automaticUpdates = enabled))
+        reloadInstalled()
     }
 
     private fun cachedEntries(): List<RinEntry> = runCatching {
@@ -130,17 +254,23 @@ class RinRepository private constructor(private val context: Context) {
                                 root["rinList"]?.jsonObject?.get("extensions")?.jsonArray.orEmpty() +
                                     root["rinAddons"]?.jsonObject?.get("extensions")?.jsonArray.orEmpty() +
                                     root["rinGuides"]?.jsonObject?.get("extensions")?.jsonArray.orEmpty() +
-                                    root["rinTv"]?.jsonObject?.get("extensions")?.jsonArray.orEmpty()
+                                    root["rinTv"]?.jsonObject?.get("extensions")?.jsonArray.orEmpty() +
+                                    root["packageList"]?.jsonObject?.get("extensions")?.jsonArray.orEmpty()
                                 ).forEach extensions@{ value ->
                                 val decoded = RinArchive.json.decodeFromJsonElement<RinEntry>(value)
                                 val entry = decoded.copy(repository = repository)
-                                require(entry.signer == signer && entry.sha256.matches(Regex("[a-f0-9]{64}")))
+                                require(
+                                    entry.format in setOf("rin", "apk") &&
+                                        entry.signer.matches(Regex("[a-f0-9]{64}")) &&
+                                        entry.sha256.matches(Regex("[a-f0-9]{64}")),
+                                )
+                                require(entry.format == "apk" || entry.signer == signer)
                                 require(RinArchive.validBundleUrl(entry.url))
                                 require(
                                     entry.manifest.schema ==
-                                        if (entry.manifest.medium in setOf("addon", "guide", "tv")) 2 else 1,
+                                        if (entry.manifest.medium in setOf("addon", "guide", "tv", "news")) 2 else 1,
                                 )
-                                if (!compatible(entry.manifest) &&
+                                if (!compatible(entry.manifest, entry.format) &&
                                     entry.manifest.medium !in setOf("addon", "guide", "tv")
                                 ) {
                                     return@extensions
@@ -160,7 +290,11 @@ class RinRepository private constructor(private val context: Context) {
                         logcat(LogPriority.WARN, error) { "RIN catalogue refresh failed" }
                         complete = false
                         // Retain only previously authenticated entries from this still-configured publisher.
-                        all += entries.value.filter { it.repository == repository && it.signer == signer }
+                        all +=
+                            entries.value.filter {
+                                it.repository == repository &&
+                                    (it.format == "apk" || it.signer == signer)
+                            }
                     }
                 }
                 mutableEntries.value = all.distinctBy { Triple(it.manifest.packageName, it.sha256, it.signer) }
@@ -179,90 +313,28 @@ class RinRepository private constructor(private val context: Context) {
 
     suspend fun trusted(entry: RinEntry): Boolean {
         val configured = Injekt.get<AnimeExtensionStoreRepository>().getAll().any {
-            it.indexUrl == entry.repository && it.signingKey.lowercase() == entry.signer
+            it.indexUrl == entry.repository && (entry.format == "apk" || it.signingKey.lowercase() == entry.signer)
         } ||
             Injekt.get<MangaExtensionRepoRepository>().getAll().any {
-                it.baseUrl == entry.repository && it.signingKeyFingerprint.lowercase() == entry.signer
+                it.baseUrl == entry.repository &&
+                    (entry.format == "apk" || it.signingKeyFingerprint.lowercase() == entry.signer)
             }
-        return configured && compatible(entry.manifest)
-    }
-
-    suspend fun migrationEntries(): List<RinEntry> = withContext(Dispatchers.IO) {
-        anime.isInitialized.first { it }
-        manga.isInitialized.first { it }
-        val approvals = ExtensionCatalogueAuthorities(Injekt.get()).get()
-        val records = storage.records().associateBy { it.manifest.packageName }
-        entries.value.groupBy { it.manifest.packageName }.values.mapNotNull { candidates ->
-            val candidate = candidates.singleOrNull() ?: return@mapNotNull null
-            if (!trusted(candidate)) return@mapNotNull null
-            if (records[candidate.manifest.packageName] != null &&
-                !legacyPresent(candidate.manifest.packageName)
-            ) {
-                return@mapNotNull null
-            }
-            val packageName = candidate.manifest.packageName
-            // An existing disabled RIN has no instances. Inspect the actual legacy APK,
-            // never use the RIN's empty source list as evidence against mandatory migration.
-            val a = anime.installedExtensionsFlow.value.firstOrNull { it.pkgName == packageName }
-                ?.takeUnless { packageName in records }
-                ?: if (candidate.manifest.medium == "anime" && legacyPresent(packageName)) {
-                    (
-                        eu.kanade.tachiyomi.extension.anime.util.AnimeExtensionLoader.inspectForMigration(
-                            context,
-                            packageName,
-                        )
-                            as? eu.kanade.tachiyomi.extension.anime.model.AnimeLoadResult.Success
-                        )?.extension
-                } else {
-                    null
-                }
-            val m = manga.installedExtensionsFlow.value.firstOrNull { it.pkgName == packageName }
-                ?.takeUnless { packageName in records }
-                ?: if (candidate.manifest.medium == "manga" && legacyPresent(packageName)) {
-                    (
-                        eu.kanade.tachiyomi.extension.manga.util.MangaExtensionLoader.inspectForMigration(
-                            context,
-                            packageName,
-                        )
-                            as? eu.kanade.tachiyomi.extension.manga.model.MangaLoadResult.Success
-                        )?.extension
-                } else {
-                    null
-                }
-            val ids = a?.sources?.map { it.id } ?: m?.sources?.map { it.id } ?: return@mapNotNull null
-            val signer = a?.metadata?.signers ?: m!!.metadata.signers
-            val approved = candidate.signer in signer ||
-                approvals.any {
-                    it.permits(candidate.repository, candidate.signer, candidate.manifest.medium)
-                }
-            candidate.takeIf { approved && it.manifest.preservesSourceIds(ids) }
-        }
+        return configured && compatible(entry.manifest, entry.format)
     }
 
     fun legacyPresent(packageName: String): Boolean =
         runCatching { context.packageManager.getPackageInfo(packageName, 0) }.isSuccess ||
             File(context.filesDir, "exts/$packageName.ext").exists()
 
-    suspend fun requestMigration(entry: RinEntry) = withContext(Dispatchers.IO) {
-        check(trusted(entry) && legacyPresent(entry.manifest.packageName))
-        check(
-            context.getSharedPreferences("rin_migration", Context.MODE_PRIVATE).edit().putString(
-                "pending",
-                RinArchive.json.encodeToString(RinMigrationState(phase = "intro", entries = listOf(entry))),
-            ).commit(),
-        )
-        migrationRequests.value++
-    }
-
     suspend fun prepare(entry: RinEntry): RinRecord = withContext(Dispatchers.IO) {
-        check(trusted(entry))
+        check(trusted(entry) && !entry.requiresAndroid)
         require(RinArchive.validBundleUrl(entry.url))
         val file = File.createTempFile("rin-download-", ".tmp", context.cacheDir)
         mutableProgress.value = entry.manifest.packageName to null
         try {
             network.apiClient.newCall(GET(entry.url)).awaitSuccess().use { response ->
                 val total = response.body.contentLength()
-                require(total <= RinArchive.MAX_ARCHIVE_BYTES)
+                require(total <= eu.kanade.tachiyomi.extension.ExtensionPackageArchive.MAX_BYTES)
                 response.body.byteStream().use { input ->
                     file.outputStream().use { output ->
                         val buffer = ByteArray(32 * 1024)
@@ -272,7 +344,7 @@ class RinRepository private constructor(private val context: Context) {
                             val read = input.read(buffer)
                             if (read < 0) break
                             count += read
-                            require(count <= RinArchive.MAX_ARCHIVE_BYTES)
+                            require(count <= eu.kanade.tachiyomi.extension.ExtensionPackageArchive.MAX_BYTES)
                             output.write(buffer, 0, read)
                             mutableProgress.value =
                                 entry.manifest.packageName to if (total > 0) count.toFloat() / total else null
@@ -281,9 +353,9 @@ class RinRepository private constructor(private val context: Context) {
                 }
             }
             val record = storage.stage(file, entry.signer, entry.sha256, entry.repository)
-            require(record.manifest == entry.manifest) { "RIN catalogue mismatch" }
+                .copy(catalogueConsent = storage.record(entry.manifest.packageName)?.catalogueConsent)
+            require(record.manifest == entry.manifest && record.format == entry.format) { "RIN catalogue mismatch" }
             // Instantiate while the old package is still recoverable; IDs must match real source instances.
-            RinLoader.instantiate(context, record)
             record
         } finally {
             mutableProgress.value = null
@@ -306,15 +378,25 @@ class RinRepository private constructor(private val context: Context) {
                         val count = source.read(buffer)
                         if (count < 0) break
                         bytes += count
-                        require(bytes <= RinArchive.MAX_ARCHIVE_BYTES)
+                        require(bytes <= eu.kanade.tachiyomi.extension.ExtensionPackageArchive.MAX_BYTES)
                         output.write(buffer, 0, count)
                     }
                 }
             }
-            val signer = RinArchive.publisher(file)
-            val manifest = RinArchive.verify(file, signer)
-            if (!compatible(manifest)) throw RinImportException(RinImportFailure.INCOMPATIBLE)
-            if (legacyPresent(manifest.packageName)) throw RinImportException(RinImportFailure.LEGACY)
+            val apk = if (eu.kanade.tachiyomi.extension.ExtensionPackageArchive.isApk(file)) {
+                eu.kanade.tachiyomi.extension.ExtensionPackageArchive.inspect(context, file)
+            } else {
+                null
+            }
+            if (apk?.requiresAndroid == true) throw RinImportException(RinImportFailure.SYSTEM_REQUIRED)
+            val signer =
+                apk?.let {
+                    eu.kanade.tachiyomi.extension.ExtensionPackageInspector.inspect(it.info) { 0 }.signers.first()
+                }
+                    ?: RinArchive.publisher(file)
+            val manifest = apk?.manifest ?: RinArchive.verify(file, signer)
+            val format = if (apk == null) "rin" else "apk"
+            if (!compatible(manifest, format)) throw RinImportException(RinImportFailure.INCOMPATIBLE)
             val previous = storage.record(manifest.packageName)
             val origins = Injekt.get<AnimeExtensionStoreRepository>().getAll().map {
                 it.indexUrl to it.signingKey.lowercase()
@@ -322,8 +404,19 @@ class RinRepository private constructor(private val context: Context) {
                 Injekt.get<MangaExtensionRepoRepository>().getAll().map {
                     it.baseUrl to it.signingKeyFingerprint.lowercase()
                 }
-            val origin = RinLocalImportPolicy.origin(signer, previous, origins)
-            val record = storage.stage(file, signer, RinArchive.sha256(file.readBytes()), origin)
+            val origin = if (apk !=
+                null
+            ) {
+                previous?.repository.orEmpty()
+            } else {
+                RinLocalImportPolicy.origin(signer, previous, origins)
+            }
+            val record = storage.stage(
+                file,
+                signer,
+                eu.kanade.tachiyomi.extension.ExtensionPackageArchive.sha256(file),
+                origin,
+            )
             if (!RinLocalImportPolicy.accepts(record, previous)) throw RinImportException(RinImportFailure.CHANGED)
             RinLocalImport(record, previous)
         } catch (cancel: CancellationException) {
@@ -346,7 +439,19 @@ class RinRepository private constructor(private val context: Context) {
         }
         // This path follows the user's explicit file confirmation, not catalogue authority.
         // Approval applies only to this package; updates remain pinned to its signer and identity.
-        activateVerified(candidate.record, candidate.previous, requireUnchanged = true)
+        activateVerified(candidate.record, candidate.previous, requireUnchanged = true, approveConsent = true)
+    }
+
+    private fun approveExecution(record: RinRecord) {
+        eu.kanade.domain.extension.ExtensionExecutionTrust(Injekt.get()).approve(
+            record.manifest.packageName,
+            eu.kanade.domain.extension.ExtensionPackageMetadata(
+                signers = record.publisherSigners,
+                signerHistory = record.publisherHistory,
+            ),
+            record.repository,
+            record.catalogueConsent,
+        )
     }
 
     suspend fun activate(
@@ -355,7 +460,32 @@ class RinRepository private constructor(private val context: Context) {
         preserveEnabled: Boolean = true,
         requireUnchanged: Boolean = false,
     ) {
-        check(trusted(RinEntry(record.manifest, "", record.sha256, record.signer, record.repository)))
+        check(
+            trusted(
+                RinEntry(record.manifest, "", record.sha256, record.signer, record.repository, format = record.format),
+            ),
+        )
+        val previous = expected ?: storage.record(record.manifest.packageName)
+        val metadata = eu.kanade.domain.extension.ExtensionPackageMetadata(
+            signers = record.publisherSigners,
+            signerHistory = record.publisherHistory,
+        )
+        val previouslyApproved = previous != null &&
+            eu.kanade.tachiyomi.extension.ExtensionPackageConsent.trusted(previous) &&
+            eu.kanade.tachiyomi.extension.ExtensionPackageChoice.samePublisher(
+                previous.publisherSigners,
+                eu.kanade.tachiyomi.extension.ExtensionPackageChoice.Candidate(
+                    record.file,
+                    record.manifest.versionCode,
+                    record.publisherSigners,
+                    record.publisherHistory,
+                ),
+            )
+        check(
+            previouslyApproved ||
+                eu.kanade.domain.extension.ExtensionExecutionTrust(Injekt.get())
+                    .permits(record.manifest.packageName, metadata),
+        ) { "Execution consent required" }
         activateVerified(record, expected, preserveEnabled, requireUnchanged)
     }
 
@@ -364,13 +494,59 @@ class RinRepository private constructor(private val context: Context) {
         expected: RinRecord?,
         preserveEnabled: Boolean = true,
         requireUnchanged: Boolean = false,
+        approveConsent: Boolean = false,
     ) = withContext(Dispatchers.IO) {
-        require(!legacyPresent(record.manifest.packageName)) { "Remove the previous extension first" }
         check(!requireUnchanged && expected == null || storage.record(record.manifest.packageName) == expected) {
             "Extension was removed or changed before activation"
         }
-        RinLoader.instantiate(context, record)
-        withContext(Dispatchers.Main.immediate) {
+        val system = runCatching {
+            context.packageManager.getPackageInfo(
+                record.manifest.packageName,
+                eu.kanade.tachiyomi.extension.ExtensionPackageArchive.FLAGS,
+            )
+        }.getOrNull()
+        system?.let { info ->
+            val metadata = eu.kanade.tachiyomi.extension.ExtensionPackageInspector.inspect(info) { 0 }
+            require(
+                eu.kanade.tachiyomi.extension.ExtensionPackageChoice.samePublisher(
+                    metadata.signers,
+                    eu.kanade.tachiyomi.extension.ExtensionPackageChoice.Candidate(
+                        record.file,
+                        record.manifest.versionCode,
+                        record.publisherSigners,
+                        record.publisherHistory,
+                    ),
+                ),
+            )
+            require(record.manifest.versionCode >= androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(info))
+        }
+        val approved = record.copy(trusted = true)
+        val sources = RinLoader.instantiate(context, approved)
+        if (record.manifest.medium == "tv") {
+            Injekt.get<eu.kanade.tachiyomi.data.tv.TvServices>().validatePackage(context, approved)
+        }
+        if (record.manifest.medium == "news") {
+            val info = eu.kanade.tachiyomi.extension.ExtensionPackageArchive.inspect(
+                context,
+                storage.file(approved),
+            ).info
+            Injekt.get<eu.kanade.tachiyomi.data.news.NewsRepository>().registry.preflight(info)
+        }
+        val discovered = sources.mapNotNull {
+            when (it) {
+                is eu.kanade.tachiyomi.animesource.AnimeSource -> RinSource(it.id, it.name, it.lang)
+                is eu.kanade.tachiyomi.source.CatalogueSource -> RinSource(it.id, it.name, it.lang)
+                else -> null
+            }
+        }
+        val verified = if (record.format == "apk" && record.manifest.sources.isEmpty() && discovered.isNotEmpty()) {
+            approved.copy(manifest = approved.manifest.copy(sources = discovered))
+        } else {
+            approved
+        }
+        // Immutable files and pointer verification remain on IO. A session opening during
+        // preflight defers activation; already created sources keep their immutable version.
+        run {
             check(!RinSessions.busy.value && !eu.kanade.tachiyomi.data.addon.RinAddonRuntime.busy.value) {
                 "Update deferred during playback or reading"
             }
@@ -378,7 +554,9 @@ class RinRepository private constructor(private val context: Context) {
                 "Extension was removed or changed while preparing the update"
             }
             storage.activate(
-                record.copy(
+                verified.copy(
+                    automaticUpdates = expected?.automaticUpdates ?: record.automaticUpdates,
+                    catalogueConsent = record.catalogueConsent,
                     enabled =
                     if (preserveEnabled) {
                         storage.record(record.manifest.packageName)?.enabled ?: record.enabled
@@ -387,12 +565,13 @@ class RinRepository private constructor(private val context: Context) {
                     },
                 ),
             )
-            mutableInstalled.value = storage.records()
+            if (approveConsent) approveExecution(verified)
+            reloadInstalled()
             if (record.manifest.medium in setOf("addon", "guide", "tv")) {
                 // The generic addon runtime observes this registry; no source manager is notified.
             } else if (record.manifest.medium == "anime") {
                 AnimeExtensionInstallReceiver.notifyAdded(context, record.manifest.packageName)
-            } else {
+            } else if (record.manifest.medium == "manga") {
                 MangaExtensionInstallReceiver.notifyAdded(context, record.manifest.packageName)
             }
         }
@@ -408,6 +587,7 @@ class RinRepository private constructor(private val context: Context) {
         val medium = storage.record(packageName)?.manifest?.medium
         storage.remove(packageName)
         mutableInstalled.value = storage.records()
+        scope.launch { reloadInstalled() }
         if (medium == "anime") AnimeExtensionInstallReceiver.notifyRemoved(context, packageName)
         if (medium == "manga") MangaExtensionInstallReceiver.notifyRemoved(context, packageName)
     }
@@ -427,14 +607,14 @@ class RinRepository private constructor(private val context: Context) {
                     storage.record(packageName) == previous,
             )
             val changed = storage.setEnabled(packageName, enabled)
-            mutableInstalled.value = storage.records()
+            reloadInstalled()
             if (changed.manifest.medium == "addon") {
                 if (!enabled) eu.kanade.tachiyomi.data.addon.RinAddonRuntime.stop(context, packageName)
             } else if (changed.manifest.medium in setOf("guide", "tv")) {
                 // No source registrations belong to guide providers.
             } else if (changed.manifest.medium == "anime") {
                 AnimeExtensionInstallReceiver.notifyAdded(context, packageName)
-            } else {
+            } else if (changed.manifest.medium == "manga") {
                 MangaExtensionInstallReceiver.notifyAdded(context, packageName)
             }
         }
@@ -452,62 +632,10 @@ class RinRepository private constructor(private val context: Context) {
         if (!complete) RinSessions.retry(context)
     }
 
-    suspend fun updateInstalled(force: Boolean = false, catalogueRefreshed: Boolean? = null): Boolean = withContext(
-        Dispatchers.IO,
-    ) {
-        mutex.withLock {
-            if (Injekt.get<BasePreferences>().downloadedOnly().get()) return@withLock true
-            if (RinSessions.busy.value ||
-                eu.kanade.tachiyomi.data.addon.RinAddonRuntime.busy.value
-            ) {
-                return@withLock false
-            }
-            val now = System.currentTimeMillis()
-            val plan = RinUpdateSchedule.plan(
-                now,
-                preferences.getLong("checked", 0),
-                RinUpdatePolicy.updates(entries.value, storage.records()).isNotEmpty(),
-                force,
-                catalogueRefreshed,
-            )
-            if (plan == RinUpdateSchedule.Plan.IDLE) return@withLock true
-            val refreshed = if (plan == RinUpdateSchedule.Plan.REFRESH) {
-                refresh(scheduleUpdates = false)
-            } else {
-                catalogueRefreshed != false
-            }
-            val updates = RinUpdatePolicy.updates(entries.value, storage.records())
-            if (updates.any { it.manifest.medium in setOf("anime", "manga") }) {
-                // Wait until source managers can safely reload the updated packages.
-                anime.isInitialized.first { it }
-                manga.isInitialized.first { it }
-            }
-            var deferred = !refreshed
-            updates.forEach { entry ->
-                val previous = storage.record(entry.manifest.packageName) ?: return@forEach
-                if (RinSessions.busy.value || eu.kanade.tachiyomi.data.addon.RinAddonRuntime.busy.value) {
-                    deferred = true
-                    return@forEach
-                }
-                try {
-                    val record = prepare(entry)
-                    if (RinSessions.busy.value || eu.kanade.tachiyomi.data.addon.RinAddonRuntime.busy.value) {
-                        deferred = true
-                    } else {
-                        activate(record, previous)
-                    }
-                } catch (cancel: CancellationException) {
-                    throw cancel
-                } catch (error: Exception) {
-                    logcat(LogPriority.WARN, error) { "RIN update retained the previous version" }
-                    deferred = true
-                }
-            }
-            // Failed/deferred jobs remain due; a session closing or a worker retry checks them again.
-            if (!deferred) preferences.edit().putLong("checked", now).apply()
-            !deferred
-        }
-    }
+    // Compatibility entry point. All imported formats share the Store coordinator.
+    suspend fun updateInstalled(force: Boolean = false, catalogueRefreshed: Boolean? = null): Boolean =
+        eu.kanade.tachiyomi.data.extensionstore.ExtensionStoreRepository.get(context)
+            .checkImportedUpdates(force || catalogueRefreshed == true)
 
     companion object {
         @Volatile private var instance: RinRepository? = null
@@ -515,18 +643,27 @@ class RinRepository private constructor(private val context: Context) {
             instance ?: RinRepository(context.applicationContext).also { instance = it }
         }
 
-        fun compatible(m: RinManifest): Boolean =
+        fun compatible(m: RinManifest, format: String = "rin"): Boolean =
             m.hostVersions.supports(eu.kanade.tachiyomi.BuildConfig.VERSION_CODE.toLong()) &&
                 when (m.medium) {
+                    "news" -> m.schema == 2 && m.extensionLib == 1.0 && m.entryPoints.size == 1
                     "tv" ->
                         m.schema == 2 &&
                             m.extensionLib == 1.0 &&
                             m.entryPoints.size == 1 &&
                             m.validSourceIdentities()
                     "guide" -> m.schema == 2 && m.extensionLib == 1.0 && m.guide?.valid() == true
-                    "addon" -> m.schema == 2 && m.extensionLib == 1.0 && m.addon?.valid() == true
+                    "addon" ->
+                        m.schema == 2 &&
+                            m.extensionLib in listOf(1.0, 2.0) &&
+                            m.addon?.valid() == true &&
+                            m.addon.api.toDouble() == m.extensionLib
                     "anime" -> m.extensionLib in listOf(14.0, 16.0, 17.0)
-                    "manga" -> m.extensionLib in listOf(1.4, 1.5, 1.6)
+                    "manga" -> if (format == "apk") {
+                        m.extensionLib in MangaExtensionLoader.SUPPORTED_LIB_VERSIONS
+                    } else {
+                        m.extensionLib in listOf(1.4, 1.5, 1.6)
+                    }
                     else -> false
                 }
 

@@ -97,6 +97,7 @@
 
 # Public ABI used by authenticated external RIN addon views/lifecycle. Their Compose engine stays in the RIN.
 -keep class nyanime.addon.api.** { *; }
+-keep class nyanime.extension.api.** { *; }
 -keep class androidx.activity.** { *; }
 -keep class androidx.lifecycle.** { *; }
 -keep class androidx.savedstate.** { *; }

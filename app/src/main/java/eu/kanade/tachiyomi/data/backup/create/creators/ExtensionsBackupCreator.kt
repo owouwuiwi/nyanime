@@ -1,7 +1,6 @@
 package eu.kanade.tachiyomi.data.backup.create.creators
 
 import android.content.Context
-import android.content.pm.PackageManager
 import eu.kanade.tachiyomi.data.backup.models.BackupExtension
 import eu.kanade.tachiyomi.extension.anime.AnimeExtensionManager
 import eu.kanade.tachiyomi.extension.manga.MangaExtensionManager
@@ -16,54 +15,74 @@ class ExtensionsBackupCreator(
 ) {
 
     operator fun invoke(): List<BackupExtension> {
-        val installedExtensions = mutableListOf<BackupExtension>()
-        val rin = eu.kanade.tachiyomi.data.rin.RinStorage(context)
-        val packages = rin.records().map { it.manifest.packageName } +
-            if (animeExtensionManager == null || mangaExtensionManager == null) {
-                context.packageManager.getInstalledPackages(PackageManager.GET_CONFIGURATIONS)
-                    .filter { info ->
-                        info.reqFeatures.orEmpty().any { feature ->
-                            feature.name in setOf("tachiyomi.animeextension", "tachiyomi.extension")
-                        }
-                    }.map { it.packageName }
-            } else {
-                animeExtensionManager.installedExtensionsFlow.value.map { it.pkgName } +
-                    mangaExtensionManager.installedExtensionsFlow.value.map { it.pkgName }
+        val storage = eu.kanade.tachiyomi.data.rin.RinStorage(context)
+        val records = storage.records().associateBy { it.manifest.packageName }
+        val systems = context.packageManager.getInstalledPackages(
+            eu.kanade.tachiyomi.extension.ExtensionPackageArchive.FLAGS,
+        ).filter { info ->
+            info.reqFeatures.orEmpty().any { feature ->
+                feature.name in eu.kanade.tachiyomi.extension.ExtensionApkValidator.Kind.entries.map { it.feature }
             }
-        packages.distinct().forEach { packageName ->
-            val record = rin.record(packageName)
-            if (record != null) {
-                installedExtensions +=
-                    BackupExtension(
-                        packageName,
-                        rin.file(record).readBytes(),
-                        "rin",
-                        record.signer,
-                        record.repository,
-                        record.enabled,
-                    )
-            } else {
-                val privateFile = File(context.filesDir, "exts/$packageName.ext")
-                val file = if (privateFile.isFile) {
-                    privateFile
-                } else {
-                    File(
-                        context.packageManager.getApplicationInfo(
-                            packageName,
-                            PackageManager.GET_META_DATA,
-                        ).publicSourceDir,
-                    )
+        }.associateBy { it.packageName }
+        val active = animeExtensionManager?.installedExtensionsFlow?.value.orEmpty()
+            .associate { it.pkgName to it.isShared } +
+            mangaExtensionManager?.installedExtensionsFlow?.value.orEmpty().associate { it.pkgName to it.isShared }
+        val retired = context.getSharedPreferences("extension_retired_imports_v1", Context.MODE_PRIVATE)
+            .getStringSet("packages", emptySet()).orEmpty()
+        val legacy = File(context.filesDir, "exts").listFiles().orEmpty()
+            .filter { it.isFile && it.extension == "ext" && it.nameWithoutExtension !in retired }
+            .associateBy { it.nameWithoutExtension }
+        return (records.keys + systems.keys + active.keys + legacy.keys).map { name ->
+            val record = records[name]
+            val system = systems[name]
+            val preferSystem = when {
+                active[name] != null -> active[name] == true
+                record?.isShared == true -> true
+                record == null -> system != null && name !in legacy
+                system == null -> false
+                else -> {
+                    val candidate = runCatching {
+                        val source = File(requireNotNull(system.applicationInfo?.sourceDir))
+                        val inspected = eu.kanade.tachiyomi.extension.ExtensionPackageArchive.inspect(context, source)
+                        val metadata = eu.kanade.tachiyomi.extension.ExtensionPackageInspector.inspect(system) { 0 }
+                        eu.kanade.tachiyomi.data.rin.RinRepository.compatible(inspected.manifest) &&
+                            eu.kanade.tachiyomi.extension.ExtensionPackageChoice.samePublisher(
+                                record.publisherSigners,
+                                eu.kanade.tachiyomi.extension.ExtensionPackageChoice.Candidate(
+                                    name,
+                                    inspected.manifest.versionCode,
+                                    metadata.signers,
+                                    metadata.signerHistory,
+                                ),
+                            ) &&
+                            inspected.manifest.versionCode > record.manifest.versionCode
+                    }.getOrDefault(false)
+                    candidate
                 }
-                installedExtensions += BackupExtension(packageName, file.readBytes())
+            }
+            if (record != null && !preferSystem) {
+                BackupExtension(
+                    name, storage.file(record).readBytes(), record.format, record.signer,
+                    record.repository, record.enabled, privatelyInstalled = true,
+                    automaticUpdates = record.automaticUpdates, storagePublisher = record.storagePublisher,
+                )
+            } else {
+                val private = !preferSystem && name in legacy
+                val source = if (private) {
+                    requireNotNull(legacy[name])
+                } else {
+                    File(requireNotNull(system?.applicationInfo?.sourceDir))
+                }
+                BackupExtension(
+                    name,
+                    source.readBytes(),
+                    rinRepository = record?.repository.orEmpty(),
+                    rinEnabled = record?.enabled ?: true,
+                    privatelyInstalled = private,
+                    automaticUpdates = record?.automaticUpdates ?: true,
+                    storagePublisher = record?.storagePublisher.orEmpty(),
+                )
             }
         }
-        context.packageManager.getInstalledPackages(PackageManager.GET_CONFIGURATIONS).filter { info ->
-            info.reqFeatures?.any { it.name == eu.kanade.tachiyomi.data.news.NewsExtensionRegistry.FEATURE } == true
-        }.forEach { info ->
-            info.applicationInfo?.sourceDir?.let { path ->
-                installedExtensions.add(BackupExtension(info.packageName, File(path).readBytes()))
-            }
-        }
-        return installedExtensions.distinctBy { it.pkgName }
     }
 }

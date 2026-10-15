@@ -1,48 +1,60 @@
 # Store
 
-The Store has two shelves: **My extensions** and **Discover**. The installed shelf
-opens by default. RIN packages appear first; other Android extensions and addons
-remain in a separate section. Search, video/manga/news/addon categories and status
-filters compose. Discover respects the chosen languages and adult-content filter;
-installed packages stay manageable regardless of those filters or catalogue
-availability. Installed RIN identity, icon, version and languages come from local
-signed manifests even while disabled or offline.
+The Store groups installed and imported extensions in **My extensions** and
+offers the configured catalogues under **Discover**. Anime, manga, news, TV,
+guide and addon families use one inventory. No format is ranked above another.
+Search, language, content and state filters compose; installed packages remain
+manageable offline or without their catalogue.
 
-## RIN management
+## Install or Import
 
-Each installed RIN has a package activation switch and an Open action. A disabled
-package offers Activate. Disabling removes its source implementations from the
-runtime while retaining its module, preferences, library, tracking and progress.
-It continues receiving authenticated automatic updates and remains disabled after
-an update. Enabling validates its implementation before changing the active state.
-Playback, reading and active Cast sessions prevent activation changes or removal.
+The detail sheet offers two choices for the same publisher-signed APK:
 
-A details sheet provides source selection, source settings and a separately
-confirmed uninstall. Removing a module never removes library or progress. RIN
-installation and automatic updates use the existing authenticated repository;
-there is no manual update requirement or version-retention switch. Former retained
-version flags no longer freeze updates, including when restored from older backups.
+- **Install:** Android installs the package; compatible hosts can discover it.
+- **Import:** Nyanime loads an immutable private copy, with optional automatic
+  updates that do not launch Android's installer.
 
-The Legacy-to-Ready recommendation/replacement workflow has been retired. Its
-staged installers and checkpoint are cleaned up. The mandatory startup migration
-from an installed APK to an eligible RIN remains separate and unchanged; see
-[the RIN contract](rin.md). Ordinary APK installation, publisher trust and verified
-updates remain supported for catalogues which do not offer RIN.
+The last successful choice supplies the default for new packages. Existing
+packages show their active mode, version and fingerprint. Addons declaring
+registered Android components require **Install**. Existing `.rin` files remain
+readable and updateable but are not APKs; no forced conversion or uninstall runs.
 
-## Layout and performance
+## Consent
 
-Native Material components use the app theme. A lazy adaptive grid reserves icon
-space, uses stable package/origin keys and creates only visible cards. Search and
-sorting run outside the main thread without loading source implementations or
-starting requests. Refresh retains installed cards. Activation and downloads show
-pending state; list rearrangement respects reduced-motion settings. Filter sheets
-wrap status controls and scroll with large text. Catalogue management and source
-migration remain accessible from the header.
+Every new publisher requires user consent. An optional catalogue-wide permission
+starts disabled, covers current and future extensions the user selects, and can
+be revoked in catalogue settings. It does not install new extensions in bulk.
+Adding a catalogue grants no replacement or uninstall authority. A changed
+catalogue URL is not a package publisher identity.
 
-Package installation is coordinated independently from the current screen.
-Duplicate requests cannot install the same package twice, and stale callbacks
-cannot overwrite a newer operation. Authentication, factory validation and download
-work retain the existing RIN error boundaries.
+Individual consent survives updates by the same publisher, including a verified
+single-certificate rotation. Unrelated certificates cannot replace approved
+packages silently. Previous individual approvals stay individual; they do not
+become dependent on a catalogue-wide toggle.
 
-No source names, catalogue URLs or source-specific rules are embedded in the Store
-or its tests. Catalogues supply all extension identities and capabilities.
+## Activation, updates and failures
+
+Download, hash/signature verification and factory preflight precede activation.
+The selected package must preserve its family and known source IDs. Among copies
+from the approved publisher the host selects the newest compatible version; ties
+keep the active mode. Disabled packages remain disabled.
+
+Imported automatic updates start enabled and have a per-package switch. A
+network-constrained worker checks every six hours; stale app-open checks reuse
+the same coordinator. Updates use only the associated origin. Imports with no
+known origin show **Manual updates** and offer an explicit compatible-origin
+selection. Busy playback, reading, Cast and addon sessions defer activation.
+
+Immutable version files and an atomic active pointer retain the previous version
+when verification or loading fails. Existing objects retain their executable
+file. Interrupted transfers remain visible as errors after restart; an Android
+installer cancellation is not reported as successful private activation.
+
+The application-lived coordinator prevents duplicate package operations and
+keeps progress/results when changing screens. The lazy adaptive grid reserves
+icon space and keeps installed cards during refresh. Sorting and searches run
+off the UI thread; no source factory runs merely to render a card.
+
+No provider, catalogue endpoint or parser is embedded in this interface or its
+tests. See [interoperability](extension-interoperability.md) and
+[manual import](rin-manual-import.md).

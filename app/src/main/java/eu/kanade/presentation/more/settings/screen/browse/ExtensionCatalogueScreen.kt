@@ -103,29 +103,25 @@ class ExtensionCatalogueScreen(private val url: String) : Screen() {
                             }
                         }
                         Text(stringResource(R.string.extensions_catalogue_consent), textAlign = TextAlign.Center)
-                        if (current.catalogue.authority?.recommendReplacements == true) {
-                            Surface(
-                                shape = MaterialTheme.shapes.large,
-                                color = MaterialTheme.colorScheme.surfaceContainer,
-                            ) {
-                                Column(
-                                    Modifier.fillMaxWidth().padding(20.dp),
-                                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                                ) {
-                                    Text(
-                                        stringResource(R.string.catalogue_authority_consent_title),
-                                        style = MaterialTheme.typography.titleMedium,
-                                    )
-                                    Text(
-                                        stringResource(R.string.catalogue_authority_consent),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                    )
-                                    Text(
-                                        current.catalogue.signingKey.chunked(8).joinToString(" "),
-                                        style = MaterialTheme.typography.bodySmall,
-                                    )
-                                }
+                        androidx.compose.foundation.layout.Row(
+                            Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    stringResource(R.string.package_catalogue_trust),
+                                    style = MaterialTheme.typography.titleSmall,
+                                )
+                                Text(
+                                    stringResource(R.string.package_catalogue_trust_hint),
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
                             }
+                            androidx.compose.material3.Switch(
+                                current.trustExtensions,
+                                model::trustExtensions,
+                                enabled = !current.processing,
+                            )
                         }
                         if (current.previous.isNotEmpty()) {
                             Text(

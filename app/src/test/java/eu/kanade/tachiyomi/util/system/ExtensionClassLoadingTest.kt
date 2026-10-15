@@ -18,6 +18,9 @@ class ExtensionClassLoadingTest {
             "okhttp3.Response",
             "okio.BufferedSource",
             "org.jsoup.nodes.Document",
+            "nyanime.tv.api.TvSource",
+            "nyanime.news.api.NewsSource",
+            "nyanime.extension.api.SourceCapabilitiesFactory",
         ).forEach { assertTrue(ExtensionClassLoading.hostFirst(it), it) }
     }
 

@@ -8,6 +8,24 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class RinStoreBackupTest {
+    @Test fun `import mode and update preferences round trip with the retained publisher namespace`() {
+        val original = BackupExtension(
+            "example.extension",
+            byteArrayOf(1, 2),
+            privatelyInstalled = true,
+            automaticUpdates = false,
+            storagePublisher = "a".repeat(64),
+        )
+        val restored = ProtoBuf.decodeFromByteArray(
+            BackupExtension.serializer(),
+            ProtoBuf.encodeToByteArray(BackupExtension.serializer(), original),
+        )
+        assertEquals(original, restored)
+        assertTrue(restored.privatelyInstalled)
+        assertFalse(restored.automaticUpdates)
+        assertEquals(original.storagePublisher, restored.storagePublisher)
+    }
+
     @Test fun `disabled state round trips without changing payload or publisher identity`() {
         val module = BackupExtension(
             "test.extension.manga",

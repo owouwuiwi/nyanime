@@ -9,6 +9,7 @@ import eu.kanade.domain.extension.AddonActivation
 import eu.kanade.domain.extension.AddonHostVersions
 import eu.kanade.domain.extension.ExtensionPackageMetadata
 import eu.kanade.tachiyomi.BuildConfig
+import eu.kanade.tachiyomi.extension.ExtensionPackageDiscovery
 import eu.kanade.tachiyomi.extension.ExtensionPackageInspector
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import uy.kohesive.injekt.api.get
 
 data class AddonExtension(
     val packageName: String,
@@ -57,7 +59,7 @@ class AddonRegistry(private val context: Context) {
                 PackageManager.GET_SIGNATURES or
                 if (Build.VERSION.SDK_INT >= 28) PackageManager.GET_SIGNING_CERTIFICATES else 0
             val pm = context.packageManager
-            mutable.value = pm.getInstalledPackages(flags).filter { info ->
+            mutable.value = ExtensionPackageDiscovery.candidates(context, flags, setOf(FEATURE)).filter { info ->
                 info.reqFeatures?.any { it.name == FEATURE } == true
             }.mapNotNull { info ->
                 runCatching {
@@ -109,17 +111,27 @@ class AddonRegistry(private val context: Context) {
                     } else {
                         (0 until pins.length()).map(pins::getString).toSet()
                     }
-                    val trusted = AddonActivation.trusted(
-                        approved,
-                        metadata.signers,
-                        metadata.signerHistory,
-                        preferences.optString("${info.packageName}.distribution").takeIf { it.isNotEmpty() },
-                        metadata.distribution?.id,
-                    )
+                    val execution = eu.kanade.domain.extension.ExtensionExecutionTrust(uy.kohesive.injekt.Injekt.get())
+                    val trusted =
+                        execution.permits(info.packageName, metadata) ||
+                            execution.allowsLegacy(info.packageName) &&
+                            AddonActivation.trusted(
+                                approved,
+                                metadata.signers,
+                                metadata.signerHistory,
+                                preferences.optString("${info.packageName}.distribution").takeIf { it.isNotEmpty() },
+                                metadata.distribution?.id,
+                            )
                     AddonExtension(
                         info.packageName, pm.getApplicationLabel(app).toString(),
                         info.versionName.orEmpty(), PackageInfoCompat.getLongVersionCode(info), metadata,
-                        compatible, trusted, preferences.optBoolean("${info.packageName}.enabled", false),
+                        compatible, trusted,
+                        preferences.optBoolean(
+                            "${info.packageName}.enabled",
+                            eu.kanade.domain.extension.ExtensionExecutionTrust(
+                                uy.kohesive.injekt.Injekt.get(),
+                            ).permits(info.packageName, metadata),
+                        ),
                         entry?.name, logo, activation, data?.getBoolean("nyanime.addon.appearance", false) == true,
                         data?.getString("nyanime.addon.source")?.takeIf { url ->
                             runCatching {
@@ -140,6 +152,8 @@ class AddonRegistry(private val context: Context) {
         reload()
         val addon = state.value.singleOrNull { it.packageName == packageName && it.compatible } ?: return
         withContext(Dispatchers.IO) {
+            eu.kanade.domain.extension.ExtensionExecutionTrust(uy.kohesive.injekt.Injekt.get())
+                .approve(packageName, addon.metadata)
             storage.update {
                 it.put("$packageName.signers", org.json.JSONArray(addon.metadata.signers.toList()))
                     .put("$packageName.distribution", addon.metadata.distribution?.id)

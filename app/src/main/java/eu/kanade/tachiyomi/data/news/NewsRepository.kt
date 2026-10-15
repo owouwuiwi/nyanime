@@ -79,6 +79,26 @@ class NewsRepository(private val context: Context, network: NetworkHelper) {
     suspend fun initialize() {
         store.load()
         registry.reload(store.state.value.sources)
+        val newlyApproved = registry.state.value.filter {
+            it.compatible &&
+                it.trusted &&
+                it.source != null &&
+                it.packageName !in store.state.value.sources
+        }
+        if (newlyApproved.isNotEmpty()) {
+            store.update { snapshot ->
+                snapshot.copy(
+                    sources = snapshot.sources +
+                        newlyApproved.associate {
+                            it.packageName to NewsSourceSettings(
+                                enabled = true,
+                                signers = it.metadata.signers,
+                                distribution = it.metadata.distribution?.id,
+                            )
+                        },
+                )
+            }
+        }
         NewsRefreshWorker.schedule(
             context,
             store.state.value.sources.values.any {
@@ -90,6 +110,10 @@ class NewsRepository(private val context: Context, network: NetworkHelper) {
 
     suspend fun configure(extension: NewsExtension, enabled: Boolean, alerts: NewsAlerts? = null) {
         require(!enabled || extension.compatible)
+        if (enabled) {
+            eu.kanade.domain.extension.ExtensionExecutionTrust(Injekt.get())
+                .approve(extension.packageName, extension.metadata)
+        }
         store.update { snapshot ->
             val old = snapshot.sources[extension.packageName] ?: NewsSourceSettings()
             snapshot.copy(

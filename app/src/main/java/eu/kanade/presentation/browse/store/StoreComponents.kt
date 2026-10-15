@@ -309,9 +309,6 @@ internal fun StoreGrid(
     val c = LocalStoreColors.current
     val state = rememberLazyGridState()
     val motion = modernMotionEnabled()
-    val rin = remember(entries) { entries.filter { it.isRin } }
-    val other = remember(entries) { entries.filterNot { it.isRin } }
-    var expanded by rememberSaveable(shelf) { mutableStateOf(shelf == StoreShelf.OWNED) }
     LaunchedEffect(shelf, filterKey) { state.requestScrollToItem(0) }
     LazyVerticalGrid(
         GridCells.Adaptive(300.dp),
@@ -342,12 +339,7 @@ internal fun StoreGrid(
                 }
             }
         }
-        if (rin.isNotEmpty()) {
-            item(key = "rin-heading", span = { GridItemSpan(maxLineSpan) }) {
-                StoreSectionHeading(stringResource(R.string.store_rin_heading), rin.size)
-            }
-        }
-        items(rin, key = StoreEntry::id, contentType = { "rin" }) { entry ->
+        items(entries, key = StoreEntry::id, contentType = { "extension" }) { entry ->
             StoreTile(
                 entry,
                 steps[entry.packageName],
@@ -358,51 +350,6 @@ internal fun StoreGrid(
                 onCancel,
                 if (motion) Modifier.animateItem() else Modifier,
             )
-        }
-        if (other.isNotEmpty()) {
-            item(key = "other-heading", span = { GridItemSpan(maxLineSpan) }) {
-                Surface(
-                    onClick = { expanded = !expanded },
-                    enabled = !searching && rin.isNotEmpty(),
-                    color = c.background,
-                ) {
-                    Row(
-                        Modifier.heightIn(min = 48.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        StoreSectionHeading(
-                            stringResource(R.string.store_other_extensions),
-                            other.size,
-                            Modifier.weight(1f),
-                        )
-                        if (!searching && rin.isNotEmpty()) {
-                            Icon(
-                                if (expanded) {
-                                    Icons.Outlined.ExpandLess
-                                } else {
-                                    Icons.Outlined.ExpandMore
-                                },
-                                stringResource(R.string.store_other_extensions),
-                                tint = c.muted,
-                            )
-                        }
-                    }
-                }
-            }
-            if (expanded || searching || rin.isEmpty()) {
-                items(other, key = StoreEntry::id, contentType = { "apk" }) { entry ->
-                    StoreTile(
-                        entry,
-                        steps[entry.packageName],
-                        false,
-                        onInfo,
-                        onAction,
-                        onToggle,
-                        onCancel,
-                        if (motion) Modifier.animateItem() else Modifier,
-                    )
-                }
-            }
         }
         if (entries.isEmpty()) {
             item(key = "empty", span = { GridItemSpan(maxLineSpan) }) {
@@ -573,7 +520,7 @@ private fun StoreTile(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 StoreBadge(
-                    if (entry.isRin) "RIN" else "APK",
+                    stringResource(if (entry.imported) R.string.package_imported else R.string.package_system),
                     if (entry.isRin) c.accent else c.muted,
                     if (entry.isRin) c.tint else c.elevated,
                 )

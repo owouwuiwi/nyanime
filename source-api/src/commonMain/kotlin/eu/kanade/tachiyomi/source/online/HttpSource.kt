@@ -286,7 +286,10 @@ abstract class HttpSource : CatalogueSource {
      *
      * @param response the response from the site.
      */
-    protected abstract fun chapterPageParse(response: Response): SChapter
+    // This optional hook is absent from legacy upstream APIs. Keep it concrete
+    // so loading an extension compiled against those APIs adds no required method.
+    protected open fun chapterPageParse(response: Response): SChapter =
+        throw UnsupportedOperationException("This source does not support chapter-page metadata")
 
     /**
      * Get the list of pages a chapter has. Pages should be returned

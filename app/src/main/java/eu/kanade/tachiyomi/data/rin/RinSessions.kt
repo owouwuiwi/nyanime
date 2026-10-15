@@ -62,7 +62,18 @@ object RinSessions {
                 busy.value = activityBusy.value || casting.value || playbackBusy.value
             }
             override fun onActivityStarted(activity: Activity) {
-                if (startedActivities++ == 0) repository.scope.launch { repository.runAutomaticUpdate() }
+                if (startedActivities++ ==
+                    0
+                ) {
+                    repository.scope.launch {
+                        if (!eu.kanade.tachiyomi.data.extensionstore.ExtensionStoreRepository.get(
+                                application,
+                            ).checkImportedUpdates()
+                        ) {
+                            retry(application)
+                        }
+                    }
+                }
             }
             override fun onActivityResumed(activity: Activity) = Unit
             override fun onActivityPaused(activity: Activity) = Unit
@@ -81,7 +92,12 @@ object RinSessions {
                     busy.value = it
                     if (!it) {
                         try {
-                            repository.runAutomaticUpdate()
+                            if (!eu.kanade.tachiyomi.data.extensionstore.ExtensionStoreRepository.get(
+                                    application,
+                                ).checkImportedUpdates()
+                            ) {
+                                retry(application)
+                            }
                         } catch (cancel: kotlinx.coroutines.CancellationException) {
                             throw cancel
                         } catch (_: Exception) {
@@ -118,7 +134,14 @@ class RinUpdateWorker(context: android.content.Context, parameters: WorkerParame
     parameters,
 ) {
     override suspend fun doWork(): Result = try {
-        if (RinRepository.get(applicationContext).updateInstalled(force = true)) Result.success() else Result.retry()
+        if (eu.kanade.tachiyomi.data.extensionstore.ExtensionStoreRepository.get(
+                applicationContext,
+            ).checkImportedUpdates(force = true)
+        ) {
+            Result.success()
+        } else {
+            Result.retry()
+        }
     } catch (cancel: kotlinx.coroutines.CancellationException) {
         throw cancel
     } catch (_: Exception) {

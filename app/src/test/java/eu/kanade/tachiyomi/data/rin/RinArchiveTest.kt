@@ -42,6 +42,16 @@ class RinArchiveTest {
         assertTrue(RinArchive.validBundleUrl("https://cdn.example.invalid/download/abc?token=temporary"))
     }
 
+    @Test fun `private APKs use the same manga API eligibility as Android installed APKs`() {
+        val manga = manifest.copy(medium = "manga")
+        listOf(1.4, 1.6).forEach { api ->
+            assertTrue(RinRepository.compatible(manga.copy(extensionLib = api), "apk"))
+        }
+        assertFalse(RinRepository.compatible(manga.copy(extensionLib = 1.5), "apk"))
+        assertFalse(RinRepository.compatible(manga.copy(extensionLib = 2.0), "apk"))
+        assertTrue(RinRepository.compatible(manga.copy(extensionLib = 1.5), "rin"))
+    }
+
     @Test fun `bundle URLs reject insecure transports credentials fragments and malformed addresses`() {
         listOf(
             "http://example.invalid/example.rin",

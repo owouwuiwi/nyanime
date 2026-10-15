@@ -21,6 +21,8 @@ internal object ExtensionClassLoading {
         "kotlin.",
         "kotlinx.coroutines.",
         "nyanime.tv.api.",
+        "nyanime.news.api.",
+        "nyanime.extension.api.",
         "eu.kanade.tachiyomi.animesource.",
         "eu.kanade.tachiyomi.source.",
         "rx.",

@@ -2,7 +2,7 @@ package eu.kanade.presentation.more.settings.screen.browse
 
 import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
-import eu.kanade.domain.extension.ExtensionCatalogueAuthorities
+import eu.kanade.domain.extension.ExtensionCatalogueTrust
 import eu.kanade.domain.extension.ImportExtensionCatalogue
 import eu.kanade.domain.extension.UnifiedExtensionCatalogue
 import eu.kanade.tachiyomi.extension.anime.AnimeExtensionManager
@@ -53,14 +53,19 @@ class ExtensionCatalogueScreenModel(private val url: String) :
         }
     }
 
+    fun trustExtensions(enabled: Boolean) {
+        val preview = state.value as? State.Preview ?: return
+        if (!preview.processing) mutableState.value = preview.copy(trustExtensions = enabled)
+    }
+
     fun add() {
         val preview = state.value as? State.Preview ?: return
         if (preview.processing) return
         mutableState.value = preview.copy(processing = true, failed = false)
         screenModelScope.launchIO {
             try {
-                ImportExtensionCatalogue(anime, manga, ExtensionCatalogueAuthorities(Injekt.get()))
-                    .await(url, preview.catalogue)
+                ImportExtensionCatalogue(anime, manga, ExtensionCatalogueTrust(Injekt.get()))
+                    .await(url, preview.catalogue, preview.trustExtensions)
                 mutableState.value = State.Done(preview.catalogue.name)
                 screenModelScope.launchIO { Injekt.get<AnimeExtensionManager>().findAvailableExtensions() }
                 screenModelScope.launchIO { Injekt.get<MangaExtensionManager>().findAvailableExtensions() }
@@ -80,6 +85,7 @@ class ExtensionCatalogueScreenModel(private val url: String) :
             val previous: List<String>,
             val processing: Boolean = false,
             val failed: Boolean = false,
+            val trustExtensions: Boolean = false,
         ) : State
         data class Done(val name: String) : State
     }

@@ -63,6 +63,7 @@ class TvServices(context: Context, network: NetworkHelper, preferences: Preferen
                 val failures = mutableSetOf<String>()
                 records.filter {
                     it.enabled &&
+                        it.trusted &&
                         it.manifest.medium == "tv" &&
                         (!it.manifest.nsfw || adult) &&
                         RinRepository.compatible(it.manifest)
@@ -93,11 +94,17 @@ class TvServices(context: Context, network: NetworkHelper, preferences: Preferen
         }
     }
 
+    fun validatePackage(context: Context, record: RinRecord) {
+        val registrations = load(context, record)
+        registry.validate(registrations)
+        require(registrations.map { it.source.id }.toSet() == record.manifest.sources.map { it.id }.toSet())
+    }
+
     private fun load(context: Context, record: RinRecord): List<TvRegistration> {
         val manifest = record.manifest
         require(manifest.extensionLib == 1.0 && manifest.entryPoints.size == 1)
         val file = rin.storage.file(record)
-        require(RinArchive.verify(file, record.signer, record.sha256) == manifest)
+        require(eu.kanade.tachiyomi.extension.ExtensionPackageArchive.verify(context, file, record) == manifest)
         val loader = ChildFirstPathClassLoader(file.absolutePath, null, context.classLoader)
         val factory = RinLoading.guard {
             Class.forName(

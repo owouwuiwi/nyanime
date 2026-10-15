@@ -18,6 +18,8 @@ object ExtensionApkValidator {
         ANIME("tachiyomi.animeextension"),
         MANGA("tachiyomi.extension"),
         NEWS("nyanime.newsextension"),
+        TV("nyanime.tvextension"),
+        GUIDE("nyanime.guideextension"),
         ADDON("nyanime.addon"),
     }
     data class Expected(
@@ -33,6 +35,8 @@ object ExtensionApkValidator {
         val approvedManualRepository: String? = null,
         val kind: Kind = if (anime) Kind.ANIME else Kind.MANGA,
         val addonHostVersions: AddonHostVersions? = null,
+        val equivalentApkHash: String? = null,
+        val associatedOrigin: Boolean = false,
     )
 
     @Suppress("DEPRECATION")
@@ -54,6 +58,10 @@ object ExtensionApkValidator {
         require(info.reqFeatures?.any { it.name == feature } == true)
         val api = if (expected.kind == Kind.ADDON) {
             info.applicationInfo?.metaData?.getInt("nyanime.addon.api")?.takeIf { it > 0 }?.toDouble()
+        } else if (expected.kind in setOf(Kind.TV, Kind.GUIDE)) {
+            info.applicationInfo?.metaData?.getInt("nyanime.${expected.kind.name.lowercase()}.api")?.takeIf {
+                it > 0
+            }?.toDouble()
         } else if (expected.kind == Kind.NEWS) {
             info.applicationInfo?.metaData?.getInt("nyanime.news.api")?.takeIf { it > 0 }?.toDouble()
         } else if (expected.kind == Kind.ANIME) {
@@ -68,16 +76,22 @@ object ExtensionApkValidator {
             require(bounds.supports(BuildConfig.VERSION_CODE.toLong()))
             require(expected.addonHostVersions == null || bounds == expected.addonHostVersions)
         }
-        require(expected.installedVersion == null || expected.versionCode > expected.installedVersion)
+        require(
+            expected.installedVersion == null ||
+                expected.versionCode > expected.installedVersion ||
+                expected.versionCode == expected.installedVersion &&
+                expected.equivalentApkHash != null &&
+                ExtensionPackageArchive.sha256(file) == expected.equivalentApkHash,
+        )
         val metadata = ExtensionPackageInspector.inspect(info) { it.sections.size }
         require(!metadata.invalidDistribution)
         require(expected.distributionId == metadata.distribution?.id)
-        if (expected.kind in setOf(Kind.NEWS, Kind.ADDON)) {
-            require(metadata.distribution?.updatePolicy == "repository")
+        if (metadata.distribution?.updatePolicy == "repository") {
             require(metadata.distribution?.repository == expected.repository)
         }
         val signer = expected.signer?.lowercase()
-        if (signer != null && signer.matches(Regex("[a-f0-9]{64}"))) {
+        if (signer != null) {
+            require(signer.matches(Regex("[a-f0-9]{64}")))
             require(signer in metadata.signerHistory || signer in metadata.signers)
         }
         expected.installed?.let { old ->
@@ -87,10 +101,13 @@ object ExtensionApkValidator {
             } else {
                 require(metadata.signerHistory.containsAll(old.signers) || metadata.signers == old.signers)
             }
-            require(old.distribution?.id == metadata.distribution?.id)
+            require(old.distribution == null || old.distribution?.id == metadata.distribution?.id)
             if (old.distribution?.updatePolicy == "manual") {
                 require(expected.repository == expected.approvedManualRepository)
-                require(ExtensionUpdatePolicy.permitsManualTransition(old, metadata, expected.approvedManualRepository))
+                require(
+                    expected.associatedOrigin ||
+                        ExtensionUpdatePolicy.permitsManualTransition(old, metadata, expected.approvedManualRepository),
+                )
             }
             require(!old.hasHomeDeclaration || metadata.hasHomeDeclaration)
         }

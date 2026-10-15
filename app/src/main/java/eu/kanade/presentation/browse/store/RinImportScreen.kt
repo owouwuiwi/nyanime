@@ -56,7 +56,11 @@ private class RinImportModel(private val repository: ExtensionStoreRepository, p
         screenModelScope.launch {
             try {
                 val candidate = repository.rin.prepareLocal(Uri.parse(uri))
-                mutableState.value = if (candidate.previous?.sha256 == candidate.record.sha256) {
+                mutableState.value = if (candidate.previous?.let {
+                        it.sha256 == candidate.record.sha256 &&
+                            eu.kanade.tachiyomi.extension.ExtensionPackageConsent.trusted(it)
+                    } == true
+                ) {
                     State.Done(candidate.record.manifest.name)
                 } else {
                     State.Preview(candidate)
@@ -174,6 +178,7 @@ class RinImportScreen(private val uri: String) : Screen() {
                             RinImportFailure.CHANGED -> R.string.rin_changed
                             RinImportFailure.BUSY -> R.string.rin_busy
                             RinImportFailure.INVALID -> R.string.rin_invalid
+                            RinImportFailure.SYSTEM_REQUIRED -> R.string.package_system_required
                         }
                         Text(stringResource(message))
                         Button(onClick = { navigator.pop() }) { Text(stringResource(R.string.action_close)) }

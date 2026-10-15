@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import logcat.LogPriority
 import tachiyomi.core.common.util.lang.withUIContext
 import tachiyomi.core.common.util.system.logcat
@@ -436,10 +437,18 @@ class MangaExtensionManager(
         }
 
         override fun onPackageUninstalled(pkgName: String) {
-            MangaExtensionLoader.uninstallPrivateExtension(context, pkgName)
-            if (eu.kanade.tachiyomi.data.rin.RinStorage(context).record(pkgName)?.manifest?.medium == "manga") return
-            unregisterExtension(pkgName)
-            updatePendingUpdatesCount()
+            scope.launch {
+                // An Android removal does not remove an independently imported copy.
+                eu.kanade.tachiyomi.data.rin.RinRepository.get(context).reloadInstalled()
+                when (val remaining = MangaExtensionLoader.loadMangaExtensionFromPkgName(context, pkgName)) {
+                    is MangaLoadResult.Success -> onExtensionUpdated(remaining.extension)
+                    is MangaLoadResult.Untrusted -> onExtensionUntrusted(remaining.extension)
+                    else -> {
+                        unregisterExtension(pkgName)
+                        updatePendingUpdatesCount()
+                    }
+                }
+            }
         }
     }
 

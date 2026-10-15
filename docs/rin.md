@@ -1,3 +1,8 @@
+> Compatibility archive documentation. From Nyanime 0.45, new extensions
+> use signed APKs with Install or Import. Legacy RIN remains readable; no forced
+> APK-to-RIN migration, precedence, catalogue authority or uninstall runs.
+> See [extension interoperability](extension-interoperability.md).
+
 # Nyanime RIN
 
 RIN v1 retains Kotlin and the existing source APIs. A `.rin` is a signed ZIP of
@@ -45,26 +50,11 @@ IDs remain valid for migration and later updates; they do not create source
 instances or make inactive editions accessible. Active and dormant IDs must be
 unique, and an update cannot silently discard either set.
 
-## Migration
+## Legacy transition
 
-The Essenziale startup gate is mandatory only when a trusted configured
-catalogue offers a compatible RIN for an installed source with matching IDs.
-The catalogue check runs behind ordinary app openings, without a loading page.
-An unfinished migration resumes immediately, and returning to the app rechecks
-for legacy packages even when their RIN replacement is already active.
-Preparation downloads, verifies and instantiates the new source before asking
-Android to remove the old package. A recovery copy of the installer is retained.
-Hidden installed sources are inspected using the same API and trust checks;
-validation does not register them or change the content-visibility preference.
-The persisted handoff resumes after cancellation, interruption or app restart.
-Library data, reading/viewing progress, tracking and host preferences are not
-removed. Internal APK installations follow the same migration without involving
-the Android package installer.
-
-The migration screen uses the app's original SVG wordmark and selected theme,
-including light and dark system bars. Content scrolls independently of the
-primary action; phase changes crossfade without resizing the page and respect
-the reduced-motion preference.
+Startup APK-to-RIN migration and format precedence have been retired. Existing
+archives keep their identities and data; changing to a signed APK is an explicit
+compatible package update, without catalogue-imposed uninstall or replacement.
 
 ## Activation and updates
 

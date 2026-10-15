@@ -23,11 +23,7 @@ data class UnifiedExtensionCatalogue(
     val media: Set<String>,
     val extensionList: ExtensionList,
     val replaces: Set<String> = emptySet(),
-    val authority: Authority? = null,
 ) {
-    /** A recommendation is bound to this catalogue's own pinned APK signer, never a global permission. */
-    @Serializable data class Authority(val version: Int = 1, val recommendReplacements: Boolean = false)
-
     @Serializable data class Contact(val website: String, val discord: String? = null)
 
     @Serializable data class ExtensionList(val extensions: List<Entry>)
@@ -58,7 +54,7 @@ data class UnifiedExtensionCatalogue(
                 require(catalogue.signingKey.matches(Regex("[a-f0-9]{64}")))
                 require(
                     catalogue.media.isNotEmpty() &&
-                        catalogue.media.all { it in setOf("anime", "manga", "news", "addon") },
+                        catalogue.media.all { it in setOf("anime", "manga", "news", "addon", "tv", "guide") },
                 )
                 require(
                     catalogue.extensionList.extensions.all {
@@ -71,7 +67,6 @@ data class UnifiedExtensionCatalogue(
                         catalogue.extensionList.extensions.size,
                 )
                 require(catalogue.replaces.all(::validUrl))
-                require(catalogue.authority == null || catalogue.authority.version == 1)
             }
         }
     }

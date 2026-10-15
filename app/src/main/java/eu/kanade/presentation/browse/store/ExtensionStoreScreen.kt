@@ -125,8 +125,14 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
     val repository = remember { ExtensionStoreRepository.get(context) }
     val entries by repository.entries.collectAsState()
     val steps by repository.steps.collectAsState()
+    val progress by repository.progress.collectAsState()
+    var associateOrigin by remember { mutableStateOf<StoreEntry?>(null) }
+    var installMode by remember {
+        mutableStateOf<Pair<StoreEntry, eu.kanade.tachiyomi.data.extensionstore.StoreInstallMode>?>(null)
+    }
     val refreshing by repository.refreshing.collectAsState()
     val failed by repository.failed.collectAsState()
+    val inventoryUnavailable by eu.kanade.tachiyomi.extension.ExtensionPackageDiscovery.unavailable.collectAsState()
     val preferences = remember { Injekt.get<SourcePreferences>() }
     val savedLanguages by
         preferences
@@ -199,7 +205,8 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                 }
         }
     val owned = remember(entries) { entries.count { it.installed } }
-    val inactive = remember(entries) { entries.count { it.installed && !it.enabled } }
+    val inactive =
+        remember(entries) { entries.count { it.installed && (!it.enabled || it.action == StoreAction.TRUST) } }
     val discover =
         remember(entries, languages, adult) {
             entries.count { !it.installed && it.matchesLanguages(languages) && (adult || !it.nsfw) }
@@ -260,22 +267,26 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
     }
     val action: (StoreEntry) -> Unit = { entry ->
         when {
-            entry.rinRecord != null && !entry.enabled -> toggle(entry)
+            entry.rinRecord != null && !entry.enabled && entry.action != StoreAction.TRUST -> toggle(entry)
             entry.action in setOf(StoreAction.INSTALL, StoreAction.UPDATE) -> {
-                repository.install(entry)?.let { job ->
-                    scope.launch {
-                        job.join()
-                        if (repository.steps.value[entry.packageName] == InstallStep.Installed) {
-                            val result = snackbar.showSnackbar(
-                                context.getString(R.string.store_installed_notice, entry.name),
-                                actionLabel = context.getString(R.string.store_mine),
-                                withDismissAction = true,
-                                duration = SnackbarDuration.Long,
-                            )
-                            if (result == SnackbarResult.ActionPerformed) {
-                                shelf = StoreShelf.OWNED
-                                query = ""
-                                activation = StoreActivation.ALL
+                if (!entry.installed && repository.catalogueConsent(entry) == null) {
+                    installMode = entry to repository.preferredMode(entry)
+                } else {
+                    repository.install(entry, repository.preferredMode(entry))?.let { job ->
+                        scope.launch {
+                            job.join()
+                            if (repository.steps.value[entry.packageName] == InstallStep.Installed) {
+                                val result = snackbar.showSnackbar(
+                                    context.getString(R.string.store_installed_notice, entry.name),
+                                    actionLabel = context.getString(R.string.store_mine),
+                                    withDismissAction = true,
+                                    duration = SnackbarDuration.Long,
+                                )
+                                if (result == SnackbarResult.ActionPerformed) {
+                                    shelf = StoreShelf.OWNED
+                                    query = ""
+                                    activation = StoreActivation.ALL
+                                }
                             }
                         }
                     }
@@ -289,7 +300,7 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                 val a = (entry.anime as? AnimeExtension.Installed)?.sources.orEmpty()
                 val m = (entry.manga as? MangaExtension.Installed)?.sources.orEmpty()
                 when {
-                    entry.medium in setOf(StoreMedium.GUIDE, StoreMedium.TV) -> manage(entry)
+                    entry.medium in setOf(StoreMedium.GUIDE, StoreMedium.TV, StoreMedium.NEWS) -> manage(entry)
                     entry.medium == eu.kanade.tachiyomi.data.extensionstore.StoreMedium.ADDON &&
                         entry.rinRecord != null ->
                         eu.kanade.tachiyomi.data.addon.RinAddonRuntime.open(context, entry.packageName)
@@ -328,7 +339,7 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                     )
-                    StoreBadge("RIN", colors.accent, colors.tint)
+
                     IconButton(
                         onClick = { repository.refresh(force = true) },
                         enabled = !refreshing,
@@ -363,6 +374,14 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                     onFilters = { filters = true },
                     filtered = activation != StoreActivation.ALL || languages.size != 2 || adult,
                 )
+                if (inventoryUnavailable) {
+                    Text(
+                        stringResource(R.string.package_inventory_unavailable),
+                        Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
+                        color = colors.muted,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
                 StoreCategories(category) {
                     category = it
                     if (it != null) onMedium(it)
@@ -451,7 +470,7 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
             StoreSheet(onDismiss = { catalogues = false }) {
                 SheetTitle(stringResource(R.string.store_catalogues))
                 val updates = entries.count {
-                    !it.isRin && it.action == StoreAction.UPDATE && (category == null || it.medium == category)
+                    it.action == StoreAction.UPDATE && (category == null || it.medium == category)
                 }
                 if (updates > 0) {
                     StoreButton(
@@ -464,8 +483,12 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                         outlined = true,
                     )
                 }
+                StoreButton(stringResource(R.string.package_catalogue_trust), {
+                    catalogues = false
+                    navigator.push(eu.kanade.presentation.more.settings.screen.browse.ExtensionCatalogueTrustScreen())
+                }, Modifier.fillMaxWidth(), outlined = true)
                 Text(
-                    stringResource(R.string.store_rin_description),
+                    stringResource(R.string.package_modes_hint),
                     color = colors.muted,
                     style = MaterialTheme.typography.bodyMedium,
                 )
@@ -532,6 +555,19 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                         detail = null
                         navigator.push(BrowseAnimeSourceScreen(it, null))
                     },
+                    onInstallMode = { mode ->
+                        if (current.installed &&
+                            current.action != StoreAction.TRUST ||
+                            repository.catalogueConsent(current) != null
+                        ) {
+                            repository.install(current, mode)
+                        } else {
+                            installMode = current to mode
+                        }
+                    },
+                    onAssociateOrigin = { associateOrigin = current },
+                    onAutomaticUpdates = { enabled -> scope.launch { repository.automaticUpdates(current, enabled) } },
+                    progress = progress[current.packageName],
                     onManga = {
                         detail = null
                         navigator.push(BrowseMangaSourceScreen(it, null))
@@ -539,11 +575,69 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                 )
             }
         }
+        associateOrigin?.let { entry ->
+            StoreSheet(onDismiss = { associateOrigin = null }) {
+                SheetTitle(stringResource(R.string.package_associate_origin))
+                Text(stringResource(R.string.package_associate_hint), style = MaterialTheme.typography.bodyMedium)
+                val choices = repository.updateOrigins(entry)
+                if (choices.isEmpty()) {
+                    Text(
+                        stringResource(R.string.package_no_origin),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                choices.forEach { origin ->
+                    StoreButton(origin.label, {
+                        scope.launch {
+                            try {
+                                repository.associateOrigin(entry, origin)
+                                associateOrigin = null
+                            } catch (
+                                cancel: CancellationException,
+                            ) {
+                                throw cancel
+                            } catch (_: Exception) {
+                                report(R.string.package_update_failed)
+                            }
+                        }
+                    }, Modifier.fillMaxWidth(), outlined = true)
+                }
+            }
+        }
+        installMode?.let { (entry, mode) ->
+            AlertDialog(
+                onDismissRequest = { installMode = null },
+                title = {
+                    Text(
+                        stringResource(
+                            if (mode ==
+                                eu.kanade.tachiyomi.data.extensionstore.StoreInstallMode.PRIVATE
+                            ) {
+                                R.string.package_import
+                            } else {
+                                R.string.package_install
+                            },
+                        ),
+                    )
+                },
+                text = { Text(entry.name + "\n\n" + stringResource(R.string.store_trust_description)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        repository.install(entry, mode, individualConsent = true)
+                        installMode = null
+                    }) { Text(stringResource(R.string.store_trust_accept)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { installMode = null }) { Text(stringResource(R.string.store_not_now)) }
+                },
+            )
+        }
         trust?.let { entry ->
             val signer =
                 (entry.anime as? AnimeExtension.Untrusted)?.signatureHash
                     ?: (entry.manga as? MangaExtension.Untrusted)?.signatureHash
-                    ?: entry.addon?.metadata?.signers?.joinToString("\n").orEmpty()
+                    ?: entry.addon?.metadata?.signers?.joinToString("\n")
+                    ?: entry.rinRecord?.publisherSigners?.joinToString("\n").orEmpty()
             AlertDialog(
                 onDismissRequest = { trust = null },
                 title = { Text(stringResource(R.string.store_trust_title)) },
@@ -579,7 +673,9 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                         onClick = {
                             when {
                                 RinSessions.busy.value -> report(R.string.store_session_busy)
-                                entry.rinRecord != null -> repository.rin.remove(entry.packageName)
+                                entry.rinRecord != null && !entry.rinRecord.isShared -> repository.rin.remove(
+                                    entry.packageName,
+                                )
                                 entry.anime != null ->
                                     Injekt.get<AnimeExtensionManager>()
                                         .uninstallExtension(entry.anime)

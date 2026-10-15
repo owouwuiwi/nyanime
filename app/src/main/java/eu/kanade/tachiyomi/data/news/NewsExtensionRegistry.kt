@@ -7,6 +7,7 @@ import android.os.Build
 import androidx.core.content.pm.PackageInfoCompat
 import dalvik.system.PathClassLoader
 import eu.kanade.domain.extension.ExtensionPackageMetadata
+import eu.kanade.tachiyomi.extension.ExtensionPackageDiscovery
 import eu.kanade.tachiyomi.extension.ExtensionPackageInspector
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +18,7 @@ import kotlinx.coroutines.withContext
 import nyanime.news.api.NewsHttpClient
 import nyanime.news.api.NewsSource
 import nyanime.news.api.NewsSourceFactory
+import uy.kohesive.injekt.api.get
 
 data class NewsExtension(
     val packageName: String,
@@ -42,7 +44,41 @@ class NewsExtensionRegistry(private val context: Context, private val http: News
             val flags = PackageManager.GET_CONFIGURATIONS or PackageManager.GET_META_DATA or
                 PackageManager.GET_SIGNATURES or
                 if (Build.VERSION.SDK_INT >= 28) PackageManager.GET_SIGNING_CERTIFICATES else 0
-            val installed = context.packageManager.getInstalledPackages(flags)
+            val private = eu.kanade.tachiyomi.data.rin.RinStorage(context).records().filter {
+                it.format == "apk" && it.manifest.medium == "news"
+            }.associateBy { it.manifest.packageName }
+            val imported = private.values.mapNotNull { record ->
+                runCatching {
+                    eu.kanade.tachiyomi.extension.ExtensionPackageArchive.inspect(
+                        context,
+                        eu.kanade.tachiyomi.data.rin.RinStorage(context).file(record),
+                    ).info
+                }.getOrNull()
+            }
+            val installed = (ExtensionPackageDiscovery.candidates(context, flags, setOf(FEATURE)) + imported)
+                .groupBy { it.packageName }.values.mapNotNull { versions ->
+                    val pinned = private[versions.first().packageName]?.publisherSigners
+                        ?: ExtensionPackageInspector.inspect(versions.first()) { 0 }.signers
+                    val candidates = versions.map { info ->
+                        val metadata = ExtensionPackageInspector.inspect(info) { 0 }
+                        eu.kanade.tachiyomi.extension.ExtensionPackageChoice.Candidate(
+                            requireNotNull(info.applicationInfo?.sourceDir),
+                            PackageInfoCompat.getLongVersionCode(info),
+                            metadata.signers,
+                            metadata.signerHistory,
+                            info.applicationInfo?.metaData?.getInt(API, 0) == 1,
+                        )
+                    }
+                    val active = private[versions.first().packageName]?.let {
+                        eu.kanade.tachiyomi.data.rin.RinStorage(context).file(it).absolutePath
+                    }
+                    val selected = eu.kanade.tachiyomi.extension.ExtensionPackageChoice.select(
+                        candidates,
+                        active,
+                        pinned,
+                    )
+                    versions.firstOrNull { it.applicationInfo?.sourceDir == selected?.key }
+                }
                 .filter { info -> info.reqFeatures?.any { it.name == FEATURE } == true }
             mutable.value = installed.map { info ->
                 val metadata = ExtensionPackageInspector.inspect(info) { 0 }
@@ -51,23 +87,43 @@ class NewsExtensionRegistry(private val context: Context, private val http: News
                 val factory = apk.metaData?.getString(FACTORY)
                 val compatible = api == 1 && !factory.isNullOrBlank() && !metadata.invalidDistribution
                 val config = settings[info.packageName]
-                val trusted = config != null &&
-                    config.signers.isNotEmpty() &&
-                    metadata.signers.isNotEmpty() &&
-                    (
-                        config.signers == metadata.signers ||
-                            config.signers.size == 1 &&
-                            metadata.signers.size == 1 &&
-                            metadata.signerHistory.containsAll(config.signers)
-                        ) &&
-                    config.distribution == metadata.distribution?.id
+                val privateRecord = private[info.packageName]?.takeIf {
+                    eu.kanade.tachiyomi.data.rin.RinStorage(context).file(it).absolutePath == apk.sourceDir
+                }
+                val execution = eu.kanade.domain.extension.ExtensionExecutionTrust(uy.kohesive.injekt.Injekt.get())
+                val trusted =
+                    execution.permits(info.packageName, metadata) ||
+                        (
+                            privateRecord != null &&
+                                eu.kanade.tachiyomi.extension.ExtensionPackageConsent.trusted(privateRecord)
+                            ) ||
+                        execution.allowsLegacy(info.packageName) &&
+                        config != null &&
+                        config.signers.isNotEmpty() &&
+                        metadata.signers.isNotEmpty() &&
+                        (
+                            config.signers == metadata.signers ||
+                                config.signers.size == 1 &&
+                                metadata.signers.size == 1 &&
+                                metadata.signerHistory.containsAll(config.signers)
+                            ) &&
+                        config.distribution == metadata.distribution?.id
                 val old = mutable.value.firstOrNull {
                     it.packageName == info.packageName &&
                         it.versionCode == PackageInfoCompat.getLongVersionCode(info) &&
                         it.metadata.signers == metadata.signers &&
                         it.metadata.distribution == metadata.distribution
                 }
-                val result = if (compatible && trusted && config?.enabled == true) {
+                val result = if (compatible &&
+                    trusted &&
+                    (
+                        config?.enabled ?: privateRecord?.enabled
+                            ?: eu.kanade.domain.extension.ExtensionExecutionTrust(
+                                uy.kohesive.injekt.Injekt.get(),
+                            ).permits(info.packageName, metadata)
+                        ) ==
+                    true
+                ) {
                     runCatching { old?.source ?: instantiate(info, requireNotNull(factory)) }
                 } else {
                     null
@@ -85,6 +141,10 @@ class NewsExtensionRegistry(private val context: Context, private val http: News
                 )
             }.sortedBy { it.label }
         }
+    }
+
+    fun preflight(info: PackageInfo): NewsSource = eu.kanade.tachiyomi.data.rin.RinLoading.guard {
+        instantiate(info, requireNotNull(info.applicationInfo?.metaData?.getString(FACTORY)))
     }
 
     private fun instantiate(info: PackageInfo, name: String): NewsSource {

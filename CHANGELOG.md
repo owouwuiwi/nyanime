@@ -9,6 +9,38 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 15 ottobre 2026 — 0.45.0.1: Estensioni installate o importate
+
+### Novità
+
+- Uno stesso APK firmato può essere installato in Android oppure importato nella memoria privata di Nyanime. Anime, manga, notizie, TV, guide e addon usano la gestione comune; gli addon con componenti Android dichiarati richiedono l’installazione.
+- Gli APK si possono importare manualmente senza catalogo. È possibile associare esplicitamente un’origine compatibile per gli aggiornamenti; senza associazione restano manuali.
+- Gli importati possono aggiornarsi automaticamente senza aprire l’installer Android, con controlli ogni sei ore e una preferenza per ciascuna estensione.
+
+### Correzioni
+
+- Le verifiche dei pacchetti Android condividono una scansione leggera: gli errori temporanei del sistema mantengono i dati precedenti e vengono recuperati senza chiudere l’app.
+- Disinstallare la copia Android conserva quella importata; gli aggiornamenti non eliminano preferenze e stato delle estensioni.
+- Reimportare un pacchetto non ancora autorizzato richiede comunque il consenso, anche se i byte sono già presenti.
+- Il primo consenso viene salvato prima di aggiornare l’inventario: l’estensione appena importata è disponibile subito, anche per la TV.
+
+### Sicurezza
+
+- Fiducia individuale nella firma e scelta facoltativa di considerare attendibili le estensioni di un catalogo, inizialmente disattivata e revocabile. Aggiungere un catalogo non installa o autorizza automaticamente tutte le sue estensioni.
+- Eliminati le autorità dei cataloghi e i passaggi che imponevano sostituzioni o disinstallazioni. Un editore diverso non può sostituire silenziosamente quello approvato.
+- Prima dell’attivazione vengono verificati firma, versione, API e identità. Aggiornamenti interrotti o incompatibili conservano la versione precedente; lettura, riproduzione, Cast e addon attivi rinviano l’attivazione.
+
+### Interfaccia
+
+- Installa e Importa sono disponibili nella stessa scheda, con modalità attiva, firma, avanzamento e risultato conservati anche cambiando schermata.
+- Nuovi controlli per la fiducia nei cataloghi e per l’origine degli aggiornamenti. Le estensioni già disabilitate mantengono il proprio stato.
+
+### Compatibilità
+
+- Mantenuti lettura, importazione e ripristino dei vecchi file `.rin`; nessuna precedenza obbligatoria rispetto agli APK.
+- I backup conservano anche la modalità privata, le preferenze degli aggiornamenti e l’identità usata per i dati degli addon. Le estensioni nuove ricevute da backup o sync attendono l’approvazione locale prima di eseguire codice.
+- Contratti di base e capacità aggiuntive separati, con template APK, profili SDK, controlli dell’ABI e documentazione in inglese. Nessuna fonte o catalogo preconfigurato nell’app.
+
 ## 14 ottobre 2026 — 0.44.1.1: Traduzioni e Cloud
 
 ### Correzioni

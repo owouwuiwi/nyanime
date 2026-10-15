@@ -13,6 +13,22 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class RinStoreCatalogueTest {
+    @Test fun `presentation order does not privilege a distribution format or installation mode`() {
+        val privateEntry = RinStoreCatalogue.entries(emptyList(), listOf(record), emptyList(), emptyList()).single()
+            .copy(name = "Zeta")
+        val androidEntry = privateEntry.copy(id = "system", name = "Alpha", rinRecord = null)
+        val selected = StorePresentation.select(
+            listOf(privateEntry, androidEntry),
+            StoreShelf.OWNED,
+            null,
+            StoreActivation.ALL,
+            "",
+            emptySet(),
+            false,
+        )
+        assertEquals(listOf("Alpha", "Zeta"), selected.map { it.name })
+    }
+
     @Test fun `live extensions have their own store category without fabricated manga registrations`() {
         val live = record.copy(manifest = manifest.copy(schema = 2, medium = "tv", extensionLib = 1.0))
         val entry = RinStoreCatalogue.entries(emptyList(), listOf(live), emptyList(), emptyList()).single()
@@ -69,7 +85,7 @@ class RinStoreCatalogueTest {
         assertEquals(candidate, entries.single().rinCandidate)
         assertEquals(record.repository, entries.single().repository)
         assertTrue(entries.single().automaticUpdatePending)
-        assertEquals(StoreAction.OPEN, entries.single().action)
+        assertEquals(StoreAction.UPDATE, entries.single().action)
     }
 
     @Test fun `discover keeps publisher choices separate and selects the newest immutable version`() {

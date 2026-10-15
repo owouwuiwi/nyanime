@@ -38,7 +38,11 @@ internal object RinStoreCatalogue {
         val manifest = requireNotNull(record?.manifest ?: candidate?.manifest)
         val repository = record?.repository ?: requireNotNull(candidate).repository
         return StoreEntry(
-            id = "rin:$repository:${manifest.packageName}",
+            id = if (record != null) {
+                "${manifest.medium.uppercase()}:${manifest.packageName}"
+            } else {
+                "${manifest.medium.uppercase()}:${manifest.packageName}:$repository"
+            },
             packageName = manifest.packageName,
             name = manifest.name,
             medium = when (manifest.medium) {
@@ -47,17 +51,25 @@ internal object RinStoreCatalogue {
                 "addon" -> StoreMedium.ADDON
                 "anime" -> StoreMedium.ANIME
                 "manga" -> StoreMedium.MANGA
+                "news" -> StoreMedium.NEWS
                 else -> error("Unknown RIN medium")
             },
-            ready = eu.kanade.tachiyomi.data.rin.RinRepository.compatible(manifest),
+            ready = eu.kanade.tachiyomi.data.rin.RinRepository.compatible(
+                manifest,
+                record?.format ?: candidate?.format ?: "rin",
+            ),
             languages = manifest.sources.map { it.language }.toSet(),
             version = manifest.versionName,
             repository = repository,
-            repositoryName = "Nyanime RIN",
+            repositoryName = null,
             action = if (record ==
                 null
             ) {
                 StoreAction.INSTALL
+            } else if (!record.trusted) {
+                StoreAction.TRUST
+            } else if (candidate != null && RinUpdatePolicy.accepts(candidate, record)) {
+                StoreAction.UPDATE
             } else if (manifest.medium in setOf("addon", "guide", "tv") &&
                 !eu.kanade.tachiyomi.data.rin.RinRepository.compatible(manifest)
             ) {
@@ -71,7 +83,11 @@ internal object RinStoreCatalogue {
             rinRecord = record,
             anime = anime,
             manga = manga,
-            automaticUpdatePending = record != null && candidate != null && RinUpdatePolicy.accepts(candidate, record),
+            automaticUpdatePending =
+            record != null &&
+                candidate != null &&
+                record.automaticUpdates &&
+                RinUpdatePolicy.accepts(candidate, record),
         )
     }
 }

@@ -224,6 +224,8 @@ class AddonExtensionCatalogue(private val context: Context, private val network:
         val maxHostVersionCode: Long? = null,
         val minHostVersionName: String? = null,
         val maxHostVersionName: String? = null,
+        // Older standalone addon indexes imply registered Android components.
+        val requiresAndroid: Boolean = true,
     ) {
         val hostVersions get() = AddonHostVersions(
             minHostVersionCode,

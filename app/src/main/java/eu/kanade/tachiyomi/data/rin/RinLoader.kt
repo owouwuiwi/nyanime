@@ -33,8 +33,13 @@ object RinLoader {
 
     fun instantiate(context: Context, record: RinRecord): List<Any> = RinLoading.guard {
         val storage = RinStorage(context)
-        val manifest = RinArchive.verify(storage.file(record), record.signer, record.sha256)
-        require(manifest == record.manifest && RinRepository.compatible(manifest))
+        require(eu.kanade.tachiyomi.extension.ExtensionPackageConsent.trusted(record)) { "Execution consent required" }
+        val manifest = eu.kanade.tachiyomi.extension.ExtensionPackageArchive.verify(
+            context,
+            storage.file(record),
+            record,
+        )
+        require(manifest == record.manifest && RinRepository.compatible(manifest, record.format))
         val loader = ChildFirstPathClassLoader(
             storage.file(record).absolutePath,
             null,
@@ -42,6 +47,13 @@ object RinLoader {
             addon =
             manifest.medium in setOf("addon", "guide"),
         )
+        if (manifest.medium == "news") {
+            require(
+                Class.forName(manifest.entryPoints.single(), false, loader).getDeclaredConstructor().newInstance()
+                    is nyanime.news.api.NewsSourceFactory,
+            )
+            return@guard emptyList()
+        }
         if (manifest.medium == "tv") {
             require(
                 Class.forName(
@@ -72,7 +84,7 @@ object RinLoader {
             )
             return@guard emptyList()
         }
-        val sources = manifest.entryPoints.flatMap {
+        val baseSources = manifest.entryPoints.flatMap {
             when (val instance = Class.forName(it, false, loader).getDeclaredConstructor().newInstance()) {
                 is AnimeSourceFactory -> instance.createSources()
                 is SourceFactory -> instance.createSources()
@@ -81,6 +93,11 @@ object RinLoader {
                 else -> error("Invalid RIN entry point")
             }
         }
+        val sources = eu.kanade.tachiyomi.extension.ExtensionOptionalCapabilities.attach(
+            loader,
+            manifest.optionalFactories,
+            baseSources,
+        )
         require(
             sources.all {
                 if (manifest.medium == "anime") it is AnimeSource else it is MangaSource
@@ -93,7 +110,15 @@ object RinLoader {
                 else -> error("Invalid RIN source")
             }
         }
-        require(ids.size == ids.distinct().size && ids.toSet() == manifest.sources.map { it.id }.toSet())
+        require(
+            ids.isNotEmpty() &&
+                ids.size == ids.distinct().size &&
+                (
+                    record.format == "apk" &&
+                        manifest.sources.isEmpty() ||
+                        ids.toSet() == manifest.sources.map { it.id }.toSet()
+                    ),
+        )
         sources
     }
 
@@ -101,18 +126,24 @@ object RinLoader {
         val m = record.manifest
         require(!m.nsfw || Injekt.get<SourcePreferences>().showNsfwSource().get())
         require(m.medium == "anime" && m.extensionLib in listOf(14.0, 16.0, 17.0))
-        val sources = if (record.enabled) instantiate(context, record).map { it as AnimeSource } else emptyList()
+        val sources = if (record.enabled &&
+            eu.kanade.tachiyomi.extension.ExtensionPackageConsent.trusted(record)
+        ) {
+            instantiate(context, record).map { it as AnimeSource }
+        } else {
+            emptyList()
+        }
         val metadata = ExtensionPackageInspector.inspectContracts(
             path(context, m.packageName) ?: RinStorage(context).file(record).absolutePath,
         ) { home ->
             sources.singleOrNull { it.name == home.source.name && it.lang == home.source.lang }
                 ?.let { ExtensionHomeFilters.sections(home, it.getFilterList()).size } ?: 0
-        }.copy(signers = setOf(record.signer), signerHistory = setOf(record.signer))
+        }.copy(signers = record.publisherSigners, signerHistory = record.publisherHistory)
         AnimeLoadResult.Success(
             AnimeExtension.Installed(
                 m.name, m.packageName, m.versionName, m.versionCode, m.extensionLib,
                 sources.map { it.lang }.distinct().singleOrNull() ?: "all", m.nsfw, m.torrent,
-                null, sources, icon(context, record), isShared = false, metadata = metadata,
+                null, sources, icon(context, record), isShared = record.isShared, metadata = metadata,
             ),
         )
     }
@@ -121,7 +152,13 @@ object RinLoader {
         val m = record.manifest
         require(!m.nsfw || Injekt.get<SourcePreferences>().showNsfwSource().get())
         require(m.medium == "manga" && m.extensionLib in listOf(1.4, 1.5, 1.6))
-        val sources = if (record.enabled) instantiate(context, record).map { it as MangaSource } else emptyList()
+        val sources = if (record.enabled &&
+            eu.kanade.tachiyomi.extension.ExtensionPackageConsent.trusted(record)
+        ) {
+            instantiate(context, record).map { it as MangaSource }
+        } else {
+            emptyList()
+        }
         val metadata = ExtensionPackageInspector.inspectContracts(
             RinStorage(context).file(record).absolutePath,
         ) { home ->
@@ -130,12 +167,12 @@ object RinLoader {
                     it.lang == home.source.lang
             }
                 ?.let { MangaHomeFilters.sections(home, it.getFilterList()).size } ?: 0
-        }.copy(signers = setOf(record.signer), signerHistory = setOf(record.signer))
+        }.copy(signers = record.publisherSigners, signerHistory = record.publisherHistory)
         MangaLoadResult.Success(
             MangaExtension.Installed(
                 m.name, m.packageName, m.versionName, m.versionCode, m.extensionLib,
                 sources.filterIsInstance<CatalogueSource>().map { it.lang }.distinct().singleOrNull() ?: "all",
-                m.nsfw, null, sources, icon(context, record), isShared = false, metadata = metadata,
+                m.nsfw, null, sources, icon(context, record), isShared = record.isShared, metadata = metadata,
             ),
         )
     }
@@ -150,6 +187,13 @@ object RinLoader {
     }
 
     fun icon(context: Context, record: RinRecord): Drawable? = runCatching {
+        if (record.format == "apk") {
+            val info = eu.kanade.tachiyomi.extension.ExtensionPackageArchive.inspect(
+                context,
+                RinStorage(context).file(record),
+            ).info
+            return info.applicationInfo?.loadIcon(context.packageManager)
+        }
         ZipFile(RinStorage(context).file(record)).use { zip ->
             val entry = zip.getEntry("assets/nyanime/rin-icon") ?: return null
             require(entry.size in 1..1_048_576)

@@ -42,19 +42,25 @@ internal object RinAddonRuntime {
     private val loaded = mutableMapOf<String, Loaded>()
     val busy = MutableStateFlow(false)
     fun namespace(record: RinRecord) =
-        "rin-addon-" + RinArchive.sha256((record.manifest.packageName + ":" + record.signer).toByteArray()).take(32)
+        "rin-addon-" +
+            RinArchive.sha256((record.manifest.packageName + ":" + record.storagePublisher).toByteArray()).take(32)
     fun active(
         context: Context,
         packageName: String,
     ): RinRecord = requireNotNull(RinStorage(context).record(packageName)).also {
-        require(it.enabled && it.manifest.medium == "addon" && RinRepository.compatible(it.manifest))
+        require(
+            it.enabled &&
+                eu.kanade.tachiyomi.extension.ExtensionPackageConsent.trusted(it) &&
+                it.manifest.medium == "addon" &&
+                RinRepository.compatible(it.manifest),
+        )
     }
 
     @Synchronized fun load(context: Context, packageName: String): Loaded {
         val record = active(context, packageName)
         loaded[record.sha256]?.let { return it }
         val file = RinStorage(context).file(record)
-        require(RinArchive.verify(file, record.signer, record.sha256) == record.manifest)
+        require(eu.kanade.tachiyomi.extension.ExtensionPackageArchive.verify(context, file, record) == record.manifest)
         val loader = ChildFirstPathClassLoader(file.absolutePath, null, context.classLoader, addon = true)
         val entry = RinLoading.guard {
             Class.forName(
@@ -183,6 +189,14 @@ internal class RinAddonContext(
     private val ownRoot = File(base.noBackupFilesDir, host.storageNamespace()).apply { mkdirs() }
     private val ownCache = File(base.cacheDir, host.storageNamespace()).apply { mkdirs() }
     private val merged by lazy {
+        if (record.format == "apk") {
+            val info = eu.kanade.tachiyomi.extension.ExtensionPackageArchive.inspect(
+                base,
+                RinStorage(base).file(record),
+            ).info
+            // Separate resource tables prevent the usual APK package ID from shadowing host resources.
+            return@lazy base.packageManager.getResourcesForApplication(requireNotNull(info.applicationInfo))
+        }
         // Distinct addon package IDs retain both host framework resources and addon-owned IDs.
         val app = ApplicationInfo(base.applicationInfo).apply {
             val path = RinStorage(base).file(record).absolutePath
@@ -194,6 +208,23 @@ internal class RinAddonContext(
         @Suppress("DEPRECATION")
         Resources(resources.assets, base.resources.displayMetrics, base.resources.configuration)
     }
+    private val apkTheme by lazy {
+        resources.newTheme().apply {
+            val mode = host.appearance().getString("mode")
+            val light = mode == "LIGHT" ||
+                mode != "DARK" &&
+                resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK != Configuration.UI_MODE_NIGHT_YES
+            applyStyle(
+                if (light) {
+                    android.R.style.Theme_Material_Light_NoActionBar
+                } else {
+                    android.R.style.Theme_Material_NoActionBar
+                },
+                true,
+            )
+        }
+    }
+    override fun getTheme(): Resources.Theme = if (record.format == "apk") apkTheme else super.getTheme()
     override fun getApplicationContext(): Context = this
     override fun getClassLoader() = loader
     override fun getResources(): Resources = merged

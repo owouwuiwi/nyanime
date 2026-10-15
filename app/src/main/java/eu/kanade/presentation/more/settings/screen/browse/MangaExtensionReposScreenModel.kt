@@ -101,7 +101,7 @@ class MangaExtensionReposScreenModel(
     fun deleteRepo(baseUrl: String) {
         screenModelScope.launchIO {
             deleteExtensionRepo.await(baseUrl)
-            eu.kanade.domain.extension.ExtensionCatalogueAuthorities(Injekt.get()).remove(baseUrl)
+            eu.kanade.domain.extension.ExtensionCatalogueTrust(Injekt.get()).remove(baseUrl)
             extensionManager.findAvailableExtensions()
         }
     }

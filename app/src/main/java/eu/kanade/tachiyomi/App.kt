@@ -281,7 +281,10 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
                     animeExtensionRepos().delete()
                     mangaExtensionRepos().delete()
                 }
-                eu.kanade.domain.extension.ExtensionCatalogueAuthorities(preferenceStore).clear()
+                preferenceStore.getString(
+                    tachiyomi.core.common.preference.Preference.appStateKey("extension_catalogue_authorities_v1"),
+                    "[]",
+                ).delete()
                 android.util.AtomicFile(File(noBackupFilesDir, "extension-store-replacement.json")).delete()
                 File(filesDir, "extension-store/prepared.apk").delete()
                 File(filesDir, "extension-store/prepared.part").delete()

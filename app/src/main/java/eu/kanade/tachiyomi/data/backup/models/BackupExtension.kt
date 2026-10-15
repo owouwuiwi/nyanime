@@ -11,6 +11,9 @@ data class BackupExtension(
     @ProtoNumber(4) val rinSigner: String = "",
     @ProtoNumber(5) val rinRepository: String = "",
     @ProtoNumber(6) val rinEnabled: Boolean = true,
+    @ProtoNumber(7) val privatelyInstalled: Boolean = false,
+    @ProtoNumber(8) val automaticUpdates: Boolean = true,
+    @ProtoNumber(9) val storagePublisher: String = "",
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -22,7 +25,10 @@ data class BackupExtension(
             format != other.format ||
             rinSigner != other.rinSigner ||
             rinRepository != other.rinRepository ||
-            rinEnabled != other.rinEnabled
+            rinEnabled != other.rinEnabled ||
+            privatelyInstalled != other.privatelyInstalled ||
+            automaticUpdates != other.automaticUpdates ||
+            storagePublisher != other.storagePublisher
         ) {
             return false
         }
@@ -35,6 +41,9 @@ data class BackupExtension(
         var result = 31 * pkgName.hashCode() + format.hashCode() + rinSigner.hashCode() + rinRepository.hashCode()
         result = 31 * result + apk.contentHashCode()
         result = 31 * result + rinEnabled.hashCode()
+        result = 31 * result + privatelyInstalled.hashCode()
+        result = 31 * result + automaticUpdates.hashCode()
+        result = 31 * result + storagePublisher.hashCode()
         return result
     }
 }

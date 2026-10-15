@@ -50,7 +50,9 @@ fun AddonMoreActions() {
     Column {
         bundles.filter {
             it.enabled &&
+                it.trusted &&
                 it.manifest.medium == "addon" &&
+                it.manifest.addon?.isLogoHold != true &&
                 eu.kanade.tachiyomi.data.rin.RinRepository.compatible(it.manifest)
         }.forEach { record ->
             key(record.sha256) {

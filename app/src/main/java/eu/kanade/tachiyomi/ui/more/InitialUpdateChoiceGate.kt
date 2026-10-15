@@ -79,7 +79,7 @@ fun InitialAppSetupGate(onReady: () -> Unit, content: @Composable () -> Unit) {
         InitialThemeChoiceGate(onReady) {
             InitialUpdateChoiceGate(onReady) {
                 InitialAddonIntroductionGate(onReady) {
-                    eu.kanade.tachiyomi.ui.rin.RinMigrationGate(onReady, content)
+                    content()
                 }
             }
         }

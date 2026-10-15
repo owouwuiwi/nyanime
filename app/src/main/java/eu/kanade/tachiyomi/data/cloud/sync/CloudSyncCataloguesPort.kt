@@ -71,6 +71,7 @@ internal class CloudSyncCataloguesPort(
                     it.signer,
                     it.manifest.medium,
                     it.manifest.knownSourceIds,
+                    it.format,
                 )
                 put(
                     SyncRef("rin", title = it.manifest.packageName),
@@ -157,7 +158,8 @@ internal class CloudSyncCataloguesPort(
             require(data.packageName == record.ref.title)
             val previous = rin.installed.value.firstOrNull { it.manifest.packageName == data.packageName }
             if (previous != null) {
-                require(previous.signer == data.signer && previous.manifest.medium == data.medium)
+                require(data.signer in previous.publisherHistory && previous.manifest.medium == data.medium)
+                require(previous.format == data.format)
                 require(previous.manifest.preservesSourceIds(data.sources))
             }
             if (record.deleted) {
@@ -177,19 +179,25 @@ internal class CloudSyncCataloguesPort(
                         it.manifest.packageName == data.packageName &&
                             it.repository == data.repository &&
                             it.signer == data.signer &&
+                            it.format == data.format &&
+                            !it.requiresAndroid &&
                             it.manifest.medium == data.medium &&
                             it.manifest.preservesSourceIds(data.sources) &&
                             RinRepository.compatible(it.manifest)
                     }.maxByOrNull { it.manifest.versionCode } ?: return false
-                    if (rin.legacyPresent(data.packageName)) {
-                        // Android uninstall still requires the existing, explicit migration flow.
-                        return false
-                    }
                     val prepared = rin.prepare(entry)
                     // A concurrent local Store action always gets another reconciliation pass.
                     if (rin.installed.value.any { it.manifest.packageName == data.packageName }) return false
-                    rin.activate(prepared.copy(enabled = enabled), preserveEnabled = false)
+                    // Sharing a catalogue is not permission to execute newly received code.
+                    // Preserve the authenticated package, then wait for local approval.
+                    rin.restoreDormant(prepared.copy(enabled = false, trusted = false))
+                    return false
                 } else if (previous.enabled != enabled) {
+                    if (enabled &&
+                        !eu.kanade.tachiyomi.extension.ExtensionPackageConsent.trusted(previous)
+                    ) {
+                        return false
+                    }
                     rin.setEnabled(data.packageName, enabled)
                 }
             }
@@ -236,11 +244,13 @@ internal data class PortableRin(
     val signer: String,
     val medium: String,
     val sources: Set<Long>,
+    val format: String = "rin",
 ) {
     fun validate() {
         require(packageName.length in 1..256 && packageName.matches(Regex("[A-Za-z][A-Za-z0-9_.]+")))
         require(repository.length <= 4096 && (repository.isEmpty() || repository.toHttpUrlOrNull()?.scheme == "https"))
         require(signer.matches(Regex("[a-f0-9]{64}")))
+        require(format in setOf("rin", "apk"))
         require(medium in RinManifest.supportedMedia && sources.size <= 128 && 0L !in sources)
     }
 }

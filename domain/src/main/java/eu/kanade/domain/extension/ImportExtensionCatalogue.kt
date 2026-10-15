@@ -11,16 +11,16 @@ import mihon.domain.extensionrepo.model.ExtensionRepo
 class ImportExtensionCatalogue(
     private val anime: AnimeExtensionStoreRepository,
     private val manga: MangaExtensionRepoRepository,
-    private val authorities: ExtensionCatalogueAuthorities? = null,
+    private val trust: ExtensionCatalogueTrust? = null,
 ) {
-    suspend fun await(url: String, catalogue: UnifiedExtensionCatalogue) {
+    suspend fun await(url: String, catalogue: UnifiedExtensionCatalogue, trustExtensions: Boolean = false) {
         require(UnifiedExtensionCatalogue.validUrl(url))
-        val oldAnime = anime.getAll().filter { it.indexUrl == url || it.indexUrl in catalogue.replaces }
+        val oldAnime = anime.getAll().filter { it.indexUrl == url }
         val oldManga = manga.getAll().filter {
-            it.baseUrl == url || it.baseUrl in catalogue.replaces || it.signingKeyFingerprint == catalogue.signingKey
+            it.baseUrl == url
         }
         val hasAnime =
-            ExtensionCatalogueMedium.ANIME in catalogue.media || ExtensionCatalogueMedium.NEWS in catalogue.media
+            catalogue.media.any { it != ExtensionCatalogueMedium.MANGA }
         val hasManga = ExtensionCatalogueMedium.MANGA in catalogue.media
         try {
             if (hasAnime) {
@@ -37,7 +37,7 @@ class ImportExtensionCatalogue(
                 )
             }
             if (hasManga) {
-                manga.replaceRepo(
+                manga.upsertRepo(
                     ExtensionRepo(
                         url,
                         catalogue.name,
@@ -47,9 +47,7 @@ class ImportExtensionCatalogue(
                     ),
                 )
             }
-            if (hasAnime) oldAnime.filter { it.indexUrl != url }.forEach { anime.remove(it.indexUrl) }
-            if (hasManga) oldManga.filter { it.baseUrl != url }.forEach { manga.deleteRepo(it.baseUrl) }
-            authorities?.approve(url, catalogue)
+            trust?.set(url, catalogue.signingKey, trustExtensions)
         } catch (failure: Exception) {
             withContext(NonCancellable) {
                 suspend fun restore(action: suspend () -> Unit) {

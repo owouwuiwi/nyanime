@@ -25,6 +25,7 @@ import kotlinx.coroutines.runBlocking
 import logcat.LogPriority
 import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.system.logcat
+import uy.kohesive.injekt.api.get
 import uy.kohesive.injekt.injectLazy
 import java.io.File
 
@@ -65,7 +66,7 @@ internal object AnimeExtensionLoader {
 
     private fun getPrivateExtensionDir(context: Context) = File(context.filesDir, "exts")
 
-    fun installPrivateExtensionFile(context: Context, file: File): Boolean {
+    suspend fun installPrivateExtensionFile(context: Context, file: File): Boolean {
         val extension = context.packageManager.getPackageArchiveInfo(
             file.absolutePath,
             PACKAGE_FLAGS,
@@ -96,28 +97,31 @@ internal object AnimeExtensionLoader {
             }
         }
 
-        val target = File(
-            getPrivateExtensionDir(context),
-            "${extension.packageName}.$PRIVATE_EXTENSION_EXTENSION",
-        )
         return try {
-            target.delete()
-            file.copyAndSetReadOnlyTo(target, overwrite = true)
-            if (currentExtension != null) {
-                AnimeExtensionInstallReceiver.notifyReplaced(context, extension.packageName)
-            } else {
-                AnimeExtensionInstallReceiver.notifyAdded(context, extension.packageName)
-            }
+            val inspected = eu.kanade.tachiyomi.extension.ExtensionPackageArchive.inspect(context, file)
+            val metadata = ExtensionPackageInspector.inspect(inspected.info) { 0 }
+            val repository = eu.kanade.tachiyomi.data.rin.RinRepository.get(context)
+            val record = repository.storage.stage(
+                file,
+                metadata.signers.first(),
+                eu.kanade.tachiyomi.extension.ExtensionPackageArchive.sha256(file),
+                repository.storage.record(extension.packageName)?.repository.orEmpty(),
+            )
+            val previous = repository.storage.record(extension.packageName)
+            repository.activateLocal(eu.kanade.tachiyomi.data.rin.RinLocalImport(record, previous))
             true
-        } catch (e: Exception) {
-            logcat(LogPriority.ERROR, e) { "Failed to copy extension file." }
-            target.delete()
+        } catch (cancel: kotlinx.coroutines.CancellationException) {
+            throw cancel
+        } catch (error: Exception) {
+            logcat(LogPriority.ERROR, error) { "Private extension retained its previous version" }
             false
         }
     }
 
     fun uninstallPrivateExtension(context: Context, pkgName: String) {
-        File(getPrivateExtensionDir(context), "$pkgName.$PRIVATE_EXTENSION_EXTENSION").delete()
+        eu.kanade.tachiyomi.data.rin.RinRepository.get(context).remove(pkgName)
+        val flags = context.getSharedPreferences("extension_retired_imports_v1", Context.MODE_PRIVATE)
+        flags.edit().putStringSet("packages", flags.getStringSet("packages", emptySet()).orEmpty() + pkgName).apply()
     }
 
     /**
@@ -128,13 +132,11 @@ internal object AnimeExtensionLoader {
     fun loadExtensions(context: Context): List<AnimeLoadResult> {
         val pkgManager = context.packageManager
 
-        val installedPkgs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            pkgManager.getInstalledPackages(
-                PackageManager.PackageInfoFlags.of(PACKAGE_FLAGS.toLong()),
-            )
-        } else {
-            pkgManager.getInstalledPackages(PACKAGE_FLAGS)
-        }
+        val installedPkgs = eu.kanade.tachiyomi.extension.ExtensionPackageDiscovery.candidates(
+            context,
+            PACKAGE_FLAGS,
+            setOf("tachiyomi.animeextension"),
+        )
 
         val sharedExtPkgs = installedPkgs
             .asSequence()
@@ -144,7 +146,13 @@ internal object AnimeExtensionLoader {
         val privateExtPkgs = getPrivateExtensionDir(context)
             .listFiles()
             ?.asSequence()
-            ?.filter { it.isFile && it.extension == PRIVATE_EXTENSION_EXTENSION }
+            ?.filter {
+                it.isFile &&
+                    it.extension == PRIVATE_EXTENSION_EXTENSION &&
+                    it.nameWithoutExtension !in
+                    context.getSharedPreferences("extension_retired_imports_v1", Context.MODE_PRIVATE)
+                        .getStringSet("packages", emptySet()).orEmpty()
+            }
             ?.mapNotNull {
                 // Just in case, since Android 14+ requires them to be read-only
                 if (it.canWrite()) {
@@ -172,8 +180,18 @@ internal object AnimeExtensionLoader {
 
         val records = eu.kanade.tachiyomi.data.rin.RinStorage(context).records()
             .filter { it.manifest.medium == "anime" }
-        val rin = records.map { eu.kanade.tachiyomi.data.rin.RinLoader.anime(context, it) }
-        val rinPackages = records.map { it.manifest.packageName }.toSet()
+        val activeRecords = records.filter { record ->
+            preferRecord(
+                context,
+                record,
+                extPkgs.firstOrNull {
+                    it.packageInfo.packageName ==
+                        record.manifest.packageName
+                },
+            )
+        }
+        val rin = activeRecords.map { eu.kanade.tachiyomi.data.rin.RinLoader.anime(context, it) }
+        val rinPackages = activeRecords.map { it.manifest.packageName }.toSet()
         val apkPackages = extPkgs.filterNot { it.packageInfo.packageName in rinPackages }
         if (apkPackages.isEmpty()) return rin
 
@@ -192,7 +210,8 @@ internal object AnimeExtensionLoader {
      */
     suspend fun loadExtensionFromPkgName(context: Context, pkgName: String): AnimeLoadResult {
         eu.kanade.tachiyomi.data.rin.RinStorage(context).record(pkgName)?.let {
-            return eu.kanade.tachiyomi.data.rin.RinLoader.anime(context, it)
+            val apk = getAnimeExtensionInfoFromPkgName(context, pkgName)
+            if (preferRecord(context, it, apk)) return eu.kanade.tachiyomi.data.rin.RinLoader.anime(context, it)
         }
         val extensionPackage = getAnimeExtensionInfoFromPkgName(context, pkgName)
         if (extensionPackage == null) {
@@ -290,10 +309,16 @@ internal object AnimeExtensionLoader {
         }
 
         val signatures = getSignatures(pkgInfo)
+        val execution = eu.kanade.domain.extension.ExtensionExecutionTrust(uy.kohesive.injekt.Injekt.get())
         if (signatures.isNullOrEmpty()) {
             logcat(LogPriority.WARN) { "Package $pkgName isn't signed" }
             return AnimeLoadResult.Error
-        } else if (!trustExtension.isTrusted(pkgInfo, signatures)) {
+        } else if (!(trustExtension.isTrusted(pkgInfo, signatures) && execution.allowsLegacy(pkgName)) &&
+            !execution.permits(
+                pkgName,
+                ExtensionPackageInspector.inspect(pkgInfo) { 0 },
+            )
+        ) {
             val extension = AnimeExtension.Untrusted(
                 extName,
                 pkgName,
@@ -322,7 +347,7 @@ internal object AnimeExtensionLoader {
             return AnimeLoadResult.Error
         }
 
-        val sources = appInfo.metaData.getString(METADATA_SOURCE_CLASS)!!
+        val baseSources = appInfo.metaData.getString(METADATA_SOURCE_CLASS)!!
             .split(";")
             .map {
                 val sourceClass = it.trim()
@@ -355,15 +380,37 @@ internal object AnimeExtensionLoader {
                             is AnimeSourceFactory -> obj.createSources()
                             else -> throw Exception("Unknown source class type: ${obj.javaClass}")
                         }
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (e: VirtualMachineError) {
+                        throw e
+                    } catch (e: ThreadDeath) {
+                        throw e
                     } catch (e: Throwable) {
                         logcat(LogPriority.ERROR, e) { "Extension load error: $extName ($it)" }
                         return AnimeLoadResult.Error
                     }
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: VirtualMachineError) {
+                    throw e
+                } catch (e: ThreadDeath) {
+                    throw e
                 } catch (e: Throwable) {
                     logcat(LogPriority.ERROR, e) { "Extension load error: $extName ($it)" }
                     return AnimeLoadResult.Error
                 }
             }
+
+        val optional = appInfo.metaData.getString("nyanime.optional.factory")?.split(';')?.map {
+            it.trim().let { name -> if (name.startsWith('.')) pkgName + name else name }
+        }.orEmpty()
+        val sources = eu.kanade.tachiyomi.extension.ExtensionOptionalCapabilities.attach(
+            classLoader,
+            optional,
+            baseSources,
+        )
+            .map { it as AnimeSource }
 
         val langs = sources.map { it.lang }.toSet()
         val lang = when (langs.size) {
@@ -408,13 +455,65 @@ internal object AnimeExtensionLoader {
             shared == null && private == null -> return null
         }
 
-        return if (PackageInfoCompat.getLongVersionCode(shared!!.packageInfo) >=
-            PackageInfoCompat.getLongVersionCode(private!!.packageInfo)
-        ) {
-            shared
-        } else {
-            private
+        val entries = listOfNotNull(shared, private)
+        val baseline = shared ?: private!!
+        val pins = ExtensionPackageInspector.inspect(baseline.packageInfo) { 0 }.signers
+        val candidates = entries.map { entry ->
+            val metadata = ExtensionPackageInspector.inspect(entry.packageInfo) { 0 }
+            val api =
+                entry.packageInfo.applicationInfo?.metaData?.getInt("aniyomix.extensionLib", 0)?.takeIf {
+                    it > 0
+                }?.toDouble()
+                    ?: entry.packageInfo.versionName?.substringBeforeLast('.')?.toDoubleOrNull()
+            eu.kanade.tachiyomi.extension.ExtensionPackageChoice.Candidate(
+                if (entry.isShared) "system" else "private",
+                PackageInfoCompat.getLongVersionCode(entry.packageInfo),
+                metadata.signers,
+                metadata.signerHistory,
+                api in SUPPORTED_LIB_VERSIONS && !metadata.invalidDistribution,
+            )
         }
+        val chosen = eu.kanade.tachiyomi.extension.ExtensionPackageChoice.select(
+            candidates,
+            if (baseline.isShared) "system" else "private",
+            pins,
+        ) ?: return null
+        return entries.first { (if (it.isShared) "system" else "private") == chosen.key }
+    }
+
+    private fun preferRecord(
+        context: Context,
+        record: eu.kanade.tachiyomi.data.rin.RinRecord,
+        apk: AnimeExtensionInfo?,
+    ): Boolean {
+        if (!eu.kanade.tachiyomi.data.rin.RinRepository.compatible(record.manifest, record.format)) return false
+        if (apk == null) return true
+        if (!eu.kanade.tachiyomi.extension.ExtensionPackageConsent.trusted(record)) return false
+        if (!record.enabled) return true
+        val metadata = ExtensionPackageInspector.inspect(apk.packageInfo) { 0 }
+        val api =
+            apk.packageInfo.applicationInfo?.metaData?.getInt("aniyomix.extensionLib", 0)?.takeIf { it > 0 }?.toDouble()
+                ?: apk.packageInfo.versionName?.substringBeforeLast('.')?.toDoubleOrNull()
+        val selected = eu.kanade.tachiyomi.extension.ExtensionPackageChoice.select(
+            listOf(
+                eu.kanade.tachiyomi.extension.ExtensionPackageChoice.Candidate(
+                    "imported",
+                    record.manifest.versionCode,
+                    record.publisherSigners,
+                    record.publisherHistory,
+                ),
+                eu.kanade.tachiyomi.extension.ExtensionPackageChoice.Candidate(
+                    "apk",
+                    PackageInfoCompat.getLongVersionCode(apk.packageInfo),
+                    metadata.signers,
+                    metadata.signerHistory,
+                    api in SUPPORTED_LIB_VERSIONS && !metadata.invalidDistribution,
+                ),
+            ),
+            if (record.isShared) "apk" else "imported",
+            record.publisherSigners,
+        )
+        return selected?.key == "imported"
     }
 
     /**

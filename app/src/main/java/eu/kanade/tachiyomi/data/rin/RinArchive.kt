@@ -33,9 +33,10 @@ data class RinManifest(
     val maxHostVersionCode: Long? = null,
     val minHostVersionName: String? = null,
     val maxHostVersionName: String? = null,
+    val optionalFactories: List<String> = emptyList(),
 ) {
     companion object {
-        val supportedMedia: Set<String> = setOf("anime", "manga", "addon", "guide", "tv")
+        val supportedMedia: Set<String> = setOf("anime", "manga", "addon", "guide", "tv", "news")
     }
 
     val hostVersions get() = eu.kanade.domain.extension.AddonHostVersions(
@@ -47,6 +48,7 @@ data class RinManifest(
     val knownSourceIds: Set<Long> get() = (sources + dormantSources).map { it.id }.toSet()
 
     fun validSourceIdentities(): Boolean {
+        if (medium == "news") return sources.isEmpty() && dormantSources.isEmpty()
         if (medium == "guide") return sources.isEmpty() && dormantSources.isEmpty() && guide?.valid() == true
         if (medium == "addon") return sources.isEmpty() && dormantSources.isEmpty() && addon?.valid() == true
         val all = sources + dormantSources
@@ -60,7 +62,7 @@ data class RinManifest(
         validSourceIdentities() &&
             (
                 if (medium in
-                    setOf("addon", "guide")
+                    setOf("addon", "guide", "news")
                 ) {
                     ids.isEmpty()
                 } else {
@@ -77,9 +79,11 @@ data class RinAddonDeclaration(
     val actionSummary: Map<String, String>,
     val descriptions: Map<String, String>,
     val sourceUrl: String? = null,
+    val holdMillis: Long = 0,
 ) {
-    fun valid(): Boolean = api == 1 &&
-        activation == "more_action" &&
+    val isLogoHold get() = activation == "hold_logo" && holdMillis in 500L..3_000L
+    fun valid(): Boolean = api in 1..2 &&
+        (activation == "more_action" && holdMillis == 0L || isLogoHold) &&
         texts(actionLabel, 128) &&
         texts(actionSummary, 256) &&
         texts(descriptions, 4096) &&
@@ -187,6 +191,7 @@ object RinArchive {
             require(manifest.entryPoints.isNotEmpty() && manifest.entryPoints.size <= 32)
             require(manifest.entryPoints.all { packagePattern.matches(it) })
             require(manifest.validSourceIdentities())
+            require(manifest.medium != "addon" || manifest.addon?.api?.toDouble() == manifest.extensionLib)
             require("classes.dex" in manifest.hashes)
             require(
                 entries.map { it.name }.toSet() ==
