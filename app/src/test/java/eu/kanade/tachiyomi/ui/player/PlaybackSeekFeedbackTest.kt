@@ -53,12 +53,27 @@ class PlaybackSeekFeedbackTest {
     fun `native completion accepts the actual keyframe only after a native seek started`() = runTest {
         val feedback = PlaybackSeekFeedback(backgroundScope)
         feedback.observe(10f)
-        feedback.request(300f)
+        feedback.request(300f, exact = false)
         feedback.nativeFinished(10f)
         assertEquals(300f, feedback.position.value)
         feedback.nativeStarted()
         feedback.nativeFinished(297f)
         assertEquals(297f, feedback.position.value)
+    }
+
+    @Test
+    fun `late native completion cannot acknowledge a newer exact seek`() = runTest {
+        val feedback = PlaybackSeekFeedback(backgroundScope)
+        feedback.observe(10f)
+        feedback.request(100f)
+        feedback.nativeStarted()
+        feedback.request(300f)
+        feedback.nativeStarted()
+        feedback.nativeFinished(100f)
+        assertEquals(300f, feedback.position.value)
+        feedback.nativeFinished(300f)
+        feedback.observe(301f)
+        assertEquals(301f, feedback.position.value)
     }
 
     @Test

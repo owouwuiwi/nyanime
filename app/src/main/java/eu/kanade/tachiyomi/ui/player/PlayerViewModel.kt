@@ -51,6 +51,7 @@ import eu.kanade.domain.track.service.TrackPreferences
 import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.presentation.more.settings.screen.player.custombutton.CustomButtonFetchState
 import eu.kanade.presentation.more.settings.screen.player.custombutton.getButtons
+import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.animesource.model.ChapterType
 import eu.kanade.tachiyomi.animesource.model.Hoster
@@ -58,6 +59,7 @@ import eu.kanade.tachiyomi.animesource.model.SerializableHoster.Companion.toHost
 import eu.kanade.tachiyomi.animesource.model.ThumbnailInfo
 import eu.kanade.tachiyomi.animesource.model.TileInfo
 import eu.kanade.tachiyomi.animesource.model.TimeStamp
+import eu.kanade.tachiyomi.animesource.model.Track
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.animesource.online.AnimeHttpSource
 import eu.kanade.tachiyomi.data.cast.CastController
@@ -112,6 +114,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
@@ -630,7 +633,26 @@ class PlayerViewModel @JvmOverloads constructor(
         if (watchTogether.active) watchTogether.playNextNow() else completion.playNow()
     }
 
-    internal fun mediaReloaded() = completion.playbackRestarted()
+    internal fun mediaReloaded() {
+        completion.playbackRestarted()
+        if (!watchTogether.active) {
+            updatePausedState()
+            activity.player.paused = true
+        }
+        trackLoadingJob?.cancel()
+        audioSelectionJob?.cancel()
+        subtitleSelectionJob?.cancel()
+        audioSelectionVersion++
+        subtitleSelectionVersion++
+        trackGeneration = -1
+        nativeTracks = emptyList()
+        trackCatalog = PlaybackTrackCatalog()
+        _audioTracks.value = emptyList()
+        _subtitleTracks.value = emptyList()
+        _selectedAudio.value = -1
+        _selectedSubtitles.value = -1 to -1
+        isLoadingTracks.value = true
+    }
 
     fun prepareMediaChange(episodeId: Long?) {
         qualityGeneration++
@@ -717,7 +739,7 @@ class PlayerViewModel @JvmOverloads constructor(
         isLoading.value = false
         updateIsLoadingEpisode(false)
         updateIsLoadingHosters(false)
-        isLoadingTracks.value = true
+        isLoadingTracks.value = false
         cancelHosterVideoLinksJob()
         completion.cancel()
         showControls()
@@ -739,84 +761,118 @@ class PlayerViewModel @JvmOverloads constructor(
         MPVLib.setPropertyString("hwdec", decoder.value)
     }
 
-    val getTrackLanguage: (Int) -> String = {
-        if (it != -1) {
-            MPVLib.getPropertyString("track-list/$it/lang") ?: ""
-        } else {
-            activity.stringResource(MR.strings.off)
-        }
-    }
-    val getTrackTitle: (Int) -> String = {
-        if (it != -1) {
-            MPVLib.getPropertyString("track-list/$it/title") ?: ""
-        } else {
-            activity.stringResource(MR.strings.off)
-        }
-    }
-    val getTrackMPVId: (Int) -> Int = {
-        if (it != -1) {
-            MPVLib.getPropertyInt("track-list/$it/id")
-        } else {
-            -1
-        }
-    }
-    val getTrackType: (Int) -> String? = {
-        MPVLib.getPropertyString("track-list/$it/type")
-    }
-
+    private var trackCatalog = PlaybackTrackCatalog()
+    private var nativeTracks = emptyList<NativePlaybackTrack>()
+    private var trackGeneration = -1L
     private var trackLoadingJob: Job? = null
-    fun loadTracks() {
-        trackLoadingJob?.cancel()
-        trackLoadingJob = viewModelScope.launch {
-            if (!activity.available) return@launch
-            val possibleTrackTypes = listOf("audio", "sub")
-            val subTracks = mutableListOf<VideoTrack>()
-            val audioTracks = mutableListOf(
-                VideoTrack(-1, activity.stringResource(MR.strings.off), null),
-            )
-            try {
-                val tracksCount = MPVLib.getPropertyInt("track-list/count") ?: 0
-                for (i in 0..<tracksCount) {
-                    val type = getTrackType(i)
-                    if (!possibleTrackTypes.contains(type) || type == null) continue
-                    when (type) {
-                        "sub" -> subTracks.add(VideoTrack(getTrackMPVId(i), getTrackTitle(i), getTrackLanguage(i)))
-                        "audio" -> audioTracks.add(VideoTrack(getTrackMPVId(i), getTrackTitle(i), getTrackLanguage(i)))
-                        else -> error("Unrecognized track type")
-                    }
-                }
-            } catch (e: NullPointerException) {
-                logcat(LogPriority.ERROR) { "Couldn't load tracks, probably cause mpv was destroyed" }
-                return@launch
-            }
-            _subtitleTracks.update { subTracks }
-            _audioTracks.update { audioTracks }
+    private var trackRefreshPending = false
+    private var audioSelectionJob: Job? = null
+    private var subtitleSelectionJob: Job? = null
+    private var audioSelectionVersion = 0L
+    private var subtitleSelectionVersion = 0L
 
-            if (!isLoadingTracks.value) {
-                onFinishLoadingTracks()
-            }
+    private fun tracksCurrent(generation: Long): Boolean = activity.available &&
+        !activity.player.isExiting &&
+        trackGeneration == generation &&
+        activity.playbackGeneration == generation
+
+    private fun publishTracks(tracks: List<NativePlaybackTrack>) {
+        nativeTracks = tracks
+        fun choices(kind: PlaybackTrackKind) = trackCatalog.choices(kind, tracks).mapIndexed { index, track ->
+            VideoTrack(track.id, track.title, track.language, displayId = index + 1)
+        }
+        val audio = choices(PlaybackTrackKind.Audio)
+        val offLabel = if (audio.isEmpty()) {
+            activity.getString(R.string.playback_no_audio_tracks)
+        } else {
+            activity.stringResource(MR.strings.off)
+        }
+        _audioTracks.value = listOf(VideoTrack(-1, offLabel, null)) + audio
+        _subtitleTracks.value = choices(PlaybackTrackKind.Subtitle)
+    }
+
+    /** Track-list events update metadata only; they never reset a manual language selection. */
+    fun loadTracks() {
+        trackRefreshPending = true
+        if (trackLoadingJob?.isActive == true) return
+        val generation = activity.playbackGeneration
+        trackLoadingJob = viewModelScope.launch {
+            do {
+                trackRefreshPending = false
+                if (!tracksCurrent(generation)) return@launch
+                val snapshot = activity.readPlaybackTracks(generation) ?: return@launch
+                if (!tracksCurrent(generation)) return@launch
+                publishTracks(snapshot)
+            } while (trackRefreshPending)
         }
     }
 
-    /**
-     * When all subtitle/audio tracks are loaded, select the preferred one based on preferences,
-     * or select the first one in the list if trackSelect fails.
-     */
-    fun onFinishLoadingTracks() {
-        val preferredSubtitle = trackSelect.getPreferredTrackIndex(subtitleTracks.value)
-        (preferredSubtitle ?: subtitleTracks.value.firstOrNull())?.let {
-            activity.player.sid = it.id
-            activity.player.secondarySid = -1
+    /** Open the selected audio before starting; leave all unused remote alternatives unopened. */
+    internal suspend fun preparePlaybackTracks(audio: List<Track>, subtitles: List<Track>) {
+        val generation = activity.playbackGeneration
+        trackLoadingJob?.cancelAndJoin()
+        trackGeneration = generation
+        trackCatalog = PlaybackTrackCatalog(
+            audio.map { ExternalPlaybackTrack(it.url, it.lang) },
+            subtitles.map { ExternalPlaybackTrack(it.url, it.lang) },
+        )
+        isLoadingTracks.value = true
+        val audioVersion = audioSelectionVersion
+        val subtitleVersion = subtitleSelectionVersion
+        if (!watchTogether.active) {
+            updatePausedState()
+            activity.player.paused = true
         }
-
+        val snapshot = activity.readPlaybackTracks(generation) ?: run {
+            if (tracksCurrent(generation)) activity.onPlaybackFailure(PlaybackFailure.Unknown)
+            return
+        }
+        if (!tracksCurrent(generation)) return
+        publishTracks(snapshot)
         val preferredAudio = trackSelect.getPreferredTrackIndex(audioTracks.value, subtitle = false)
-        (preferredAudio ?: audioTracks.value.getOrNull(1))?.let {
-            activity.player.aid = it.id
+            ?: audioTracks.value.firstOrNull { it.id != -1 }
+        if (preferredAudio != null) {
+            val id = resolveTrack(PlaybackTrackKind.Audio, preferredAudio.id, generation)
+            currentCoroutineContext().ensureActive()
+            if (!tracksCurrent(generation)) return
+            if (audioVersion == audioSelectionVersion) {
+                if (id == null) {
+                    activity.showToast(activity.getString(R.string.playback_track_unavailable))
+                    activity.onPlaybackFailure(PlaybackFailure.Network)
+                    return
+                }
+                if (activity.player.aid != id) activity.player.aid = id
+            }
         }
-
-        isLoadingTracks.update { _ -> true }
+        val preferredSubtitle = trackSelect.getPreferredTrackIndex(subtitleTracks.value)
+            ?: subtitleTracks.value.firstOrNull()
+        if (preferredSubtitle != null && subtitleVersion == subtitleSelectionVersion) {
+            val id = resolveTrack(PlaybackTrackKind.Subtitle, preferredSubtitle.id, generation)
+            currentCoroutineContext().ensureActive()
+            if (!tracksCurrent(generation)) return
+            if (subtitleVersion == subtitleSelectionVersion && id != null) {
+                if (activity.player.sid != id) activity.player.sid = id
+                if (activity.player.secondarySid != -1) activity.player.secondarySid = -1
+            } else if (subtitleVersion == subtitleSelectionVersion && id == null) {
+                activity.showToast(activity.getString(R.string.playback_track_unavailable))
+            }
+        }
+        if (!tracksCurrent(generation)) return
+        isLoadingTracks.value = false
         updateIsLoadingEpisode(false)
         setPausedState()
+    }
+
+    private suspend fun resolveTrack(kind: PlaybackTrackKind, id: Int, generation: Long): Int? {
+        if (!tracksCurrent(generation)) return null
+        if (id >= -1) return id
+        val track = trackCatalog.external(kind, id) ?: return null
+        trackCatalog.loadedId(kind, track.url, nativeTracks)?.let { return it }
+        val snapshot = activity.loadPlaybackTrack(kind, track, generation) ?: return null
+        currentCoroutineContext().ensureActive()
+        if (!tracksCurrent(generation)) return null
+        publishTracks(snapshot)
+        return trackCatalog.loadedId(kind, track.url, snapshot)
     }
 
     @Immutable
@@ -824,6 +880,7 @@ class PlayerViewModel @JvmOverloads constructor(
         val id: Int,
         val name: String,
         val language: String?,
+        val displayId: Int = id,
     )
 
     fun loadChapters() {
@@ -872,7 +929,19 @@ class PlayerViewModel @JvmOverloads constructor(
     }
 
     fun selectAudio(id: Int) {
-        activity.player.aid = id
+        val generation = activity.playbackGeneration
+        val version = ++audioSelectionVersion
+        audioSelectionJob?.cancel()
+        audioSelectionJob = viewModelScope.launch {
+            val nativeId = resolveTrack(PlaybackTrackKind.Audio, id, generation) ?: run {
+                if (tracksCurrent(generation) && version == audioSelectionVersion) {
+                    activity.showToast(activity.getString(R.string.playback_track_unavailable))
+                }
+                return@launch
+            }
+            if (!tracksCurrent(generation) || version != audioSelectionVersion) return@launch
+            if (activity.player.aid != nativeId) activity.player.aid = nativeId
+        }
     }
 
     fun updateAudio(id: Int) {
@@ -894,6 +963,22 @@ class PlayerViewModel @JvmOverloads constructor(
     }
 
     fun selectSub(id: Int) {
+        val generation = activity.playbackGeneration
+        val version = ++subtitleSelectionVersion
+        subtitleSelectionJob?.cancel()
+        subtitleSelectionJob = viewModelScope.launch {
+            val nativeId = resolveTrack(PlaybackTrackKind.Subtitle, id, generation) ?: run {
+                if (tracksCurrent(generation) && version == subtitleSelectionVersion) {
+                    activity.showToast(activity.getString(R.string.playback_track_unavailable))
+                }
+                return@launch
+            }
+            if (!tracksCurrent(generation) || version != subtitleSelectionVersion) return@launch
+            selectNativeSub(nativeId)
+        }
+    }
+
+    private fun selectNativeSub(id: Int) {
         val selectedSubs = selectedSubtitles.value
         _selectedSubtitles.update {
             when (id) {
@@ -1026,6 +1111,7 @@ class PlayerViewModel @JvmOverloads constructor(
 
     fun pause() {
         endHoldSpeed()
+        if (isLoadingTracks.value && !watchTogether.active) _pausedState.value = true
         activity.player.paused = true
         _paused.update { true }
         if (eu.kanade.tachiyomi.data.cloud.sync.CloudSyncManager.wantsProgress() &&
@@ -1044,6 +1130,10 @@ class PlayerViewModel @JvmOverloads constructor(
         if (cast.active || cast.connecting) return
         if (remoteProgressOwned) {
             activity.resumeAfterCast()
+            return
+        }
+        if (isLoadingTracks.value && !watchTogether.active) {
+            _pausedState.value = false
             return
         }
         activity.player.paused = false
@@ -1138,7 +1228,7 @@ class PlayerViewModel @JvmOverloads constructor(
             return
         }
         completion.playbackRestarted()
-        MPVLib.command(arrayOf("seek", offset.toString(), if (precise) "relative+exact" else "relative"))
+        MPVLib.command(arrayOf("seek", offset.toString(), PlaybackSeekPolicy.flags(false, precise, hasExternalAudio())))
     }
 
     fun seekTo(position: Int, precise: Boolean = true) {
@@ -1147,10 +1237,15 @@ class PlayerViewModel @JvmOverloads constructor(
             return
         }
         if (position !in 0..(activity.player.duration ?: 0)) return
-        seekFeedback.request(position.toFloat())
+        seekFeedback.request(position.toFloat(), exact = precise || hasExternalAudio())
         completion.playbackRestarted()
-        MPVLib.command(arrayOf("seek", position.toString(), if (precise) "absolute" else "absolute+keyframes"))
+        MPVLib.command(
+            arrayOf("seek", position.toString(), PlaybackSeekPolicy.flags(true, precise, hasExternalAudio())),
+        )
     }
+
+    private fun hasExternalAudio(): Boolean = currentVideo.value?.audioTracks?.isNotEmpty() == true ||
+        nativeTracks.any { it.type == "audio" && it.id == selectedAudio.value && it.externalFilename != null }
 
     fun changeBrightnessTo(
         brightness: Float,

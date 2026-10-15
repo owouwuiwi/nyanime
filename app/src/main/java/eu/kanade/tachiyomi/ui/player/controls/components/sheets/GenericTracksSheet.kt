@@ -115,18 +115,18 @@ fun getTrackTitle(track: VideoTrack): String {
         }
 
         track.language.isNullOrBlank() && track.name.isNotBlank() -> {
-            stringResource(AYMR.strings.player_sheets_track_title_wo_lang, track.id, track.name)
+            stringResource(AYMR.strings.player_sheets_track_title_wo_lang, track.displayId, track.name)
         }
 
         !track.language.isNullOrBlank() && track.name.isNotBlank() -> {
-            stringResource(AYMR.strings.player_sheets_track_title_w_lang, track.id, track.name, track.language)
+            stringResource(AYMR.strings.player_sheets_track_title_w_lang, track.displayId, track.name, track.language)
         }
 
         !track.language.isNullOrBlank() && track.name.isBlank() -> {
-            stringResource(AYMR.strings.player_sheets_track_lang_wo_title, track.id, track.language)
+            stringResource(AYMR.strings.player_sheets_track_lang_wo_title, track.displayId, track.language)
         }
 
-        else -> stringResource(AYMR.strings.player_sheets_track_title_wo_lang, track.id, track.name)
+        else -> stringResource(AYMR.strings.player_sheets_track_title_wo_lang, track.displayId, track.name)
     }
 }
 

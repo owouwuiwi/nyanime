@@ -566,6 +566,31 @@ class PlayerSession(
     private var nativeInitialized = false
     private var nativeReady = false
     private val trackLoadingMutex = Mutex()
+    private val playbackDiagnosticGate = PlaybackDiagnosticGate()
+
+    internal fun capturePlaybackTiming(reason: String) {
+        val generation = playbackGeneration
+        val requestedAt = SystemClock.elapsedRealtime()
+        if (!available || player.isExiting || !playbackDiagnosticGate.accept(generation, requestedAt)) return
+        lifecycleScope.launch(Dispatchers.IO) {
+            trackLoadingMutex.withLock {
+                currentCoroutineContext().ensureActive()
+                if (player.isExiting || !nativeInitialized || playbackGeneration != generation) return@withLock
+                fun number(name: String): String = MPVLib.getPropertyDouble(name)
+                    ?.takeIf(Double::isFinite)?.toString() ?: "unknown"
+                val timing = "generation=$generation reason=$reason" +
+                    " captureDelayMs=${SystemClock.elapsedRealtime() - requestedAt}" +
+                    " position=${number("time-pos")}" +
+                    " avsync=${number("avsync")}" +
+                    " audioPts=${number("audio-pts")}" +
+                    " audioDelay=${number("audio-delay")}" +
+                    " speed=${number("speed")}" +
+                    " cache=${number("demuxer-cache-duration")}" +
+                    " dropped=${number("frame-drop-count")}"
+                logcat.logcat("NyanimePlayback", LogPriority.INFO) { timing }
+            }
+        }
+    }
     val castController by lazy { CastController.get(applicationContext) }
 
     fun castRequest(video: Video? = viewModel.currentVideo.value): CastRequest? {
@@ -1948,6 +1973,7 @@ class PlayerSession(
             }
             MPVLib.mpvEventId.MPV_EVENT_PLAYBACK_RESTART -> {
                 replacementReady()
+                capturePlaybackTiming("restart")
                 player.isExiting = false
                 if (MPVLib.getPropertyBoolean("seeking") == false) {
                     MPVLib.getPropertyDouble("time-pos")?.let { viewModel.nativeSeekFinished(it.toFloat()) }
@@ -2262,6 +2288,7 @@ class PlayerSession(
             }
             return
         }
+        fileLoadedJob?.cancel()
         viewModel.mediaReloaded()
         httpServer?.stop()
         httpServer = null
@@ -2327,6 +2354,9 @@ class PlayerSession(
                 }
 
                 currentCoroutineContext().ensureActive()
+                if (player.isExiting) return@launchVideoLoad
+                // Native track adds are aborted on playback end. Do not make replacing
+                // a file wait for the network timeout of a superseded track request.
                 MPVLib.command(
                     arrayOf(
                         "loadfile",
@@ -2615,37 +2645,43 @@ class PlayerSession(
 
     private suspend fun setupTracks() {
         if (player.isExiting) return
-        viewModel.isLoadingTracks.update { _ -> true }
+        val video = viewModel.currentVideo.value ?: return
+        viewModel.preparePlaybackTracks(video.audioTracks.orEmpty(), video.subtitleTracks.orEmpty())
+    }
 
-        val audioTracks = viewModel.currentVideo.value?.audioTracks?.takeIf { it.isNotEmpty() }
-        val subtitleTracks = viewModel.currentVideo.value?.subtitleTracks?.takeIf { it.isNotEmpty() }
-
-        // If no external audio or subtitle tracks are present, loadTracks() won't be
-        // called and we need to call onFinishLoadingTracks() manually
-        if (audioTracks == null && subtitleTracks == null) {
-            viewModel.onFinishLoadingTracks()
-            return
-        }
-
-        val generation = playbackGeneration
-        // Adding a remote track may synchronously open its URL. Keep the player
-        // controls responsive even when an extension supplies many slow tracks.
+    internal suspend fun readPlaybackTracks(generation: Long): List<NativePlaybackTrack>? =
         withContext(Dispatchers.IO) {
             trackLoadingMutex.withLock {
-                audioTracks?.forEach { audio ->
-                    currentCoroutineContext().ensureActive()
-                    if (player.isExiting || playbackGeneration != generation) return@withLock
-                    executeMPVCommand(arrayOf("audio-add", audio.url, "auto", audio.lang))
-                }
-                subtitleTracks?.forEach { sub ->
-                    currentCoroutineContext().ensureActive()
-                    if (player.isExiting || playbackGeneration != generation) return@withLock
-                    executeMPVCommand(arrayOf("sub-add", sub.url, "auto", sub.lang))
-                }
+                currentCoroutineContext().ensureActive()
+                if (player.isExiting || playbackGeneration != generation) return@withLock null
+                PlaybackTrackSnapshot.decode(MPVLib.getPropertyString("track-list"))
             }
         }
 
-        viewModel.isLoadingTracks.update { _ -> false }
+    internal suspend fun loadPlaybackTrack(
+        kind: PlaybackTrackKind,
+        track: ExternalPlaybackTrack,
+        generation: Long,
+    ): List<NativePlaybackTrack>? = withContext(Dispatchers.IO) {
+        trackLoadingMutex.withLock {
+            currentCoroutineContext().ensureActive()
+            if (player.isExiting || playbackGeneration != generation) return@withLock null
+            // A cancelled selection can still have completed its synchronous native add.
+            // Re-read under the same lock before opening a URL a second time.
+            val existing = PlaybackTrackSnapshot.decode(MPVLib.getPropertyString("track-list")) ?: return@withLock null
+            if (existing.any {
+                    it.type == kind.nativeType && it.externalFilename == track.url
+                }
+            ) {
+                return@withLock existing
+            }
+            // Do not use cached: it selects immediately, before the caller validates its token.
+            // Already-open alternatives are reused by the catalog without another native add.
+            executeMPVCommand(arrayOf("${kind.nativeType}-add", track.url, "auto", track.title))
+            currentCoroutineContext().ensureActive()
+            if (player.isExiting || playbackGeneration != generation) return@withLock null
+            PlaybackTrackSnapshot.decode(MPVLib.getPropertyString("track-list"))
+        }
     }
 
     private fun setupChapters() {

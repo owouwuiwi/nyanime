@@ -10,7 +10,7 @@ import kotlin.math.abs
 
 /** Display a committed seek until native playback acknowledges it; never change saved progress. */
 internal class PlaybackSeekFeedback(private val scope: CoroutineScope, private val timeoutMillis: Long = 8_000) {
-    private data class Pending(val target: Float, var nativeStarted: Boolean = false)
+    private data class Pending(val target: Float, val exact: Boolean, var nativeStarted: Boolean = false)
 
     private val mutablePosition = MutableStateFlow(0f)
     val position = mutablePosition.asStateFlow()
@@ -18,10 +18,10 @@ internal class PlaybackSeekFeedback(private val scope: CoroutineScope, private v
     private var pending: Pending? = null
     private var deadline: Job? = null
 
-    fun request(target: Float) {
+    fun request(target: Float, exact: Boolean = true) {
         if (!target.isFinite() || target < 0f) return
         deadline?.cancel()
-        val request = Pending(target)
+        val request = Pending(target, exact)
         pending = request
         mutablePosition.value = target
         deadline = scope.launch {
@@ -45,7 +45,12 @@ internal class PlaybackSeekFeedback(private val scope: CoroutineScope, private v
 
     /** A completed keyframe seek can legitimately land away from the requested exact second. */
     fun nativeFinished(nativePosition: Float) {
-        if (pending?.nativeStarted == true && nativePosition.isFinite() && nativePosition >= 0f) {
+        val request = pending ?: return
+        if (request.nativeStarted &&
+            nativePosition.isFinite() &&
+            nativePosition >= 0f &&
+            (!request.exact || abs(nativePosition - request.target) <= 1.25f)
+        ) {
             reset(nativePosition)
         }
     }

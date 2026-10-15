@@ -9,6 +9,20 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 15 ottobre 2026 — 0.47.0.3: Audio e selezione delle tracce
+
+### Correzioni
+
+- L’audio scelto viene preparato prima di avviare il video. Le altre lingue e i sottotitoli restano disponibili e vengono aperti soltanto quando servono.
+- I salti avanti e indietro con audio separato usano la ricerca precisa, evitando il percorso a fotogrammi chiave che può lasciare l’audio in ritardo.
+- Aggiornare l’elenco delle tracce non ripristina più la lingua predefinita sopra una scelta manuale. Cambi di episodio e qualità annullano le selezioni ormai superate.
+- Un vecchio salto non può riportare indietro l’indicatore dopo una nuova ricerca precisa. Gli errori di apertura di una traccia vengono segnalati senza selezionare silenziosamente un’altra lingua.
+
+### Prestazioni
+
+- Ridotte le letture native necessarie ad aggiornare audio e sottotitoli; le operazioni di rete sulle tracce restano fuori dal thread dell’interfaccia.
+- Nessuna apertura preventiva delle alternative non utilizzate, anche quando un video offre molte lingue.
+
 ## 15 ottobre 2026 — 0.47.0.2: Il salotto delle stanze
 
 ### Novità

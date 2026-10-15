@@ -109,6 +109,13 @@ class PlayerObserver(val activity: PlayerSession) :
             else -> LogPriority.VERBOSE
         }
         if (text.contains("HTTP error")) httpError = text
+        val timingWarning = when {
+            text.contains("Audio device underrun", true) -> "audio-underrun"
+            text.contains("Audio/Video desynchronisation", true) -> "av-desync"
+            text.contains("Invalid video timestamp", true) -> "video-timestamp"
+            else -> null
+        }
+        if (timingWarning != null) activity.capturePlaybackTiming(timingWarning)
         if (logPriority == LogPriority.ERROR && prefix.contains("headphone")) {
             val generation = activity.playbackGeneration
             activity.runOnUiThread {
