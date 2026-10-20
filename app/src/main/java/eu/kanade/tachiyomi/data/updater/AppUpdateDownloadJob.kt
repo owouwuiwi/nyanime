@@ -13,13 +13,14 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import eu.kanade.tachiyomi.data.notification.Notifications
+import eu.kanade.tachiyomi.data.updater.delta.DeltaPatch
+import eu.kanade.tachiyomi.data.updater.delta.DeltaReleaseLocation
+import eu.kanade.tachiyomi.data.updater.delta.DeltaUpdateClient
 import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.network.ProgressListener
-import eu.kanade.tachiyomi.network.await
 import eu.kanade.tachiyomi.network.newCachelessCallWithProgress
 import eu.kanade.tachiyomi.util.storage.getUriCompat
-import eu.kanade.tachiyomi.util.storage.saveTo
 import eu.kanade.tachiyomi.util.system.workManager
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -30,6 +31,7 @@ import tachiyomi.core.common.util.system.logcat
 import tachiyomi.i18n.MR
 import uy.kohesive.injekt.injectLazy
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.cancellation.CancellationException
@@ -39,6 +41,9 @@ class AppUpdateDownloadJob(private val context: Context, workerParams: WorkerPar
 
     private val notifier = AppUpdateNotifier(context)
     private val network: NetworkHelper by injectLazy()
+    private var activePhase = UpdateScreenPhase.DOWNLOADING
+    private var savedProgress = -1
+    private var lastTick = 0L
 
     override suspend fun doWork(): Result {
         val url = inputData.getString(EXTRA_DOWNLOAD_URL)
@@ -46,6 +51,14 @@ class AppUpdateDownloadJob(private val context: Context, workerParams: WorkerPar
 
         if (url.isNullOrEmpty()) {
             return Result.failure()
+        }
+        if (UpdateDownloadPolicy.isAlreadyInstalled(
+                url,
+                context.packageManager.getPackageInfo(context.packageName, 0).versionName,
+            )
+        ) {
+            notifier.cancel()
+            return Result.success()
         }
 
         try {
@@ -62,6 +75,7 @@ class AppUpdateDownloadJob(private val context: Context, workerParams: WorkerPar
             throw e
         } catch (e: Exception) {
             notifier.cancel()
+            currentCoroutineContext().ensureActive()
             if (UpdateDownloadPolicy.shouldRetry(e, runAttemptCount)) {
                 Result.retry()
             } else {
@@ -94,40 +108,61 @@ class AppUpdateDownloadJob(private val context: Context, workerParams: WorkerPar
 
         val downloadContext = currentCoroutineContext()
         val progressListener = object : ProgressListener {
-            // Progress of the download
-            var savedProgress = 0
-
-            // Keep track of the last notification sent to avoid posting too many.
-            var lastTick = 0L
-
             override fun update(bytesRead: Long, contentLength: Long, done: Boolean) {
                 downloadContext.ensureActive()
                 val progress = UpdateDownloadPolicy.progress(bytesRead, contentLength) ?: return
-                val currentTime = System.currentTimeMillis()
-                if (progress > savedProgress && currentTime - 200 > lastTick) {
-                    savedProgress = progress
-                    lastTick = currentTime
-                    notifier.onProgressChange(progress)
-                    setProgressAsync(workDataOf(PROGRESS to progress))
-                }
+                reportProgress(progress)
             }
         }
 
-        val directory = context.externalCacheDir ?: context.cacheDir
+        // Update bytes stay private until exposed through our read-only installer provider.
+        val directory = File(context.cacheDir, "app-updates").apply { mkdirs() }
         val temporary = File(directory, "update-$id.tmp")
         val apkFile = File(directory, "update-$id.apk")
+        val rebuilt = File(directory, "update-$id.rebuilt")
         try {
-            network.client.newCachelessCallWithProgress(GET(url), progressListener).await().use { response ->
-                if (!response.isSuccessful) throw UpdateHttpException(response.code)
-                val expectedLength = response.body.contentLength()
-                response.body.source().saveTo(temporary)
-                downloadContext.ensureActive()
-                if (temporary.length() == 0L || (expectedLength >= 0 && temporary.length() != expectedLength)) {
-                    throw IOException("Incomplete APK download")
+            val delta = DeltaUpdateClient(
+                context,
+                network.client,
+            ).prepare(url, directory, id.toString(), ::stage, ::reportProgress)
+            if (delta != null) {
+                if (!delta.renameTo(temporary)) throw IOException("Unable to finalize reconstructed APK")
+            } else {
+                stage(UpdateScreenPhase.DOWNLOADING_FULL)
+                network.client.newCachelessCallWithProgress(
+                    GET(url),
+                    progressListener,
+                ).awaitUpdateResponse().use { response ->
+                    if (!response.isSuccessful) throw UpdateHttpException(response.code)
+                    val expectedLength = response.body.contentLength()
+                    require(expectedLength <= DeltaPatch.MAX_APK_SIZE) { "APK exceeds size limit" }
+                    if (expectedLength > 0 && directory.usableSpace < expectedLength + 16 * 1024 * 1024) {
+                        throw IOException("Insufficient space for application update")
+                    }
+                    response.body.byteStream().use { input ->
+                        FileOutputStream(temporary).use { destination ->
+                            val buffer = ByteArray(64 * 1024)
+                            var total = 0L
+                            while (true) {
+                                downloadContext.ensureActive()
+                                val count = input.read(buffer)
+                                if (count == -1) break
+                                total += count
+                                require(total <= DeltaPatch.MAX_APK_SIZE) { "APK exceeds size limit" }
+                                destination.write(buffer, 0, count)
+                            }
+                            if (total == 0L || (expectedLength >= 0 && total != expectedLength)) {
+                                throw IOException("Incomplete APK download")
+                            }
+                            destination.fd.sync()
+                        }
+                    }
                 }
+                stage(UpdateScreenPhase.VERIFYING)
+                val expectedName = DeltaReleaseLocation.from(url)?.versionName
+                AppUpdateApkValidator.validate(context, temporary, expectedName = expectedName)
+                downloadContext.ensureActive()
             }
-            val info = context.packageManager.getPackageArchiveInfo(temporary.absolutePath, 0)
-            require(info?.packageName == context.packageName) { "Invalid application update" }
             downloadContext.ensureActive()
             if (!temporary.renameTo(apkFile)) throw IOException("Unable to finalize APK download")
             notifier.cancel()
@@ -135,6 +170,27 @@ class AppUpdateDownloadJob(private val context: Context, workerParams: WorkerPar
             return apkFile
         } finally {
             temporary.delete()
+            rebuilt.delete()
+            File(directory, "update-$id.nyadelta").delete()
+        }
+    }
+
+    private suspend fun stage(phase: UpdateScreenPhase) {
+        currentCoroutineContext().ensureActive()
+        activePhase = phase
+        savedProgress = -1
+        lastTick = 0L
+        setProgress(workDataOf(STAGE to phase.name, PROGRESS to -1))
+        notifier.onPhaseChange(phase)
+    }
+
+    private fun reportProgress(progress: Int) {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (progress > savedProgress && (now - lastTick >= 200 || progress == 100)) {
+            savedProgress = progress
+            lastTick = now
+            notifier.onProgressChange(progress)
+            setProgressAsync(workDataOf(STAGE to activePhase.name, PROGRESS to progress))
         }
     }
 
@@ -144,6 +200,7 @@ class AppUpdateDownloadJob(private val context: Context, workerParams: WorkerPar
         const val EXTRA_DOWNLOAD_URL = "DOWNLOAD_URL"
         const val EXTRA_DOWNLOAD_TITLE = "DOWNLOAD_TITLE"
         const val PROGRESS = "PROGRESS"
+        const val STAGE = "STAGE"
         const val OUTPUT_APK_PATH = "APK_PATH"
 
         fun start(context: Context, url: String, title: String? = null): java.util.UUID {

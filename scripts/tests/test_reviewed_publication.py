@@ -53,6 +53,15 @@ class ReviewedPublicationTest(unittest.TestCase):
         expected = ''.join(f'{digest}  {name}\n' for name, digest in metadata['sha256'].items()).encode()
         self.assertEqual(uploads['SHA256SUMS'], hashlib.sha256(expected).hexdigest())
 
+    def test_optional_deltas_are_included_in_reviewed_uploads_without_changing_full_apks(self):
+        patch_name = 'Nyanime-Delta-' + 'a' * 16 + '-1.2.3.4-arm64-v8a.nyadelta'
+        delta = {'Nyanime-Delta-v1.json': 'f' * 64, patch_name: 'e' * 64}
+        metadata, uploads, reused = self.inputs(lambda metadata, _: metadata.update(deltaSha256=delta))
+        self.assertEqual(10, len(uploads))
+        self.assertEqual(5, len(metadata['sha256']))
+        self.assertEqual('e' * 64, uploads[patch_name])
+        self.assertEqual(1, len(reused))
+
     def test_source_reuse_requires_exact_hash_and_public_url(self):
         def wrong_hash(_, declaration):
             next(iter(declaration['sourcePackages'].values()))['sha256'] = '0' * 64

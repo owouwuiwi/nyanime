@@ -1,6 +1,7 @@
 import importlib.util
 import io
 import json
+import subprocess
 import tempfile
 import unittest
 import zipfile
@@ -29,8 +30,11 @@ class PublicDistributionTest(unittest.TestCase):
                 for name, content in entries.items():
                     output.writestr(name, content)
             return data.getvalue()
-        parent = archive({'.gitmodules': '[submodule "sample"]\npath = vendor/sample\nurl = https://example.invalid/sample.git\n'})
-        child = archive({'src/main/Example.kt': '// Copyright Original Author\n', 'LICENSE': 'Original license\n'})
+        parent = archive({'.gitmodules': '[submodule "sample"]\npath = vendor/sample\nurl = https://example.invalid/sample.git\n',
+                          '.gitattributes': '* text eol=lf\n'})
+        font = b'OTTO\x00\x01\r\nunchanged binary fixture\r\n'
+        child = archive({'src/main/Example.kt': '// Copyright Original Author\r\n',
+                         'LICENSE': 'Original license\r\n', 'assets/example.otf': font})
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             checkout = root / 'checkout'
@@ -50,6 +54,13 @@ class PublicDistributionTest(unittest.TestCase):
             self.assertEqual('Original license\n', (output / 'vendor/sample/LICENSE').read_text())
             self.assertEqual(3, git.call_count)
             self.assertEqual(revision, git.call_args.args[-1])
+            subprocess.run(['git', 'init', '-q'], cwd=output, check=True)
+            subprocess.run(['git', 'add', '-A'], cwd=output, check=True, capture_output=True)
+            for name, expected in [('assets/example.otf', font),
+                                   ('LICENSE', b'Original license\r\n'),
+                                   ('src/main/Example.kt', b'// Copyright Original Author\r\n')]:
+                indexed = subprocess.check_output(['git', 'show', ':vendor/sample/' + name], cwd=output)
+                self.assertEqual(expected, indexed)
 
     def test_raw_changelog_is_rejected_before_exporting_source_or_reading_apks(self):
         with tempfile.TemporaryDirectory() as temporary:

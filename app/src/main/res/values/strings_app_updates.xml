@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_update_delta_preparing">Preparing the download</string>
+    <string name="app_update_delta_downloading">Downloading a smaller update</string>
+    <string name="app_update_delta_rebuilding">Preparing the update</string>
+    <string name="app_update_full_downloading">Downloading the full update</string>
     <string name="app_update_choice_title">Which updates would you like to receive?</string>
     <string name="app_update_choice_description">Choose recommended releases or try upcoming features too.</string>
     <string name="app_update_version_chip">Clearer versions · %1$s</string>

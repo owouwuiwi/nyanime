@@ -78,7 +78,16 @@ internal class AppUpdateRepository private constructor(private val context: Cont
             // Retain the last checked file while a foreground recheck runs, avoiding reminder flicker.
             // Installation separately requires the current revision, never this retained value alone.
             val ready = checked.ready[work.id].takeIf { work.state == WorkInfo.State.SUCCEEDED }
-            AppUpdateDownloadState(work, updateScreenPhase(work.state, verified, ready != null), ready)
+            AppUpdateDownloadState(
+                work,
+                updateScreenPhase(
+                    work.state,
+                    verified,
+                    ready != null,
+                    work.progress.getString(AppUpdateDownloadJob.STAGE),
+                ),
+                ready,
+            )
         }
         AppUpdateSnapshot(downloads, pending?.takeUnless { request -> list.any { it.id == request.id } })
     }.stateIn(scope, SharingStarted.Eagerly, AppUpdateSnapshot())

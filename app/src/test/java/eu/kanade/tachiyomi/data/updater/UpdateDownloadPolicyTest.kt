@@ -9,6 +9,16 @@ import java.io.IOException
 import javax.net.ssl.SSLException
 
 class UpdateDownloadPolicyTest {
+    @Test fun aRestartedWorkerDoesNotRedownloadAnAlreadyInstalledOrNewerRelease() {
+        val url = "https://github.com/owouwuiwi/nyanime/releases/download/v1.2.3.4/" +
+            "Nyanime-Production-1.2.3.4-arm64-v8a.apk"
+        assertTrue(UpdateDownloadPolicy.isAlreadyInstalled(url, "1.2.3.4"))
+        assertTrue(UpdateDownloadPolicy.isAlreadyInstalled(url, "1.3.0.0"))
+        assertFalse(UpdateDownloadPolicy.isAlreadyInstalled(url, "1.2.3.3"))
+        assertFalse(UpdateDownloadPolicy.isAlreadyInstalled(url, "legacy"))
+        assertFalse(UpdateDownloadPolicy.isAlreadyInstalled("https://example.invalid/update.apk", "1.2.3.4"))
+    }
+
     @Test fun retriesOnlyTransientFailuresAndStopsAfterThreeAttempts() {
         assertTrue(UpdateDownloadPolicy.shouldRetry(UpdateHttpException(503), 0))
         assertTrue(UpdateDownloadPolicy.shouldRetry(UpdateHttpException(429), 1))

@@ -55,7 +55,10 @@ object UpdatePageProbeHost {
             val path = work.outputData.getString(AppUpdateDownloadJob.OUTPUT_APK_PATH) ?: continue
             val file = File(path)
             val directory = context.externalCacheDir ?: context.cacheDir
-            check(file.canonicalFile.parentFile == directory.canonicalFile)
+            check(
+                file.canonicalFile.parentFile in
+                    setOf(directory.canonicalFile, File(context.cacheDir, "app-updates").canonicalFile),
+            )
             check(file.name == "update-${work.id}.apk")
             file.delete()
         }

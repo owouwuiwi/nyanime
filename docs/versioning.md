@@ -58,6 +58,11 @@ until the initial setup is complete.
 
 ## Publication and permanent compatibility
 
+From 0.50.0.0, the in-app downloader can use optional
+[byte-exact differential updates](delta-updates.md). Full APKs and their names remain
+mandatory so older updaters continue to work. The first delta-capable version is
+itself downloaded as a full package by previous clients.
+
 The main Android workflow builds the production package and verifies its release certificate.
 Canonical releases use `vX.Y.Z.W` tags. From 0.42.0.0, they contain only
 `Nyanime-Production-X.Y.Z.W-<abi>.apk` assets for the production package and

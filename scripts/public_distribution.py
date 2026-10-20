@@ -109,6 +109,7 @@ def export_documents(destination, revision='HEAD', cwd=None):
         modules = configparser.RawConfigParser()
         modules.read_string(snapshot.read('.gitmodules').decode('utf-8'))
     root = Path(cwd or '.').resolve()
+    flattened_paths = []
     for section in modules.sections():
         path = modules.get(section, 'path', fallback='')
         if not path or not allowed_source(path + '/build.gradle.kts'):
@@ -122,6 +123,16 @@ def export_documents(destination, revision='HEAD', cwd=None):
         if not (dependency / '.git').exists():
             raise ValueError('Initialize source submodules before exporting: ' + path)
         extract_archive(git('archive', '--format=zip', header[2], cwd=dependency), prefix=path + '/')
+        flattened_paths.append(path)
+    if flattened_paths:
+        # Parent attributes normally stop at gitlinks. After flattening the source,
+        # preserve upstream bytes when the public repository indexes the export.
+        attributes = destination / '.gitattributes'
+        original = attributes.read_bytes() if attributes.exists() else b''
+        rules = '\n# Preserve exact source bytes from flattened submodules.\n'
+        rules += ''.join(json.dumps('/' + path + '/**', ensure_ascii=False) + ' -text\n'
+                         for path in flattened_paths)
+        attributes.write_bytes(original + rules.encode('utf-8'))
 
 def archive_source(destination, source_directory, version):
     with zipfile.ZipFile(destination, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=6) as package:
@@ -166,7 +177,7 @@ def native_materials(manifest, destination, cache=None):
                 raise ValueError('Native-source archive hash mismatch')
 
 
-def prepare_bundle(output, apk_directory, version, code, channel, notes, revision, materials=None):
+def prepare_bundle(output, apk_directory, version, code, channel, notes, revision, materials=None, delta_bases=None):
     if not re.fullmatch(r'\d+\.\d+\.\d+\.\d+', version):
         raise ValueError('Invalid OTA version')
     if channel not in {'preview', 'recommended'}:
@@ -215,6 +226,22 @@ def prepare_bundle(output, apk_directory, version, code, channel, notes, revisio
         hashes = dict(sorted(hashes.items()))
         checksums = ''.join(f'{digest}  {name}\n' for name, digest in hashes.items())
     (assets / 'SHA256SUMS').write_text(checksums, encoding='utf-8', newline='\n')
+    delta_hashes = {}
+    from scripts.delta_updates import MANIFEST, prepare_deltas, validate_manifest
+    delta_source = assets if delta_bases else apk_directory
+    if delta_bases:
+        prepare_deltas(delta_bases, assets, version, code)
+    delta_manifest = delta_source / MANIFEST
+    if delta_manifest.is_file():
+        declaration = json.loads(delta_manifest.read_text(encoding='utf-8'))
+        delta_hashes = validate_manifest(declaration, version, code, hashes)
+        delta_hashes[MANIFEST] = hashlib.sha256(delta_manifest.read_bytes()).hexdigest()
+        for name, digest in delta_hashes.items():
+            source = delta_source / name
+            if hashlib.sha256(source.read_bytes()).hexdigest() != digest:
+                raise ValueError('Delta material hash mismatch')
+            if source != assets / name:
+                shutil.copyfile(source, assets / name)
     source_name = f'Nyanime-Source-{version}.zip'
     archive_source(assets / source_name, docs, version)
     source_hash = hashlib.sha256((assets / source_name).read_bytes()).hexdigest()
@@ -223,6 +250,8 @@ def prepare_bundle(output, apk_directory, version, code, channel, notes, revisio
                 'certificateSha256': CERTIFICATE, 'sha256': hashes,
                 'sourceRevision': git('rev-parse', revision).decode().strip(),
                 'sourceSha256': {source_name: source_hash}}
+    if delta_hashes:
+        metadata['deltaSha256'] = delta_hashes
     native = docs / 'tools/native/distribution.json'
     if native.is_file():
         from scripts.verify_native_distribution import validate
@@ -247,9 +276,18 @@ def main():
     parser.add_argument('--notes', required=True, type=Path)
     parser.add_argument('--revision', default='HEAD')
     parser.add_argument('--native-materials', type=Path)
+    parser.add_argument('--delta-base-directory', action='append', type=Path,
+                        help='Previous immutable signed APKs, at most three releases; optional')
+    parser.add_argument('--no-auto-deltas', action='store_true',
+                        help='Skip best-effort cached retrieval of the last public full APKs')
     args = parser.parse_args()
+    delta_bases = args.delta_base_directory
+    if not delta_bases and not args.no_auto_deltas and not (args.apk_directory / 'Nyanime-Delta-v1.json').exists():
+        from scripts.delta_updates import fetch_latest_base
+        delta_bases = fetch_latest_base(Path('.local/ota-delta-bases'), args.version)
+        print('Delta preparation: ' + ('using verified cached public base APKs' if delta_bases else 'no base available; full APKs remain available'), flush=True)
     prepare_bundle(args.output, args.apk_directory, args.version, args.code,
-                   args.channel, args.notes, args.revision, args.native_materials)
+                   args.channel, args.notes, args.revision, args.native_materials, delta_bases)
 
 if __name__ == '__main__':
     main()

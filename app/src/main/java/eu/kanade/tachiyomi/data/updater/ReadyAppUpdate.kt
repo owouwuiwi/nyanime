@@ -22,13 +22,16 @@ fun WorkInfo.readyAppUpdate(context: Context): ReadyAppUpdate? {
         val manager = context.packageManager
         val archive = manager.getPackageArchiveInfo(apk.absolutePath, 0) ?: return@runCatching false
         val installed = manager.getPackageInfo(context.packageName, 0)
-        archive.packageName == context.packageName &&
+        val eligible = archive.packageName == context.packageName &&
             isNewerAppUpdate(
                 PackageInfoCompat.getLongVersionCode(installed),
                 installed.versionName,
                 PackageInfoCompat.getLongVersionCode(archive),
                 archive.versionName,
             )
+        if (!eligible) return@runCatching false
+        AppUpdateApkValidator.validate(context, apk)
+        true
     }.getOrDefault(false)
     if (!valid) return null
     return ReadyAppUpdate(id.toString(), apk)

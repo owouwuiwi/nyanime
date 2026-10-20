@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_update_delta_preparing">Preparazione del download</string>
+    <string name="app_update_delta_downloading">Download dell’aggiornamento ridotto</string>
+    <string name="app_update_delta_rebuilding">Preparazione dell’aggiornamento</string>
+    <string name="app_update_full_downloading">Download dell’aggiornamento completo</string>
     <string name="app_update_choice_title">Quali aggiornamenti vuoi ricevere?</string>
     <string name="app_update_choice_description">Scegli quelli consigliati o prova anche le novità in anteprima.</string>
     <string name="app_update_version_chip">Versioni più chiare · %1$s</string>

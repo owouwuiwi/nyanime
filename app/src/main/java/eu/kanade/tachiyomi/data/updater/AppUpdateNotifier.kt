@@ -111,6 +111,15 @@ internal class AppUpdateNotifier(private val context: Context) {
         notificationBuilder.show()
     }
 
+    fun onPhaseChange(phase: UpdateScreenPhase) {
+        with(notificationBuilder) {
+            setContentText(context.getString(phase.descriptionResource()))
+            setProgress(100, 0, true)
+            setOnlyAlertOnce(true)
+        }
+        notificationBuilder.show()
+    }
+
     /**
      * Call when apk download is finished.
      *

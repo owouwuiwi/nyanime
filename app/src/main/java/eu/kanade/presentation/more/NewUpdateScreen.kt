@@ -61,6 +61,7 @@ import eu.kanade.presentation.motion.appMotionEnabled
 import eu.kanade.presentation.theme.NyanimeMark
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.updater.UpdateScreenPhase
+import eu.kanade.tachiyomi.data.updater.descriptionResource
 import tachiyomi.domain.release.model.ReleaseHistoryEntry
 
 @Composable
@@ -279,7 +280,7 @@ private fun UpdateActions(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                         )
-                        if (state == UpdateScreenPhase.DOWNLOADING) {
+                        if (state.hasProgress) {
                             // Reserve the percentage before the first progress tick, including 100%.
                             Box(Modifier.width(percentWidth), contentAlignment = Alignment.CenterEnd) {
                                 progress?.let { Text("$it%", style = progressStyle, maxLines = 1) }
@@ -291,7 +292,7 @@ private fun UpdateActions(
             // The same small slot is reserved throughout; progress never displaces the changelog.
             Box(Modifier.fillMaxWidth().height(4.dp)) {
                 if (phase.busy) {
-                    if (phase == UpdateScreenPhase.DOWNLOADING && progress != null) {
+                    if (phase.hasProgress && progress != null) {
                         LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
                     } else if (motion) {
                         LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
@@ -321,6 +322,9 @@ private fun UpdateScreenPhase.actionLabel() = when (this) {
     UpdateScreenPhase.READY -> R.string.app_update_install_now
     UpdateScreenPhase.QUEUED -> R.string.app_update_waiting
     UpdateScreenPhase.DOWNLOADING -> R.string.app_update_downloading
+    UpdateScreenPhase.PREPARING, UpdateScreenPhase.DOWNLOADING_DELTA,
+    UpdateScreenPhase.DOWNLOADING_FULL, UpdateScreenPhase.REBUILDING,
+    -> descriptionResource()
     UpdateScreenPhase.VERIFYING -> R.string.app_update_verifying
     UpdateScreenPhase.FAILED, UpdateScreenPhase.UNAVAILABLE -> R.string.app_update_retry
     else -> R.string.app_update_update

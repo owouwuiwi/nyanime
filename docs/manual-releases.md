@@ -2,6 +2,9 @@
 
 When private CI cannot build, compile and sign locally with the existing production
 identity, run the relevant tests and device checks, and retain all five APKs.
+Optional [differential updates](delta-updates.md) are prepared from previous exact
+signed APKs with `--delta-base-directory`. Retain the manifest and patches declared
+in `deltaSha256` along with the other verified release files; full APKs remain mandatory.
 Never create a public release directly with a maintainer token: its author and
 uploaded assets would expose that account. The public publisher can run without
 rebuilding the Android app.

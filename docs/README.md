@@ -6,6 +6,9 @@ I documenti tecnici in inglese conservano i nomi delle API e dei componenti.
 
 ## Novità della versione 0.49
 
+La versione 0.50 aggiunge gli [aggiornamenti differenziali verificati](delta-updates.md),
+con download completo di ripiego e compatibilità con gli aggiornatori precedenti.
+
 - [Studio delle fonti e scambio](source-studio.md)
 - [Backup remoti](remote-backups.md)
 - [Compatibilità Syncplay](syncplay-compatibility.md)

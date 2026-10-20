@@ -10,6 +10,25 @@ identificano modifiche nel repository, non garantiscono che ogni commit sia stat
 distribuito come APK.
 
 
+## 20 ottobre 2026 — 0.50.0.0: aggiornamenti differenziali
+
+### Novità
+
+- Gli aggiornamenti in-app possono scaricare soltanto le parti cambiate dell’APK quando è disponibile una patch compatibile e il risparmio è significativo. Nyanime ricostruisce il pacchetto completo senza modificare l’app installata.
+
+### Interfaccia
+
+- Preparazione del download, aggiornamento ridotto, ricostruzione e verifica hanno stati dedicati nella schermata e nella notifica, in italiano e inglese. È possibile annullare anche durante la preparazione.
+
+### Sicurezza
+
+- Verifica degli hash della base, della patch e del risultato, con limiti su dimensioni, comandi e memoria. Gli APK completi e ricostruiti devono superare la verifica crittografica della firma, dell’identità e della versione prima dell’installazione.
+
+### Distribuzione
+
+- Ripiego automatico sull’APK completo se la patch manca, non conviene o non supera i controlli. La prima versione con il nuovo aggiornatore richiede ancora il download completo; gli aggiornamenti successivi possono beneficiare delle patch pubblicate.
+- Preparazione locale e pubblicazione manuale supportano materiali differenziali facoltativi verificati. Gli APK completi e i percorsi dei client precedenti restano disponibili.
+
 ## 20 ottobre 2026 — 0.49.0.0: Studio, scambio fonti e nuovo player
 
 ### Novità

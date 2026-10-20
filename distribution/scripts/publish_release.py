@@ -18,6 +18,7 @@ from pathlib import Path, PurePosixPath
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from scripts.public_distribution import allowed_source, validate_release_notes
 from scripts.verify_native_distribution import validate as validate_native
+from scripts.delta_updates import MANIFEST as DELTA_MANIFEST, PATCH_NAME, validate_manifest as validate_delta_manifest
 
 PUBLIC = 'owouwuiwi/nyanime'
 SOURCE = 'owouwuiwi/nyanime-source'
@@ -54,9 +55,9 @@ def validate_name(name):
     p = PurePosixPath(name)
     if p.is_absolute() or '..' in p.parts or '\\' in name or ':' in name or not p.parts:
         raise ValueError('Unsafe publication archive path')
-    return name in {'publication.json', 'notes.md', 'numeric/SHA256SUMS'} or (
+    return name in {'publication.json', 'notes.md', 'numeric/SHA256SUMS', 'numeric/' + DELTA_MANIFEST} or (
         name.startswith('public/') and allowed_source(name.removeprefix('public/'))
-    ) or bool(re.fullmatch(r'numeric/(?:Nyanime-Production-\d+\.\d+\.\d+\.\d+-(universal|arm64-v8a|armeabi-v7a|x86|x86_64)\.apk|Nyanime-Source-\d+\.\d+\.\d+\.\d+\.zip|Nyanime-Native-\d+\.\d+\.\d+\.\d+-[a-z0-9-]+\.tar\.gz|Nyanime-Native-Manifest-\d+\.\d+\.\d+\.\d+\.json)', name))
+    ) or bool(PATCH_NAME.fullmatch(name.removeprefix('numeric/')) if name.startswith('numeric/') else False) or bool(re.fullmatch(r'numeric/(?:Nyanime-Production-\d+\.\d+\.\d+\.\d+-(universal|arm64-v8a|armeabi-v7a|x86|x86_64)\.apk|Nyanime-Source-\d+\.\d+\.\d+\.\d+\.zip|Nyanime-Native-\d+\.\d+\.\d+\.\d+-[a-z0-9-]+\.tar\.gz|Nyanime-Native-Manifest-\d+\.\d+\.\d+\.\d+\.json)', name))
 
 def validate_text(text):
     blocked = {'807e4e92b75624ff2c9c3fd01ece23f84c4b2bfeec6816460539628f676d903d', '64a5090b45a4941f8ebc96f9c2f9f66558680fead5ddcbb8b780c1dc24d816a2', 'c4855bb0c8c2b1e2856a0aaf11f3b15ea7f0b353e2aa34dade10e6e435bc97c4'}
@@ -100,6 +101,8 @@ def validate_bundle(directory):
         fields |= {'sourceRevision', 'sourceSha256'}
     if metadata['schema'] == 4:
         fields.add('nativeManifest')
+    if 'deltaSha256' in metadata:
+        fields.add('deltaSha256')
     if set(metadata) != fields or metadata['schema'] not in {2, 3, 4}:
         raise ValueError('Unknown publication metadata')
     if not re.fullmatch(r'\d+\.\d+\.\d+\.\d+', version):
@@ -119,6 +122,22 @@ def validate_bundle(directory):
         checksums += f'{digest}  {name}\n'
     if (directory / 'numeric/SHA256SUMS').read_text() != checksums:
         raise ValueError('Checksum manifest mismatch')
+    delta_hashes = metadata.get('deltaSha256', {})
+    if 'deltaSha256' in metadata and (not isinstance(delta_hashes, dict) or not 2 <= len(delta_hashes) <= 16 or DELTA_MANIFEST not in delta_hashes):
+        raise ValueError('Invalid delta material manifest')
+    if delta_hashes:
+        declaration = json.loads((directory / 'numeric' / DELTA_MANIFEST).read_text(encoding='utf-8'))
+        expected_delta = validate_delta_manifest(declaration, version, metadata['versionCode'], metadata['sha256'])
+        expected_delta[DELTA_MANIFEST] = hashlib.sha256((directory / 'numeric' / DELTA_MANIFEST).read_bytes()).hexdigest()
+        if delta_hashes != expected_delta:
+            raise ValueError('Delta material set mismatch')
+        for name, digest in delta_hashes.items():
+            if hashlib.sha256((directory / 'numeric' / name).read_bytes()).hexdigest() != digest:
+                raise ValueError('Delta hash mismatch')
+    actual_delta = {file.name for file in (directory / 'numeric').iterdir()
+                    if file.suffix == '.nyadelta' or file.name == DELTA_MANIFEST}
+    if actual_delta != set(delta_hashes):
+        raise ValueError('Unlisted delta release materials')
     if metadata['schema'] in {3, 4}:
         name = f'Nyanime-Source-{version}.zip'
         expected_sources = {name}
@@ -426,7 +445,11 @@ def reviewed_release_inputs(payload):
     expected_apks = {f'{ASSET_PREFIX}-{version}-{abi}.apk' for abi in ABIS}
     if set(metadata['sha256']) != expected_apks:
         raise ValueError('Reviewed APK architecture set changed')
-    expected = metadata['sha256'] | metadata['sourceSha256']
+    delta_hashes = metadata.get('deltaSha256', {})
+    if 'deltaSha256' in metadata and (not isinstance(delta_hashes, dict) or DELTA_MANIFEST not in delta_hashes or not 2 <= len(delta_hashes) <= 16 or
+                        any(name != DELTA_MANIFEST and not PATCH_NAME.fullmatch(name) for name in delta_hashes)):
+        raise ValueError('Invalid reviewed delta materials')
+    expected = metadata['sha256'] | metadata['sourceSha256'] | delta_hashes
     if any(not validate_name('numeric/' + name) or not re.fullmatch(r'[a-f0-9]{64}', digest)
            for name, digest in expected.items()):
         raise ValueError('Invalid reviewed material name or hash')
