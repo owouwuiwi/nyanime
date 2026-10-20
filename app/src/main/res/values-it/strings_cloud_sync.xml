@@ -102,4 +102,11 @@
 <string name="cloud_sync_heading_error">Sincronizzazione non riuscita</string>
 <string name="cloud_sync_heading_active">Sincronizzazione in corso</string>
 <string name="cloud_sync_no_pending">Nessuna modifica in attesa di invio</string>
+<string name="cloud_sync_maintenance_waiting">La pulizia dello storico avviene automaticamente durante le pause dalla riproduzione.</string>
+<string name="cloud_sync_maintenance_verifying">Verifica delle copie di recupero prima della pulizia…</string>
+<string name="cloud_sync_maintenance_cleaning">Ottimizzazione dello storico di sincronizzazione…</string>
+<string name="cloud_sync_maintenance_current">Storico precedente controllato. Le copie di recupero sono protette.</string>
+<string name="cloud_sync_maintenance_compatibility">Le vecchie copie restano protette finché tutti i dispositivi collegati supportano la pulizia. Aggiorna Nyanime su quei dispositivi.</string>
+<string name="cloud_sync_maintenance_retry">La pulizia dello storico riproverà più tardi. La sincronizzazione resta disponibile.</string>
+<string name="cloud_sync_maintenance_removed">Messaggi ridondanti rimossi: %1$d</string>
 </resources>

@@ -6,6 +6,46 @@ establish it. The existing backup archive remains available independently of syn
 
 ## Boundaries
 
+Remote maintenance is implemented in `it.lorelore.nyanime.cloud.sync`. It uses no site,
+title, provider or extension rules. The rebuildable coverage index is private operational
+state, outside portable backup preferences. No new dependency, image model or service is added.
+
+### Remote history maintenance (0.52)
+
+- Two distinct signed commits and every encrypted part are read through the Telegram transport
+  and authenticated before a deletion plan can run. Parts are indexed transactionally, one
+  per bounded pass. A checkpoint/field index proves coverage using exact causal registers,
+  not equal positions, title similarity, timestamps or probabilistic membership tests.
+- Data packets must be at least seven days old and causally covered by both checkpoints.
+  Unrepresented concurrent/offline edits, privacy-excluded fields, pins and unknown content
+  remain. Root, control, pairing and recovery messages are never garbage-collected.
+- Old checkpoint parts are eligible only after every current member has signed an optional
+  `maintenanceVersion=1` checkpoint in the current epoch. The latest declaration per member
+  is retained with its complete parts, in addition to the two recovery checkpoints. A new or
+  old offline member blocks checkpoint removal until it upgrades and declares support.
+- Immediately before deleting a superseded checkpoint, the archive descriptor gains a fourth
+  `maintenance=1` line. Old three-line-only clients fail archive validation before reading
+  removed parts. Updated clients restore the newest complete verified checkpoint first, even
+  if an older commit had already been staged before cleanup. Downgrading a linked device
+  after this transition requires upgrading it again; the library remains local and intact.
+- One candidate or part is processed per pass, at most once every 30 seconds while idle.
+  The existing periodic worker can advance up to twenty cooperative passes in sixty seconds
+  to drain a backlog; it never waits behind an interactive operation or bypasses error backoff.
+  The sync coordinator bounds each pass to twelve seconds and retains ownership of its normal
+  mutex. Player/reader activity, incognito, downloaded-only, restore, account changes and
+  cancellation stop maintenance. Cursors and candidate part lists survive interruption;
+  deletion acknowledgements are reconciled by exact server message identity.
+- Each delete rechecks ownership, payload, pins, current account, private-archive configuration
+  and TDLib's deletion capability. The coverage index expires after verification, so large
+  snapshots can finish incrementally without restarting every day. Completed scans run daily.
+- Automatic full-backup retention is independent. Its pending state is scoped by account/chat,
+  and a separate retry path does not regenerate or upload a backup. Each pass deletes at most
+  ten eligible copies, retaining pinned copies and the newest copy of each device.
+
+Verification must distinguish unit/fake-transport and isolated SQLite device probes from
+real two-account/long-offline recovery. Compilation alone is not evidence of remote deletion
+or complete cross-device recovery. See issue #33 for the delivery evidence and limits.
+
 The synchronization protocol is in `core/telegram/.../sync`. It does not depend on an Android
 database schema, a content catalog, an extension implementation or a player. Android adapters
 live in `data/cloud/sync`; the existing centralized Telegram client remains the account owner.
@@ -114,8 +154,9 @@ Preferences use persisted projection intents plus an off-main-thread disk barrie
 acknowledgment. A complete checkpoint confirms outgoing revisions only after every encrypted part
 and its signed commit have server receipts. Interrupted sends retain envelope identity and queued
 TDLib message IDs. Local journal payloads may then compact while retaining revision digests,
-current causal registers and deletion markers. Server history is retained; it is not deleted on
-the assumption that every offline device has already received a checkpoint.
+current causal registers and deletion markers. Server history is never deleted merely on the
+assumption that every offline device has already received a checkpoint. Only the authenticated,
+doubly covered redundant messages described above are eligible for remote maintenance.
 
 Full Cloud backups made by an enrolled device use version-2 manifests and authenticated streaming
 encryption. Earlier manifests remain readable and visibly labeled as not encrypted by Nyanime.
@@ -187,3 +228,20 @@ substitutes for that run.
 References: [Tink hybrid encryption](https://developers.google.com/tink/hybrid),
 [Tink Java releases](https://github.com/tink-crypto/tink-java/releases/tag/v1.23.0),
 [TDLib](https://core.telegram.org/tdlib/).
+
+
+### Physical-device/server validation (0.52)
+
+The opt-in server probe passed on one USB Android phone with the real TDLib1.8.67 transport
+and three independent logical device identities/stores on one Telegram account. Only a new,
+nonce-bound private fixture archive was used. It exercised document transport, two complete
+causal recovery proofs, preservation of pins/unrelated posts/orphan parts, the legacy-reader
+fence, a locally staged obsolete commit, new-device recovery with unsent concurrent/rewound
+positions, a field excluded from later snapshots, and device revocation with retained edits.
+The fixture archive was deleted and cleanup was confirmed. A separate actual Android SQLite
+probe passed v1-to-v2 migration, restart, part/cursor rollback and causal-index persistence.
+
+These results are not two-physical-device latency measurements or a long-offline/background
+acceptance run, and do not assert a full-backup restore. Test cleanup uses the pinned native
+schema's deleteChat capability only after nonce, ownership and private-archive checks. Pending
+fixture cleanup is persisted across rate limits; test errors are not masked by cleanup failures.

@@ -20,15 +20,64 @@ import nyanime.telegram.sync.syncJson
 import java.io.File
 import java.util.UUID
 
-/** Uses isolated random databases/files only. Never reads a library, account, credential or Telegram message. */
+/** Default: isolated SQLite/crypto. Explicit remoteMaintenance: nonce-bound private test archive only. */
 class CloudSyncDeviceProbe : Instrumentation() {
+    private var localState = false
+    private var cleanupOnly = false
+    private var remoteMaintenance = false
     override fun onCreate(arguments: Bundle?) {
+        localState = arguments?.getString("localState") == "true"
+        cleanupOnly = arguments?.getString("cleanupOnly") == "true"
+        remoteMaintenance = arguments?.getString("remoteMaintenance") == "true"
         super.onCreate(arguments)
         start()
     }
 
     override fun onStart() {
         val report = Bundle()
+        if (localState || cleanupOnly) {
+            try {
+                val result = if (cleanupOnly) {
+                    kotlinx.coroutines.runBlocking { CloudProbeArchives.cleanup(targetContext) }
+                } else {
+                    val stamps = targetContext.getSharedPreferences("detail-freshness-v1", 0).all.values
+                        .filterIsInstance<String>().mapNotNull { value ->
+                            runCatching { org.json.JSONObject(value).optLong("succeededAt", 0) }.getOrNull()
+                        }
+                    "WAIT_SECONDS=${CloudProbeArchives.retrySeconds(targetContext)}; " +
+                        "pendingFixtures=${CloudProbeArchives.count(targetContext)}; " +
+                        "detailStamps=${stamps.size}; latestDetailSuccess=${stamps.maxOrNull() ?: 0}"
+                }
+                report.putString("stream", result)
+                finish(Activity.RESULT_OK, report)
+            } catch (error: Throwable) {
+                val wait = (error as? nyanime.telegram.TelegramException)?.retryAfterSeconds ?: 0
+                report.putString("stream", "${error.javaClass.simpleName}; retry=$wait")
+                finish(Activity.RESULT_CANCELED, report)
+            }
+            return
+        }
+        if (remoteMaintenance) {
+            val probe = CloudMaintenanceServerProbe(targetContext)
+            try {
+                val result = kotlinx.coroutines.runBlocking { probe.run() }
+                report.putString("stream", result + "\ncleanup=" + (probe.cleanupFailure ?: "confirmed"))
+                finish(if (probe.cleanupFailure == null) Activity.RESULT_OK else Activity.RESULT_CANCELED, report)
+            } catch (error: Throwable) {
+                val diagnostic = (error as? nyanime.telegram.TelegramException)?.let {
+                    "${it.failure}/${it.code}/${it.diagnostic}"
+                }.orEmpty()
+                report.putString(
+                    "stream",
+                    "${probe.stage} ${probe.engineIdentity} $diagnostic cleanup=${probe.cleanupFailure} " +
+                        error.javaClass.simpleName +
+                        " at " +
+                        error.stackTrace.take(10).joinToString(),
+                )
+                finish(Activity.RESULT_CANCELED, report)
+            }
+            return
+        }
         val account = Long.MAX_VALUE - 101
         val space = UUID.randomUUID().toString()
         var store: CloudSyncStore? = null
@@ -58,8 +107,15 @@ class CloudSyncDeviceProbe : Instrumentation() {
             }!!
             initial.capture(ref, mapOf("position" to JsonPrimitive(5)), 1004)
             initial.close()
+            // Exercise the real v1 -> v2 additive index migration without touching another database.
+            val legacyPath = File(targetContext.noBackupFilesDir, "cloud-sync-$account-$space.sqlite")
+            android.database.sqlite.SQLiteDatabase.openDatabase(legacyPath.path, null, 0).use {
+                it.execSQL("DROP INDEX sync_wire_kind")
+                it.version = 1
+            }
             val reopened = CloudSyncStore(targetContext, account, space)
             store = reopened
+            check(reopened.writableDatabase.version == 2)
             check(reopened.pending() == prepared)
             check(reopened.prepare(space) { error("Existing outbox must not be encrypted again") } == prepared)
             reopened.confirm(prepared.envelope.id, 11, 100)
@@ -107,10 +163,65 @@ class CloudSyncDeviceProbe : Instrumentation() {
             check(reopened.state("received") == null && reopened.state("processed") == null)
             check(reopened.state("initial-checkpoint") == "true" && reopened.state("transport-chat") == "-2")
             check(reopened.record(ref) == beforeReset && reopened.pendingCount() == pendingBeforeReset)
+            val index = it.lorelore.nyanime.cloud.sync.SyncMaintenanceIndex(targetContext, account, space, -2)
+            val checkpointIds = listOf(UUID.randomUUID().toString(), UUID.randomUUID().toString())
+            val proofs = checkpointIds.mapIndexed { n, id ->
+                val commit = nyanime.telegram.sync.SyncCheckpointCommit(
+                    id = id,
+                    space = space,
+                    epoch = 1,
+                    author = a,
+                    throughMessage = 10,
+                    parts = emptyList(),
+                )
+                it.lorelore.nyanime.cloud.sync.MaintenanceProof(
+                    SyncDelivery(
+                        SyncPacket(kind = "commit", id = id, space = space, payload = "local-index-test"),
+                        SyncReceipt(100L + n, 100),
+                    ),
+                    commit,
+                )
+            }
+            val plan = it.lorelore.nyanime.cloud.sync.MaintenancePlan(
+                UUID.randomUUID().toString(),
+                100,
+                proofs,
+                emptyList(),
+                false,
+                before = 100,
+            )
+            index.reset(plan)
+            val earlier = remote.copy(dot = SyncDot(b, 1), context = SyncVector())
+            val later = earlier.copy(dot = SyncDot(b, 2), context = SyncVector(mapOf(b to 1)), value = JsonPrimitive(3))
+            index.addPart(checkpointIds[0], listOf(later), plan)
+            check(!index.covers(plan, listOf(earlier))) // One snapshot is insufficient.
+            index.close()
+            val reloadedIndex = it.lorelore.nyanime.cloud.sync.SyncMaintenanceIndex(targetContext, account, space, -2)
+            check(reloadedIndex.plan() == plan)
+            reloadedIndex.addPart(checkpointIds[1], listOf(later), plan)
+            check(reloadedIndex.covers(plan, listOf(earlier, later)))
+            check(!reloadedIndex.covers(plan, listOf(earlier.copy(dot = SyncDot(a, 1)))))
+            check(
+                runCatching {
+                    reloadedIndex.addPart(
+                        checkpointIds[0],
+                        listOf(later.copy(value = JsonPrimitive(999))),
+                        plan.copy(before = 9),
+                    )
+                }.isFailure,
+            )
+            check(reloadedIndex.plan() == plan) // Failed part and cursor roll back together.
+            reloadedIndex.advance(plan.copy(before = 9), 2)
+            check(reloadedIndex.plan()?.before == 9L && reloadedIndex.value("removed") == "2")
+            reloadedIndex.close()
+            for (suffix in listOf("", "-wal", "-shm", "-journal")) {
+                File(targetContext.noBackupFilesDir, "cloud-sync-maintenance-$account-$space--2.sqlite$suffix").delete()
+            }
             paths += File(targetContext.noBackupFilesDir, "cloud-sync-packets/$account/$space")
             report.putString(
                 "stream",
-                "PASS: conflicts, rewind, restart, receipts, privacy, checkpoints, compaction, immutable packets, archive reset.\n",
+                "PASS: conflicts, rewind, restart, receipts, privacy, checkpoints, compaction, immutable packets, " +
+                    "archive reset, v1/v2 migration, two-checkpoint causal index, part/cursor transaction rollback.\n",
             )
             finish(Activity.RESULT_OK, report)
         } catch (error: Throwable) {

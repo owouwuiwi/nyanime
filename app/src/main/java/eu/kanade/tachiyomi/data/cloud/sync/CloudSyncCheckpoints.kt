@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.data.cloud.sync
 
+import it.lorelore.nyanime.cloud.sync.SyncMaintenancePolicy
 import kotlinx.serialization.Serializable
 import nyanime.telegram.sync.SyncCheckpointChunk
 import nyanime.telegram.sync.SyncCheckpointCommit
@@ -86,6 +87,7 @@ internal class CloudSyncCheckpoints(
                 author = device.public.id,
                 throughMessage = plan.throughMessage,
                 parts = plan.parts,
+                maintenanceVersion = SyncMaintenancePolicy.VERSION,
             )
             val signed = SyncCheckpoints.sign(commit, keys.account, device)
             val key = keys.key()
@@ -122,6 +124,9 @@ internal class CloudSyncCheckpoints(
         store.state("checkpoint-pending", "")
         store.state("checkpoint-message", delivery.receipt.messageId.toString())
         store.state("compact-through", plan.throughMessage.toString())
+        if (verifiedCommit(delivery, keys)?.maintenanceVersion == SyncMaintenancePolicy.VERSION) {
+            store.state("maintenance-announced", keys.membership.control)
+        }
         plan.parts.forEach { files.removePrepared(it.id) }
         files.removePrepared(plan.id)
         return delivery
@@ -150,18 +155,7 @@ internal class CloudSyncCheckpoints(
         val envelope = syncJson.decodeFromString<SyncEnvelope>(delivery.packet.payload)
         val key = keys.key(envelope.epoch)
         try {
-            val signed = syncJson.decodeFromString<SyncSignedCheckpoint>(
-                SyncCipher.decrypt(keys.account, keys.space, key, envelope).toString(Charsets.UTF_8),
-            )
-            val members = keys.history[envelope.epoch] ?: error("Unknown checkpoint membership")
-            val commit = SyncCheckpoints.verify(signed, keys.account, members)
-            if (keys.membershipAt(delivery.receipt.messageId).devices[commit.author] !=
-                members.devices[commit.author]
-            ) {
-                return 0
-            }
-            require(commit.id == envelope.id && envelope.id == delivery.packet.id)
-            require(commit.throughMessage < delivery.receipt.messageId)
+            val commit = verifiedCommit(delivery, keys) ?: return 0
             commit.parts.forEach { part ->
                 require(part.messageId < delivery.receipt.messageId)
                 val found = store.messageFor(part.id)
@@ -181,6 +175,56 @@ internal class CloudSyncCheckpoints(
             store.state("checkpoint-message", delivery.receipt.messageId.toString())
             store.state("compact-through", commit.throughMessage.toString())
             return commit.throughMessage
+        } finally {
+            key.fill(0)
+        }
+    }
+
+    /** Shared by recovery and maintenance. Does not acknowledge, project or modify any journal. */
+    fun verifiedCommit(delivery: SyncDelivery, keys: CloudSyncKeys): SyncCheckpointCommit? {
+        require(delivery.packet.kind == "commit" && delivery.packet.space == keys.space)
+        val envelope = syncJson.decodeFromString<SyncEnvelope>(delivery.packet.payload)
+        envelope.validate()
+        require(envelope.epoch <= keys.epoch && envelope.space == keys.space)
+        val key = keys.key(envelope.epoch)
+        try {
+            val signed = syncJson.decodeFromString<SyncSignedCheckpoint>(
+                SyncCipher.decrypt(keys.account, keys.space, key, envelope).toString(Charsets.UTF_8),
+            )
+            val members = keys.history[envelope.epoch] ?: error("Unknown checkpoint membership")
+            val commit = SyncCheckpoints.verify(signed, keys.account, members)
+            if (keys.membershipAt(delivery.receipt.messageId).devices[commit.author] !=
+                members.devices[commit.author]
+            ) {
+                return null
+            }
+            require(commit.id == envelope.id && envelope.id == delivery.packet.id)
+            require(commit.throughMessage < delivery.receipt.messageId)
+            require(commit.parts.all { it.messageId < delivery.receipt.messageId })
+            return commit
+        } finally {
+            key.fill(0)
+        }
+    }
+
+    fun verifiedChunk(
+        delivery: SyncDelivery,
+        part: SyncCheckpointPart,
+        commit: SyncCheckpointCommit,
+        keys: CloudSyncKeys,
+    ): SyncCheckpointChunk {
+        require(delivery.packet.kind == "checkpoint" && delivery.packet.space == keys.space)
+        require(delivery.receipt.messageId == part.messageId)
+        val envelope = syncJson.decodeFromString<SyncEnvelope>(delivery.packet.payload)
+        require(envelope.epoch == commit.epoch && envelope.space == commit.space)
+        val key = keys.key(commit.epoch)
+        return try {
+            SyncCheckpoints.verifyPart(
+                part,
+                envelope,
+                commit.id,
+                SyncCipher.decrypt(keys.account, keys.space, key, envelope),
+            )
         } finally {
             key.fill(0)
         }

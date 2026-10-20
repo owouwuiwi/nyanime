@@ -35,10 +35,14 @@ import java.util.concurrent.TimeUnit
 
 class CloudBackupWorker(context: Context, parameters: WorkerParameters) : CoroutineWorker(context, parameters) {
     override suspend fun doWork(): Result {
+        if (eu.kanade.tachiyomi.BuildConfig.ISOLATED_CLOUD_PROBE) return Result.success()
         val repository = CloudRepository.get(applicationContext)
         repository.awaitInitialization()
         val automatic = inputData.getBoolean("automatic", true)
-        if (!repository.configured || automatic && !repository.preferences.enabled().get()) return Result.success()
+        val maintenanceOnly = inputData.getBoolean("maintenanceOnly", false)
+        if (!repository.configured || automatic && !maintenanceOnly && !repository.preferences.enabled().get()) {
+            return Result.success()
+        }
         if (automatic && repository.preferences.wifiOnly().get()) {
             val network = applicationContext.getSystemService(ConnectivityManager::class.java)
             val capabilities = network.activeNetwork?.let(network::getNetworkCapabilities)
@@ -60,7 +64,12 @@ class CloudBackupWorker(context: Context, parameters: WorkerParameters) : Corout
         val token = repository.client.retain()
         try {
             setForeground(notification())
+            if (maintenanceOnly) {
+                repository.maintainPendingBackups()
+                return if (repository.backupMaintenancePending) Result.retry() else Result.success()
+            }
             repository.backup(automatic)
+            if (repository.backupMaintenancePending) maintainLater(applicationContext)
             return Result.success()
         } catch (error: CancellationException) {
             throw error
@@ -123,12 +132,14 @@ class CloudBackupWorker(context: Context, parameters: WorkerParameters) : Corout
         const val MANUAL = "nyanime-cloud-manual"
         const val RETRY_MANUAL = "nyanime-cloud-retry-manual"
         const val RETRY_AUTOMATIC = "nyanime-cloud-retry-automatic"
+        const val MAINTENANCE = "nyanime-cloud-backup-maintenance"
         fun schedule(context: Context) {
             val preferences = CloudPreferences()
             val manager = WorkManager.getInstance(context)
             if (!preferences.enabled().get()) {
                 manager.cancelUniqueWork(AUTOMATIC)
                 manager.cancelUniqueWork(RETRY_AUTOMATIC)
+                // A retention pass already requested by a manual backup must still finish.
                 return
             }
             val request = PeriodicWorkRequestBuilder<CloudBackupWorker>(
@@ -148,6 +159,16 @@ class CloudBackupWorker(context: Context, parameters: WorkerParameters) : Corout
                 ExistingWorkPolicy.REPLACE,
                 OneTimeWorkRequestBuilder<CloudBackupWorker>().setInputData(workDataOf("automatic" to false))
                     .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                    .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.MINUTES).build(),
+            )
+        }
+        private fun maintainLater(context: Context) {
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                MAINTENANCE,
+                ExistingWorkPolicy.KEEP,
+                OneTimeWorkRequestBuilder<CloudBackupWorker>().setInitialDelay(15, TimeUnit.MINUTES)
+                    .setInputData(workDataOf("automatic" to true, "maintenanceOnly" to true))
+                    .setConstraints(constraints())
                     .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.MINUTES).build(),
             )
         }

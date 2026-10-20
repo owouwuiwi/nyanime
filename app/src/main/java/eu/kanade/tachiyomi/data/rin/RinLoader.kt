@@ -143,7 +143,12 @@ object RinLoader {
             AnimeExtension.Installed(
                 m.name, m.packageName, m.versionName, m.versionCode, m.extensionLib,
                 sources.map { it.lang }.distinct().singleOrNull() ?: "all", m.nsfw, m.torrent,
-                null, sources, icon(context, record), isShared = record.isShared, metadata = metadata,
+                null, sources,
+                icon(
+                    context,
+                    record,
+                ),
+                isShared = record.isShared, metadata = metadata, contentRevision = record.sha256,
             ),
         )
     }
@@ -172,7 +177,12 @@ object RinLoader {
             MangaExtension.Installed(
                 m.name, m.packageName, m.versionName, m.versionCode, m.extensionLib,
                 sources.filterIsInstance<CatalogueSource>().map { it.lang }.distinct().singleOrNull() ?: "all",
-                m.nsfw, null, sources, icon(context, record), isShared = record.isShared, metadata = metadata,
+                m.nsfw, null, sources,
+                icon(
+                    context,
+                    record,
+                ),
+                isShared = record.isShared, metadata = metadata, contentRevision = record.sha256,
             ),
         )
     }

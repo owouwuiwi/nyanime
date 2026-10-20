@@ -72,11 +72,29 @@ internal class CloudSyncDirectory(private val client: nyanime.telegram.TelegramG
 
     suspend fun complete(chat: Long, descriptor: SyncArchiveDescriptor) {
         require(descriptor.rootMessage > 0)
+        val currentChat = client.request(tdRequest("getChat", "chat_id" to JsonPrimitive(chat)))
+        val group = currentChat.objectOrNull("type")?.number("supergroup_id") ?: error("Missing archive")
+        val info = client.request(tdRequest("getSupergroupFullInfo", "supergroup_id" to JsonPrimitive(group)))
+        val previous = requireNotNull(SyncArchiveDescriptor.parse(info.text("description")))
+        require(previous.space == descriptor.space)
+        require(previous.rootMessage == 0L || previous.rootMessage == descriptor.rootMessage)
+        if (previous.rootMessage == descriptor.rootMessage &&
+            previous.maintenanceVersion >= descriptor.maintenanceVersion
+        ) {
+            return
+        }
+        // Recovery/setup must never make an already compacted archive readable by legacy clients.
+        val completed = descriptor.copy(
+            maintenanceVersion = maxOf(
+                previous.maintenanceVersion,
+                descriptor.maintenanceVersion,
+            ),
+        )
         client.request(
             tdRequest(
                 "setChatDescription",
                 "chat_id" to JsonPrimitive(chat),
-                "description" to JsonPrimitive(descriptor.encode()),
+                "description" to JsonPrimitive(completed.encode()),
             ),
         )
     }

@@ -102,4 +102,11 @@
 <string name="cloud_sync_heading_error">Could not synchronize</string>
 <string name="cloud_sync_heading_active">Synchronizing</string>
 <string name="cloud_sync_no_pending">No changes waiting to send</string>
+<string name="cloud_sync_maintenance_waiting">History cleanup runs automatically while playback is idle.</string>
+<string name="cloud_sync_maintenance_verifying">Verifying recovery checkpoints before cleanup…</string>
+<string name="cloud_sync_maintenance_cleaning">Optimizing older synchronization history…</string>
+<string name="cloud_sync_maintenance_current">Older history checked. Recovery checkpoints are protected.</string>
+<string name="cloud_sync_maintenance_compatibility">Older checkpoints are protected until all linked devices support cleanup. Update Nyanime on those devices.</string>
+<string name="cloud_sync_maintenance_retry">History cleanup will retry later. Synchronization remains available.</string>
+<string name="cloud_sync_maintenance_removed">Redundant messages removed: %1$d</string>
 </resources>

@@ -2,7 +2,10 @@ package eu.kanade.tachiyomi.data.cloud.sync
 
 import android.content.Context
 import eu.kanade.tachiyomi.data.telegram.TelegramClient
+import it.lorelore.nyanime.cloud.sync.SyncMaintenanceIndex
+import it.lorelore.nyanime.cloud.sync.SyncMaintenancePolicy
 import kotlinx.coroutines.yield
+import nyanime.telegram.TelegramException
 import nyanime.telegram.sync.SyncArchiveBootstrap
 import nyanime.telegram.sync.SyncBatchSignature
 import nyanime.telegram.sync.SyncCheckpoints
@@ -26,13 +29,22 @@ internal class CloudSyncSession(
     initial: CloudSyncKeys,
     val device: SyncDeviceSecret,
     private val vault: CloudSyncVault,
+    transportContext: Context = context,
 ) {
     var keys = initial
         private set
     val store = CloudSyncStore(context, keys.account, keys.space).also { it.bindDevice(device.public.id) }
     val files = CloudSyncPacketFiles(context, keys.account, keys.space)
-    val transport = TelegramSyncTransport(context, client, keys.account, keys.chat, keys.space, files::retainedDelivery)
+    val transport = TelegramSyncTransport(
+        transportContext,
+        client,
+        keys.account,
+        keys.chat,
+        keys.space,
+        files::retainedDelivery,
+    )
     val checkpoints = CloudSyncCheckpoints(store, files, transport, device)
+    val maintenanceIndex = SyncMaintenanceIndex(context, keys.account, keys.space, keys.chat)
 
     /** Persist a page at a time, then consume in server order; interruption never skips a gap. */
     suspend fun pull(maxPages: Int = 4): Boolean {
@@ -50,7 +62,7 @@ internal class CloudSyncSession(
                 store.state("received", newest.toString())
                 store.state("pull-before", "0")
                 store.state("pull-top", "0")
-                consume()
+                consumeStaged()
                 return true
             }
             require(page.next > 0 && (before == 0L || page.next < before))
@@ -62,14 +74,56 @@ internal class CloudSyncSession(
         return false
     }
 
-    private suspend fun consume() {
+    internal suspend fun consumeStaged() {
         val through = store.state("received")?.toLongOrNull() ?: return
+        // Complete authorization first, then restore the newest complete checkpoint. Older
+        // commits can already be staged locally when another upgraded phone removes their parts.
+        // Replaying every historical checkpoint would strand that phone on a deleted document.
+        var authorization = store.state("maintenance-authorization")?.toLongOrNull() ?: 0
+        while (true) {
+            val id = store.nextMessageOfKind("control", authorization)?.takeIf { it <= through } ?: break
+            consume(files.delivery(id))
+            authorization = id
+            store.state("maintenance-authorization", id.toString())
+            yield()
+        }
+        if (!keys.contains(device.public)) return
+        var latest = store.messagesOfKind("commit", limit = 1).firstOrNull()?.takeIf { it <= through }
+        while (latest != null && checkpoints.verifiedCommit(files.delivery(latest), keys) == null) {
+            latest = store.messagesOfKind("commit", before = latest, limit = 1).firstOrNull()
+        }
+        var floor = store.state("maintenance-floor")?.toLongOrNull() ?: 0
+        if (latest != null && latest > floor) {
+            val delivery = files.delivery(latest)
+            if (checkpoints.verifiedCommit(delivery, keys) != null) {
+                if (store.state("checkpoint") != delivery.packet.id) checkpoints.restore(delivery, keys)
+                floor = latest
+                store.state("maintenance-floor", floor.toString())
+            }
+        }
         var cursor = store.state("processed")?.toLongOrNull() ?: 0
         while (true) {
             val next = store.nextMessage(cursor)?.takeIf { it <= through } ?: break
             val delivery = files.delivery(next)
             require(delivery.receipt.messageId == next)
-            consume(delivery)
+            if (delivery.packet.kind == "commit") {
+                val commit = checkpoints.verifiedCommit(delivery, keys)
+                if (commit?.epoch == keys.epoch && commit.maintenanceVersion >= SyncMaintenancePolicy.VERSION) {
+                    store.state("maintenance-capability/${keys.epoch}/${commit.author}", next.toString())
+                }
+            }
+            try {
+                // Checkpoints may omit locally excluded fields. Merge ALL retained snapshots;
+                // the newest checkpoint alone is not proof that an older field is redundant.
+                consume(delivery)
+            } catch (error: TelegramException) {
+                val superseded = delivery.packet.kind == "commit" &&
+                    next < floor &&
+                    error.code == 404 &&
+                    transport.maintenanceMessage(next) == null &&
+                    transport.checkpointMaintenanceEnabled()
+                if (!superseded) throw error
+            }
             cursor = next
             store.state("processed", cursor.toString())
             if (!keys.contains(device.public)) break
@@ -232,5 +286,8 @@ internal class CloudSyncSession(
             require(it.id == packet.id && it.space == packet.space)
         }
 
-    fun close() = store.close()
+    fun close() {
+        maintenanceIndex.close()
+        store.close()
+    }
 }

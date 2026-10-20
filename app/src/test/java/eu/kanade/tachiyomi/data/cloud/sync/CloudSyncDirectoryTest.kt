@@ -76,4 +76,27 @@ class CloudSyncDirectoryTest {
         assertEquals(-1L, directory.create(space).chat)
         coVerify(exactly = 0) { client.request(match { it.type() == "createNewSupergroupChat" }) }
     }
+
+    @Test fun recoveryCannotRemoveTheLegacyReaderFence() = runBlocking {
+        base()
+        val previous = SyncArchiveDescriptor(space, 10, maintenanceVersion = 1)
+        coEvery { client.request(match { it.type() == "getSupergroupFullInfo" }) } returns
+            tdRequest("supergroupFullInfo", "description" to JsonPrimitive(previous.encode()))
+        coEvery { client.request(match { it.type() == "setChatDescription" }) } returns tdRequest("ok")
+        directory.complete(-1, SyncArchiveDescriptor(space, 10))
+        coVerify(exactly = 0) { client.request(match { it.type() == "setChatDescription" }) }
+    }
+
+    @Test fun completingAnArchiveCannotRebindItsSpaceOrRoot() {
+        base()
+        coEvery { client.request(match { it.type() == "getSupergroupFullInfo" }) } returns
+            tdRequest("supergroupFullInfo", "description" to JsonPrimitive(SyncArchiveDescriptor(space, 10).encode()))
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { directory.complete(-1, SyncArchiveDescriptor(space, 11)) }
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { directory.complete(-1, SyncArchiveDescriptor(UUID.randomUUID().toString(), 10)) }
+        }
+        coVerify(exactly = 0) { client.request(match { it.type() == "setChatDescription" }) }
+    }
 }

@@ -5,8 +5,11 @@ import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.animesource.online.AnimeHttpSource
 import eu.kanade.tachiyomi.data.download.anime.AnimeDownloadManager
 import eu.kanade.tachiyomi.extension.anime.AnimeExtensionManager
+import it.lorelore.nyanime.sources.LoadedSourceRevision
+import it.lorelore.nyanime.sources.LoadedSourceRevisions
 import it.lorelore.nyanime.studio.SourceStudioRepository
 import it.lorelore.nyanime.studio.StudioAnimeSource
+import it.lorelore.nyanime.studio.StudioDocuments
 import it.lorelore.nyanime.studio.StudioMedium
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -42,11 +45,13 @@ class AndroidAnimeSourceManager(
 
     private val scope = CoroutineScope(Job() + Dispatchers.IO)
 
-    private val sourcesMapFlow = MutableStateFlow(ConcurrentHashMap<Long, AnimeSource>())
+    // Extensions may implement equality by source ID. Publication must still replace the actual code object.
+    private class SourceSnapshot(val entries: ConcurrentHashMap<Long, AnimeSource>)
+    private val sourcesMapFlow = MutableStateFlow(SourceSnapshot(ConcurrentHashMap()))
 
     private val stubSourcesMap = ConcurrentHashMap<Long, StubAnimeSource>()
 
-    override val sources: Flow<List<AnimeSource>> = sourcesMapFlow.map { it.values.toList() }
+    override val sources: Flow<List<AnimeSource>> = sourcesMapFlow.map { it.entries.values.toList() }
 
     init {
         scope.launch {
@@ -70,9 +75,11 @@ class AndroidAnimeSourceManager(
                             ),
                         ),
                     )
+                    val revisions = mutableMapOf<Long, String>()
                     extensions.forEach { extension ->
                         extension.sources.forEach {
                             mutableMap[it.id] = it
+                            revisions[it.id] = extension.contentRevision ?: java.util.UUID.randomUUID().toString()
                             registerStubSource(StubAnimeSource.from(it))
                         }
                     }
@@ -80,10 +87,16 @@ class AndroidAnimeSourceManager(
                         if (!mutableMap.containsKey(definition.sourceId)) {
                             val source = StudioAnimeSource(definition, SourceStudioRepository.get(context))
                             mutableMap[source.id] = source
+                            revisions[source.id] = StudioDocuments.fingerprint(definition)
                             registerStubSource(StubAnimeSource.from(source))
                         }
                     }
-                    sourcesMapFlow.value = mutableMap
+                    LoadedSourceRevisions.registry.publish(
+                        "anime",
+                        mutableMap.map { (id, source) ->
+                            LoadedSourceRevision(id, source, revisions[id] ?: "local-v1")
+                        },
+                    ) { sourcesMapFlow.value = SourceSnapshot(mutableMap) }
                     _isInitialized.value = true
                 }
         }
@@ -100,19 +113,19 @@ class AndroidAnimeSourceManager(
     }
 
     override fun get(sourceKey: Long): AnimeSource? {
-        return sourcesMapFlow.value[sourceKey]
+        return sourcesMapFlow.value.entries[sourceKey]
     }
 
     override fun getOrStub(sourceKey: Long): AnimeSource {
-        return sourcesMapFlow.value[sourceKey] ?: stubSourcesMap.getOrPut(sourceKey) {
+        return sourcesMapFlow.value.entries[sourceKey] ?: stubSourcesMap.getOrPut(sourceKey) {
             runBlocking { createStubSource(sourceKey) }
         }
     }
 
-    override fun getAll(): List<AnimeSource> = sourcesMapFlow.value.values.toList()
+    override fun getAll(): List<AnimeSource> = sourcesMapFlow.value.entries.values.toList()
 
     override fun getOnlineSources(): List<AnimeHttpSource> {
-        return sourcesMapFlow.value.values.filterIsInstance<AnimeHttpSource>()
+        return sourcesMapFlow.value.entries.values.filterIsInstance<AnimeHttpSource>()
     }
 
     override fun getStubSources(): List<StubAnimeSource> {

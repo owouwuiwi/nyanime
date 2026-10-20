@@ -432,6 +432,9 @@ internal object AnimeExtensionLoader {
             pkgFactory = appInfo.metaData.getString(METADATA_SOURCE_FACTORY),
             icon = appInfo.loadIcon(pkgManager),
             isShared = extensionInfo.isShared,
+            contentRevision = withIOContext {
+                eu.kanade.tachiyomi.extension.ExtensionPackageArchive.sha256(java.io.File(appInfo.sourceDir))
+            },
             metadata = withIOContext {
                 ExtensionPackageInspector.inspect(pkgInfo) { manifest ->
                     sources.singleOrNull { it.name == manifest.source.name && it.lang == manifest.source.lang }

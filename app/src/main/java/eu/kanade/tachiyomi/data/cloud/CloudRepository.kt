@@ -9,6 +9,8 @@ import eu.kanade.tachiyomi.data.backup.create.BackupCreator
 import eu.kanade.tachiyomi.data.backup.create.BackupOptions
 import eu.kanade.tachiyomi.data.cloud.sync.CloudSyncBackupProtection
 import eu.kanade.tachiyomi.data.telegram.TelegramClient
+import it.lorelore.nyanime.cloud.sync.BackupMaintenance
+import it.lorelore.nyanime.cloud.sync.BackupMaintenancePort
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -35,7 +37,6 @@ import nyanime.telegram.CloudPage
 import nyanime.telegram.CloudPending
 import nyanime.telegram.CloudPhase
 import nyanime.telegram.CloudProgress
-import nyanime.telegram.CloudRetention
 import nyanime.telegram.CloudWire
 import nyanime.telegram.TelegramException
 import nyanime.telegram.TelegramFailure
@@ -307,6 +308,7 @@ class CloudRepository private constructor(private val context: Context) {
                     val contentHash = sha256(file)
                     if (automatic && contentHash == storage.get("hash:$account:$deviceId")) {
                         file.delete()
+                        maintainBackups(account, chat)
                         progress.value = CloudProgress(CloudPhase.UNCHANGED)
                         return@withContext CloudPhase.UNCHANGED
                     }
@@ -347,30 +349,89 @@ class CloudRepository private constructor(private val context: Context) {
             file.delete()
             progress.value = CloudProgress(CloudPhase.SAVED, 1f)
             // A cleanup failure cannot turn a confirmed backup into a failed upload.
-            try {
-                val history = allCopies()
-                val days = preferences.maxAgeDays().get().coerceIn(0, 3650)
-                CloudRetention.obsolete(
-                    history,
-                    if (days >
-                        0
-                    ) {
-                        Int.MAX_VALUE
-                    } else {
-                        preferences.keepCopies().get().coerceIn(1, 100)
-                    },
-                    days,
-                    confirmed.serverDate,
-                ).forEach { deleteInternal(it) }
-            } catch (
-                cancel: CancellationException,
-            ) {
-                throw cancel
-            } catch (_: Exception) {
-                storage.put("cleanup_pending", "true")
-            }
+            storage.put("cleanup:$account:$chat:pending", "true")
+            storage.remove("cleanup:$account:$chat:retry")
+            maintainBackups(account, chat)
             CloudPhase.SAVED
         }
+    }
+
+    internal val backupMaintenancePending: Boolean get() {
+        val account = storage.get("account") ?: return false
+        val chat = storage.get("archive:$account") ?: return false
+        return storage.get("cleanup:$account:$chat:pending") == "true" || storage.get("cleanup_pending") == "true"
+    }
+
+    /** Also invoked by the dedicated retry path; no backup generation or upload is needed. */
+    internal suspend fun maintainPendingBackups() = operations.withLock {
+        withContext(Dispatchers.IO) {
+            if (!backupMaintenancePending) return@withContext
+            val account = ready()
+            val chat = archive(account)
+            maintainBackups(account, chat)
+        }
+    }
+
+    private suspend fun maintainBackups(account: Long, chat: Long) {
+        val prefix = "cleanup:$account:$chat:"
+        if (storage.get("cleanup_pending") == "true") {
+            storage.put(prefix + "pending", "true")
+            storage.remove("cleanup_pending")
+        }
+        val port = object : BackupMaintenancePort {
+            override fun state(key: String) = storage.get(prefix + key)
+            override fun state(key: String, value: String) = storage.put(prefix + key, value)
+            override suspend fun serverTime(): Long {
+                require(ready() == account && archive(account) == chat)
+                verifyArchive(chat)
+                return client.request(tdRequest("getOption", "name" to JsonPrimitive("unix_time"))).number("value")
+            }
+            override suspend fun inventory(): List<CloudCopy> {
+                val result = mutableListOf<CloudCopy>()
+                var cursor = 0L
+                while (true) {
+                    check(!eu.kanade.tachiyomi.data.rin.RinSessions.busy.value)
+                    val next = page(cursor)
+                    result += next.copies
+                    if (next.complete) break
+                    require(next.cursor > 0 && (cursor == 0L || next.cursor < cursor))
+                    cursor = next.cursor
+                    kotlinx.coroutines.yield()
+                }
+                return result.distinctBy { it.manifest.backupId }
+            }
+            override suspend fun deleteVerified(copy: CloudCopy): Boolean {
+                if (eu.kanade.tachiyomi.data.rin.RinSessions.busy.value) return false
+                require(ready() == account && archive(account) == chat)
+                val remote = try {
+                    client.request(
+                        tdRequest(
+                            "getMessage",
+                            "chat_id" to JsonPrimitive(chat),
+                            "message_id" to JsonPrimitive(copy.messageId),
+                        ),
+                    )
+                } catch (error: TelegramException) {
+                    if (error.code == 404) {
+                        storage.deleted(copy)
+                        copies.value = copies.value.filterNot { it.manifest.backupId == copy.manifest.backupId }
+                        return true
+                    }
+                    throw error
+                }
+                val current = parseCopy(remote, account, chat) ?: error("Backup ownership changed")
+                require(current.manifest == copy.manifest)
+                if (!current.pinned) deleteInternal(current)
+                return true
+            }
+        }
+        BackupMaintenance(port).run(
+            account,
+            chat,
+            preferences.keepCopies().get().coerceIn(1, 100),
+            preferences.maxAgeDays().get().coerceIn(0, 3650),
+            System.currentTimeMillis(),
+        )
     }
 
     private suspend fun upload(operation: CloudPending, file: File): CloudCopy {

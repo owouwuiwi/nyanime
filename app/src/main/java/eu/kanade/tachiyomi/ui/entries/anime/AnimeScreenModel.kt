@@ -14,6 +14,7 @@ import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import eu.kanade.core.util.addOrRemove
 import eu.kanade.core.util.insertSeparators
+import eu.kanade.domain.base.BasePreferences
 import eu.kanade.domain.entries.anime.interactor.SetAnimeViewerFlags
 import eu.kanade.domain.entries.anime.interactor.SyncRelatedAnimeWithSource
 import eu.kanade.domain.entries.anime.interactor.UpdateAnime
@@ -42,7 +43,6 @@ import eu.kanade.tachiyomi.data.download.anime.model.AnimeDownload
 import eu.kanade.tachiyomi.data.episodeguide.EpisodeClassification
 import eu.kanade.tachiyomi.data.episodeguide.GuideSnapshot
 import eu.kanade.tachiyomi.data.library.anime.AnimeForegroundRefreshGate
-import eu.kanade.tachiyomi.data.releases.ReleaseEligibility
 import eu.kanade.tachiyomi.data.releases.ReleaseMedium
 import eu.kanade.tachiyomi.data.releases.ReleasePolicy
 import eu.kanade.tachiyomi.data.releases.ReleaseStore
@@ -57,6 +57,8 @@ import eu.kanade.tachiyomi.ui.player.settings.PlayerPreferences
 import eu.kanade.tachiyomi.util.AniChartApi
 import eu.kanade.tachiyomi.util.removeCovers
 import eu.kanade.tachiyomi.util.system.toast
+import it.lorelore.nyanime.sources.DetailRefreshes
+import it.lorelore.nyanime.sources.LoadedSourceRevisions
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CancellationException
@@ -71,6 +73,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -488,46 +491,8 @@ class AnimeScreenModel(
             observeRelatedAnime()
             syncRelatedAnime()
 
-            // Fetch missing data before the first interaction. Existing episodes remain visible
-            // while a due check runs quietly, including when periodic library updates are disabled.
-            if ((needRefreshInfo || needRefreshEpisode || needRefreshSeason) && screenModelScope.isActive) {
-                fetchAllFromSource(
-                    manualFetch = false,
-                    fetchDetails = needRefreshInfo,
-                    fetchEpisodes = needRefreshEpisode || (needRefreshInfo && anime.fetchType == FetchType.Episodes),
-                    fetchSeasons = needRefreshSeason || (needRefreshInfo && anime.fetchType == FetchType.Seasons),
-                )
-            } else if (screenModelScope.isActive &&
-                ReleaseEligibility.source(ReleaseMedium.ANIME, animeId) != null &&
-                ReleasePolicy.isDue(
-                    ReleaseStore().check(ReleaseMedium.ANIME, animeId),
-                    System.currentTimeMillis(),
-                    foreground = true,
-                ) &&
-                AnimeForegroundRefreshGate.tryBegin(animeId, detailRefreshClock())
-            ) {
-                var completed = false
-                try {
-                    completed = fetchAllFromSource(
-                        manualFetch = false,
-                        fetchDetails = false,
-                        fetchEpisodes = anime.fetchType == FetchType.Episodes,
-                        fetchSeasons = anime.fetchType == FetchType.Seasons,
-                        showErrors = false,
-                    )
-                } finally {
-                    if (!completed &&
-                        screenModelScope.isActive
-                    ) {
-                        ReleaseStore().markFailure(ReleaseMedium.ANIME, animeId, System.currentTimeMillis())
-                    }
-                    AnimeForegroundRefreshGate.finish(
-                        animeId,
-                        detailRefreshClock(),
-                        successful = completed,
-                        cancelled = !screenModelScope.isActive,
-                    )
-                }
+            if (screenModelScope.isActive) {
+                refreshOpenedDetails()
             }
 
             // Initial loading finished
@@ -538,14 +503,46 @@ class AnimeScreenModel(
     fun fetchAllFromSource(manualFetch: Boolean = true) {
         screenModelScope.launch {
             updateSuccessState { it.copy(isRefreshingData = true) }
-            fetchAllFromSource(
-                manualFetch = manualFetch,
-                fetchDetails = true,
-                fetchEpisodes = true,
-                fetchSeasons = true,
-            )
+            refreshOpenedDetails(force = true, manualFetch = manualFetch)
             updateSuccessState { it.copy(isRefreshingData = false) }
             successState?.let { updateAiringTime(it.anime, it.trackItems, manualFetch) }
+        }
+    }
+
+    private suspend fun refreshOpenedDetails(force: Boolean = false, manualFetch: Boolean = false) {
+        repeat(2) {
+            try {
+                val state = successState ?: return
+                val preferences = Injekt.get<BasePreferences>()
+                if (!manualFetch && preferences.downloadedOnly().get() && !state.anime.isLocal()) return
+                if (kotlinx.coroutines.withTimeoutOrNull(15_000) { sourceManager.isInitialized.first { it } } !=
+                    true
+                ) {
+                    return
+                }
+                val source = sourceManager.get(state.anime.source) ?: return
+                val revision = LoadedSourceRevisions.registry.capture("anime", source.id, source) ?: return
+                updateSuccessState { it.copy(source = source) }
+                DetailRefreshes.get(context).refresh(
+                    key = DetailRefreshes.key("anime", animeId, source.id, state.anime.url),
+                    sourceKey = "anime:${source.id}",
+                    revision = revision.revision,
+                    force = force,
+                    persistent = !preferences.incognitoMode().get(),
+                    current = { LoadedSourceRevisions.registry.current("anime", revision) },
+                ) {
+                    fetchAllFromSource(
+                        manualFetch = manualFetch,
+                        fetchDetails = true,
+                        fetchEpisodes = true,
+                        fetchSeasons = true,
+                        showErrors = manualFetch || !state.anime.initialized,
+                    )
+                }
+                return
+            } catch (_: it.lorelore.nyanime.sources.SourceReplacedException) {
+                kotlinx.coroutines.yield()
+            }
         }
     }
 
@@ -561,7 +558,7 @@ class AnimeScreenModel(
         startTorrentServer(state.source)
 
         if (fetchDetails) {
-            syncRelatedAnime(forceRefresh = true)
+            syncRelatedAnime(forceRefresh = manualFetch)
         }
 
         try {
@@ -601,8 +598,8 @@ class AnimeScreenModel(
             }
             AnimeForegroundRefreshGate.recordSuccess(animeId, detailRefreshClock())
             return true
-        } catch (_: CancellationException) {
-            return false
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (e: Exception) {
             if (!showErrors) {
                 logcat(LogPriority.WARN, e) { "Could not refresh the episode list in the background" }

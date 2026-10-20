@@ -29,9 +29,12 @@ data class SyncCheckpointCommit(
     val author: String,
     val throughMessage: Long,
     val parts: List<SyncCheckpointPart>,
+    /** Optional signed capability; version-1 clients ignore this field and retain their wire format. */
+    val maintenanceVersion: Int = 0,
 ) {
     fun validate() {
         require(version == 1 && epoch > 0 && throughMessage >= 0)
+        require(maintenanceVersion >= 0)
         requireSyncId(id)
         requireSyncId(space)
         requireSyncId(author)

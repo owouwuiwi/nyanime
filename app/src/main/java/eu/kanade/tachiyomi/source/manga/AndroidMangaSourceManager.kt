@@ -6,7 +6,10 @@ import eu.kanade.tachiyomi.extension.manga.MangaExtensionManager
 import eu.kanade.tachiyomi.source.CatalogueSource
 import eu.kanade.tachiyomi.source.MangaSource
 import eu.kanade.tachiyomi.source.online.HttpSource
+import it.lorelore.nyanime.sources.LoadedSourceRevision
+import it.lorelore.nyanime.sources.LoadedSourceRevisions
 import it.lorelore.nyanime.studio.SourceStudioRepository
+import it.lorelore.nyanime.studio.StudioDocuments
 import it.lorelore.nyanime.studio.StudioMangaSource
 import it.lorelore.nyanime.studio.StudioMedium
 import kotlinx.coroutines.CoroutineScope
@@ -43,12 +46,14 @@ class AndroidMangaSourceManager(
 
     private val scope = CoroutineScope(Job() + Dispatchers.IO)
 
-    private val sourcesMapFlow = MutableStateFlow(ConcurrentHashMap<Long, MangaSource>())
+    // Extensions may implement equality by source ID. Publication must still replace the actual code object.
+    private class SourceSnapshot(val entries: ConcurrentHashMap<Long, MangaSource>)
+    private val sourcesMapFlow = MutableStateFlow(SourceSnapshot(ConcurrentHashMap()))
 
     private val stubSourcesMap = ConcurrentHashMap<Long, StubMangaSource>()
 
     override val catalogueSources: Flow<List<CatalogueSource>> = sourcesMapFlow.map {
-        it.values.filterIsInstance<CatalogueSource>()
+        it.entries.values.filterIsInstance<CatalogueSource>()
     }
 
     init {
@@ -70,9 +75,11 @@ class AndroidMangaSourceManager(
                             ),
                         ),
                     )
+                    val revisions = mutableMapOf<Long, String>()
                     extensions.forEach { extension ->
                         extension.sources.forEach {
                             mutableMap[it.id] = it
+                            revisions[it.id] = extension.contentRevision ?: java.util.UUID.randomUUID().toString()
                             registerStubSource(StubMangaSource.from(it))
                         }
                     }
@@ -80,10 +87,16 @@ class AndroidMangaSourceManager(
                         if (!mutableMap.containsKey(definition.sourceId)) {
                             val source = StudioMangaSource(definition, SourceStudioRepository.get(context))
                             mutableMap[source.id] = source
+                            revisions[source.id] = StudioDocuments.fingerprint(definition)
                             registerStubSource(StubMangaSource.from(source))
                         }
                     }
-                    sourcesMapFlow.value = mutableMap
+                    LoadedSourceRevisions.registry.publish(
+                        "manga",
+                        mutableMap.map { (id, source) ->
+                            LoadedSourceRevision(id, source, revisions[id] ?: "local-v1")
+                        },
+                    ) { sourcesMapFlow.value = SourceSnapshot(mutableMap) }
                     _isInitialized.value = true
                 }
         }
@@ -100,18 +113,18 @@ class AndroidMangaSourceManager(
     }
 
     override fun get(sourceKey: Long): MangaSource? {
-        return sourcesMapFlow.value[sourceKey]
+        return sourcesMapFlow.value.entries[sourceKey]
     }
 
     override fun getOrStub(sourceKey: Long): MangaSource {
-        return sourcesMapFlow.value[sourceKey] ?: stubSourcesMap.getOrPut(sourceKey) {
+        return sourcesMapFlow.value.entries[sourceKey] ?: stubSourcesMap.getOrPut(sourceKey) {
             runBlocking { createStubSource(sourceKey) }
         }
     }
 
-    override fun getOnlineSources() = sourcesMapFlow.value.values.filterIsInstance<HttpSource>()
+    override fun getOnlineSources() = sourcesMapFlow.value.entries.values.filterIsInstance<HttpSource>()
 
-    override fun getCatalogueSources() = sourcesMapFlow.value.values.filterIsInstance<CatalogueSource>()
+    override fun getCatalogueSources() = sourcesMapFlow.value.entries.values.filterIsInstance<CatalogueSource>()
 
     override fun getStubSources(): List<StubMangaSource> {
         val onlineSourceIds = getOnlineSources().map { it.id }

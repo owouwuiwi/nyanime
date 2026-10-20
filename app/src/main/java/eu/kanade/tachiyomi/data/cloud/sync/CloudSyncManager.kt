@@ -12,6 +12,7 @@ import eu.kanade.tachiyomi.data.cloud.CloudRepository
 import eu.kanade.tachiyomi.data.rin.RinSessions
 import eu.kanade.tachiyomi.extension.anime.AnimeExtensionManager
 import eu.kanade.tachiyomi.extension.manga.MangaExtensionManager
+import it.lorelore.nyanime.cloud.sync.CloudSyncMaintenance
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -71,6 +72,7 @@ internal class CloudSyncManager private constructor(private val context: Context
     private var projectionCursor = ""
     private var lastUnexpectedFailure: String? = null
     private var historyRecovery: CloudSyncHistoryRecovery? = null
+    private var maintenance: CloudSyncMaintenance? = null
 
     init {
         scope.launch(Dispatchers.Main.immediate) {
@@ -150,6 +152,7 @@ internal class CloudSyncManager private constructor(private val context: Context
 
     suspend fun tick(showActivity: Boolean = false): Boolean = operation.withLock {
         withContext(Dispatchers.IO) {
+            if (eu.kanade.tachiyomi.BuildConfig.ISOLATED_CLOUD_PROBE) return@withContext true
             if (!preferences.enabled().get()) return@withContext true
             if (SystemClock.elapsedRealtime() < retryAtElapsed) return@withContext false
             mutableState.value = mutableState.value.copy(retryAt = 0)
@@ -253,6 +256,7 @@ internal class CloudSyncManager private constructor(private val context: Context
                 if (pending > 256 ||
                     checkpointDue ||
                     current.store.state("initial-checkpoint") == "true" ||
+                    current.store.state("maintenance-announced") != current.keys.membership.control ||
                     !current.store.state("checkpoint-pending").isNullOrEmpty()
                 ) {
                     if (RinSessions.busy.value) {
@@ -281,6 +285,14 @@ internal class CloudSyncManager private constructor(private val context: Context
                         current.store.state("processed")?.toLongOrNull() ?: 0,
                     )
                     if (through > 0) current.store.compactAcknowledged(through).forEach(current.files::removeDelivery)
+                }
+                if (shouldPull &&
+                    pending == 0L &&
+                    uncaptured == 0L &&
+                    !RinSessions.busy.value &&
+                    current.store.state("pull-before").orEmpty() in setOf("", "0")
+                ) {
+                    kotlinx.coroutines.withTimeoutOrNull(12_000) { maintenance?.step() }
                 }
                 // Cached authorization/history is not proof of a working Telegram connection.
                 if (!client.state.value.online) throw TelegramException(TelegramFailure.DISCONNECTED)
@@ -397,6 +409,16 @@ internal class CloudSyncManager private constructor(private val context: Context
         val keys = requireNotNull(CloudSyncKeys.load(vault, preferences.space().get()))
         require(keys.account == account)
         session = CloudSyncSession(context, client, keys, device, vault)
+        val maintained = requireNotNull(session)
+        maintenance = CloudSyncMaintenance(maintained, maintained.maintenanceIndex, { clock.now() / 1000 }) {
+            preferences.enabled().get() &&
+                !RinSessions.busy.value &&
+                !base.incognitoMode().get() &&
+                !base.downloadedOnly().get() &&
+                client.state.value.online &&
+                client.state.value.account?.id == maintained.keys.account &&
+                !eu.kanade.tachiyomi.data.backup.restore.BackupRestoreJob.isRunning(context)
+        }
         val store = requireNotNull(session).store
         val previousChat = store.state("transport-chat")
         if (previousChat != null && previousChat != keys.chat.toString()) {
@@ -556,6 +578,7 @@ internal class CloudSyncManager private constructor(private val context: Context
             lastConfirmed = current?.store?.state("lastSent")?.toLongOrNull() ?: 0,
             lastVerified = current?.store?.state("lastVerified")?.toLongOrNull() ?: 0,
             devices = devices,
+            maintenance = maintenance?.status ?: it.lorelore.nyanime.cloud.sync.SyncMaintenanceStatus(),
         )
     }
 
@@ -663,10 +686,37 @@ internal class CloudSyncManager private constructor(private val context: Context
     }
 
     private fun closeSession() {
+        maintenance = null
         session?.close()
         session = null
         ports = emptyList()
         client.observeChats("cloud-sync", emptySet())
+    }
+
+    /** WorkManager can drain a bounded backlog while idle. Never queue behind an interactive
+     * operation, bypass a server backoff, or keep the coordinator locked across passes. */
+    suspend fun maintainIdleHistory() {
+        if (eu.kanade.tachiyomi.BuildConfig.ISOLATED_CLOUD_PROBE) return
+        repeat(20) {
+            if (!operation.tryLock()) return
+            val progressed = try {
+                val current = session ?: return
+                if (!preferences.enabled().get() || RinSessions.busy.value || base.incognitoMode().get()) return
+                val before = current.maintenanceIndex.value("plan")
+                kotlinx.coroutines.withTimeoutOrNull(12_000) { maintenance?.step(idleBatch = true) }
+                val after = current.maintenanceIndex.value("plan")
+                publish(mutableState.value.phase)
+                before != after
+            } catch (cancel: CancellationException) {
+                throw cancel
+            } catch (_: Exception) {
+                false
+            } finally {
+                operation.unlock()
+            }
+            if (!progressed) return
+            delay(250)
+        }
     }
 
     companion object {
@@ -675,7 +725,9 @@ internal class CloudSyncManager private constructor(private val context: Context
             instance ?: CloudSyncManager(context.applicationContext).also { instance = it }
         }
         fun startIfConfigured(context: Context) {
-            if (CloudSyncPreferences().account().get() > 0) get(context)
+            if (!eu.kanade.tachiyomi.BuildConfig.ISOLATED_CLOUD_PROBE && CloudSyncPreferences().account().get() > 0) {
+                get(context)
+            }
         }
 
         /** A one-way signal after a local save. It never creates a client or touches native playback. */

@@ -15,12 +15,15 @@ import java.util.concurrent.TimeUnit
 
 class CloudSyncWorker(context: Context, parameters: WorkerParameters) : CoroutineWorker(context, parameters) {
     override suspend fun doWork(): Result {
+        if (eu.kanade.tachiyomi.BuildConfig.ISOLATED_CLOUD_PROBE) return Result.success()
         val manager = CloudSyncManager.get(applicationContext)
         if (!manager.preferences.enabled().get()) return Result.success()
         val client = TelegramClient.get(applicationContext)
         val lease = client.retain()
         return try {
-            if (withTimeoutOrNull(120_000) { manager.tick() } == true) Result.success() else Result.retry()
+            val synchronized = withTimeoutOrNull(120_000) { manager.tick() } == true
+            if (synchronized) withTimeoutOrNull(60_000) { manager.maintainIdleHistory() }
+            if (synchronized) Result.success() else Result.retry()
         } finally {
             client.release(lease)
         }

@@ -34,6 +34,9 @@ import kotlin.math.ceil
 
 internal class CloudSyncTransferDeferred : IllegalStateException("Bulk synchronization waits for idle playback")
 
+internal data class SyncMaintenanceMessage(val delivery: SyncDelivery, val pinned: Boolean)
+internal data class SyncMaintenancePage(val ids: List<Long>, val next: Long, val complete: Boolean)
+
 /** Reuses the existing account; it neither owns nor closes the shared TDLib session. */
 internal class TelegramSyncTransport(
     private val context: Context,
@@ -284,6 +287,140 @@ internal class TelegramSyncTransport(
         packet.validate()
         require(packet.space == space && message.number("id") == id)
         return SyncDelivery(packet, SyncReceipt(id, message.number("date")))
+    }
+
+    /** Metadata scan only: documents are downloaded individually after ownership/type/age checks. */
+    suspend fun maintenancePage(
+        before: Long,
+        through: Long = Long.MAX_VALUE,
+        cutoffDate: Long = Long.MAX_VALUE,
+    ): SyncMaintenancePage {
+        check(client.state.value.ready && client.state.value.account?.id == account)
+        val response = client.request(
+            tdRequest(
+                "getChatHistory",
+                "chat_id" to JsonPrimitive(chat),
+                "from_message_id" to JsonPrimitive(before),
+                "offset" to JsonPrimitive(0),
+                "limit" to JsonPrimitive(20),
+                "only_local" to JsonPrimitive(false),
+            ),
+        )
+        val messages = (response["messages"] as? JsonArray).orEmpty().filterIsInstance<JsonObject>()
+        val ids = messages.filter { value ->
+            if (!SyncWire.ownedMessage(value, account, chat) ||
+                value.flag("is_pinned") ||
+                (before > 0 && value.number("id") >= before) ||
+                value.number("id") > through ||
+                value.number("date") > cutoffDate
+            ) {
+                return@filter false
+            }
+            val content = value.objectOrNull("content")
+            val text = content?.objectOrNull("text")?.text("text").orEmpty()
+            val caption = content?.objectOrNull("caption")?.text("text").orEmpty()
+            val kind = if (text.startsWith(SyncEnvelope.MARKER)) {
+                runCatching { syncJson.decodeFromString<SyncPacket>(text.removePrefix(SyncEnvelope.MARKER)).kind }
+                    .getOrNull()
+            } else {
+                caption.substringAfter('|', "")
+            }
+            kind in setOf("data", "commit") &&
+                (text.startsWith(SyncEnvelope.MARKER) || caption.startsWith(SyncEnvelope.MARKER))
+        }.map { it.number("id") }.sortedDescending()
+        val next = messages.minOfOrNull { it.number("id") } ?: 0
+        return SyncMaintenancePage(ids, next, messages.isEmpty() || next == before)
+    }
+
+    /** Bypass retained journal bytes: verify the actual Telegram payload before destructive maintenance. */
+    suspend fun maintenanceMessage(id: Long): SyncMaintenanceMessage? {
+        require(id > 0)
+        check(client.state.value.ready && client.state.value.account?.id == account)
+        val value = try {
+            client.request(
+                tdRequest(
+                    "getMessage",
+                    "chat_id" to JsonPrimitive(chat),
+                    "message_id" to JsonPrimitive(id),
+                ),
+            )
+        } catch (error: TelegramException) {
+            if (error.code == 404) return null else throw error
+        }
+        require(value.number("id") == id && SyncWire.ownedMessage(value, account, chat))
+        val payload = SyncWire.text(value) ?: document(value) ?: error("Unrecognized maintenance message")
+        val packet = syncJson.decodeFromString<SyncPacket>(payload)
+        packet.validate()
+        require(packet.space == space)
+        return SyncMaintenanceMessage(
+            SyncDelivery(packet, SyncReceipt(id, value.number("date"))),
+            value.flag("is_pinned"),
+        )
+    }
+
+    /** Each exact candidate is rechecked immediately before a bounded, revocable server request. */
+    suspend fun maintenanceDelete(expected: List<SyncDelivery>): Int {
+        require(expected.size in 1..20 && expected.map { it.receipt.messageId }.distinct().size == expected.size)
+        verifyArchive()
+        val ids = mutableListOf<Long>()
+        for (delivery in expected) {
+            check(!RinSessions.busy.value) { "Maintenance waits for idle playback" }
+            val remote = maintenanceMessage(delivery.receipt.messageId) ?: continue
+            require(remote.delivery == delivery) { "Maintenance candidate changed" }
+            check(!remote.pinned) { "Maintenance candidate was pinned" }
+            val properties = client.request(
+                tdRequest(
+                    "getMessageProperties",
+                    "chat_id" to JsonPrimitive(chat),
+                    "message_id" to JsonPrimitive(delivery.receipt.messageId),
+                ),
+            )
+            check(properties.flag("can_be_deleted_for_all_users"))
+            ids += delivery.receipt.messageId
+        }
+        if (ids.isEmpty()) return 0
+        check(!RinSessions.busy.value)
+        check(client.state.value.ready && client.state.value.account?.id == account)
+        client.request(
+            tdRequest(
+                "deleteMessages",
+                "chat_id" to JsonPrimitive(chat),
+                "message_ids" to JsonArray(ids.map(::JsonPrimitive)),
+                "revoke" to JsonPrimitive(true),
+            ),
+        )
+        return ids.size
+    }
+
+    /** Fence legacy readers BEFORE removing checkpoint parts. A three-line-only client fails
+     * archive verification rather than consuming an incomplete historical checkpoint. */
+    suspend fun enableCheckpointMaintenance() {
+        verifyArchive()
+        val value = client.request(tdRequest("getChat", "chat_id" to JsonPrimitive(chat)))
+        val group = value.objectOrNull("type")?.number("supergroup_id") ?: error("Missing archive")
+        val info = client.request(tdRequest("getSupergroupFullInfo", "supergroup_id" to JsonPrimitive(group)))
+        val descriptor = requireNotNull(SyncArchiveDescriptor.parse(info.text("description")))
+        require(descriptor.space == space && descriptor.rootMessage > 0)
+        if (descriptor.maintenanceVersion == 0) {
+            client.request(
+                tdRequest(
+                    "setChatDescription",
+                    "chat_id" to JsonPrimitive(chat),
+                    "description" to JsonPrimitive(descriptor.copy(maintenanceVersion = 1).encode()),
+                ),
+            )
+        }
+        verifyArchive()
+    }
+
+    suspend fun checkpointMaintenanceEnabled(): Boolean {
+        verifyArchive()
+        val archive = client.request(tdRequest("getChat", "chat_id" to JsonPrimitive(chat)))
+        val group = archive.objectOrNull("type")?.number("supergroup_id") ?: error("Missing archive")
+        val info = client.request(tdRequest("getSupergroupFullInfo", "supergroup_id" to JsonPrimitive(group)))
+        val descriptor = requireNotNull(SyncArchiveDescriptor.parse(info.text("description")))
+        require(descriptor.space == space)
+        return descriptor.maintenanceVersion >= 1
     }
 
     /** A durable local delivery survives a partially downloaded page and TDLib cache eviction. */

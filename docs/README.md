@@ -58,6 +58,7 @@ Il progetto segue il modello [bring your own content](responsible-use.md).
 | [AnimeSchedule facoltativo](animeschedule.md) | Collegamento guidato, RAW/SUB/DUB, limiti e widget. |
 | [Uscite e calendario](release-monitor.md) | Segui, avvisi, controlli mirati, date annunciate e recupero. |
 | [Primo piano](title-details.md) | Schede anime e manga, ripresa, gestione di episodi e capitoli e transizioni. |
+| [Aggiornamento delle schede](detail-freshness.md) | Verifiche mirate, revisioni delle fonti, cache e protezione dalle risposte obsolete. |
 | [Informazioni sulle opere](work-information.md) | Approfondimenti facoltativi senza account, cataloghi, persone e associazioni. |
 | [Atlante](atlas-search.md) | Ricerca unificata, categorie, filtri, navigazione e limiti condivisi. |
 | [Ricerca intelligente](smart-title-search.md) | Motore comune, suggerimenti, limiti, privacy e licenza SymSpellKt. |

@@ -36,6 +36,7 @@ sealed class AnimeExtension {
         val metadata: ExtensionPackageMetadata = ExtensionPackageMetadata(),
         val updateStatus: ExtensionUpdateStatus = ExtensionUpdateStatus.UNVERIFIED,
         val keepVersion: Boolean = false,
+        val contentRevision: String? = null,
         val store: AnimeExtensionStore? = null,
     ) : AnimeExtension()
 

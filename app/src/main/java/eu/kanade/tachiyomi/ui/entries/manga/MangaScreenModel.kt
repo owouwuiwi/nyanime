@@ -14,6 +14,7 @@ import cafe.adriel.voyager.core.model.screenModelScope
 import eu.kanade.core.preference.asState
 import eu.kanade.core.util.addOrRemove
 import eu.kanade.core.util.insertSeparators
+import eu.kanade.domain.base.BasePreferences
 import eu.kanade.domain.entries.manga.interactor.GetExcludedScanlators
 import eu.kanade.domain.entries.manga.interactor.SetExcludedScanlators
 import eu.kanade.domain.entries.manga.interactor.UpdateManga
@@ -34,9 +35,7 @@ import eu.kanade.presentation.util.formattedMessage
 import eu.kanade.tachiyomi.data.download.manga.MangaDownloadCache
 import eu.kanade.tachiyomi.data.download.manga.MangaDownloadManager
 import eu.kanade.tachiyomi.data.download.manga.model.MangaDownload
-import eu.kanade.tachiyomi.data.releases.ReleaseEligibility
 import eu.kanade.tachiyomi.data.releases.ReleaseMedium
-import eu.kanade.tachiyomi.data.releases.ReleasePolicy
 import eu.kanade.tachiyomi.data.releases.ReleaseStore
 import eu.kanade.tachiyomi.data.releases.ReleaseUpdateGate
 import eu.kanade.tachiyomi.data.track.EnhancedMangaTracker
@@ -49,6 +48,8 @@ import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
 import eu.kanade.tachiyomi.util.chapter.getNextUnread
 import eu.kanade.tachiyomi.util.removeCovers
 import eu.kanade.tachiyomi.util.system.toast
+import it.lorelore.nyanime.sources.DetailRefreshes
+import it.lorelore.nyanime.sources.LoadedSourceRevisions
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CancellationException
@@ -59,6 +60,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -304,19 +306,8 @@ class MangaScreenModel(
             // Start observe tracking since it only needs mangaId
             observeTrackers()
 
-            // Fetch info-chapters when needed
             if (screenModelScope.isActive) {
-                if (needRefreshInfo ||
-                    needRefreshChapter ||
-                    ReleaseEligibility.source(ReleaseMedium.MANGA, mangaId) != null &&
-                    ReleasePolicy.isDue(
-                        ReleaseStore().check(ReleaseMedium.MANGA, mangaId),
-                        System.currentTimeMillis(),
-                        foreground = true,
-                    )
-                ) {
-                    fetchUpdateFromSource(needRefreshInfo, true)
-                }
+                refreshOpenedDetails()
             }
 
             // Initial loading finished
@@ -327,8 +318,41 @@ class MangaScreenModel(
     fun fetchAllFromSource(manualFetch: Boolean = true) {
         screenModelScope.launch {
             updateSuccessState { it.copy(isRefreshingData = true) }
-            fetchUpdateFromSource(fetchDetails = true, fetchChapters = true, manualFetch = manualFetch)
+            refreshOpenedDetails(force = true, manualFetch = manualFetch)
             updateSuccessState { it.copy(isRefreshingData = false) }
+        }
+    }
+
+    private suspend fun refreshOpenedDetails(force: Boolean = false, manualFetch: Boolean = false) {
+        repeat(2) {
+            try {
+                val state = successState ?: return
+                val preferences = Injekt.get<BasePreferences>()
+                if (!manualFetch && preferences.downloadedOnly().get() && !state.manga.isLocal()) return
+                val manager = Injekt.get<MangaSourceManager>()
+                if (kotlinx.coroutines.withTimeoutOrNull(15_000) { manager.isInitialized.first { it } } != true) return
+                val source = manager.get(state.manga.source) ?: return
+                val revision = LoadedSourceRevisions.registry.capture("manga", source.id, source) ?: return
+                updateSuccessState { it.copy(source = source) }
+                DetailRefreshes.get(context).refresh(
+                    key = DetailRefreshes.key("manga", mangaId, source.id, state.manga.url),
+                    sourceKey = "manga:${source.id}",
+                    revision = revision.revision,
+                    force = force,
+                    persistent = !preferences.incognitoMode().get(),
+                    current = { LoadedSourceRevisions.registry.current("manga", revision) },
+                ) {
+                    fetchUpdateFromSource(
+                        fetchDetails = true,
+                        fetchChapters = true,
+                        manualFetch = manualFetch,
+                        showErrors = manualFetch || !state.manga.initialized,
+                    )
+                }
+                return
+            } catch (_: it.lorelore.nyanime.sources.SourceReplacedException) {
+                kotlinx.coroutines.yield()
+            }
         }
     }
 
@@ -341,8 +365,10 @@ class MangaScreenModel(
         fetchDetails: Boolean,
         fetchChapters: Boolean,
         manualFetch: Boolean = false,
-    ) {
-        val state = successState ?: return
+        showErrors: Boolean = true,
+    ): Boolean {
+        val state = successState ?: return false
+        val revision = LoadedSourceRevisions.registry.capture("manga", state.source.id, state.source)
         try {
             ReleaseUpdateGate.withEntry(ReleaseMedium.MANGA, mangaId) {
                 withIOContext {
@@ -353,33 +379,36 @@ class MangaScreenModel(
                         fetchDetails,
                         fetchChapters,
                     )
-                    if (fetchDetails) {
-                        updateManga.awaitUpdateFromSource(state.manga, update.manga, manualFetch)
-                        val identity = runCatching {
-                            eu.kanade.tachiyomi.data.workinfo.SourceWorkIdentity.fromManga(
-                                state.manga.source,
-                                update.manga,
+                    LoadedSourceRevisions.registry.apply("manga", revision) {
+                        if (fetchDetails) {
+                            updateManga.awaitUpdateFromSource(state.manga, update.manga, manualFetch)
+                            val identity = runCatching {
+                                eu.kanade.tachiyomi.data.workinfo.SourceWorkIdentity.fromManga(
+                                    state.manga.source,
+                                    update.manga,
+                                )
+                            }.getOrNull()
+                            updateSuccessState { it.copy(sourceWorkIdentity = identity) }
+                        }
+                        if (fetchChapters) {
+                            val newChapters = syncChaptersWithSource.await(
+                                update.chapters,
+                                state.manga,
+                                state.source,
+                                manualFetch,
                             )
-                        }.getOrNull()
-                        updateSuccessState { it.copy(sourceWorkIdentity = identity) }
-                    }
-                    if (fetchChapters) {
-                        val newChapters = syncChaptersWithSource.await(
-                            update.chapters,
-                            state.manga,
-                            state.source,
-                            manualFetch,
-                        )
-                        if (manualFetch) downloadNewChapters(newChapters)
+                            if (manualFetch) downloadNewChapters(newChapters)
+                        }
                     }
                 }
             }
+            return true
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Throwable) {
             ReleaseStore().markFailure(ReleaseMedium.MANGA, mangaId, System.currentTimeMillis())
             // Ignore early hints "errors" that aren't handled by OkHttp
-            if (e is HttpException && e.code == 103) return
+            if (!showErrors || e is HttpException && e.code == 103) return false
 
             val message = if (e is NoChaptersException) {
                 context.stringResource(MR.strings.no_chapters_error)
@@ -392,6 +421,7 @@ class MangaScreenModel(
                 val newManga = mangaRepository.getMangaById(mangaId)
                 updateSuccessState { it.copy(manga = newManga, isRefreshingData = false) }
             }
+            return false
         }
     }
 

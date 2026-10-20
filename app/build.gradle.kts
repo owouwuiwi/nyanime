@@ -173,6 +173,12 @@ extensions.configure<com.android.build.api.dsl.ApplicationExtension>("android") 
         buildConfigField("String", "COMMIT_SHA", "\"${getGitSha()}\"")
         buildConfigField("String", "BUILD_TIME", "\"${getBuildTime(useLastCommitTime = false)}\"")
         buildConfigField("boolean", "UPDATER_ENABLED", "${Config.enableUpdater}")
+        // Real-server probes use a separate temporary archive; never run the user's cloud jobs in that build.
+        buildConfigField(
+            "boolean",
+            "ISOLATED_CLOUD_PROBE",
+            "${providers.gradleProperty("cloudSyncProbe").orNull == "true"}",
+        )
         buildConfigField("int", "TELEGRAM_API_ID", telegramApiId)
         buildConfigField("String", "TELEGRAM_API_HASH", "\"$telegramApiHash\"")
 
@@ -288,6 +294,8 @@ extensions.configure<com.android.build.api.dsl.ApplicationExtension>("android") 
     sourceSets {
         if (providers.gradleProperty("remoteBackupProbe").orNull == "true") {
             getByName("androidTest").java.setSrcDirs(listOf("src/remoteBackupProbe/java"))
+        } else if (providers.gradleProperty("cloudSyncProbe").orNull == "true") {
+            getByName("androidTest").java.setSrcDirs(listOf("src/androidTest/java/eu/kanade/tachiyomi/cloud"))
         }
         getByName("main").res.setSrcDirs(emptyList<String>())
         getByName("preview").res.srcDirs("src/debug/res")

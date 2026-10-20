@@ -12,6 +12,7 @@ import eu.kanade.tachiyomi.data.cache.AnimeBackgroundCache
 import eu.kanade.tachiyomi.data.cache.AnimeCoverCache
 import eu.kanade.tachiyomi.data.releases.ReleaseMedium
 import eu.kanade.tachiyomi.data.releases.ReleaseUpdateGate
+import it.lorelore.nyanime.sources.LoadedSourceRevisions
 import kotlinx.coroutines.CancellationException
 import logcat.LogPriority
 import mihon.domain.source.models.RemoteAnimeEpisodeUpdate
@@ -62,6 +63,7 @@ class UpdateAnimeFromRemote(
         manualFetch: Boolean = false,
         fetchWindow: Pair<Long, Long> = Pair(0, 0),
     ): Result<RemoteAnimeEpisodeUpdate> {
+        val revision = LoadedSourceRevisions.registry.capture("anime", source.id, source)
         return ReleaseUpdateGate.withEntry(ReleaseMedium.ANIME, anime.id) {
             try {
                 val episodes = episodeRepository.getEpisodeByAnimeId(anime.id)
@@ -74,16 +76,20 @@ class UpdateAnimeFromRemote(
                         fetchEpisodes = fetchEpisodes,
                     )
                 }
-                awaitUpdateFromSource(anime, update.anime, manualFetch)
-                val newEpisodes = syncEpisodesWithSource.await(
-                    rawSourceEpisodes = update.episodes,
-                    anime = anime,
-                    source = source,
-                    manualFetch = manualFetch,
-                    fetchWindow = fetchWindow,
-                )
-                val updatedAnime = animeRepository.getAnimeById(anime.id)
-                Result.success(RemoteAnimeEpisodeUpdate(anime = updatedAnime, newEpisodes = newEpisodes))
+                withIOContext {
+                    LoadedSourceRevisions.registry.apply("anime", revision) {
+                        awaitUpdateFromSource(anime, update.anime, manualFetch)
+                        val newEpisodes = syncEpisodesWithSource.await(
+                            rawSourceEpisodes = update.episodes,
+                            anime = anime,
+                            source = source,
+                            manualFetch = manualFetch,
+                            fetchWindow = fetchWindow,
+                        )
+                        val updatedAnime = animeRepository.getAnimeById(anime.id)
+                        Result.success(RemoteAnimeEpisodeUpdate(anime = updatedAnime, newEpisodes = newEpisodes))
+                    }
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -119,6 +125,7 @@ class UpdateAnimeFromRemote(
         manualFetch: Boolean = false,
         fetchWindow: Pair<Long, Long> = Pair(0, 0),
     ): Result<RemoteAnimeSeasonUpdate> {
+        val revision = LoadedSourceRevisions.registry.capture("anime", source.id, source)
         return ReleaseUpdateGate.withEntry(ReleaseMedium.ANIME, anime.id) {
             try {
                 val seasons = animeRepository.getAnimeSeasonsById(anime.id)
@@ -131,16 +138,20 @@ class UpdateAnimeFromRemote(
                         fetchSeasons = fetchSeasons,
                     )
                 }
-                awaitUpdateFromSource(anime, update.anime, manualFetch)
-                val newSeasons = syncSeasonsWithSource.await(
-                    rawSourceSeasons = update.seasons,
-                    anime = anime,
-                    source = source,
-                    manualFetch = manualFetch,
-                    fetchWindow = fetchWindow,
-                )
-                val updatedAnime = animeRepository.getAnimeById(anime.id)
-                Result.success(RemoteAnimeSeasonUpdate(anime = updatedAnime, newSeasons = newSeasons))
+                withIOContext {
+                    LoadedSourceRevisions.registry.apply("anime", revision) {
+                        awaitUpdateFromSource(anime, update.anime, manualFetch)
+                        val newSeasons = syncSeasonsWithSource.await(
+                            rawSourceSeasons = update.seasons,
+                            anime = anime,
+                            source = source,
+                            manualFetch = manualFetch,
+                            fetchWindow = fetchWindow,
+                        )
+                        val updatedAnime = animeRepository.getAnimeById(anime.id)
+                        Result.success(RemoteAnimeSeasonUpdate(anime = updatedAnime, newSeasons = newSeasons))
+                    }
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

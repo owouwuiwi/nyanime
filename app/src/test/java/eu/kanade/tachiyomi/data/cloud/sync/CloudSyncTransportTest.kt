@@ -35,6 +35,110 @@ class CloudSyncTransportTest {
     private val id = "b41fca19-82ab-46c4-9cbf-12515553be49"
     private val space = "debc23ab-1945-4c51-bc99-ce7d85292bbc"
 
+    @Test fun maintenanceChecksOwnershipPinsAndServerDeletionCapabilityAgain() = runTest {
+        for (invalid in listOf("pin", "owner", "permission", "account")) {
+            val (client, transport, _) = retryFixture(0.0)
+            val packet = SyncPacket(kind = "data", id = id, space = space, payload = "encrypted")
+            val delivery = nyanime.telegram.sync.SyncDelivery(packet, nyanime.telegram.sync.SyncReceipt(100, 1))
+            val connection = MutableStateFlow(client.state.value)
+            every { client.state } returns connection
+            val message = tdRequest(
+                "message",
+                "id" to JsonPrimitive(100),
+                "date" to JsonPrimitive(1),
+                "chat_id" to JsonPrimitive(-100),
+                "is_pinned" to JsonPrimitive(invalid == "pin"),
+                "sender_id" to
+                    tdRequest("messageSenderUser", "user_id" to JsonPrimitive(if (invalid == "owner") 99 else 1)),
+                "content" to tdRequest(
+                    "messageText",
+                    "text" to tdRequest(
+                        "formattedText",
+                        "text" to JsonPrimitive(SyncEnvelope.MARKER + syncJson.encodeToString(packet)),
+                    ),
+                ),
+            )
+            coEvery { client.request(match { it.type() == "getMessage" }) } returns message
+            coEvery { client.request(match { it.type() == "getMessageProperties" }) } coAnswers {
+                if (invalid ==
+                    "account"
+                ) {
+                    connection.value = connection.value.copy(account = TelegramAccount(99, "Other", ""))
+                }
+                tdRequest("messageProperties", "can_be_deleted_for_all_users" to JsonPrimitive(invalid != "permission"))
+            }
+            assertTrue(runCatching { transport.maintenanceDelete(listOf(delivery)) }.isFailure)
+            coVerify(exactly = 0) { client.request(match { it.type() == "deleteMessages" }) }
+        }
+    }
+
+    @Test fun maintenanceDoesNotDeleteAChangedPayloadOrAForwardedMessage() = runTest {
+        val (client, transport, _) = retryFixture(0.0)
+        val packet = SyncPacket(kind = "data", id = id, space = space, payload = "encrypted")
+        val delivery = nyanime.telegram.sync.SyncDelivery(packet, nyanime.telegram.sync.SyncReceipt(100, 1))
+        val message = tdRequest(
+            "message",
+            "id" to JsonPrimitive(100),
+            "date" to JsonPrimitive(1),
+            "chat_id" to JsonPrimitive(-100),
+            "sender_id" to tdRequest("messageSenderUser", "user_id" to JsonPrimitive(1)),
+            "content" to tdRequest(
+                "messageText",
+                "text" to tdRequest(
+                    "formattedText",
+                    "text" to
+                        JsonPrimitive(SyncEnvelope.MARKER + syncJson.encodeToString(packet.copy(payload = "changed"))),
+                ),
+            ),
+        )
+        coEvery { client.request(match { it.type() == "getMessage" }) } returns message
+        assertTrue(runCatching { transport.maintenanceDelete(listOf(delivery)) }.isFailure)
+        coEvery { client.request(match { it.type() == "getMessage" }) } returns
+            JsonObject(message + ("forward_info" to tdRequest("messageForwardInfo")))
+        assertTrue(runCatching { transport.maintenanceDelete(listOf(delivery)) }.isFailure)
+        coVerify(exactly = 0) { client.request(match { it.type() == "deleteMessages" }) }
+    }
+
+    @Test fun maintenanceMetadataScanLeavesForeignUnknownControlAndPinnedPostsUntouched() = runTest {
+        val (client, transport, _) = retryFixture(0.0)
+        fun message(number: Long, kind: String, owner: Long = 1, pin: Boolean = false): JsonObject {
+            val packet = SyncPacket(kind = kind, id = id, space = space, payload = "encrypted")
+            return tdRequest(
+                "message",
+                "id" to JsonPrimitive(number),
+                "date" to JsonPrimitive(1),
+                "chat_id" to JsonPrimitive(-100),
+                "is_pinned" to JsonPrimitive(pin),
+                "sender_id" to tdRequest("messageSenderUser", "user_id" to JsonPrimitive(owner)),
+                "content" to tdRequest(
+                    "messageText",
+                    "text" to tdRequest(
+                        "formattedText",
+                        "text" to JsonPrimitive(SyncEnvelope.MARKER + syncJson.encodeToString(packet)),
+                    ),
+                ),
+            )
+        }
+        coEvery { client.request(match { it.type() == "getChatHistory" }) } returns tdRequest(
+            "messages",
+            "messages" to JsonArray(
+                listOf(
+                    message(90, "root"),
+                    message(80, "control"),
+                    message(70, "data", 99),
+                    message(60, "data", pin = true),
+                    message(50, "data"),
+                    message(40, "checkpoint"),
+                ),
+            ),
+        )
+        val page = transport.maintenancePage(100, 95, 10)
+        assertEquals(listOf(50L), page.ids)
+        assertEquals(40L, page.next)
+        assertFalse(page.complete)
+        coVerify(exactly = 0) { client.request(match { it.type() in setOf("downloadFile", "deleteMessages") }) }
+    }
+
     @Test
     fun anExpiredCachedFailureCannotRenewTheServerWait() = runTest {
         val (client, transport, packet) = retryFixture(0.0)

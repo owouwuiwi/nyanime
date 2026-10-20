@@ -28,7 +28,7 @@ internal class CloudSyncStore(context: Context, account: Long, private val space
     context,
     File(context.noBackupFilesDir, "cloud-sync-$account-$space.sqlite").path,
     null,
-    1,
+    2,
 ) {
     private var excluded: (SyncRef) -> Boolean = { false }
     init {
@@ -63,9 +63,12 @@ internal class CloudSyncStore(context: Context, account: Long, private val space
             "CREATE TABLE observations (key TEXT NOT NULL, field TEXT NOT NULL, vector TEXT NOT NULL, " +
                 "PRIMARY KEY(key, field))",
         )
+        db.execSQL("CREATE INDEX sync_wire_kind ON wire(kind, message)")
     }
 
-    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        if (oldVersion < 2) db.execSQL("CREATE INDEX IF NOT EXISTS sync_wire_kind ON wire(kind, message)")
+    }
 
     /** Re-evaluate privacy before preparing envelopes, including edits queued while offline. */
     @Synchronized
@@ -153,6 +156,20 @@ internal class CloudSyncStore(context: Context, account: Long, private val space
     fun messageFor(id: String): Long? =
         value(readableDatabase, "wire", "message", "id=?", arrayOf(id))?.toLong()
 
+    /** Metadata only, bounded and independent of the data-packet compaction cursor. */
+    @Synchronized
+    fun messagesOfKind(kind: String, before: Long = Long.MAX_VALUE, limit: Int = 100): List<Long> =
+        readableDatabase.rawQuery(
+            "SELECT message FROM wire WHERE kind=? AND message<? ORDER BY message DESC LIMIT ?",
+            arrayOf(kind, before.toString(), limit.coerceIn(1, 100).toString()),
+        ).use { cursor -> buildList { while (cursor.moveToNext()) add(cursor.getLong(0)) } }
+
+    @Synchronized
+    fun nextMessageOfKind(kind: String, after: Long): Long? = readableDatabase.rawQuery(
+        "SELECT message FROM wire WHERE kind=? AND message>? ORDER BY message LIMIT 1",
+        arrayOf(kind, after.toString()),
+    ).use { if (it.moveToFirst()) it.getLong(0) else null }
+
     @Synchronized
     fun pending(): Pending? = value(readableDatabase, "outbox", "data", null, null)
         ?.let { syncJson.decodeFromString(it) }
@@ -171,9 +188,11 @@ internal class CloudSyncStore(context: Context, account: Long, private val space
         rebaseOutbox()
         db.delete("wire", null, null)
         db.delete("inbox", null, null)
+        db.delete("state", "key LIKE 'maintenance-%'", null)
         listOf(
             "received", "processed", "pull-before", "pull-top", "compact-through", "compacted-through",
             "checkpoint", "checkpoint-pending", "lastCheckpoint", "lastSent", "lastVerified", "membership-pending",
+            "maintenance-announced", "maintenance-floor", "maintenance-plan", "maintenance-capabilities",
         ).forEach {
             db.delete("state", "key=?", arrayOf(it))
         }

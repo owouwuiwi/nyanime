@@ -10,6 +10,25 @@ identificano modifiche nel repository, non garantiscono che ogni commit sia stat
 distribuito come APK.
 
 
+## 20 ottobre 2026 — 0.52.0.0: manutenzione Telegram e schede aggiornate
+
+### Novità
+
+- Le schede anime e manga mostrano subito i dati salvati e verificano discretamente dettagli, episodi, capitoli e stagioni. Il controllo avviene anche per titoli completati, non in libreria o esclusi dagli aggiornamenti periodici.
+- Una modifica effettiva dell’estensione o della fonte Studio rende subito da ricontrollare le relative schede aperte, anche se il numero di versione dichiarato non cambia. Nessuna scansione massiva della libreria all’avvio o dopo l’aggiornamento.
+- Pulizia automatica e riprendibile dello storico remoto della sincronizzazione. Un indice causale su SQLite verifica che due copie di recupero complete conservino ciascuna modifica prima di rimuovere i pacchetti ridondanti di almeno sette giorni.
+- Verifica di firme, cifratura, appartenenza all’archivio e contenuto effettivo dei messaggi. Restano protetti dati concorrenti, modifiche offline, messaggi fissati, autorizzazioni dei dispositivi e chiavi.
+- I vecchi checkpoint vengono rimossi soltanto quando tutti i dispositivi collegati dichiarano il supporto alla manutenzione. L’archivio passa allora a un formato che blocca i client precedenti prima che leggano copie incomplete; occorre mantenere aggiornati i dispositivi collegati.
+- Stato della manutenzione e conteggio dei messaggi ridondanti rimossi nella schermata Sync, in italiano e inglese.
+
+### Affidabilità
+
+- Controlli delle schede condivisi, cache persistente di dieci minuti e attesa crescente dopo errori, con massimo due verifiche contemporanee per fonte. Le risposte di fonti sostituite non possono sovrascrivere il nuovo stato; la modalità Solo scaricati evita i controlli automatici di rete.
+- Lavoro a piccoli passi durante le pause da player e lettore, con cursori persistenti, ripresa dopo interruzioni e rispetto dei limiti Telegram. Errori di pulizia non trasformano una sincronizzazione riuscita in un errore.
+- Recupero dal checkpoint completo più recente prima di consumare il journal storico, mantenendo i conflitti e le modifiche locali non inviate.
+- La conservazione dei backup completi viene ritentata anche quando il backup automatico è invariato, attraverso un lavoro separato che non genera né carica un nuovo file. Conservazione per dispositivo e copie fissate restano rispettate.
+- Nessuna nuova dipendenza o logica specifica delle fonti. Identità Android, firma e percorsi di aggiornamento restano invariati.
+
 ## 20 ottobre 2026 — 0.51.0.0: tracking personale e controllo degli avvisi
 
 ### Novità
