@@ -47,3 +47,6 @@ tools/source-exchange/extra-notices/**/LICENSE-* -text -whitespace
 core/source-exchange/native/Cargo.toml whitespace=-blank-at-eof
 core/source-exchange/native/src/error.rs whitespace=-blank-at-eof
 core/source-exchange/native/src/lib.rs whitespace=-blank-at-eof
+
+# Flattened upstream submodule: retain exact source, licence and font bytes.
+vendor/sandspiel/** -text
