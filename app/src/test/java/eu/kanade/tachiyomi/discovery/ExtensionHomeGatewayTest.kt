@@ -162,6 +162,7 @@ class ExtensionHomeGatewayTest {
     @BeforeEach
     fun prepare() {
         every { manager.isInitialized } returns MutableStateFlow(true)
+        every { manager.getOnlineSources() } returns emptyList()
         every { extensions.installedExtensionsFlow } returns installed
         every { extension.pkgName } returns "test.extension"
         every { extension.versionCode } returns 1L

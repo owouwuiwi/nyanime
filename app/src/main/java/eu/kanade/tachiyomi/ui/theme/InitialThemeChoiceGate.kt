@@ -50,7 +50,7 @@ fun InitialThemeChoiceGate(onReady: () -> Unit, content: @Composable () -> Unit)
     val animationsEnabled = appMotionEnabled()
     BackHandler { activity?.finish() }
     LaunchedEffect(Unit) { onReady() }
-    TachiyomiPreviewTheme(darkTheme = dark) {
+    TachiyomiPreviewTheme(darkTheme = dark, identity = settings.identity) {
         LaunchedEffect(dark) {
             activity?.enableEdgeToEdge(
                 statusBarStyle = if (dark) {

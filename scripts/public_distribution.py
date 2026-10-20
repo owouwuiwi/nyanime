@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Publish reviewed application source alongside immutable signed releases."""
 import argparse
+import configparser
 import hashlib
 import io
 import json
@@ -24,10 +25,11 @@ ASSET_PREFIX = 'Nyanime-Production'
 ABIS = ('universal', 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64')
 ROOT_DOCUMENTS = {'README.md', 'CHANGELOG.md', 'LICENSE', 'NOTICE', 'CONTRIBUTING.md'}
 SOURCE_ROOTS = {'addon-api', 'app', 'artwork', 'buildSrc', 'core', 'core-metadata',
-                'data', 'distribution', 'domain', 'gradle', 'i18n', 'i18n-aniyomi',
-                'macrobenchmark', 'news-api', 'presentation-core', 'presentation-widget',
+                'data', 'distribution', 'domain', 'feature', 'gradle', 'i18n', 'i18n-aniyomi',
+                'macrobenchmark', 'news-api', 'presentation-core', 'presentation-player', 'presentation-widget',
                 'scripts', 'source-api', 'source-local', 'tools', 'tv-api', 'vendor'}
 SOURCE_FILES = {'.editorconfig', '.gitattributes', '.gitignore', 'CODE_OF_CONDUCT.md',
+                '.gitmodules',
                 'app-identity.properties', 'build.gradle.kts', 'gradle.properties',
                 'gradlew', 'gradlew.bat', 'release.properties', 'settings.gradle.kts'}
 
@@ -77,22 +79,49 @@ def git(*args, cwd=None):
     return subprocess.check_output(['git', *args], cwd=cwd)
 
 def export_documents(destination, revision='HEAD', cwd=None):
-    with zipfile.ZipFile(io.BytesIO(git('archive', '--format=zip', revision, cwd=cwd))) as snapshot:
-        for entry in snapshot.infolist():
-            name = entry.filename
-            if entry.is_dir() or not allowed_source(name):
-                continue
-            data = snapshot.read(entry)
-            # Preserve code and embedded licence texts verbatim. Redaction applies
-            # only to public prose; it must never rewrite an upstream copyright.
-            if allowed_document(name) and name not in {'LICENSE', 'NOTICE'} and not name.endswith('.png'):
-                data = public_text(data.decode('utf-8')).encode('utf-8')
-            target = destination / name
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes(data)
-            mode = (entry.external_attr >> 16) & 0o777
-            if mode:
-                target.chmod(mode)
+    archive = git('archive', '--format=zip', revision, cwd=cwd)
+    def extract_archive(data, prefix=''):
+        with zipfile.ZipFile(io.BytesIO(data)) as snapshot:
+          from scripts.private_assets import verify_public_source_entries
+          verify_public_source_entries([prefix + name for name in snapshot.namelist()])
+          for entry in snapshot.infolist():
+              name = prefix + entry.filename
+              if entry.is_dir() or not allowed_source(name):
+                  continue
+              data = snapshot.read(entry)
+              # Preserve code and embedded licence texts verbatim. Redaction applies
+              # only to public prose; it must never rewrite an upstream copyright.
+              if allowed_document(name) and name not in {'LICENSE', 'NOTICE'} and not name.endswith('.png'):
+                  data = public_text(data.decode('utf-8')).encode('utf-8')
+              target = destination / name
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_bytes(data)
+              mode = (entry.external_attr >> 16) & 0o777
+              if mode:
+                  target.chmod(mode)
+    extract_archive(archive)
+    # A git archive contains empty gitlink directories, never their source.
+    # Export each declared, source-bearing top-level submodule at the parent's
+    # recorded revision. Do not fetch or recurse into optional nested repositories.
+    with zipfile.ZipFile(io.BytesIO(archive)) as snapshot:
+        if '.gitmodules' not in snapshot.namelist():
+            return
+        modules = configparser.RawConfigParser()
+        modules.read_string(snapshot.read('.gitmodules').decode('utf-8'))
+    root = Path(cwd or '.').resolve()
+    for section in modules.sections():
+        path = modules.get(section, 'path', fallback='')
+        if not path or not allowed_source(path + '/build.gradle.kts'):
+            continue
+        record = git('ls-tree', '-z', revision, '--', path, cwd=cwd).decode('utf-8').rstrip('\0')
+        fields = record.split('\t', 1)
+        header = fields[0].split()
+        if len(fields) != 2 or fields[1] != path or len(header) != 3 or header[:2] != ['160000', 'commit']:
+            raise ValueError('Declared source submodule is not a pinned gitlink')
+        dependency = root / path
+        if not (dependency / '.git').exists():
+            raise ValueError('Initialize source submodules before exporting: ' + path)
+        extract_archive(git('archive', '--format=zip', header[2], cwd=dependency), prefix=path + '/')
 
 def archive_source(destination, source_directory, version):
     with zipfile.ZipFile(destination, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=6) as package:
@@ -149,6 +178,10 @@ def prepare_bundle(output, apk_directory, version, code, channel, notes, revisio
     docs = output / 'public'
     docs.mkdir(parents=True)
     export_documents(docs, revision)
+    ordinary_renderer = (docs / 'presentation-player/build.gradle.kts').is_file()
+    if ordinary_renderer:
+        from scripts.verify_normal_migration import source_entries
+        source_entries([file.relative_to(docs).as_posix() for file in docs.rglob('*') if file.is_file()])
     # A public documentation tag never resolves to the private source revision.
     notes_text = re.sub(r'https://github\.com/[^\s)]+/blob/[^/]+/CHANGELOG\.md',
                         f'https://github.com/{PUBLIC_REPOSITORY}/blob/v{version}/CHANGELOG.md', notes_text)
@@ -161,6 +194,11 @@ def prepare_bundle(output, apk_directory, version, code, channel, notes, revisio
         source = apk_directory / name
         if not source.is_file():
             raise ValueError(f'Missing signed APK: {name}')
+        from scripts.private_assets import verify_public_apk
+        verify_public_apk(source)
+        if ordinary_renderer:
+            from scripts.verify_normal_migration import apk as verify_ordinary_apk
+            verify_ordinary_apk(source)
         shutil.copyfile(source, assets / name)
         hashes[name] = hashlib.sha256(source.read_bytes()).hexdigest()
     manifest = apk_directory / 'SHA256SUMS'

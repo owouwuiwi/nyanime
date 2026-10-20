@@ -4,7 +4,7 @@ plugins {
     kotlin("plugin.serialization")
 }
 
-android {
+extensions.configure<com.android.build.api.dsl.LibraryExtension>("android") {
     namespace = "nyanime.telegram"
     defaultConfig {
         consumerProguardFiles("consumer-rules.pro")
@@ -20,5 +20,6 @@ dependencies {
     implementation(kotlinx.bundles.coroutines)
     implementation(kotlinx.bundles.serialization)
     testImplementation(libs.bundles.test)
+    testRuntimeOnly(libs.junit.launcher)
     testImplementation(kotlinx.coroutines.test)
 }

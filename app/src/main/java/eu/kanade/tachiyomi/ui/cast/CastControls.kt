@@ -66,6 +66,7 @@ fun CastDevicesDialog(
     request: () -> CastRequest?,
     onDismiss: () -> Unit,
     liveRequest: (() -> eu.kanade.tachiyomi.data.cast.TvCastRequest?)? = null,
+    audioRequest: (suspend () -> eu.kanade.tachiyomi.data.cast.CastAudioRequest?)? = null,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val controller = remember { CastController.get(context) }
@@ -84,7 +85,12 @@ fun CastDevicesDialog(
             try {
                 val target = device ?: controller.findCompanion(address)
                 if (target.protocol == CastProtocol.COMPANION) controller.pairCompanion(target)
-                if (liveRequest != null) {
+                if (audioRequest != null) {
+                    controller.playAudio(
+                        audioRequest() ?: error(context.getString(eu.kanade.tachiyomi.R.string.cast_audio_unavailable)),
+                        target,
+                    )
+                } else if (liveRequest != null) {
                     controller.playLive(
                         liveRequest() ?: error(context.getString(eu.kanade.tachiyomi.R.string.tv_player_unavailable)),
                         target,

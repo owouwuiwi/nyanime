@@ -1,6 +1,7 @@
 package eu.kanade.tachiyomi.ui.player.settings
 
 import eu.kanade.tachiyomi.ui.player.Anime4KCalibration
+import eu.kanade.tachiyomi.ui.player.Anime4KContentAnalysis
 import eu.kanade.tachiyomi.ui.player.Anime4KEpisodeProfile
 import eu.kanade.tachiyomi.ui.player.Anime4KMode
 import eu.kanade.tachiyomi.ui.player.Anime4KProfile
@@ -85,6 +86,11 @@ class AdvancedPlayerPreferences(
     }
 
     fun anime4kDiagnosticsEnabled() = preferenceStore.getBoolean("pref_anime4k_diagnostics", false)
+
+    fun anime4kContentAnalysisEnabled() = preferenceStore.getBoolean(
+        "pref_anime4k_content_analysis",
+        Anime4KContentAnalysis.DEFAULT_ENABLED,
+    )
 
     fun anime4kDiagnostics(): StateFlow<Anime4KSmartDiagnostics> = anime4kDiagnosticsState
 

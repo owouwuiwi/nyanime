@@ -19,7 +19,10 @@ import tachiyomi.domain.items.episode.interactor.GetEpisodesByAnimeId
 import tachiyomi.domain.items.episode.interactor.ShouldUpdateDbEpisode
 import tachiyomi.domain.items.episode.interactor.UpdateEpisode
 import tachiyomi.domain.items.episode.model.Episode
+import tachiyomi.domain.items.episode.model.EpisodeGroup
+import tachiyomi.domain.items.episode.model.EpisodeProgressKey
 import tachiyomi.domain.items.episode.model.NoEpisodesException
+import tachiyomi.domain.items.episode.model.progressKey
 import tachiyomi.domain.items.episode.model.toEpisodeUpdate
 import tachiyomi.domain.items.episode.repository.EpisodeRepository
 import tachiyomi.domain.items.episode.service.EpisodeRecognition
@@ -29,7 +32,6 @@ import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.lang.Long.max
 import java.time.ZonedDateTime
-import java.util.TreeSet
 
 class SyncEpisodesWithSource(
     private val downloadManager: AnimeDownloadManager,
@@ -78,14 +80,12 @@ class SyncEpisodesWithSource(
         val sourceDates = sourceEpisodes.associate { it.url to it.dateUpload }
 
         val dbEpisodes = getEpisodesByAnimeId.await(anime.id)
+        val dbEpisodesByUrl = dbEpisodes.associateBy { it.url }
 
         val newEpisodes = mutableListOf<Episode>()
         val updatedEpisodes = mutableListOf<Episode>()
-        val removedEpisodes = dbEpisodes.filterNot { dbEpisode ->
-            sourceEpisodes.any { sourceEpisode ->
-                dbEpisode.url == sourceEpisode.url
-            }
-        }
+        val sourceUrls = sourceEpisodes.mapTo(hashSetOf()) { it.url }
+        val removedEpisodes = dbEpisodes.filterNot { it.url in sourceUrls }
 
         // Used to not set upload date of older episodes
         // to a higher value than newer episodes
@@ -109,7 +109,8 @@ class SyncEpisodesWithSource(
             )
             episode = episode.copy(episodeNumber = episodeNumber)
 
-            val dbEpisode = dbEpisodes.find { it.url == episode.url }
+            val dbEpisode = dbEpisodesByUrl[episode.url]
+            if (dbEpisode != null) episode = episode.copy(memo = EpisodeGroup.mergeMemo(dbEpisode.memo, episode.memo))
 
             if (dbEpisode == null) {
                 val toAddEpisode = if (episode.dateUpload == 0L) {
@@ -190,24 +191,31 @@ class SyncEpisodesWithSource(
 
         val changedOrDuplicateReadUrls = mutableSetOf<String>()
 
-        val deletedEpisodeNumbers = TreeSet<Double>()
-        val deletedSeenEpisodeNumbers = TreeSet<Double>()
-        val deletedBookmarkedEpisodeNumbers = TreeSet<Double>()
+        val deletedEpisodeNumbers = mutableSetOf<EpisodeProgressKey>()
+        val deletedSeenEpisodeNumbers = mutableSetOf<EpisodeProgressKey>()
+        val deletedBookmarkedEpisodeNumbers = mutableSetOf<EpisodeProgressKey>()
+
+        val snapshotByUrl = sourceEpisodes.associateBy { it.url }
 
         val readEpisodeNumbers = dbEpisodes
             .asSequence()
             .filter { it.seen && it.isRecognizedNumber }
-            .map { it.episodeNumber }
+            .map { saved ->
+                saved.copy(
+                    memo = EpisodeGroup.mergeMemo(saved.memo, snapshotByUrl[saved.url]?.memo ?: saved.memo),
+                ).progressKey
+            }
             .toSet()
 
         removedEpisodes.forEach { episode ->
-            if (episode.seen) deletedSeenEpisodeNumbers.add(episode.episodeNumber)
-            if (episode.bookmark) deletedBookmarkedEpisodeNumbers.add(episode.episodeNumber)
-            deletedEpisodeNumbers.add(episode.episodeNumber)
+            if (episode.seen) deletedSeenEpisodeNumbers.add(episode.progressKey)
+            if (episode.bookmark) deletedBookmarkedEpisodeNumbers.add(episode.progressKey)
+            deletedEpisodeNumbers.add(episode.progressKey)
         }
 
         val deletedEpisodeNumberDateFetchMap = removedEpisodes.sortedByDescending { it.dateFetch }
-            .associate { it.episodeNumber to it.dateFetch }
+            .associate { it.progressKey to it.dateFetch }
+        val removedByProgress = removedEpisodes.groupBy { it.progressKey }
 
         val markDuplicateAsRead = libraryPreferences.markDuplicateSeenEpisodeAsSeen().get()
             .contains(LibraryPreferences.MARK_DUPLICATE_EPISODE_SEEN_NEW)
@@ -218,27 +226,25 @@ class SyncEpisodesWithSource(
         var updatedToAdd = newEpisodes.map { toAddItem ->
             var episode = toAddItem.copy(dateFetch = nowMillis + itemCount--)
 
-            if (episode.episodeNumber in readEpisodeNumbers && markDuplicateAsRead) {
+            if (episode.progressKey in readEpisodeNumbers && markDuplicateAsRead) {
                 changedOrDuplicateReadUrls.add(episode.url)
                 episode = episode.copy(seen = true)
             }
 
-            if (!episode.isRecognizedNumber || episode.episodeNumber !in deletedEpisodeNumbers) return@map episode
+            if (!episode.isRecognizedNumber || episode.progressKey !in deletedEpisodeNumbers) return@map episode
 
             episode = episode.copy(
-                totalSeconds = removedEpisodes.filter { it.episodeNumber == episode.episodeNumber }
+                totalSeconds = removedByProgress[episode.progressKey].orEmpty()
                     .maxOfOrNull { it.totalSeconds } ?: 0,
-                seen = episode.episodeNumber in deletedSeenEpisodeNumbers,
-                bookmark = episode.episodeNumber in deletedBookmarkedEpisodeNumbers,
+                seen = episode.progressKey in deletedSeenEpisodeNumbers,
+                bookmark = episode.progressKey in deletedBookmarkedEpisodeNumbers,
                 lastSecondSeen =
-                removedEpisodes.filter {
-                    it.episodeNumber == episode.episodeNumber
-                }.maxOfOrNull { it.lastSecondSeen }
+                removedByProgress[episode.progressKey].orEmpty().maxOfOrNull { it.lastSecondSeen }
                     ?: 0,
             )
 
             // Try to to use the fetch date of the original entry to not pollute 'Updates' tab
-            deletedEpisodeNumberDateFetchMap[episode.episodeNumber]?.let {
+            deletedEpisodeNumberDateFetchMap[episode.progressKey]?.let {
                 episode = episode.copy(dateFetch = it)
             }
 

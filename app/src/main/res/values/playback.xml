@@ -35,4 +35,15 @@
   <string name="playback_all_episodes">All (%1$d)</string>
   <string name="playback_previous">Previous episode</string>
   <string name="playback_subtitles">Subtitles</string>
+  <string name="playback_audio">Audio tracks</string>
+  <string name="playback_speed">Playback speed</string>
+  <string name="playback_rotation">Screen rotation</string>
+  <string name="playback_settings">Player settings</string>
+  <string name="playback_share">Share</string>
+  <string name="playback_advanced">More controls</string>
+  <string name="playback_video">Video</string>
+  <string name="playback_pip">Picture in picture</string>
+  <string name="playback_lock">Lock controls</string>
+  <string name="playback_autoplay">Play the next episode automatically</string>
+  <string name="online_video_search_hint">Search YouTube…</string>
 </resources>

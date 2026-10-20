@@ -26,7 +26,8 @@ class StagePublicationTest(unittest.TestCase):
         apks = root / 'apks'
         apks.mkdir()
         for abi in ABIS:
-            (apks / f'Nyanime-Production-1.2.3.4-{abi}.apk').write_bytes(b'signed generic fixture ' + abi.encode())
+            with zipfile.ZipFile(apks / f'Nyanime-Production-1.2.3.4-{abi}.apk', 'w') as apk:
+                apk.writestr('fixture.txt', b'signed generic fixture ' + abi.encode())
         notes = root / 'notes.md'
         notes.write_text(release_notes('## 1.2.3.4: Update\n### Correzioni\n- Fixed.\n', None, 'v1.2.3.4'), encoding='utf-8')
         def documents(target, *_):

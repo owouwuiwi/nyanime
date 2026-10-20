@@ -14,6 +14,7 @@ internal data class DetailPart(
     val progress: Float = 0f,
     val preview: String? = null,
     val summary: String? = null,
+    val group: tachiyomi.domain.items.episode.model.EpisodeGroup? = null,
 )
 
 internal enum class DetailFilter { CONTINUE, NEW, INDEX, OFFLINE, BOOKMARKS }

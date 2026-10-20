@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -67,6 +68,7 @@ fun AtlasQueryBar(
     onClose: () -> Unit,
     onBrowse: () -> Unit,
     hint: String,
+    onFocused: () -> Unit = {},
 ) {
     val focus = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
@@ -89,7 +91,8 @@ fun AtlasQueryBar(
         BasicTextField(
             value = value,
             onValueChange = onEdit,
-            modifier = Modifier.weight(1f).focusRequester(focus).testTag("atlas_query"),
+            modifier = Modifier.weight(1f).focusRequester(focus)
+                .onFocusChanged { if (it.isFocused) onFocused() }.testTag("atlas_query"),
             textStyle = fieldStyle.copy(
                 color = androidx.compose.material3.LocalContentColor.current,
             ),

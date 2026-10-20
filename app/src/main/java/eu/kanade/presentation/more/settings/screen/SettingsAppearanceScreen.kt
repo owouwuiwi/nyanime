@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -16,12 +17,15 @@ import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import eu.kanade.domain.ui.NyanimeIdentity
 import eu.kanade.domain.ui.ThemeController
+import eu.kanade.domain.ui.ThemeSettingsRepository
 import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.domain.ui.model.StartScreen
 import eu.kanade.domain.ui.model.TabletUiMode
 import eu.kanade.presentation.more.settings.Preference
 import eu.kanade.presentation.more.settings.screen.appearance.AppLanguageScreen
+import eu.kanade.presentation.more.settings.widget.SwitchPreferenceWidget
 import eu.kanade.presentation.motion.modernMotionEnabled
 import eu.kanade.presentation.theme.LocalDarkTheme
 import eu.kanade.presentation.theme.ThemeModeCards
@@ -62,6 +66,8 @@ object SettingsAppearanceScreen : SearchableSettings {
     ): Preference.PreferenceGroup {
         val context = LocalContext.current
         val themeController = remember { Injekt.get<ThemeController>() }
+        val repository = remember { Injekt.get<ThemeSettingsRepository>() }
+        val settings by repository.settings.collectAsState(repository.current())
         val themeScope = rememberCoroutineScope()
         var changingTheme by remember { mutableStateOf(false) }
 

@@ -41,8 +41,14 @@ import eu.kanade.presentation.motion.posterForeground
 /** Home and title pages share the same bounded glass, atmosphere and surface materials. */
 @Composable
 fun Modifier.nyanimeBackdropSource(state: HazeState): Modifier {
-    val atmosphere = if (LocalDarkTheme.current) Color(0xFF69203D) else Color(0xFFEEC0C3)
-    return hazeSource(state).nyanimeAtmosphere(atmosphere)
+    return hazeSource(state).nyanimePageBackdrop()
+}
+
+/** Embedded pages use the same stationary atmosphere as the rest of the application. */
+@Composable
+fun Modifier.nyanimePageBackdrop(): Modifier {
+    val atmosphere = nyanimeBrandColors.atmosphere
+    return nyanimeAtmosphere(atmosphere)
 }
 
 /** A pinned control paints the same stationary backdrop, rather than a flat opaque stripe. */
@@ -52,7 +58,7 @@ fun Modifier.nyanimePinnedBackdrop(
     topInset: Dp,
     opacity: () -> Float,
 ): Modifier {
-    val atmosphere = if (LocalDarkTheme.current) Color(0xFF69203D) else Color(0xFFEEC0C3)
+    val atmosphere = nyanimeBrandColors.atmosphere
     return nyanimeAtmosphere(
         atmosphere,
         viewportWidth = viewportWidth,
@@ -99,6 +105,8 @@ fun NyanimeGlassHeader(
     modifier: Modifier = Modifier,
     topInset: Dp = 0.dp,
     sharedTransitionOverlay: Boolean = false,
+    backgroundColor: Color = MaterialTheme.colorScheme.background,
+    atmosphereColor: Color = nyanimeBrandColors.atmosphere,
     content: @Composable () -> Unit,
 ) {
     SubcomposeLayout(modifier.fillMaxWidth()) { constraints ->
@@ -106,7 +114,9 @@ fun NyanimeGlassHeader(
             val foreground = if (sharedTransitionOverlay) Modifier.posterForeground(zIndex = 2.5f) else Modifier
             Column(Modifier.fillMaxWidth().then(foreground).padding(top = topInset)) { content() }
         }.single().measure(constraints.copy(minHeight = 0))
-        val glass = subcompose("glass") { NyanimeGlass(state, sharedTransitionOverlay) }.single().measure(
+        val glass = subcompose("glass") {
+            NyanimeGlass(state, sharedTransitionOverlay, backgroundColor, atmosphereColor)
+        }.single().measure(
             Constraints.fixed(header.width, header.height + 44.dp.roundToPx()),
         )
         layout(header.width, header.height) {
@@ -121,10 +131,10 @@ fun NyanimeGlassHeader(
 private fun NyanimeGlass(
     state: HazeState,
     sharedTransitionOverlay: Boolean,
+    background: Color,
+    atmosphere: Color,
 ) {
-    val background = androidx.compose.material3.MaterialTheme.colorScheme.background
     val dark = LocalDarkTheme.current
-    val atmosphere = if (dark) Color(0xFF69203D) else Color(0xFFEEC0C3)
     val supportedBlur = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val opacity = posterBackdropOpacity()
     val tint = remember(background, atmosphere) {
@@ -217,22 +227,16 @@ fun NyanimeFloatingSurface(
     shape: Shape,
     content: @Composable BoxScope.() -> Unit,
 ) {
-    val dark = LocalDarkTheme.current
-    val brush = remember(dark) {
-        Brush.horizontalGradient(
-            if (dark) {
-                listOf(Color(0xFF26080E), Color(0xFF490D19))
-            } else {
-                listOf(Color(0xFFFFFCF8), Color(0xFFFFF3E9))
-            },
-        )
+    val brand = nyanimeBrandColors
+    val brush = remember(brand) {
+        Brush.horizontalGradient(listOf(brand.floatingStart, brand.floatingEnd))
     }
     Surface(
         modifier = modifier,
         shape = shape,
         color = Color.Transparent,
-        contentColor = if (dark) Color.White else Color(0xFF32251F),
-        border = BorderStroke(1.dp, if (dark) Color.White.copy(alpha = 0.10f) else Color(0xFFE4DAD2)),
+        contentColor = brand.floatingText,
+        border = BorderStroke(1.dp, brand.floatingBorder),
     ) {
         Box(Modifier.background(brush, shape), content = content)
     }

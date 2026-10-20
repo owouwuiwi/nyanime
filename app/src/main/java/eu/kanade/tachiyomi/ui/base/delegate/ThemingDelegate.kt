@@ -2,10 +2,11 @@ package eu.kanade.tachiyomi.ui.base.delegate
 
 import android.app.Activity
 import android.content.res.Configuration
+import eu.kanade.domain.ui.NyanimeIdentity
+import eu.kanade.domain.ui.ThemeSettingsRepository
 import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.domain.ui.model.AppTheme
 import eu.kanade.tachiyomi.R
-import eu.kanade.tachiyomi.ui.reader.ReaderActivity
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
@@ -13,9 +14,19 @@ interface ThemingDelegate {
     fun applyAppTheme(activity: Activity)
 
     companion object {
-        fun getThemeResIds(appTheme: AppTheme, isAmoled: Boolean): List<Int> {
+        fun getThemeResIds(
+            appTheme: AppTheme,
+            isAmoled: Boolean,
+            identity: NyanimeIdentity = NyanimeIdentity.CLASSIC,
+        ): List<Int> {
             return buildList(2) {
-                add(themeResources.getOrDefault(appTheme, R.style.Theme_Tachiyomi))
+                add(
+                    if (appTheme == AppTheme.NYANIME && identity == NyanimeIdentity.CLASSIC) {
+                        R.style.Theme_Tachiyomi_NyanimeClassic
+                    } else {
+                        themeResources.getOrDefault(appTheme, R.style.Theme_Tachiyomi)
+                    },
+                )
                 if (isAmoled) add(R.style.ThemeOverlay_Tachiyomi_Amoled)
             }
         }
@@ -26,10 +37,11 @@ class ThemingDelegateImpl : ThemingDelegate {
     override fun applyAppTheme(activity: Activity) {
         val uiPreferences = Injekt.get<UiPreferences>()
         ThemingDelegate.getThemeResIds(
-            if (activity is ReaderActivity) uiPreferences.legacyMangaTheme().get() else uiPreferences.activeAppTheme(),
+            uiPreferences.activeAppTheme(),
             uiPreferences.themeDarkAmoled().get() &&
                 activity.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
                 Configuration.UI_MODE_NIGHT_YES,
+            Injekt.get<ThemeSettingsRepository>().current().identity,
         )
             .forEach(activity::setTheme)
     }

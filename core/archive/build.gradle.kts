@@ -4,7 +4,7 @@ plugins {
     kotlin("plugin.serialization")
 }
 
-android {
+extensions.configure<com.android.build.api.dsl.LibraryExtension>("android") {
     namespace = "mihon.core.archive"
 }
 

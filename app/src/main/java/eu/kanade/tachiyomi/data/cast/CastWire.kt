@@ -115,7 +115,9 @@ object CastWire {
             <item id="0" parentID="-1" restricted="1"><dc:title>
         """.trimIndent() +
             xml(media.title + " — " + media.episodeName) +
-            "</dc:title><upnp:class>object.item.videoItem</upnp:class>" +
+            "</dc:title><upnp:class>" +
+            (if (media.audio) "object.item.audioItem.musicTrack" else "object.item.videoItem") +
+            "</upnp:class>" +
             """<res protocolInfo="http-get:*:${xml(media.mimeType)}:*">""" +
             xml(media.url) +
             "</res></item></DIDL-Lite>"

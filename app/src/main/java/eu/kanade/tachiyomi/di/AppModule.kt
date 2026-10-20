@@ -84,6 +84,24 @@ class AppModule(
         addSingletonFactory { eu.kanade.tachiyomi.data.news.NewsRepository(app, get()) }
         addSingletonFactory { eu.kanade.tachiyomi.data.tv.TvServices(app, get(), get()) }
         addSingletonFactory { eu.kanade.tachiyomi.data.workinfo.WorkInfoPreferences(get(), get()) }
+        addSingletonFactory { it.lorelore.nyanime.themes.ThemeChoices(get(), get()) }
+        addSingletonFactory {
+            val json = get<Json>()
+            val preferences = get<eu.kanade.tachiyomi.data.workinfo.WorkInfoPreferences>()
+            val http = eu.kanade.tachiyomi.data.workinfo.WorkInfoHttp(get<NetworkHelper>().client, json)
+            it.lorelore.nyanime.themes.AnimeThemesRepository(
+                listOf(
+                    it.lorelore.nyanime.themes.AnimeThemesProvider(http),
+                    it.lorelore.nyanime.themes.JikanThemesProvider(http),
+                ),
+                eu.kanade.tachiyomi.data.workinfo.FileWorkInfoCache(
+                    java.io.File(app.cacheDir, "anime-themes-v1"),
+                    json,
+                ),
+                json,
+                { preferences.consent().get() == eu.kanade.tachiyomi.data.workinfo.WorkInfoPreferences.ENABLED },
+            )
+        }
         addSingletonFactory {
             val json = get<Json>()
             val preferences = get<eu.kanade.tachiyomi.data.workinfo.WorkInfoPreferences>()

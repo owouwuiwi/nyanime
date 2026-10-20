@@ -1,6 +1,7 @@
 package eu.kanade.tachiyomi.ui.more
 
 import eu.kanade.domain.base.BasePreferences
+import eu.kanade.domain.ui.NyanimeIdentity
 import eu.kanade.domain.ui.ThemeSettings
 import eu.kanade.domain.ui.ThemeSettingsRepository
 import eu.kanade.domain.ui.model.ThemeMode
@@ -130,5 +131,7 @@ class WelcomeSetupTest {
         override val settings = flowOf(current())
         override fun current() = ThemeSettings(ThemeMode.SYSTEM, false)
         override suspend fun save(mode: ThemeMode, completeInitialChoice: Boolean): Result<Unit> = save()
+        override suspend fun saveIdentity(identity: NyanimeIdentity): Result<Unit> = error("Unexpected identity write")
+        override suspend fun unlockClassic(): Result<Unit> = error("Unexpected unlock")
     }
 }

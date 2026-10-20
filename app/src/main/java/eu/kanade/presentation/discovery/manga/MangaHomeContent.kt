@@ -46,7 +46,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -153,10 +152,7 @@ fun MangaHomeContent(
             displayedSourceKey = home?.key
         }
     }
-    var pulled by remember { mutableStateOf(false) }
-    val pullState = androidx.compose.material3.pulltorefresh.rememberPullToRefreshState()
     val refreshing = state.rows.values.any { it.loading }
-    LaunchedEffect(refreshing) { if (!refreshing) pulled = false }
     BoxWithConstraints(modifier.fillMaxSize()) {
         val viewportWidth = maxWidth
         val columns = when {
@@ -164,22 +160,13 @@ fun MangaHomeContent(
             maxWidth >= 600.dp -> 2
             else -> 1
         }
-        PullToRefreshBox(
-            state = pullState,
-            isRefreshing = pulled && refreshing,
-            onRefresh = {
-                pulled = true
-                onRefresh()
-            },
+        tachiyomi.presentation.core.components.material.PullRefresh(
+            refreshing = refreshing,
+            enabled = !state.offline,
+            onRefresh = onRefresh,
+            indicatorOnGestureOnly = true,
+            indicatorPadding = PaddingValues(top = eu.kanade.presentation.discovery.LocalHomeContentInset.current),
             modifier = Modifier.fillMaxSize(),
-            indicator = {
-                androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator(
-                    state = pullState,
-                    isRefreshing = pulled && refreshing,
-                    modifier = Modifier.align(Alignment.TopCenter)
-                        .padding(top = eu.kanade.presentation.discovery.LocalHomeContentInset.current),
-                )
-            },
         ) {
             LazyColumn(
                 state = listState,

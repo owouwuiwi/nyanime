@@ -38,7 +38,8 @@ data class AtlasEntry(
     val aliases: List<String> = emptyList(),
     val targets: List<AtlasTarget> = emptyList(),
 ) {
-    val artwork: Any? get() = tvChannel?.logoUrl ?: anime?.asAnimeCover() ?: manga?.asMangaCover()
+    val artwork: Any? get() = tvChannel?.logoUrl ?: anime?.asAnimeCover()
+        ?: manga?.asMangaCover()
 
     companion object {
         fun live(channel: nyanime.tv.api.TvChannel): AtlasEntry = AtlasEntry(
@@ -107,7 +108,9 @@ object AtlasCards {
 
     fun merge(entries: List<AtlasEntry>, previous: List<AtlasCard> = emptyList()): List<AtlasCard> {
         val groups = mutableListOf<MutableList<AtlasEntry>>()
-        entries.groupBy { listOf(it.medium, it.source, it.url, it.tvChannel != null) }.values.map { versions ->
+        entries.groupBy {
+            listOf(it.medium, it.source, it.url, it.tvChannel != null)
+        }.values.map { versions ->
             versions.first().copy(
                 aliases = mergeSearchAliases(
                     versions.flatMap {
@@ -182,7 +185,11 @@ object AtlasCards {
             (a.catalogIds.keys intersect b.catalogIds.keys).any { a.catalogIds[it] != b.catalogIds[it] }
 
     private fun same(a: AtlasEntry, b: AtlasEntry): Boolean {
-        if (a.medium != b.medium || (a.tvChannel != null) != (b.tvChannel != null)) return false
+        if (a.medium != b.medium ||
+            (a.tvChannel != null) != (b.tvChannel != null)
+        ) {
+            return false
+        }
         if (a.source == b.source && a.url == b.url) return true
         val common = a.catalogIds.keys intersect b.catalogIds.keys
         return common.isNotEmpty() && common.all { a.catalogIds[it] == b.catalogIds[it] }

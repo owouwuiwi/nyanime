@@ -1,6 +1,7 @@
 package eu.kanade.presentation.more.settings.screen.about
 
 import android.content.Context
+import android.os.SystemClock
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -10,16 +11,24 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.domain.ui.UiPreferences
@@ -39,6 +48,7 @@ import eu.kanade.tachiyomi.util.system.toast
 import eu.kanade.tachiyomi.util.system.updaterEnabled
 import kotlinx.coroutines.launch
 import logcat.LogPriority
+import nyanime.secretgame.VersionTapGate
 import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.lang.withUIContext
 import tachiyomi.core.common.util.system.logcat
@@ -68,8 +78,23 @@ object AboutScreen : Screen() {
         val handleBack = LocalBackPress.current
         val navigator = LocalNavigator.currentOrThrow
         var isCheckingUpdates by remember { mutableStateOf(false) }
+        val snackbar = remember { SnackbarHostState() }
+        val versionTaps = remember { VersionTapGate() }
+        val haptic = LocalHapticFeedback.current
+        val lifecycle = LocalLifecycleOwner.current
+        DisposableEffect(lifecycle, versionTaps) {
+            val observer = LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_PAUSE) versionTaps.reset()
+            }
+            lifecycle.lifecycle.addObserver(observer)
+            onDispose {
+                lifecycle.lifecycle.removeObserver(observer)
+                versionTaps.reset()
+            }
+        }
 
         Scaffold(
+            snackbarHost = { SnackbarHost(snackbar) },
             topBar = { scrollBehavior ->
                 AppBar(
                     title = stringResource(MR.strings.pref_category_about),
@@ -90,6 +115,14 @@ object AboutScreen : Screen() {
                         title = stringResource(MR.strings.version),
                         subtitle = getVersionName(withBuildDate = true),
                         onPreferenceClick = {
+                            if (versionTaps.tap(SystemClock.elapsedRealtime())) {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                navigator.push(SecretGameScreen)
+                            }
+                        },
+                        onLongClickLabel = androidStringResource(R.string.copy_debug_information),
+                        onLongClick = {
+                            versionTaps.reset()
                             val deviceInfo = CrashLogUtil(context).getDebugInfo()
                             context.copyToClipboard("Debug information", deviceInfo)
                         },

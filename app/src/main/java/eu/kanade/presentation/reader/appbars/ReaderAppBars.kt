@@ -85,6 +85,7 @@ fun ReaderAppBars(
     guidedEnabled: Boolean = false,
     onClickGuided: () -> Unit = {},
     verticalNavigator: Boolean = false,
+    musicControls: @Composable () -> Unit = {},
 ) {
     val motion = modernMotionEnabled()
     val isRtl = viewer is R2LPagerViewer || (viewer as? SpreadViewer)?.isRightToLeft == true
@@ -124,70 +125,73 @@ fun ReaderAppBars(
                     ExitTransition.None
                 },
             ) {
-                AppBar(
-                    modifier = modifierWithInsetsPadding
-                        .clickable(onClick = onClickTopAppBar),
-                    backgroundColor = backgroundColor,
-                    title = mangaTitle,
-                    subtitle = chapterTitle,
-                    navigateUp = navigateUp,
-                    actions = {
-                        AppBarActions(
-                            actions = persistentListOf<AppBar.AppBarAction>().builder()
-                                .apply {
-                                    add(
-                                        AppBar.Action(
-                                            title = androidStringResource(R.string.room_read),
-                                            icon = Icons.Outlined.Group,
-                                            onClick = onReadingTogether,
-                                        ),
-                                    )
-                                    add(
-                                        AppBar.Action(
-                                            title = stringResource(
-                                                if (bookmarked) {
-                                                    MR.strings.action_remove_bookmark
+                Column {
+                    AppBar(
+                        modifier = modifierWithInsetsPadding
+                            .clickable(onClick = onClickTopAppBar),
+                        backgroundColor = backgroundColor,
+                        title = mangaTitle,
+                        subtitle = chapterTitle,
+                        navigateUp = navigateUp,
+                        actions = {
+                            AppBarActions(
+                                actions = persistentListOf<AppBar.AppBarAction>().builder()
+                                    .apply {
+                                        add(
+                                            AppBar.Action(
+                                                title = androidStringResource(R.string.room_read),
+                                                icon = Icons.Outlined.Group,
+                                                onClick = onReadingTogether,
+                                            ),
+                                        )
+                                        add(
+                                            AppBar.Action(
+                                                title = stringResource(
+                                                    if (bookmarked) {
+                                                        MR.strings.action_remove_bookmark
+                                                    } else {
+                                                        MR.strings.action_bookmark
+                                                    },
+                                                ),
+                                                icon = if (bookmarked) {
+                                                    Icons.Outlined.Bookmark
                                                 } else {
-                                                    MR.strings.action_bookmark
+                                                    Icons.Outlined.BookmarkBorder
                                                 },
-                                            ),
-                                            icon = if (bookmarked) {
-                                                Icons.Outlined.Bookmark
-                                            } else {
-                                                Icons.Outlined.BookmarkBorder
-                                            },
-                                            onClick = onToggleBookmarked,
-                                        ),
-                                    )
-                                    onOpenInWebView?.let {
-                                        add(
-                                            AppBar.OverflowAction(
-                                                title = stringResource(MR.strings.action_open_in_web_view),
-                                                onClick = it,
+                                                onClick = onToggleBookmarked,
                                             ),
                                         )
+                                        onOpenInWebView?.let {
+                                            add(
+                                                AppBar.OverflowAction(
+                                                    title = stringResource(MR.strings.action_open_in_web_view),
+                                                    onClick = it,
+                                                ),
+                                            )
+                                        }
+                                        onOpenInBrowser?.let {
+                                            add(
+                                                AppBar.OverflowAction(
+                                                    title = stringResource(MR.strings.action_open_in_browser),
+                                                    onClick = it,
+                                                ),
+                                            )
+                                        }
+                                        onShare?.let {
+                                            add(
+                                                AppBar.OverflowAction(
+                                                    title = stringResource(MR.strings.action_share),
+                                                    onClick = it,
+                                                ),
+                                            )
+                                        }
                                     }
-                                    onOpenInBrowser?.let {
-                                        add(
-                                            AppBar.OverflowAction(
-                                                title = stringResource(MR.strings.action_open_in_browser),
-                                                onClick = it,
-                                            ),
-                                        )
-                                    }
-                                    onShare?.let {
-                                        add(
-                                            AppBar.OverflowAction(
-                                                title = stringResource(MR.strings.action_share),
-                                                onClick = it,
-                                            ),
-                                        )
-                                    }
-                                }
-                                .build(),
-                        )
-                    },
-                )
+                                    .build(),
+                            )
+                        },
+                    )
+                    musicControls()
+                }
             }
 
             Spacer(modifier = Modifier.weight(1f))

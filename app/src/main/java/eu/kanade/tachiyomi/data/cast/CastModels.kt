@@ -33,6 +33,26 @@ data class TvCastRequest(val reference: nyanime.tv.api.TvChannelRef, val quality
 
 data class TvCastContent(val reference: nyanime.tv.api.TvChannelRef, val rewind: Boolean = false)
 
+data class CastAudioStream(val url: String, val mimeType: String, val headers: Map<String, String>)
+
+/** Provider-neutral audio handoff; no fabricated episodes or extension identifiers. */
+data class CastAudioRequest(
+    val identity: String,
+    val title: String,
+    val artist: String,
+    val artwork: String?,
+    val positionMs: Long,
+    val durationMs: Long,
+    val valid: () -> Boolean,
+    val resolve: suspend () -> CastAudioStream,
+    val committed: () -> Unit,
+    val closed: () -> Unit,
+    val resume: (Long) -> Unit,
+    val progress: (Long) -> Unit,
+    val next: (suspend () -> CastAudioRequest?)? = null,
+    val previous: (suspend () -> CastAudioRequest?)? = null,
+)
+
 data class CastMedia(
     val animeId: Long?,
     val episodeId: Long?,
@@ -47,6 +67,8 @@ data class CastMedia(
     val cover: AnimeCover? = null,
     val quality: String = "",
     val live: TvCastContent? = null,
+    val audio: Boolean = false,
+    val artworkUrl: String? = null,
 )
 
 data class CastPlayback(

@@ -471,6 +471,7 @@ object HomeScreen : Screen() {
                 }
             }
             eu.kanade.tachiyomi.ui.watch.WatchTogetherButton()
+            it.lorelore.nyanime.music.MusicComingSoonButton()
         }
     }
 

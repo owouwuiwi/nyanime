@@ -40,10 +40,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import eu.kanade.domain.ui.NyanimeIdentity
 import eu.kanade.domain.ui.model.ThemeMode
 import eu.kanade.presentation.motion.ModernMotion
+import eu.kanade.tachiyomi.R
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.i18n.stringResource
+import androidx.compose.ui.res.stringResource as androidStringResource
 
 /** Stateless choice UI, shared by first launch and Appearance settings. */
 @Composable
@@ -197,7 +200,7 @@ private fun ThemeMiniature(mode: ThemeMode, modifier: Modifier) {
     Row(modifier.clip(RoundedCornerShape(12.dp))) {
         val themes = if (mode == ThemeMode.SYSTEM) listOf(false, true) else listOf(mode == ThemeMode.DARK)
         themes.forEach { dark ->
-            TachiyomiPreviewTheme(darkTheme = dark) {
+            TachiyomiPreviewTheme(darkTheme = dark, identity = LocalNyanimeIdentity.current) {
                 Column(
                     Modifier.weight(1f).fillMaxSize().background(MaterialTheme.colorScheme.background).padding(8.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),

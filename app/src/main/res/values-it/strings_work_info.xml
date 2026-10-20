@@ -2,7 +2,7 @@
 <resources>
     <string name="work_info_title">Informazioni sulle opere</string>
     <string name="work_info_prompt">Vuoi completare le informazioni sulle opere?</string>
-    <string name="work_info_prompt_body">Scopri autori, cast e opere collegate dai cataloghi pubblici. Senza account né chiavi. I dati e le immagini delle tue fonti restano al loro posto.</string>
+    <string name="work_info_prompt_body">Scopri autori, cast, sigle e opere collegate dai cataloghi pubblici, inclusi AnimeThemes e Jikan per i brani degli anime. Senza account né chiavi. I dati e le immagini delle tue fonti restano al loro posto.</string>
     <string name="work_info_enable">Attiva</string>
     <string name="work_info_later">Non ora</string>
     <string name="work_info_setting_hint">Completa le schede che apri con le informazioni dei cataloghi pubblici.</string>

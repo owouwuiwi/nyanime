@@ -13,12 +13,14 @@ import eu.kanade.tachiyomi.data.discovery.MangaHomeService
 import eu.kanade.tachiyomi.extension.manga.MangaExtensionManager
 import eu.kanade.tachiyomi.extension.manga.model.MangaExtension
 import eu.kanade.tachiyomi.source.CatalogueSource
+import eu.kanade.tachiyomi.source.MangaSource
 import eu.kanade.tachiyomi.source.model.Filter
 import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.source.model.MangasPage
 import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.source.model.SMangaHomeMetadata
 import eu.kanade.tachiyomi.source.model.SMangaTrackingMetadata
+import eu.kanade.tachiyomi.source.online.HttpSource
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -27,6 +29,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -35,10 +38,11 @@ import org.junit.jupiter.api.Test
 import tachiyomi.domain.discovery.SourceHomeRequest
 import tachiyomi.domain.entries.manga.interactor.NetworkToLocalManga
 import tachiyomi.domain.entries.manga.model.Manga
+import tachiyomi.domain.source.manga.model.StubMangaSource
 import tachiyomi.domain.source.manga.service.MangaSourceManager
 
 class MangaHomeIntegrationTest {
-    private val manager = mockk<MangaSourceManager>()
+    private val manager = TestMangaSourceManager()
     private val extensions = mockk<MangaExtensionManager>()
     private val preferences = mockk<SourcePreferences>()
     private val uiPreferences = mockk<UiPreferences>()
@@ -55,7 +59,8 @@ class MangaHomeIntegrationTest {
 
     @BeforeEach
     fun prepare() {
-        every { manager.isInitialized } returns MutableStateFlow(true)
+        manager.initialized.value = true
+        manager.available.value = listOf(engine)
         every { extensions.installedExtensionsFlow } returns installed
         every { extension.pkgName } returns "test.extension"
         every { extension.versionCode } returns 1L
@@ -65,7 +70,7 @@ class MangaHomeIntegrationTest {
         every { engine.id } returns 42L
         every { engine.lang } returns "it"
         every { engine.name } returns "TestSource"
-        every { manager.get(42) } returns engine
+        manager.sources[42L] = engine
         every { preferences.disabledMangaSources().get() } returns emptySet()
         every { preferences.enabledLanguages().get() } returns setOf("it")
         every { preferences.showNsfwSource().get() } returns true
@@ -124,12 +129,12 @@ class MangaHomeIntegrationTest {
         every { preferences.disabledMangaSources().get() } returns setOf("42")
         assertTrue(registry.current().homes.isEmpty())
         every { preferences.disabledMangaSources().get() } returns emptySet()
-        every { manager.get(42) } returns mockk()
+        manager.sources[42L] = mockk()
         assertTrue(registry.current().homes.isEmpty())
-        every { manager.get(42) } returns engine
+        manager.sources[42L] = engine
         installed.value = emptyList()
         assertTrue(registry.current().homes.isEmpty())
-        every { manager.isInitialized } returns MutableStateFlow(false)
+        manager.initialized.value = false
         assertTrue(registry.current().loading)
         assertTrue(registry.current().homes.isEmpty())
     }
@@ -162,7 +167,7 @@ class MangaHomeIntegrationTest {
             MangasPage(listOf(remote("chapter-1")), false)
         }
         val result = async { runCatching { service.fetch(key, SourceHomeRequest("trending")) } }
-        started.await()
+        withTimeout(5_000) { started.await() }
         installed.value = emptyList()
         resume.complete(Unit)
         assertTrue(result.await().isFailure)
@@ -199,6 +204,22 @@ class MangaHomeIntegrationTest {
         title = "Source title"
         thumbnail_url = "https://images.test/volume.jpg"
         (this as SMangaHomeMetadata).homePresentation = """{"id":"$id","chapters":[{"url":"/$id","label":"$id"}]}"""
+    }
+
+    // The property getter and the method share a JVM name but return different types.
+    // Use an actual implementation instead of MockK's return-type-erased method cache.
+    private class TestMangaSourceManager : MangaSourceManager {
+        val initialized = MutableStateFlow(true)
+        val available = MutableStateFlow<List<CatalogueSource>>(emptyList())
+        val sources = mutableMapOf<Long, MangaSource>()
+
+        override val isInitialized get() = initialized
+        override val catalogueSources get() = available
+        override fun get(sourceKey: Long): MangaSource? = sources[sourceKey]
+        override fun getOrStub(sourceKey: Long): MangaSource = requireNotNull(get(sourceKey))
+        override fun getOnlineSources(): List<HttpSource> = available.value.filterIsInstance<HttpSource>()
+        override fun getCatalogueSources(): List<CatalogueSource> = available.value
+        override fun getStubSources(): List<StubMangaSource> = emptyList()
     }
 
     companion object {

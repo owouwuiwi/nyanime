@@ -4,7 +4,7 @@ plugins {
     kotlin("plugin.serialization")
 }
 
-android {
+extensions.configure<com.android.build.api.dsl.LibraryExtension>("android") {
     namespace = "nyanime.tv.api"
     defaultConfig { consumerProguardFile("consumer-proguard.pro") }
 }
@@ -12,4 +12,5 @@ android {
 dependencies {
     api(kotlinx.serialization.json)
     testImplementation(libs.bundles.test)
+    testRuntimeOnly(libs.junit.launcher)
 }

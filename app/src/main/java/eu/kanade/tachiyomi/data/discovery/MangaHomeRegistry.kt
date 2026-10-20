@@ -7,6 +7,8 @@ import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.tachiyomi.extension.manga.MangaExtensionManager
 import eu.kanade.tachiyomi.extension.manga.model.MangaExtension
 import eu.kanade.tachiyomi.source.CatalogueSource
+import it.lorelore.nyanime.studio.StudioHomeProvider
+import it.lorelore.nyanime.studio.homeManifest
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
@@ -96,20 +98,53 @@ class MangaHomeRegistry(
                 // An incompatible optional capability must not take the Home down with it.
                 emptyList()
             }
-        }.distinctBy { it.key }.sortedWith(compareBy({ it.title }, { it.key }))
+        } +
+            manager.getCatalogueSources().filter { source ->
+                source is StudioHomeProvider &&
+                    source.id.toString() !in preferences.disabledMangaSources().get() &&
+                    (source.lang in preferences.enabledLanguages().get()) &&
+                    (source.lang == "it" || uiPreferences.showMangaInOtherLanguages().get()) &&
+                    (preferences.showNsfwSource().get() || !source.definition.adult)
+            }.mapNotNull { source ->
+                val provider = source as StudioHomeProvider
+                val manifest = provider.homeManifest() ?: return@mapNotNull null
+                val filters = source.getFilterList()
+                SourceHomeSource(
+                    id = source.id,
+                    revision = "studio:${provider.definition.revision}:${provider.definition.hashCode()}",
+                    sections = MangaHomeFilters.sections(
+                        manifest,
+                        filters,
+                    ),
+                    categories = MangaHomeFilters.categories(manifest, filters),
+                    key = "studio:${provider.definition.uuid}:${source.id}",
+                    title = manifest.title,
+                    sourceName = source.name,
+                    language = source.lang,
+                    search = MangaHomeFilters.search(
+                        manifest,
+                        filters,
+                    ),
+                    homeId = manifest.id,
+                    primary = manifest.primary,
+                    browseFilters = MangaHomeFilters.browseFilters(manifest, filters),
+                )
+            }
+        val orderedHomes = homes.distinctBy { it.key }.sortedWith(compareBy({ it.title }, { it.key }))
         val declared = homes.map { it.id }.toSet()
         val nativeFallback = installed.any { extension ->
             extension.sources.filterIsInstance<CatalogueSource>().any {
                 it.id !in declared && manager.get(it.id) === it && isEnabled(it.id, it.lang, extension)
             }
         }
-        return SourceHomeListing(loading = false, homes = homes, nativeFallback = nativeFallback)
+        return SourceHomeListing(loading = false, homes = orderedHomes, nativeFallback = nativeFallback)
     }
 
     /** Local classification uses already validated declarations, independently of feed visibility. */
     @Synchronized
     fun declaredHomeIds(sourceId: Long): Set<String> {
         val source = manager.get(sourceId) as? CatalogueSource ?: return emptySet()
+        if (source is StudioHomeProvider) return setOfNotNull(source.homeManifest()?.id)
         val extension = extensions.installedExtensionsFlow.value.firstOrNull { installed ->
             installed.sources.any { it === source }
         } ?: return emptySet()

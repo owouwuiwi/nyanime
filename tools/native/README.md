@@ -9,8 +9,11 @@ SAF protocol and generic HLS seek patches are retained.
 ## Release materials
 
 The [release page](https://github.com/owouwuiwi/nyanime/releases) accompanies
-signed APKs with the application source ZIP, a native manifest and two complete
-native source archives. The [distribution manifest](distribution.json) binds
+signed APKs with the application source ZIP and a native manifest linking the
+complete player, supplemental and WebRTC source archives by public URL and hash.
+When native bytes are unchanged, later releases reuse those immutable archives
+instead of uploading duplicate archives under every app version.
+The [distribution manifest](distribution.json) binds
 all shipped native bytes to component identities, licenses and material hashes.
 No production key or personal data is required to build your own version.
 
@@ -23,6 +26,16 @@ No production key or personal data is required to build your own version.
   MPL/LGPL components), archive libraries, the original player Java API,
   TorrServer and its full Go vendor closure, QuickJS, secp256k1, Zstandard,
   TDLib and OpenSSL. Upstream copyrights and full notices are retained.
+- **Source exchange (0.49):** all four Android ABIs from the reviewed Rust inputs,
+  Cargo.lock and offline vendor closure, with NDK r27c/API 26 build and packaging
+  recipes. Exact source hashes and original notices are retained in the dedicated
+  exchange archive; `tools/source-exchange/bundle_sources.py` creates the closure.
+- **Camera/inference (0.49):** unmodified CameraX and MediaPipe native Maven bytes,
+  original AAR/POMs, published AndroidX sources, CameraX embedded notices and the
+  associated complete MediaPipe public release sources. Source-JAR availability
+  and internal prebuilt-provenance limits are recorded explicitly in the archive.
+- **Room voice:** the separately pinned WebRTC engine and Android binding, with
+  original third-party notices, in the archive introduced with 0.47.0.2.
 - **Permissive prebuilt artifacts:** published Maven identity and bundled notices
   are recorded explicitly. A release-tag wrapper snapshot does not prove the
   internal compiler/dependency revision of a prebuilt artifact. No invented
@@ -123,3 +136,12 @@ It is no longer a dependency. Its original MPV snapshot had unrecorded moving
 branch dependencies; new source archives must not be described as the source
 of those old binaries. Old source records remain available, and the temporary
 migration bridge retains its original bytes and URLs.
+
+## Private build bootstrap
+
+The first-publication job restores the two new source archives from a private,
+hash-verified mirror before producing the public bundle. The mirror is not the
+recipient's source location: the exact archives are included in the public release
+and linked by public URL in distribution.json. Later builds can reuse those public
+materials. `scripts.restore_release_materials` checks hashes before exposing a
+cached file; failed or partial downloads are not accepted.

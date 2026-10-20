@@ -69,6 +69,7 @@ class CastController private constructor(private val context: Context) {
     private var sourceServer: HttpServer? = null
     private var request: CastRequest? = null
     private var liveRequest: TvCastRequest? = null
+    private var audioRequest: CastAudioRequest? = null
     private var loading: Job? = null
     private var polling: Job? = null
     private var discovery: Job? = null
@@ -133,6 +134,9 @@ class CastController private constructor(private val context: Context) {
 
     fun play(input: CastRequest, device: CastDevice? = state.value.device) = load(input, null, device)
 
+    fun playAudio(input: CastAudioRequest, device: CastDevice? = state.value.device) =
+        load(null, null, device, audio = input)
+
     fun playLive(input: TvCastRequest, device: CastDevice? = state.value.device, replaceOnFailure: Boolean = false) {
         require(nyanime.tv.api.TvRules.valid(input.reference))
         load(null, input, device, replaceOnFailure)
@@ -143,6 +147,7 @@ class CastController private constructor(private val context: Context) {
         live: TvCastRequest?,
         device: CastDevice?,
         replaceOnFailure: Boolean = false,
+        audio: CastAudioRequest? = null,
     ) {
         if (device == null) return
         val previousLoad = loading
@@ -170,7 +175,28 @@ class CastController private constructor(private val context: Context) {
                 previousQueue?.join()
                 previousStop?.join()
                 currentCoroutineContext().ensureActive()
-                val prepared = if (live != null) {
+                val prepared = if (audio != null) {
+                    check(audio.valid()) { "The selected audio changed" }
+                    withTimeout(30_000) {
+                        val stream = audio.resolve()
+                        withContext(Dispatchers.IO) {
+                            nextRelay = CastRelay(
+                                localAddress(),
+                                Injekt.get<eu.kanade.tachiyomi.network.NetworkHelper>().client,
+                                Headers.Builder().apply {
+                                    stream.headers.forEach { (key, value) -> add(key, value) }
+                                }.build(),
+                                ::openLocal,
+                            ).apply { start() }
+                            preparingRelay = nextRelay
+                            val (url, _) = nextRelay!!.prepare(stream.url)
+                            CastMedia(
+                                null, null, 0, audio.title, audio.artist, url, stream.mimeType,
+                                audio.positionMs, audio.durationMs, audio = true, artworkUrl = audio.artwork,
+                            )
+                        }
+                    }
+                } else if (live != null) {
                     val services = Injekt.get<eu.kanade.tachiyomi.data.tv.TvServices>()
                     services.initialized.first { it }
                     val playback = services.repository.resolve(live.reference)
@@ -244,9 +270,11 @@ class CastController private constructor(private val context: Context) {
                         CastProtocol.COMPANION -> companion
                     }
                     attempted = selected
+                    if (audio != null) check(audio.valid()) { "The selected audio changed" }
                     if (transport != null && transport !== selected) withTimeout(8000) { transport!!.stop() }
                     withTimeout(40_000) { selected.load(device, prepared) }
                     check(generation == currentGeneration)
+                    if (audio != null) check(audio.valid()) { "The selected audio changed" }
                     withContext(Dispatchers.IO) { closeRelay() }
                     relay = nextRelay
                     preparingRelay = null
@@ -255,6 +283,8 @@ class CastController private constructor(private val context: Context) {
                     nextServer = null
                     request = input
                     liveRequest = live
+                    if (audioRequest !== audio) audioRequest?.closed?.invoke()
+                    audioRequest = audio
                     transport = selected
                     committed = true
                     val index = input?.playlist?.indexOf(input.episodeId) ?: -1
@@ -262,16 +292,18 @@ class CastController private constructor(private val context: Context) {
                         it.copy(
                             connecting = false, device = device, media = prepared, subtitleIndex = -1,
                             playback = CastPlayback(
-                                input?.positionMs ?: 0,
-                                input?.durationMs ?: 0,
+                                input?.positionMs ?: audio?.positionMs ?: 0,
+                                input?.durationMs ?: audio?.durationMs ?: 0,
                                 paused = false,
                                 buffering = true,
                                 canSeek = live == null,
                             ),
-                            canNext = index >= 0 && input != null && index < input.playlist.lastIndex,
-                            canPrevious = index > 0, error = null, needsReconnect = false,
+                            canNext =
+                            audio?.next != null || index >= 0 && input != null && index < input.playlist.lastIndex,
+                            canPrevious = audio?.previous != null || index > 0, error = null, needsReconnect = false,
                         )
                     }
+                    audio?.committed?.invoke()
                 }
                 startPolling(currentGeneration)
             } catch (e: Exception) {
@@ -284,6 +316,8 @@ class CastController private constructor(private val context: Context) {
                             transport = null
                             request = null
                             liveRequest = null
+                            audioRequest?.closed?.invoke()
+                            audioRequest = null
                             withContext(Dispatchers.IO) { closeRelay() }
                             mutableState.update {
                                 it.copy(
@@ -366,7 +400,7 @@ class CastController private constructor(private val context: Context) {
                     }
                     if (state.value.needsReconnect) break
                     if (state.value.playback.finished) {
-                        if (request?.autoPlay == true && state.value.canNext) next()
+                        if ((request?.autoPlay == true || audioRequest != null) && state.value.canNext) next()
                         break
                     }
                 } catch (e: Exception) {
@@ -396,6 +430,7 @@ class CastController private constructor(private val context: Context) {
     private suspend fun flush() {
         val value = state.value
         try {
+            audioRequest?.let { audio -> if (audio.valid()) audio.progress(value.playback.positionMs) }
             value.media?.let { withContext(Dispatchers.IO) { progress.save(it, value.playback) } }
         } catch (e: Exception) {
             if (e is CancellationException) throw e
@@ -482,6 +517,10 @@ class CastController private constructor(private val context: Context) {
         }
     }
     fun reconnect() {
+        audioRequest?.let {
+            playAudio(it.copy(positionMs = state.value.playback.positionMs))
+            return
+        }
         liveRequest?.let {
             playLive(it)
             return
@@ -546,6 +585,29 @@ class CastController private constructor(private val context: Context) {
     }
 
     private fun move(offset: Int) {
+        audioRequest?.let { audio ->
+            val next = if (offset > 0) audio.next else audio.previous
+            if (next != null && !state.value.connecting) {
+                val expected = generation
+                queueLoading?.cancel()
+                queueLoading = scope.launch {
+                    try {
+                        flush()
+                        val selected = next()
+                        if (generation == expected && selected != null) playAudio(selected)
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        if (generation == expected) {
+                            mutableState.update {
+                                it.copy(error = context.getString(eu.kanade.tachiyomi.R.string.cast_audio_next_error))
+                            }
+                        }
+                    }
+                }
+            }
+            return
+        }
         val current = request ?: return
         if (state.value.connecting) return
         val index = current.playlist.indexOf(current.episodeId)
@@ -610,6 +672,8 @@ class CastController private constructor(private val context: Context) {
     fun stop(returnToPhone: Boolean = false) {
         val current = request
         val currentLive = liveRequest
+        val currentAudio = audioRequest
+        val audioPosition = state.value.playback.positionMs
         val previousStop = stopping
         val currentGeneration = ++generation
         val previousLoad = loading
@@ -630,6 +694,8 @@ class CastController private constructor(private val context: Context) {
                 transport = null
                 request = null
                 liveRequest = null
+                audioRequest?.closed?.invoke()
+                audioRequest = null
                 withContext(Dispatchers.IO) { closeRelay() }
                 if (generation == currentGeneration) {
                     mutableState.update {
@@ -650,6 +716,9 @@ class CastController private constructor(private val context: Context) {
                 ) {
                     context.stopService(Intent(context, CastSessionService::class.java))
                 }
+            }
+            if (returnToPhone && currentAudio != null && generation == currentGeneration && currentAudio.valid()) {
+                currentAudio.resume(audioPosition)
             }
             if (returnToPhone && currentLive != null && generation == currentGeneration) {
                 context.startActivity(

@@ -109,6 +109,7 @@ import eu.kanade.tachiyomi.util.storage.cacheImageDir
 import eu.kanade.tachiyomi.util.system.toast
 import `is`.xyz.mpv.MPVLib
 import `is`.xyz.mpv.Utils
+import it.lorelore.nyanime.syncplay.SyncplayManager
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -199,6 +200,9 @@ class PlayerViewModel @JvmOverloads constructor(
     private val libraryPreferences: LibraryPreferences = Injekt.get(),
     uiPreferences: UiPreferences = Injekt.get(),
 ) : ViewModel() {
+    private val scrubCoordinator = PlaybackScrubCoordinator()
+    internal val scrubState = scrubCoordinator.state
+    private var finishingScrubPause: Boolean? = null
 
     private val _currentPlaylist = MutableStateFlow<List<Episode>>(emptyList())
     val currentPlaylist = _currentPlaylist.asStateFlow()
@@ -330,20 +334,22 @@ class PlayerViewModel @JvmOverloads constructor(
                     } else {
                         null
                     }
+                    val scrub = scrubState.value
                     return WatchPlayback(
                         media = media,
-                        position = position,
-                        paused = paused.value,
+                        position = if (scrub != null) scrubCoordinator.clockPosition().toDouble() else position,
+                        paused = scrub?.paused ?: finishingScrubPause ?: paused.value,
                         ready = timing.ready &&
                             load.started &&
                             load.failure == null &&
                             !load.opening &&
                             !load.seeking &&
                             !isLoadingEpisode.value &&
-                            !isSeeking.value &&
+                            (!isSeeking.value || scrub != null) &&
                             !activity.player.isExiting,
-                        buffering = load.buffering || load.seeking || isSeeking.value,
-                        speed = holdSpeed.originalSpeed ?: playbackSpeed.value.toDouble(),
+                        buffering = load.buffering || load.seeking || (isSeeking.value && scrub == null),
+                        scrubbing = scrub != null,
+                        speed = scrub?.speed?.toDouble() ?: holdSpeed.originalSpeed ?: playbackSpeed.value.toDouble(),
                         problem = if (load.failure != null) WatchProblem.SourceError else WatchProblem.None,
                         upcoming = if (timing.ready && duration - position <= 90) watchNextMedia() else null,
                         canAdvance = timing.ready && canWatchAdvance(),
@@ -353,10 +359,18 @@ class PlayerViewModel @JvmOverloads constructor(
                     )
                 }
                 override fun pause(paused: Boolean) {
-                    if (!activity.player.isExiting) activity.player.paused = paused
-                    _paused.value = paused
+                    if (scrubCoordinator.active) {
+                        scrubCoordinator.playbackIntent(paused)
+                        return
+                    }
+                    if (finishingScrubPause != null) {
+                        finishingScrubPause = paused
+                        return
+                    }
+                    setScrubPaused(paused)
                 }
                 override fun seek(seconds: Double) {
+                    cancelPlaybackScrub()
                     if (!activity.player.isExiting) {
                         completion.playbackRestarted()
                         MPVLib.command(arrayOf("seek", seconds.toString(), "absolute+exact"))
@@ -390,23 +404,30 @@ class PlayerViewModel @JvmOverloads constructor(
     }
 
     fun onNativePause(paused: Boolean) {
-        val effective = paused || watchTogether.active && watchTogether.expectsPaused
+        val effective = paused || scrubCoordinator.active || watchTogether.active && watchTogether.expectsPaused
         if (effective) endHoldSpeed()
         _paused.value = effective
         if (effective != paused) activity.player.paused = effective
     }
 
     fun pauseByUser() {
+        cancelPlaybackScrub(restorePlayback = false)
+        it.lorelore.nyanime.attention.core.AttentionControl.externalCommand()
+        if (SyncplayManager.existing()?.requestPause(true) == true) return
         if (!watchTogether.requestPause(true)) pause()
     }
 
     fun setPlaybackSpeedByUser(speed: Double) {
+        if (SyncplayManager.isActive()) {
+            activity.showToast(activity.getString(eu.kanade.tachiyomi.R.string.syncplay_speed_fixed))
+            return
+        }
         endHoldSpeed()
         if (!watchTogether.requestSpeed(speed)) MPVLib.setPropertyDouble("speed", speed)
     }
 
     fun beginHoldSpeed(speed: Double): Boolean {
-        if (watchTogether.active) {
+        if (watchTogether.active || SyncplayManager.isActive()) {
             playerUpdate.value = PlayerUpdates.ShowTextResource(AYMR.strings.player_hold_speed_unavailable_in_room)
             return false
         }
@@ -482,6 +503,7 @@ class PlayerViewModel @JvmOverloads constructor(
     val thumbnailImage = _thumbnailImage.asStateFlow()
 
     private val thumbnailInfo = MutableStateFlow<ThumbnailInfo?>(null)
+    internal val hasSeekThumbnails: Boolean get() = thumbnailInfo.value != null
     private val thumbnailTileCache =
         object : LinkedHashMap<Int, Bitmap>(4, 0.75f, true) {
             override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Int, Bitmap>?) = size > 3
@@ -516,9 +538,11 @@ class PlayerViewModel @JvmOverloads constructor(
                 .normalize(0f, 255f, 0f, 1f)
         }.getOrElse { 0f },
     )
+    private var volumeCurve = activity.audioManager.mediaVolumeCurve()
     val currentVolume = MutableStateFlow(activity.audioManager.getStreamVolume(AudioManager.STREAM_MUSIC))
-    val currentMPVVolume = MutableStateFlow(MPVLib.getPropertyInt("volume"))
-    var volumeBoostCap: Int = MPVLib.getPropertyInt("volume-max")
+    val currentMPVVolume = MutableStateFlow(MPVLib.getPropertyDouble("volume") ?: 100.0)
+    val currentVolumeLevel = MutableStateFlow(volumeCurve.level(currentVolume.value, currentMPVVolume.value))
+    val volumeBoostCap = MutableStateFlow((MPVLib.getPropertyInt("volume-max") - 100).coerceAtLeast(0))
 
     // Pair(startingPosition, seekAmount)
     val gestureSeekAmount = MutableStateFlow<Pair<Int, Int>?>(null)
@@ -730,10 +754,12 @@ class PlayerViewModel @JvmOverloads constructor(
     }
 
     fun updateIsLoadingEpisode(value: Boolean) {
+        if (value) cancelPlaybackScrub(restorePlayback = false)
         _isLoadingEpisode.update { _ -> value }
     }
 
     fun onPlaybackFailed(reason: PlaybackFailure) {
+        cancelPlaybackScrub(restorePlayback = false)
         endHoldSpeed()
         playbackLoad.fail(reason)
         isLoading.value = false
@@ -1028,6 +1054,7 @@ class PlayerViewModel @JvmOverloads constructor(
                 lastThumbnailFetch = now
 
                 thumbnailFetchJob?.cancel()
+                val requestedIdentity = scrubIdentity()
                 thumbnailFetchJob = viewModelScope.launchIO {
                     val source = currentSource.value as? AnimeHttpSource ?: return@launchIO
 
@@ -1036,8 +1063,13 @@ class PlayerViewModel @JvmOverloads constructor(
                         val bitmap = source.getImageTile(tileUrl)
                         if (bitmap != null) {
                             withUIContext {
+                                if (requestedIdentity != scrubIdentity()) return@withUIContext
                                 thumbnailTileCache[info.imageIndex] = bitmap
-                                createThumbnail(bitmap, info)
+                                if (scrubCoordinator.active &&
+                                    kotlin.math.abs(seekPosition.value - pos) < .5f
+                                ) {
+                                    createThumbnail(bitmap, info)
+                                }
                             }
                         }
                     } catch (e: Exception) {
@@ -1050,8 +1082,99 @@ class PlayerViewModel @JvmOverloads constructor(
     }
 
     private fun createThumbnail(tileBitmap: Bitmap, tileInfo: TileInfo) {
+        if (tileBitmap.isRecycled ||
+            tileInfo.x < 0 ||
+            tileInfo.y < 0 ||
+            tileInfo.width <= 0 ||
+            tileInfo.height <= 0 ||
+            tileInfo.x.toLong() + tileInfo.width > tileBitmap.width ||
+            tileInfo.y.toLong() + tileInfo.height > tileBitmap.height
+        ) {
+            _thumbnailImage.value = null
+            return
+        }
         val thumbnail = Bitmap.createBitmap(tileBitmap, tileInfo.x, tileInfo.y, tileInfo.width, tileInfo.height)
         _thumbnailImage.update { _ -> thumbnail.asImageBitmap() }
+    }
+
+    private fun scrubIdentity(): String {
+        val cast = CastController.get(activity.applicationContext).state.value
+        val localOwner = !cast.active && !cast.connecting && !remoteProgressOwned
+        return "${activity.sessionId}:${currentEpisode.value?.id}:$localOwner"
+    }
+
+    internal fun beginPlaybackScrub(): Boolean {
+        if (scrubCoordinator.active) return true
+        val cast = CastController.get(activity.applicationContext).state.value
+        if (!activity.available ||
+            activity.player.isExiting ||
+            currentEpisode.value == null ||
+            currentVideo.value == null ||
+            isLoadingEpisode.value ||
+            isLoadingTracks.value ||
+            remoteProgressOwned ||
+            activity.live.value != null ||
+            cast.active ||
+            cast.connecting
+        ) {
+            return false
+        }
+        val scrubSpeed = holdSpeed.originalSpeed?.toFloat() ?: playbackSpeed.value
+        if (!scrubCoordinator.begin(
+                scrubIdentity(),
+                pos.value,
+                duration.value,
+                paused.value,
+                scrubSpeed,
+            )
+        ) {
+            return false
+        }
+        endHoldSpeed()
+        completion.cancel()
+        _isSeeking.value = true
+        _thumbnailImage.value = null
+        updateSeekPos(scrubState.value!!.target)
+        setScrubPaused(true)
+        return true
+    }
+
+    internal fun updatePlaybackScrub(target: Float) {
+        if (!scrubCoordinator.active && !beginPlaybackScrub()) return
+        if (scrubState.value?.identity != scrubIdentity()) {
+            cancelPlaybackScrub(restorePlayback = false)
+            return
+        }
+        scrubCoordinator.update(target)?.let(::updateSeekPos)
+    }
+
+    internal fun commitPlaybackScrub(precise: Boolean) = finishPlaybackScrub(commit = true, precise = precise)
+
+    internal fun cancelPlaybackScrub(restorePlayback: Boolean = true) =
+        finishPlaybackScrub(commit = false, restorePlayback = restorePlayback)
+
+    private fun finishPlaybackScrub(commit: Boolean, precise: Boolean = true, restorePlayback: Boolean = true) {
+        if (!scrubCoordinator.active) return
+        val result = scrubCoordinator.finish(scrubIdentity(), commit, restorePlayback)
+        updateIsSeeking(false)
+        gestureSeekAmount.value = null
+        hideSeekBar()
+        thumbnailFetchJob?.cancel()
+        if (result == null || !activity.available || activity.player.isExiting) return
+        finishingScrubPause = result.paused
+        try {
+            result.target?.let { seekTo(it.toInt(), precise) }
+            setScrubPaused(finishingScrubPause ?: result.paused)
+        } finally {
+            finishingScrubPause = null
+        }
+    }
+
+    private fun setScrubPaused(value: Boolean) {
+        val cast = CastController.get(activity.applicationContext).state.value
+        val effective = value || cast.active || cast.connecting || remoteProgressOwned
+        if (!activity.player.isExiting) activity.player.paused = effective
+        _paused.value = effective
     }
 
     fun updateIsSeeking(value: Boolean) {
@@ -1103,13 +1226,17 @@ class PlayerViewModel @JvmOverloads constructor(
     }
 
     fun resumeByUser() {
+        cancelPlaybackScrub(restorePlayback = false)
+        it.lorelore.nyanime.attention.core.AttentionControl.externalCommand()
         completion.cancel()
         sleepTimer.acknowledgeUserPlayback()
+        if (SyncplayManager.existing()?.requestPause(false) == true) return
         if (watchTogether.resumeByUser()) return
         unpause()
     }
 
     fun pause() {
+        cancelPlaybackScrub(restorePlayback = false)
         endHoldSpeed()
         if (isLoadingTracks.value && !watchTogether.active) _pausedState.value = true
         activity.player.paused = true
@@ -1126,6 +1253,7 @@ class PlayerViewModel @JvmOverloads constructor(
     }
 
     fun unpause() {
+        if (scrubCoordinator.active) return
         val cast = CastController.get(activity.applicationContext).state.value
         if (cast.active || cast.connecting) return
         if (remoteProgressOwned) {
@@ -1169,6 +1297,7 @@ class PlayerViewModel @JvmOverloads constructor(
     }
 
     fun lockControls() {
+        cancelPlaybackScrub()
         _areControlsLocked.update { true }
     }
 
@@ -1185,6 +1314,7 @@ class PlayerViewModel @JvmOverloads constructor(
     }
 
     fun showSheet(sheet: Sheets) {
+        if (sheet != Sheets.None) cancelPlaybackScrub()
         if (sheet != Sheets.None) completion.cancel()
         sheetShown.update { sheet }
         if (sheet == Sheets.None) {
@@ -1198,6 +1328,7 @@ class PlayerViewModel @JvmOverloads constructor(
     }
 
     fun showPanel(panel: Panels) {
+        if (panel != Panels.None) cancelPlaybackScrub()
         if (panel != Panels.None) completion.cancel()
         panelShown.update { panel }
         if (panel == Panels.None) {
@@ -1210,6 +1341,7 @@ class PlayerViewModel @JvmOverloads constructor(
     }
 
     fun showDialog(dialog: Dialogs) {
+        if (dialog != Dialogs.None) cancelPlaybackScrub()
         if (dialog != Dialogs.None) completion.cancel()
         dialogShown.update { dialog }
         if (dialog == Dialogs.None) {
@@ -1222,6 +1354,9 @@ class PlayerViewModel @JvmOverloads constructor(
     }
 
     fun seekBy(offset: Int, precise: Boolean = false) {
+        cancelPlaybackScrub()
+        it.lorelore.nyanime.attention.core.AttentionControl.externalCommand()
+        if (SyncplayManager.existing()?.requestSeek(readWatchTiming().position + offset) == true) return
         if (watchTogether.active) {
             val timing = readWatchTiming()
             if (timing.ready) watchTogether.requestSeek(timing.position + offset)
@@ -1232,6 +1367,9 @@ class PlayerViewModel @JvmOverloads constructor(
     }
 
     fun seekTo(position: Int, precise: Boolean = true) {
+        cancelPlaybackScrub()
+        it.lorelore.nyanime.attention.core.AttentionControl.externalCommand()
+        if (SyncplayManager.existing()?.requestSeek(position.toDouble()) == true) return
         if (watchTogether.requestSeek(position.toDouble())) {
             seekFeedback.request(position.toFloat())
             return
@@ -1258,37 +1396,47 @@ class PlayerViewModel @JvmOverloads constructor(
         isBrightnessSliderShown.update { true }
     }
 
-    val maxVolume = activity.audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+    val maxVolume get() = activity.audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+
+    fun beginVolumeAdjustment(): Float {
+        if (!activity.available) return currentVolumeLevel.value
+        volumeCurve = activity.audioManager.mediaVolumeCurve()
+        currentVolume.value = activity.audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+        currentMPVVolume.value = MPVLib.getPropertyDouble("volume") ?: currentMPVVolume.value
+        currentVolumeLevel.value = volumeCurve.level(currentVolume.value, currentMPVVolume.value)
+        return currentVolumeLevel.value
+    }
+
     fun changeVolumeBy(change: Int) {
-        val mpvVolume = MPVLib.getPropertyInt("volume")
-        if (volumeBoostCap > 0 && currentVolume.value == maxVolume) {
-            if (mpvVolume == 100 && change < 0) changeVolumeTo(currentVolume.value + change)
-            val finalMPVVolume = (mpvVolume + change).coerceAtLeast(100)
-            if (finalMPVVolume in 100..volumeBoostCap + 100) {
-                changeMPVVolumeTo(finalMPVVolume)
-                return
-            }
+        val level = beginVolumeAdjustment()
+        val step = if (level > 1.00001f || (level >= 0.99999f && change > 0)) 0.01f else 1f / maxVolume
+        changeVolumeLevelTo(level + change * step)
+    }
+
+    fun changeVolumeLevelTo(level: Float) {
+        if (!activity.available) return
+        val setting = volumeCurve.setting(level, volumeBoostCap.value)
+        val oldIndex = activity.audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+        // Attenuate before raising Android's level; lower Android before restoring software gain.
+        // These APIs cannot be committed atomically, so neither order may produce a loud overshoot.
+        if (setting.streamIndex > oldIndex) MPVLib.setPropertyDouble("volume", setting.softwareVolume)
+        if (setting.streamIndex != oldIndex) {
+            activity.audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, setting.streamIndex, 0)
         }
-        changeVolumeTo(currentVolume.value + change)
+        if (setting.streamIndex <= oldIndex) MPVLib.setPropertyDouble("volume", setting.softwareVolume)
+        currentVolume.value = if (setting.streamIndex != oldIndex) {
+            activity.audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+        } else {
+            oldIndex
+        }
+        setMPVVolume(MPVLib.getPropertyDouble("volume") ?: setting.softwareVolume)
     }
 
-    fun changeVolumeTo(volume: Int) {
-        val newVolume = volume.coerceIn(0..maxVolume)
-        activity.audioManager.setStreamVolume(
-            AudioManager.STREAM_MUSIC,
-            newVolume,
-            0,
-        )
-        currentVolume.update { newVolume }
-    }
-
-    fun changeMPVVolumeTo(volume: Int) {
-        MPVLib.setPropertyInt("volume", volume)
-    }
-
-    fun setMPVVolume(volume: Int) {
+    fun setMPVVolume(volume: Double) {
+        if (!volume.isFinite()) return
         if (volume != currentMPVVolume.value) displayVolumeSlider()
         currentMPVVolume.update { volume }
+        currentVolumeLevel.value = volumeCurve.level(currentVolume.value, volume)
     }
 
     fun displayVolumeSlider() {
@@ -1580,6 +1728,7 @@ class PlayerViewModel @JvmOverloads constructor(
     }
 
     override fun onCleared() {
+        cancelPlaybackScrub(restorePlayback = false)
         if (currentEpisode.value != null) {
             saveWatchingProgress(currentEpisode.value!!)
             episodeToDownload?.let {
@@ -1593,7 +1742,7 @@ class PlayerViewModel @JvmOverloads constructor(
     private val eventChannel = Channel<Event>()
     val eventFlow = eventChannel.receiveAsFlow()
 
-    private val incognitoMode: Boolean by lazy { getIncognitoState.await(currentAnime.value?.source) }
+    internal val incognitoMode: Boolean by lazy { getIncognitoState.await(currentAnime.value?.source) }
     private val downloadAheadAmount = downloadPreferences.autoDownloadWhileWatching().get()
 
     internal val relativeTime = uiPreferences.relativeTime().get()
@@ -2264,7 +2413,10 @@ class PlayerViewModel @JvmOverloads constructor(
                 if (
                     !episode.seen &&
                     episode.isRecognizedNumber &&
-                    episode.episode_number == currentEp.episode_number
+                    episode.episode_number == currentEp.episode_number &&
+                    episode.anime_id == currentEp.anime_id &&
+                    tachiyomi.domain.items.episode.model.EpisodeGroup.from(episode.memo)?.id ==
+                    tachiyomi.domain.items.episode.model.EpisodeGroup.from(currentEp.memo)?.id
                 ) {
                     EpisodeUpdate(id = episode.id!!, seen = true)
                 } else {

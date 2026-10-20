@@ -161,8 +161,8 @@ class CompanionTransport(private val context: Context, private val localAddress:
         }
         val format = when (media.mimeType) {
             "application/vnd.apple.mpegurl", "application/x-mpegurl" -> "hls"
-            "video/mp4" -> "mp4"
-            "video/webm" -> "webm"
+            "video/mp4", "audio/mp4" -> "mp4"
+            "video/webm", "audio/webm" -> "webm"
             "video/x-matroska" -> "mkv"
             else -> error("Formato non supportato dall’app TV")
         }
@@ -184,6 +184,7 @@ class CompanionTransport(private val context: Context, private val localAddress:
                         put("positionMs", media.startMs)
                         put("durationMs", media.durationMs)
                         put("live", media.live != null)
+                        put("audio", media.audio)
                         put(
                             "subtitles",
                             buildJsonArray {

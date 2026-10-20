@@ -12,6 +12,16 @@
     "Nyanime-Native-0.47.0.2-webrtc.tar.gz": {
       "sha256": "1b3cb47f9c287b8b7b88eda45bb733c2f8c829410b146a25f42d80bd19900139",
       "url": "https://github.com/owouwuiwi/nyanime/releases/download/v0.47.0.2/Nyanime-Native-0.47.0.2-webrtc.tar.gz"
+    },
+    "Nyanime-Native-0.49.0.0-exchange.tar.gz": {
+      "sha256": "9ec78db7be90728de5614f1462e9a002e9f33c3c06a271db32280a654cb404f3",
+      "url": "https://github.com/owouwuiwi/nyanime/releases/download/v0.49.0.0/Nyanime-Native-0.49.0.0-exchange.tar.gz",
+      "privateMirrorRelease": "native-materials-0.49.0.0"
+    },
+    "Nyanime-Native-0.49.0.0-camera-inference.tar.gz": {
+      "sha256": "6c84f9c3cf5aa6e0f2ce434404f04520d51f606dfe1075fadb66b87cb195d3da",
+      "url": "https://github.com/owouwuiwi/nyanime/releases/download/v0.49.0.0/Nyanime-Native-0.49.0.0-camera-inference.tar.gz",
+      "privateMirrorRelease": "native-materials-0.49.0.0"
     }
   },
   "components": {
@@ -293,6 +303,61 @@
         "lib/x86_64/libjingle_peerconnection_so.so": "6fa42eba21bcf4d02234d63e007b58966d9919d0d1eb0c887b8ef005964f7158",
         "lib/x86/libjingle_peerconnection_so.so": "d14971f27acc4f4c242cc6b77f4077a665d45b3dff33b026c3c42a61fccb00e7"
       }
+    },
+    "camera-native": {
+      "license": "Apache-2.0 and original embedded BSD notices",
+      "sourceIdentity": "androidx.camera:camera-core:1.6.1; AAR SHA-256 a36f1c323851b51215ba476640e1eb4153882b0c368c0376e9fb905e689df84a",
+      "buildRecipe": "Unmodified native bytes from the pinned Google Maven AAR; AndroidX sources or MediaPipe v0.10.35 public source and upstream build files in the supplied camera-inference archive. Java-only local telemetry transform: buildSrc/src/main/kotlin/it/lorelore/nyanime/buildlogic/LocalMediaPipeLogging.kt.",
+      "sourcePackages": [
+        "Nyanime-Native-0.49.0.0-camera-inference.tar.gz"
+      ],
+      "sourceCoverage": "Published Maven AAR/POM, original published sources where available, original CameraX licence and complete associated MediaPipe v0.10.35 public release tree. No claim of recovered internal vendor compiler/dependency revisions or bit-identical local rebuilding.",
+      "libraries": {
+        "lib/arm64-v8a/libimage_processing_util_jni.so": "0292b063fafccf734472cbb59588e756c2dbca907c72021ba6fbf126385508a2",
+        "lib/arm64-v8a/libsurface_util_jni.so": "a5c9d1928ea92ec7a94dff8cf666e7739cd734198b9f0ae1d4e28ea3c86516ba",
+        "lib/armeabi-v7a/libimage_processing_util_jni.so": "05973c0cf8e8dd281c8ec505c41814b78b740461056925bb41120594d7c35dcd",
+        "lib/armeabi-v7a/libsurface_util_jni.so": "78eb0b10e91b819be97cb7daa8c97fb757fa6d07cb80ccb7e92c113b45bda9be",
+        "lib/x86/libimage_processing_util_jni.so": "b52f93b57d408b2306071f9de1a4b0b5684c1b86563e34a8711d80a1e6c03f94",
+        "lib/x86/libsurface_util_jni.so": "3048a535d701579c87c4ad91283cd1246d2c85399a164ee4720642037ea31727",
+        "lib/x86_64/libimage_processing_util_jni.so": "112703727717651e69e91f3ea2c3c2311737ee5809a909c9d342a811b6c7c069",
+        "lib/x86_64/libsurface_util_jni.so": "e5311942b4fce0f7f2505d41150cf9921e558a6368929cb73127450f74dd4fe4"
+      }
+    },
+    "mediapipe-native": {
+      "license": "Apache-2.0 and upstream dependency notices",
+      "sourceIdentity": "com.google.mediapipe:tasks-core:0.10.35; AAR SHA-256 4edf2f33c840d682c751b3ca951b1ae0465373734776d7fb37dcef936de28ad0",
+      "buildRecipe": "Unmodified native bytes from the pinned Google Maven AAR; AndroidX sources or MediaPipe v0.10.35 public source and upstream build files in the supplied camera-inference archive. Java-only local telemetry transform: buildSrc/src/main/kotlin/it/lorelore/nyanime/buildlogic/LocalMediaPipeLogging.kt.",
+      "sourcePackages": [
+        "Nyanime-Native-0.49.0.0-camera-inference.tar.gz"
+      ],
+      "sourceCoverage": "Published Maven AAR/POM, original published sources where available, original CameraX licence and complete associated MediaPipe v0.10.35 public release tree. No claim of recovered internal vendor compiler/dependency revisions or bit-identical local rebuilding.",
+      "libraries": {
+        "lib/arm64-v8a/libmediapipe_tasks_jni.so": "c0497affbe5c60ddbb61b969403d053ae61d209dc6c7063f38427640c62b8f90",
+        "lib/armeabi-v7a/libmediapipe_tasks_jni.so": "13156861846c2ab5924b7c6331bf541dbc9d0918c2c480ede118aca47bf75e2f",
+        "lib/x86/libmediapipe_tasks_jni.so": "db2d3d3217e5e16a91014d337bbb922fce7e0a66c0eb1b53b097fee1eec91e38",
+        "lib/x86_64/libmediapipe_tasks_jni.so": "67fe7c45ce672cc65d121996ad3fe2f87c82ab5419fddfcb7210e4771d011ae0"
+      },
+      "requiredJavaClasses": [
+        "com.google.mediapipe.framework.Packet",
+        "com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarker"
+      ]
+    },
+    "source-exchange": {
+      "license": "Apache-2.0 / MIT with component-specific Cargo dependency terms retained",
+      "sourceIdentity": "core/source-exchange/native/android/provenance.json; exact source input hashes, Cargo.lock and vendored closure; Lightning revision 6960642a46f549c53d53abef3f2db7327857e488",
+      "buildRecipe": "tools/source-exchange/build-android.sh; NDK r27c 27.2.12479018, Rust 1.99.1, API 26, four ABIs; package_android.py verifies ELF and 16 KiB alignment.",
+      "sourcePackages": [
+        "Nyanime-Native-0.49.0.0-exchange.tar.gz"
+      ],
+      "libraries": {
+        "lib/arm64-v8a/libnyanime_source_exchange.so": "b2927eb48f894d9b374f7c2a33e3a5206d8e9dcece2dcb6d9294f36940de2966",
+        "lib/armeabi-v7a/libnyanime_source_exchange.so": "83a4eb6df98bc00371e6e1c10dde6cf31138b1fe02f74f7689050c22df465690",
+        "lib/x86/libnyanime_source_exchange.so": "9dddd2498782e15bbbc3b5969dbf531daa1898c3c0d568621af2b70a914b0bbe",
+        "lib/x86_64/libnyanime_source_exchange.so": "3e4cc14ca95d95b45f861d47e8b03ffdb7f00e94b8b08a0a60ec57337f1f025b"
+      },
+      "requiredJavaClasses": [
+        "org.rustls.platformverifier.CertificateVerifier"
+      ]
     }
   }
 }

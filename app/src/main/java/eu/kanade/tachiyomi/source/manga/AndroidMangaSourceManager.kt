@@ -6,6 +6,9 @@ import eu.kanade.tachiyomi.extension.manga.MangaExtensionManager
 import eu.kanade.tachiyomi.source.CatalogueSource
 import eu.kanade.tachiyomi.source.MangaSource
 import eu.kanade.tachiyomi.source.online.HttpSource
+import it.lorelore.nyanime.studio.SourceStudioRepository
+import it.lorelore.nyanime.studio.StudioMangaSource
+import it.lorelore.nyanime.studio.StudioMedium
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -14,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -49,8 +53,14 @@ class AndroidMangaSourceManager(
 
     init {
         scope.launch {
-            extensionManager.installedExtensionsFlow
-                .collectLatest { extensions ->
+            combine(extensionManager.installedExtensionsFlow, SourceStudioRepository.get(context).active) {
+                    extensions,
+                    definitions,
+                ->
+                extensions to
+                    definitions
+            }
+                .collectLatest { (extensions, definitions) ->
                     val mutableMap = ConcurrentHashMap<Long, MangaSource>(
                         mapOf(
                             LocalMangaSource.ID to LocalMangaSource(
@@ -64,6 +74,13 @@ class AndroidMangaSourceManager(
                         extension.sources.forEach {
                             mutableMap[it.id] = it
                             registerStubSource(StubMangaSource.from(it))
+                        }
+                    }
+                    definitions.filter { it.medium == StudioMedium.MANGA }.forEach { definition ->
+                        if (!mutableMap.containsKey(definition.sourceId)) {
+                            val source = StudioMangaSource(definition, SourceStudioRepository.get(context))
+                            mutableMap[source.id] = source
+                            registerStubSource(StubMangaSource.from(source))
                         }
                     }
                     sourcesMapFlow.value = mutableMap

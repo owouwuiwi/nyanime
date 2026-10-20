@@ -3,12 +3,14 @@ import mihon.buildlogic.configureTest
 
 plugins {
     id("com.android.test")
-    kotlin("android")
 
     id("mihon.code.lint")
 }
 
-android {
+// Apply after the host migration properties are available; the schema probe has no project properties.
+apply(plugin = "org.jetbrains.kotlin.android")
+
+extensions.configure<com.android.build.api.dsl.TestExtension>("android") {
     configureAndroid(this)
     configureTest()
 }

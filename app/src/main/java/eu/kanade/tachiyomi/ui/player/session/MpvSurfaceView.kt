@@ -7,6 +7,8 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import eu.kanade.tachiyomi.ui.base.activity.BaseActivity
+import eu.kanade.tachiyomi.ui.player.Anime4KContentAnalysis
+import eu.kanade.tachiyomi.ui.player.Anime4KImageSample
 import eu.kanade.tachiyomi.ui.player.PlayerSession
 import eu.kanade.tachiyomi.ui.privacy.PrivacyArea
 import eu.kanade.tachiyomi.ui.privacy.PrivacyMedia
@@ -72,9 +74,13 @@ internal class MpvSurfaceView(
 
     override fun surfaceCreated(holder: SurfaceHolder) = offer()
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) = offer()
-    override fun surfaceDestroyed(holder: SurfaceHolder) = engine.removeSurface(token)
+    override fun surfaceDestroyed(holder: SurfaceHolder) {
+        session.finishAnime4KReveal()
+        engine.removeSurface(token)
+    }
     override fun onResume(owner: LifecycleOwner) = activate()
     override fun onStop(owner: LifecycleOwner) {
+        session.finishAnime4KReveal()
         if (!activity.isInPictureInPictureMode) {
             session.releaseRenderHost(this)
             engine.deactivateSurface(token)
@@ -83,6 +89,61 @@ internal class MpvSurfaceView(
     }
 
     /** PixelCopy scales to a bounded temporary preview; original video rendering stays untouched. */
+    internal suspend fun captureAnalysisFrame(): Anime4KImageSample? {
+        if (released ||
+            !session.available ||
+            !holder.surface.isValid ||
+            width <= 0 ||
+            height <= 0 ||
+            activity.window.attributes.flags and android.view.WindowManager.LayoutParams.FLAG_SECURE != 0
+        ) {
+            return null
+        }
+        // A cancelled coroutine cannot cancel PixelCopy itself. Keep this session-wide
+        // permit until its callback, even if the renderer or episode changes meanwhile.
+        if (!session.anime4kCaptureInFlight.compareAndSet(false, true)) return null
+        val scale = minOf(1f, Anime4KContentAnalysis.MAX_DIMENSION.toFloat() / maxOf(width, height))
+        val bitmap = try {
+            android.graphics.Bitmap.createBitmap(
+                (width * scale).toInt().coerceAtLeast(1),
+                (height * scale).toInt().coerceAtLeast(1),
+                android.graphics.Bitmap.Config.ARGB_8888,
+            )
+        } catch (failure: Throwable) {
+            session.anime4kCaptureInFlight.set(false)
+            throw failure
+        }
+        val copied = kotlinx.coroutines.suspendCancellableCoroutine<android.graphics.Bitmap?> { continuation ->
+            try {
+                android.view.PixelCopy.request(this, bitmap, { result ->
+                    try {
+                        if (result == android.view.PixelCopy.SUCCESS && continuation.isActive) {
+                            continuation.resume(bitmap) { _, value, _ -> value.recycle() }
+                        } else {
+                            bitmap.recycle()
+                            if (continuation.isActive) continuation.resume(null)
+                        }
+                    } finally {
+                        session.anime4kCaptureInFlight.set(false)
+                    }
+                }, android.os.Handler(android.os.Looper.getMainLooper()))
+            } catch (failure: Throwable) {
+                bitmap.recycle()
+                session.anime4kCaptureInFlight.set(false)
+                if (continuation.isActive) continuation.resumeWith(Result.failure(failure))
+            }
+        } ?: return null
+        return try {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                val pixels = IntArray(copied.width * copied.height)
+                copied.getPixels(pixels, 0, copied.width, 0, 0, copied.width, copied.height)
+                Anime4KImageSample(copied.width, copied.height, pixels)
+            }
+        } finally {
+            copied.recycle()
+        }
+    }
+
     internal suspend fun captureFrame(): android.graphics.Bitmap? {
         if (released || !holder.surface.isValid || width <= 0 || height <= 0) return null
         val scale = minOf(1f, 720f / width, 480f / height)

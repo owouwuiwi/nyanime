@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import aniyomi.domain.anime.SeasonAnime
-import aniyomi.domain.anime.SeasonDisplayMode
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.domain.entries.anime.model.episodesFiltered
@@ -26,7 +25,6 @@ import eu.kanade.presentation.components.releases.ScheduleEpisodeCard
 import eu.kanade.presentation.components.releases.rememberScheduleNextAiringAt
 import eu.kanade.presentation.entries.DownloadAction
 import eu.kanade.presentation.entries.anime.components.AnimeMangaContinuityCard
-import eu.kanade.presentation.entries.anime.components.AnimeSeasonListItem
 import eu.kanade.presentation.entries.anime.components.EpisodeDownloadAction
 import eu.kanade.presentation.entries.anime.components.EpisodeDownloadIndicator
 import eu.kanade.presentation.entries.anime.components.ExpandableAnimeDescription
@@ -35,6 +33,8 @@ import eu.kanade.presentation.entries.anime.components.UltraTitleSummary
 import eu.kanade.presentation.entries.anime.components.getSwipeAction
 import eu.kanade.presentation.entries.details.DetailAction
 import eu.kanade.presentation.entries.details.DetailDownloadActions
+import eu.kanade.presentation.entries.details.DetailEpisodeSection
+import eu.kanade.presentation.entries.details.DetailEpisodeSections
 import eu.kanade.presentation.entries.details.DetailMetadata
 import eu.kanade.presentation.entries.details.DetailPart
 import eu.kanade.presentation.entries.details.TitleDetailsIcons
@@ -67,6 +67,7 @@ import me.saket.swipe.SwipeableActionsBox
 import tachiyomi.domain.entries.anime.model.Anime
 import tachiyomi.domain.entries.manga.model.Manga
 import tachiyomi.domain.items.episode.model.Episode
+import tachiyomi.domain.items.episode.model.group
 import tachiyomi.domain.library.model.LibraryDisplayMode
 import tachiyomi.domain.library.service.LibraryPreferences
 import tachiyomi.domain.source.anime.model.StubAnimeSource
@@ -139,6 +140,7 @@ internal fun AnimeDetailsScreen(
     onRelatedAnimeClicked: (Anime) -> Unit,
     onRelatedAnimeLongClicked: (Anime) -> Unit,
     relatedAnimeDisplayMode: LibraryDisplayMode,
+    onExpandEpisodeSeason: (Long, Boolean) -> Unit = { _, _ -> },
 ) {
     val context = LocalContext.current
     val anime = state.anime
@@ -147,14 +149,22 @@ internal fun AnimeDetailsScreen(
         anime.description,
         workInfo.information,
     )
-    val episodes = state.processedEpisodes
+    val isSeasons = anime.fetchType == FetchType.Seasons
+    val episodes = state.displayEpisodes
     val episodeById = remember(episodes) { episodes.associateBy { it.id } }
+    val nativeResumeSeason = state.processedSeasons.map { it.seasonAnime }
+        .filter { it.unseenCount > 0 }.maxByOrNull { it.lastSeen }?.id
+        ?: state.processedSeasons.firstOrNull()?.seasonAnime?.id
     val selector = remember { Injekt.get<ResumeEpisodeSelector>() }
     var resumeId by remember(anime.id) { mutableStateOf<Long?>(null) }
     var resumeResolved by remember(anime.id) { mutableStateOf(false) }
-    LaunchedEffect(anime.id, episodes.map { it.episode }) {
+    LaunchedEffect(anime.id, nativeResumeSeason, episodes.map { it.episode }) {
         try {
-            resumeId = selector.selectForAnime(anime.id) { it.id in episodeById }?.episode?.id
+            resumeId =
+                selector.selectForAnime(if (isSeasons) nativeResumeSeason ?: anime.id else anime.id) {
+                    it.id in
+                        episodeById
+                }?.episode?.id
         } catch (cancelled: kotlinx.coroutines.CancellationException) {
             throw cancelled
         } catch (_: Exception) {
@@ -164,9 +174,11 @@ internal fun AnimeDetailsScreen(
     }
     var noticesReady by remember(anime.id) { mutableStateOf(false) }
     val store = remember { ReleaseStore() }
-    val newIds by remember(anime.id) {
+    val noticeEntries =
+        remember(anime.id, state.seasons) { state.seasons.mapTo(mutableSetOf(anime.id)) { it.seasonAnime.id } }
+    val newIds by remember(noticeEntries) {
         store.noticeFlow(ReleaseMedium.ANIME).map { notices ->
-            notices.filter { it.entryId == anime.id }.mapTo(mutableSetOf()) { it.itemId }
+            notices.filter { it.entryId in noticeEntries }.mapTo(mutableSetOf()) { it.itemId }
         }
             .onEach { noticesReady = true }
             .catch {
@@ -212,7 +224,7 @@ internal fun AnimeDetailsScreen(
                         } else {
                             dateText(episode.dateUpload)
                         },
-                        episode.scanlator?.takeIf { it.isNotBlank() },
+                        episode.scanlator?.takeIf { it.isNotBlank() && it != episode.group?.title },
                         offlineLabel.takeIf { item.isDownloaded },
                         bookmarkLabel.takeIf { episode.bookmark },
 
@@ -224,7 +236,13 @@ internal fun AnimeDetailsScreen(
                                 eu.kanade.tachiyomi.data.episodeguide.EpisodeClassification.MIXED,
                             )
                     }?.let { type ->
-                        { eu.kanade.presentation.episodeguide.EpisodeGuideBadge(anime, episode, type) }
+                        {
+                            eu.kanade.presentation.episodeguide.EpisodeGuideBadge(
+                                state.owner(episode.animeId) ?: anime,
+                                episode,
+                                type,
+                            )
+                        }
                     },
                     completed = episode.seen, bookmarked = episode.bookmark, offline = item.isDownloaded,
                     fresh = item.id in newIds && !episode.seen,
@@ -237,36 +255,55 @@ internal fun AnimeDetailsScreen(
 
                     preview = episode.previewUrl.takeIf { state.showPreviews },
                     summary = episode.summary.takeIf { state.showSummaries },
+                    group = episode.group,
 
                 )
             }
         }
     val seasons = state.processedSeasons
-    val seasonParts = seasons.map { item ->
-        val season = item.seasonAnime
-        DetailPart(
-            id = season.id,
-            number = formatEpisodeNumber(season.anime.seasonNumber),
-            title = season.anime.title,
-            information = context.getString(
-                R.string.detail_progress_watch,
-                season.seenCount.toInt(),
-                season.totalCount.toInt(),
-            ),
-
-            completed = season.totalCount > 0 && season.seen,
-            bookmarked = season.hasBookmarks,
-            offline = item.downloadCount > 0,
-            fresh = false,
-        )
+    val partById = parts.associateBy { it.id }
+    val episodeSections = if (isSeasons) {
+        val partsByOwner = parts.groupBy { episodeById[it.id]?.episode?.animeId }
+        seasons.map { item ->
+            val season = item.seasonAnime
+            val loaded = state.seasonEpisodes[season.id]
+            val ownedParts = partsByOwner[season.id].orEmpty()
+            DetailEpisodeSection(
+                key = "native:${season.id}",
+                title = season.anime.title,
+                parts = ownedParts,
+                total = if (loaded?.loaded == true &&
+                    (!loaded.loading && !loaded.failed || loaded.episodes.isNotEmpty())
+                ) {
+                    loaded.episodes.size
+                } else {
+                    season.totalCount.takeIf { it > 0 }?.toInt()
+                },
+                completed =
+                loaded?.episodes?.takeIf { it.isNotEmpty() }?.count { it.episode.seen } ?: season.seenCount.toInt(),
+                loaded = loaded?.loaded == true,
+                loading = loaded?.loading == true,
+                failed = loaded?.failed == true,
+                canOpen = true,
+                directOpen = season.anime.fetchType != FetchType.Episodes,
+            )
+        }
+    } else {
+        // Totals include episodes hidden by native filters; only rows follow those filters.
+        val all = state.episodes.map { item ->
+            partById[item.id] ?: DetailPart(
+                item.id, "", item.episode.name, "", item.episode.seen,
+                item.episode.bookmark, item.isDownloaded, false, group = item.episode.group,
+            )
+        }
+        DetailEpisodeSections.fromParts(all, androidStringResource(R.string.episode_section_other), parts)
     }
-    val isSeasons = anime.fetchType == FetchType.Seasons
     val rewatch = resumeResolved && resumeId == null && episodes.isNotEmpty() && episodes.all { it.episode.seen }
     val current = episodeById[resumeId]?.episode ?: episodes.firstOrNull().takeIf { rewatch }?.episode
-    val watchStarted = state.episodes.any { it.episode.seen || it.episode.lastSecondSeen > 0 }
+    val watchStarted = state.episodes.any { it.episode.seen || it.episode.lastSecondSeen > 0 } ||
+        state.seasons.any { it.seasonAnime.hasStarted }
     val automaticFollowed = anime.favorite || state.trackingCount > 0 || watchStarted
-    val seasonResumeId = seasons.firstOrNull { it.showContinueOverlay }?.seasonAnime?.id
-        ?: seasonParts.firstOrNull { !it.completed }?.id ?: seasonParts.firstOrNull()?.id
+    val seasonResumeId = nativeResumeSeason
     val currentNumber = current?.episodeNumber?.takeIf { it >= 0 && it.isFinite() }?.let(::formatEpisodeNumber)
     val primary = if (currentNumber == null) {
         stringResource(if (watchStarted) MR.strings.action_resume else MR.strings.action_start)
@@ -386,12 +423,23 @@ internal fun AnimeDetailsScreen(
         subtitle = state.source.getNameForAnimeInfo(),
 
         artwork = anime, backgroundArtwork = !anime.backgroundUrl.isNullOrBlank(),
-        parts = if (isSeasons) seasonParts else parts,
-        currentId =
-        if (isSeasons) seasonResumeId else current?.id,
+        parts = parts,
+        currentId = current?.id,
+        episodeSections = episodeSections,
+        countEpisodeSections = isSeasons,
+        initialEpisodeSection = seasonResumeId?.let { "native:$it" },
+        onExpandEpisodeSection = { key, retry ->
+            if (isSeasons) {
+                val owner = seasons.firstOrNull { "native:${it.seasonAnime.id}" == key }?.seasonAnime
+                if (owner?.anime?.fetchType == FetchType.Episodes) onExpandEpisodeSeason(owner.id, retry)
+            }
+        },
+        onOpenEpisodeSection = { key ->
+            seasons.firstOrNull { "native:${it.seasonAnime.id}" == key }?.let { onSeasonClicked(it.seasonAnime) }
+        },
 
         primaryText = when {
-            isSeasons -> stringResource(MR.strings.action_resume)
+            isSeasons && current == null -> stringResource(MR.strings.action_resume)
             current == null && resumeResolved -> androidStringResource(R.string.detail_empty_parts)
             else -> primary
         },
@@ -403,7 +451,11 @@ internal fun AnimeDetailsScreen(
 
         totalCount = if (isSeasons) state.seasons.size else state.episodes.size,
         completedCount =
-        if (isSeasons) state.seasons.count { it.seasonAnime.seen } else state.episodes.count { it.episode.seen },
+        if (isSeasons) {
+            state.seasons.count { it.seasonAnime.totalCount > 0 && it.seasonAnime.seen }
+        } else {
+            state.episodes.count { it.episode.seen }
+        },
 
         noticeLoading = !noticesReady,
         favorite = anime.favorite, refreshing = state.isRefreshingData,
@@ -429,11 +481,7 @@ internal fun AnimeDetailsScreen(
         onCover = onCoverClicked, onFilter = onFilterButtonClicked, onRefresh = onRefresh,
         onShare = onShareClicked, onEditCategories = onEditCategoryClicked,
         onOpenPart = { id ->
-            if (isSeasons) {
-                seasons.firstOrNull { it.seasonAnime.id == id }?.let { onSeasonClicked(it.seasonAnime) }
-            } else {
-                episodeById[id]?.let { onEpisodeClicked(it.episode, false) }
-            }
+            episodeById[id]?.let { onEpisodeClicked(it.episode, false) }
         },
         follow = {
             ReleaseFollowAction(
@@ -460,6 +508,7 @@ internal fun AnimeDetailsScreen(
                         eu.kanade.presentation.workinfo.WorkLanguageNote(it)
                     }
                 }
+                it.lorelore.nyanime.presentation.themes.AnimeThemeSection(workInfo, isSeasons)
                 if (continuity is AnimeMangaContinuity.Result.Found ||
                     continuity == AnimeMangaContinuity.Result.Unavailable
                 ) {
@@ -496,35 +545,7 @@ internal fun AnimeDetailsScreen(
                 )
             }
         },
-        partLabel = androidStringResource(R.string.detail_seasons).takeIf { isSeasons },
-        seasonColumns = if (anime.seasonDisplayGridMode == SeasonDisplayMode.List) {
-            1
-        } else {
-            anime.seasonDisplayGridSize.takeIf { it > 0 }?.coerceIn(1, 12) ?: 2
-        },
-        seasonItem = if (isSeasons) {
-            { part, beforeNavigate ->
-                seasons.firstOrNull { it.seasonAnime.id == part.id }?.let { item ->
-                    AnimeSeasonListItem(
-                        anime = anime,
-                        item = item,
-                        containerHeight = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp,
-                        onSeasonClicked = {
-                            beforeNavigate()
-                            onSeasonClicked(it)
-                        },
-                        onClickContinueWatching = onContinueWatchingClicked?.let { play ->
-                            { season ->
-                                beforeNavigate()
-                                play(season)
-                            }
-                        },
-                    )
-                }
-            }
-        } else {
-            null
-        },
+        partLabel = androidStringResource(if (isSeasons) R.string.detail_seasons else R.string.detail_episodes),
         actions = menu,
         partActions = { ids, clear ->
             val selected = episodes.filter { it.id in ids }
@@ -621,8 +642,8 @@ internal fun AnimeDetailsScreen(
                                             medium = SharedMedium.ANIME,
                                             sourceId = anime.source,
                                             sourceName = state.source.name,
-                                            entryUrl = anime.url,
-                                            title = anime.title,
+                                            entryUrl = state.owner(episode.animeId)?.url ?: anime.url,
+                                            title = state.owner(episode.animeId)?.title ?: anime.title,
                                             itemUrl = episode.url,
                                             itemTitle = episode.name,
                                         ),
@@ -635,7 +656,7 @@ internal fun AnimeDetailsScreen(
             }
         },
         download = { id ->
-            if (!isSeasons) {
+            if (episodeById[id] != null) {
                 episodeById[id]?.let { item ->
                     onDownloadEpisode?.let { onDownload ->
                         EpisodeDownloadIndicator(
@@ -661,7 +682,7 @@ internal fun AnimeDetailsScreen(
         },
         swipe = { part, content ->
             val item = episodeById[part.id]
-            if (isSeasons || item == null) {
+            if (item == null) {
                 content()
             } else {
                 SwipeableActionsBox(

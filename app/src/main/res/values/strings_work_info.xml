@@ -2,7 +2,7 @@
 <resources>
     <string name="work_info_title">Work information</string>
     <string name="work_info_prompt">Complete this title\'s details?</string>
-    <string name="work_info_prompt_body">Discover creators, cast and related works from public catalogues. No account or key needed. Your sources and artwork stay as they are.</string>
+    <string name="work_info_prompt_body">Discover creators, cast, songs and related works from public catalogues, including AnimeThemes and Jikan for anime songs. No account or key needed. Your sources and artwork stay as they are.</string>
     <string name="work_info_enable">Enable</string>
     <string name="work_info_later">Not now</string>
     <string name="work_info_setting_hint">Add public catalogue information to the titles you open.</string>

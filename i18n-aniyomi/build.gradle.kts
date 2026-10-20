@@ -36,12 +36,11 @@ val englishFallback = tasks.register<EnglishFallbackResourcesTask>("prepareEngli
     baseFolder.set("base")
 }
 
-android {
+extensions.configure<com.android.build.api.dsl.LibraryExtension>("android") {
     namespace = "tachiyomi.i18n.aniyomi"
 
     sourceSets {
-        val main by getting
-        main.res.srcDirs(
+        getByName("main").res.srcDirs(
             "src/commonMain/resources",
             generatedAndroidResourceDir,
         )

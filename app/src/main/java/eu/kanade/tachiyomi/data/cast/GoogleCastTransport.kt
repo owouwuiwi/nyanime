@@ -136,9 +136,15 @@ class GoogleCastTransport(private val context: Context) : CastTransport {
             .setStreamType(if (media.live != null) MediaInfo.STREAM_TYPE_LIVE else MediaInfo.STREAM_TYPE_BUFFERED)
             .apply { if (media.live == null) setStreamDuration(media.durationMs.coerceAtLeast(0)) }
             .setMetadata(
-                MediaMetadata(MediaMetadata.MEDIA_TYPE_TV_SHOW).apply {
+                MediaMetadata(
+                    if (media.audio) MediaMetadata.MEDIA_TYPE_MUSIC_TRACK else MediaMetadata.MEDIA_TYPE_TV_SHOW,
+                ).apply {
                     putString(MediaMetadata.KEY_TITLE, media.title)
                     putString(MediaMetadata.KEY_SUBTITLE, media.episodeName)
+                    if (media.audio) putString(MediaMetadata.KEY_ARTIST, media.episodeName)
+                    media.artworkUrl?.let {
+                        addImage(com.google.android.gms.common.images.WebImage(android.net.Uri.parse(it)))
+                    }
                 },
             )
             .setMediaTracks(tracks)

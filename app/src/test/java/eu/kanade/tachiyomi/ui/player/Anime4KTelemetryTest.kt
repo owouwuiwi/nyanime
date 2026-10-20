@@ -1,5 +1,7 @@
 package eu.kanade.tachiyomi.ui.player
 
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -21,6 +23,14 @@ class Anime4KTelemetryTest {
         assertEquals(123L, sample.timestampMillis)
         assertTrue(sample.playing)
         assertNull(sample.decoderDroppedFrames)
+    }
+
+    @Test
+    fun `node string transport requires a protocol object rather than quoted JSON`() {
+        // Native node STRING observers JSON-escape a stored string. The Lua bridge
+        // must store a map, whose observer representation is the protocol object.
+        assertNull(Anime4KTelemetry.parse(Json.encodeToString(valid)))
+        assertNotNull(Anime4KTelemetry.parse(valid))
     }
 
     @Test

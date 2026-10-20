@@ -1,17 +1,4 @@
 pluginManagement {
-    // Kotlin 2.4 needs R8 9.1.29 or newer; AGP 8.9 bundles an older compiler.
-    // https://developer.android.com/build/kotlin-support
-    buildscript {
-        repositories {
-            mavenCentral()
-            maven(url = "https://storage.googleapis.com/r8-releases/raw") {
-                content { includeModule("com.android.tools", "r8") }
-            }
-        }
-        dependencies {
-            classpath("com.android.tools:r8:9.1.29")
-        }
-    }
     resolutionStrategy {
         eachPlugin {
             val regex = "com.android.(library|application)".toRegex()
@@ -51,6 +38,7 @@ dependencyResolutionManagement {
                 includeVersion("com.github.arkon.FlexibleAdapter", "flexible-adapter", "c8013533")
                 includeVersion("it.owouwuiwi.native", "nyanime-ffmpeg", "1.0.0")
                 includeVersion("it.owouwuiwi.native", "nyanime-mpv", "1.0.0")
+                includeVersion("org.rustls", "rustls-platform-verifier", "0.2.0")
             }
         }
         mavenCentral()
@@ -69,11 +57,15 @@ rootProject.name = "Aniyomi"
 include(":app")
 include(":core-metadata")
 include(":core:archive")
+include(":core:attention")
 include(":core:common")
 include(":core:panels")
 include(":core:privacy-display")
 include(":core:room-voice")
 include(":core:smart-search")
+include(":core:source-studio")
+include(":core:source-exchange")
+include(":core:syncplay")
 include(":core:telegram")
 include(":data")
 include(":domain")
@@ -81,9 +73,12 @@ include(":i18n")
 include(":i18n-aniyomi")
 include(":macrobenchmark")
 include(":presentation-core")
+include(":presentation-player")
 include(":presentation-widget")
 include(":source-api")
 include(":news-api")
 include(":tv-api")
 include(":addon-api")
 include(":source-local")
+
+include(":feature:secret-game")

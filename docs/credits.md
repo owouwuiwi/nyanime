@@ -30,8 +30,13 @@ Lo [storico AniYomi](history/aniyomi-changelog.md) rimane archiviato separatamen
 
 | Componente | Impiego e provenienza |
 | --- | --- |
-| mpv e integrazione Android | Player interno; dipendenza `aniyomi-mpv-lib` dichiarata nel [catalogo Gradle](../gradle/aniyomi.versions.toml). |
-| FFmpeg / FFmpegKit | Demuxing e media; la build locale include un backport HLS. [Sorgenti, patch, configurazione e licenze](../tools/native/README.md). |
+| FLOW — solo presentazione del player | Sottoinsieme grafico GPL-3.0-only, revisione e modifiche in [PROVENANCE](../presentation-player/third-party/flow-ui/PROVENANCE.json). Motore YouTube e servizi non inclusi. |
+| CameraX e MediaPipe | Analisi locale facoltativa dell’attenzione; SDK e modello Apache-2.0, avvisi nativi originali, trasformazione locale delle statistiche documentata in [core/attention](../core/attention/README.md). |
+| Lightning P2P / iroh | Compatibilità dei ticket e trasporto per lo scambio fonti, con processi e schermata Nyanime; ricette e attribuzioni in [source-exchange](../core/source-exchange/native/UPSTREAM.md). |
+| Sandspiel | Simulazione offline, MIT; submodulo fissato e relativi sorgenti inclusi nell’archivio dell’app. |
+| mpv e integrazione Android | Player interno; bridge Android originario conservato nel rebuild `it.owouwuiwi.native:nyanime-mpv`. [AAR, sorgenti e verifiche](../tools/native/README.md). |
+| FFmpeg / FFmpegKit | Demuxing e media nel rebuild nativo GPL; wrapper Android e licenze originali conservati. [Sorgenti, patch, configurazione e licenze](../tools/native/README.md). |
+| TorrServer | Componente nativo GPL-3.0 e relativo wrapper; sorgenti Go, dipendenze vendor e ricetta nell'archivio supplementare descritto nella stessa guida nativa. |
 | Anime4K | Shader ufficiali inclusi: [descrizione degli asset](../app/src/main/assets/anime4k/README.txt) e [licenza](../app/src/main/assets/anime4k/LICENSE). |
 | Nostr | Protocollo di trasporto delle stanze; [implementazione e riferimenti](watch-together.md). |
 | ACINQ secp256k1-kmp | Firme delle identità effimere delle stanze; riferimenti nella stessa guida. |
@@ -47,11 +52,16 @@ Lo [storico AniYomi](history/aniyomi-changelog.md) rimane archiviato separatamen
 | FlexibleAdapter | Artefatto upstream conservato senza modifiche nel [mirror vincolato](../vendor/README.md), con la [licenza](../vendor/FlexibleAdapter-LICENSE). |
 | Downpour e Fetch | Controllo delle connessioni e media della velocità adattati, Apache-2.0; [revisioni, modifiche e licenze](download-components.md). |
 | AndroidX Media3, OkHttp e libarchive Android | Parser HLS, rete delle estensioni e archivi CBZ; [integrazione](download-components.md). |
+| TDLib e OpenSSL | Motore Telegram BSL-1.0 e trasporto nativo Apache-2.0; licenze, avvisi e provenienza inclusi negli asset e nella [guida nativa](../tools/native/README.md). |
+| DeepPanel | Riconoscimento dei pannelli: codice e modello con licenza Apache-2.0; [NOTICE e provenienza](../core/panels/NOTICE.md). |
 
 L'elenco orienta tra i componenti principali; non sostituisce l'elenco completo
 delle dipendenze nei cataloghi Gradle e delle licenze incluso nell'app.
 Le licenze delle dipendenze rimangono applicabili: la licenza dell'app non
 riclassifica quelle dei componenti nativi o dei relativi sorgenti.
+I registri e i testi offline vengono verificati anche negli APK ottimizzati;
+la [guida alle licenze](licensing.md#inventario-e-testi-consultabili-offline)
+descrive copertura e limiti del controllo.
 
 ## Identità visiva e immagini
 

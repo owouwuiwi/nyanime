@@ -77,14 +77,14 @@ fun SeasonSettingsDialog(
     }
 
     val downloadedOnly = remember { Injekt.get<BasePreferences>().downloadedOnly().get() }
+    val sections = eu.kanade.presentation.theme.LocalNyanimeStyle.current
 
     TabbedDialog(
         onDismissRequest = onDismissRequest,
         tabTitles = persistentListOf(
             stringResource(MR.strings.action_filter),
             stringResource(MR.strings.action_sort),
-            stringResource(MR.strings.action_display),
-        ),
+        ).let { if (sections) it else it.add(stringResource(MR.strings.action_display)) },
         tabOverflowMenuContent = { closeMenu ->
             DropdownMenuItem(
                 text = { Text(stringResource(MR.strings.set_chapter_settings_as_default)) },

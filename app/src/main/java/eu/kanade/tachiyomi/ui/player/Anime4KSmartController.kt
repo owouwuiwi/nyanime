@@ -1,16 +1,26 @@
 package eu.kanade.tachiyomi.ui.player
 
+/** Episode-owned budget, retained when a quality reload creates a new governor. */
+class Anime4KRecoveryBudget {
+    internal var attempts = 0
+    internal var lastAttemptMillis: Long? = null
+    internal val failedModes = mutableMapOf<String, MutableSet<Anime4KMode>>()
+}
+
 /**
  * Session-local Adaptive Headroom Governor.
  *
- * Smart starts at the highest preset compatible with the media pipeline and only steps down when
- * complete telemetry windows show that playback cannot keep up. Missing telemetry is treated as
+ * Smart starts at a recently measured level or the highest compatible preset. Consecutive GPU
+ * overloads with actual losses have a fast guard; sustained windows govern calibration/recovery.
+ * Missing telemetry is treated as
  * unknown, never as a reason to oscillate or to silently reduce quality.
  */
 class Anime4KSmartController(
     initialMediaInfo: Anime4KMediaInfo,
     initialTimestampMillis: Long,
     initialCalibration: Anime4KCalibration? = null,
+    initialCalibrationAgeMillis: Long? = null,
+    private val recoveryBudget: Anime4KRecoveryBudget = Anime4KRecoveryBudget(),
 ) {
     companion object {
         private const val MIN_SAMPLE_INTERVAL_MILLIS = 750L
@@ -20,6 +30,18 @@ class Anime4KSmartController(
         private const val DOWNGRADE_COOLDOWN_MILLIS = 1_500L
         private const val CAPABILITY_SETTLE_MILLIS = 1_500L
         private const val OVERLOADED_WINDOWS_FOR_DOWNGRADE = 2
+        private const val RECOVERY_STABLE_MILLIS = 30_000L
+        private const val RECOVERY_INTERVAL_MILLIS = 120_000L
+        private const val RECOVERY_MAX_ATTEMPTS = 2
+        private const val RECOVERY_VERIFY_MILLIS = 15_000L
+        private const val CALIBRATION_MAX_AGE_MILLIS = 6 * 60 * 60 * 1000L
+        private const val RECOVERY_HEADROOM = 1.35
+
+        // GPU timestamps exclude CPU scheduling, queueing and presentation. When
+        // rendering occupies at least half the frame interval, repeated output
+        // losses can exhaust the complete pipeline despite nominal GPU headroom.
+        private const val SUBSTANTIAL_RENDER_HEADROOM = 2.0
+        private const val PRESENTATION_DROP_RATE = 0.03
 
         private const val HEALTHY_HEADROOM = 1.20
         private const val SEVERE_HEADROOM = 0.85
@@ -54,13 +76,26 @@ class Anime4KSmartController(
     private var successfulProbes = initialCalibration?.successfulProbes ?: 0
     private val shaderFailedModes = mutableSetOf<Anime4KMode>()
     private val performanceBlockedModes = mutableSetOf<Anime4KMode>()
+    private var fastOverloads = 0
+    private var fastPresentationLosses = 0
+    private var recoveryStableSinceMillis: Long? = null
+    private var recoveryPreviousMode: Anime4KMode? = null
+    private var recoveryPlayingMillis = 0L
     private var pendingCapabilityMode: Anime4KMode? = null
     private var pendingCapabilitySinceMillis = 0L
     var hasStableMeasurement: Boolean = false
         private set
     private var stableAtMillis = 0L
 
-    var currentMode: Anime4KMode = Anime4K.maxSmartMode(initialMediaInfo)
+    var currentMode: Anime4KMode = initialCalibration?.maxStableMode?.takeIf { mode ->
+        initialCalibrationAgeMillis != null &&
+            initialCalibrationAgeMillis in 0..CALIBRATION_MAX_AGE_MILLIS &&
+            initialCalibration.successfulProbes > 0 &&
+            mode != Anime4KMode.Off &&
+            generateSequence(Anime4K.maxSmartMode(initialMediaInfo)) { candidate ->
+                Anime4K.lessDemandingMode(candidate).takeIf { it != candidate }
+            }.any { it == mode }
+    } ?: Anime4K.maxSmartMode(initialMediaInfo)
         private set
 
     var stableMode: Anime4KMode = currentMode
@@ -86,9 +121,10 @@ class Anime4KSmartController(
     val diagnostics: Anime4KSmartDiagnostics
         get() = currentDiagnostics.copy(
             mode = currentMode,
-            probing = false,
+            probing = recoveryPreviousMode != null,
             suspended = isSuspended,
             reason = lastReason,
+            recoveryAttempts = recoveryBudget.attempts,
         )
 
     fun updateMediaInfo(
@@ -102,6 +138,7 @@ class Anime4KSmartController(
             measuredWorkload = updatedMediaInfo
             hasStableMeasurement = false
             resetTelemetry(nowMillis)
+            recoveryPreviousMode = null
             lastReason = "media changed"
             updateDiagnostics(Anime4KHealth.Unknown)
         }
@@ -167,7 +204,7 @@ class Anime4KSmartController(
                 return transition(mode, sample.timestampMillis, "maximum compatible preset resolved")
             }
         }
-        val previous = lastSample
+        var previous = lastSample
         if (previous != null &&
             (
                 sample.timestampMillis < previous.timestampMillis ||
@@ -176,6 +213,7 @@ class Anime4KSmartController(
                 )
         ) {
             resetTelemetry(sample.timestampMillis)
+            previous = null
         }
         if (
             lastSample != null &&
@@ -198,6 +236,67 @@ class Anime4KSmartController(
                 renderCapacity = renderCapacity ?: currentDiagnostics.renderCapacityFramesPerSecond,
             )
             return null
+        }
+
+        // Averages can hide a newly expensive scene. Require two fresh GPU overruns AND
+        // real output losses; decoder failures, missing timing and isolated spikes do not qualify.
+        val recentCost = sample.lastRenderTimeMillis?.takeIf { it.isFinite() && it > 0 && it < 10_000 }
+        val recentCapacity = Anime4K.renderCapacity(
+            sample.copy(renderTimeMillis = recentCost ?: sample.renderTimeMillis),
+            mediaInfo,
+        )
+        val measuredPrevious = previous?.takeIf { it.timestampMillis >= warmupUntilMillis }
+        val actualOutputLosses = measuredPrevious?.let {
+            val elapsed = (sample.timestampMillis - it.timestampMillis) / 1000.0
+            counterDelta(sample.outputDroppedFrames, it.outputDroppedFrames)?.let { drops ->
+                (
+                    drops -
+                        kotlin.math.ceil(
+                            (Anime4K.playbackFrameRate(mediaInfo) - Anime4K.effectiveFrameRate(mediaInfo))
+                                .coerceAtLeast(0.0) *
+                                elapsed,
+                        ).toLong()
+                    ).coerceAtLeast(0)
+            }
+        }
+        fastOverloads = if ((actualOutputLosses ?: 0) > 0 &&
+            recentCapacity != null &&
+            recentCapacity < Anime4K.effectiveFrameRate(mediaInfo)
+        ) {
+            fastOverloads + 1
+        } else {
+            0
+        }
+        if (fastOverloads >= 2 && sample.timestampMillis - lastTransitionMillis >= DOWNGRADE_COOLDOWN_MILLIS) {
+            return reduceQuality(sample.timestampMillis, "consecutive GPU overload with frame loss")
+        }
+        val substantialRenderLoad = mediaInfo.frameRateKnown &&
+            recentCapacity != null &&
+            recentCapacity <= SUBSTANTIAL_RENDER_HEADROOM * Anime4K.effectiveFrameRate(mediaInfo)
+        val presentationLoss = measuredPrevious?.let {
+            val elapsed = (sample.timestampMillis - it.timestampMillis) / 1000.0
+            val threshold = maxOf(
+                2L,
+                kotlin.math.ceil(Anime4K.effectiveFrameRate(mediaInfo) * elapsed * PRESENTATION_DROP_RATE).toLong(),
+            )
+            substantialRenderLoad &&
+                counterDelta(sample.decoderDroppedFrames, it.decoderDroppedFrames) == 0L &&
+                actualOutputLosses != null &&
+                actualOutputLosses >= threshold
+        } == true
+        fastPresentationLosses = if (presentationLoss) fastPresentationLosses + 1 else 0
+        if (fastPresentationLosses >= 2 &&
+            sample.timestampMillis - lastTransitionMillis >= DOWNGRADE_COOLDOWN_MILLIS
+        ) {
+            return reduceQuality(sample.timestampMillis, "sustained presentation loss with substantial render cost")
+        }
+        if (recoveryPreviousMode != null) {
+            previous?.takeIf { it.timestampMillis >= warmupUntilMillis }?.let {
+                recoveryPlayingMillis += sample.timestampMillis - it.timestampMillis
+            }
+            if (recoveryPlayingMillis >= RECOVERY_VERIFY_MILLIS) {
+                return failedProbeFallback(sample.timestampMillis, "quality recovery could not be verified")
+            }
         }
 
         val windowStart = windowStartSample ?: run {
@@ -253,6 +352,10 @@ class Anime4KSmartController(
         renderCapacitySamples.clear()
         overloadedWindows = 0
         hasEvaluatedWindow = false
+        fastOverloads = 0
+        fastPresentationLosses = 0
+        recoveryStableSinceMillis = null
+        recoveryPlayingMillis = 0
         updateDiagnostics(Anime4KHealth.Unknown, null, null, null, null, null, null, 0.0)
     }
 
@@ -264,6 +367,7 @@ class Anime4KSmartController(
     /** Explicit user reactivation after Smart has suspended itself at Off. */
     fun resume(nowMillis: Long) {
         performanceBlockedModes.clear()
+        recoveryPreviousMode = null
         pendingCapabilityMode = null
         currentMode = highestAvailableMode(mediaInfo)
         isSuspended = currentMode == Anime4KMode.Off
@@ -277,6 +381,7 @@ class Anime4KSmartController(
     fun onModeApplyFailure(nowMillis: Long): Anime4KSmartAdjustment? {
         if (currentMode == Anime4KMode.Off) return null
         shaderFailedModes += currentMode
+        failedProbeFallback(nowMillis, "recovery shader pipeline unavailable")?.let { return it }
         val safeFallback = availableAtOrBelow(Anime4K.lessDemandingMode(currentMode))
         return transition(
             mode = safeFallback,
@@ -298,6 +403,7 @@ class Anime4KSmartController(
             if (failedShader !in currentMode.shaderFileNames) return null
         }
         shaderFailedModes += currentMode
+        failedProbeFallback(nowMillis, "recovery shader compilation failure")?.let { return it }
         val safeFallback = availableAtOrBelow(Anime4K.lessDemandingMode(currentMode))
         return transition(
             mode = safeFallback,
@@ -325,6 +431,10 @@ class Anime4KSmartController(
             mistimedFrameRate,
         )
         val outputBudgetExceeded = headroom == null || headroom < HEALTHY_HEADROOM
+        val presentationBudgetExceeded = mediaInfo.frameRateKnown &&
+            window.decoderDrops == 0L &&
+            headroom != null &&
+            headroom <= SUBSTANTIAL_RENDER_HEADROOM
 
         val severe =
             (headroom != null && headroom < SEVERE_HEADROOM) ||
@@ -333,7 +443,10 @@ class Anime4KSmartController(
         val overloaded =
             severe ||
                 (headroom != null && headroom < 0.98) ||
-                ((outputDropRate ?: 0.0) >= OUTPUT_DROP_OVERLOAD && outputBudgetExceeded) ||
+                (
+                    (outputDropRate ?: 0.0) >= OUTPUT_DROP_OVERLOAD &&
+                        (outputBudgetExceeded || presentationBudgetExceeded)
+                    ) ||
                 ((delayedFrameRate ?: 0.0) >= DELAYED_FRAME_OVERLOAD && headroom != null && headroom < 1.1)
         val healthy =
             window.renderCapacity != null &&
@@ -362,39 +475,97 @@ class Anime4KSmartController(
             confidence = confidence,
         )
 
+        val lossless = window.outputDrops == 0L &&
+            window.decoderDrops == 0L &&
+            window.delayedFrames == 0L &&
+            (window.mistimedFrames == null || window.mistimedFrames == 0L)
+        if (recoveryPreviousMode != null && overloaded) {
+            return reduceQuality(nowMillis, "quality recovery exceeded playback budget")
+        }
+        // A higher preset needs an actual lossless measured window. Unknown or borderline
+        // telemetry has a bounded trial above; it must never leave the UI probing forever.
+        if (recoveryPreviousMode != null &&
+            lossless &&
+            confidence >= 0.75 &&
+            headroom != null &&
+            headroom >= 1.05
+        ) {
+            performanceBlockedModes.remove(currentMode)
+            recoveryPreviousMode = null
+            lastReason = "higher quality confirmed"
+            markStable(nowMillis)
+        }
+
         if (overloaded) {
+            recoveryStableSinceMillis = null
             overloadedWindows++
             val shouldDowngrade = severe ||
                 overloadedWindows >= OVERLOADED_WINDOWS_FOR_DOWNGRADE
             if (shouldDowngrade && nowMillis - lastTransitionMillis >= DOWNGRADE_COOLDOWN_MILLIS) {
-                val fallback = availableAtOrBelow(Anime4K.lessDemandingMode(currentMode))
-                if (fallback != currentMode) {
-                    performanceBlockedModes += currentMode
-                    return transition(
-                        mode = fallback,
-                        nowMillis = nowMillis,
-                        reason = "playback headroom exhausted",
-                        suspended = fallback == Anime4KMode.Off,
-                    )
-                }
+                return reduceQuality(nowMillis, "playback headroom exhausted")
             }
             return null
         }
 
         overloadedWindows = 0
-        if (!healthy) return null
+        if (!healthy) {
+            recoveryStableSinceMillis = null
+            return null
+        }
 
+        if (recoveryPreviousMode == null) markStable(nowMillis)
+        if (!lossless || headroom == null || headroom < RECOVERY_HEADROOM) {
+            recoveryStableSinceMillis = null
+            return null
+        }
+        val stableSince = recoveryStableSinceMillis ?: nowMillis.also { recoveryStableSinceMillis = it }
+        val lastRecovery = recoveryBudget.lastAttemptMillis
+        if (nowMillis - stableSince >= RECOVERY_STABLE_MILLIS &&
+            recoveryBudget.attempts < RECOVERY_MAX_ATTEMPTS &&
+            (lastRecovery == null || nowMillis - lastRecovery >= RECOVERY_INTERVAL_MILLIS)
+        ) {
+            val candidate = Anime4K.moreDemandingMode(currentMode, mediaInfo)
+            if (candidate != null &&
+                candidate !in shaderFailedModes &&
+                candidate !in recoveryBudget.failedModes[workloadKey()].orEmpty()
+            ) {
+                recoveryPreviousMode = currentMode
+                recoveryBudget.attempts++
+                recoveryBudget.lastAttemptMillis = nowMillis
+                return transition(candidate, nowMillis, "cautious quality recovery")
+            }
+        }
+        return null
+    }
+
+    private fun workloadKey(): String = Anime4K.calibrationKey(mediaInfo, "", "", "", "")
+
+    private fun markStable(nowMillis: Long) {
         if (!hasStableMeasurement || stableMode != currentMode) {
             stableMode = currentMode
             stableAtMillis = nowMillis
             successfulProbes++
             hasStableMeasurement = true
         }
+    }
 
-        // Ceiling-first policy: a healthy window confirms the current level but never triggers a
-        // speculative upgrade. A manual reactivation or a new media capability update may choose a
-        // higher ceiling explicitly.
-        return null
+    private fun failedProbeFallback(nowMillis: Long, reason: String): Anime4KSmartAdjustment? {
+        val previous = recoveryPreviousMode ?: return null
+        recoveryBudget.failedModes.getOrPut(workloadKey()) { mutableSetOf() } += currentMode
+        recoveryPreviousMode = null
+        val fallback = availableAtOrBelow(previous)
+        return transition(fallback, nowMillis, reason, suspended = fallback == Anime4KMode.Off)
+    }
+
+    private fun reduceQuality(nowMillis: Long, reason: String): Anime4KSmartAdjustment? {
+        performanceBlockedModes += currentMode
+        failedProbeFallback(nowMillis, "quality recovery reverted")?.let { return it }
+        val fallback = availableAtOrBelow(Anime4K.lessDemandingMode(currentMode))
+        return if (fallback != currentMode) {
+            transition(fallback, nowMillis, reason, suspended = fallback == Anime4KMode.Off)
+        } else {
+            null
+        }
     }
 
     private fun highestAvailableMode(mediaInfo: Anime4KMediaInfo): Anime4KMode {

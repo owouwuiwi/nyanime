@@ -185,6 +185,11 @@ class PlayerSettingsMainScreen(private val mainSettings: Boolean) : Screen() {
 
     private val items get() = listOf(
         Item(
+            titleRes = AYMR.strings.attention_title,
+            icon = Icons.Outlined.PlayCircleOutline,
+            screen = it.lorelore.nyanime.attention.AttentionSettingsScreen(),
+        ),
+        Item(
             titleRes = AYMR.strings.pref_player_internal,
             subtitleRes = AYMR.strings.pref_player_internal_summary,
             icon = Icons.Outlined.PlayCircleOutline,

@@ -12,14 +12,25 @@ import tachiyomi.core.common.preference.Preference
 internal object ThemePreferenceKeys {
     const val MODE = "pref_theme_mode_key"
     val INITIAL_CHOICE = Preference.appStateKey("nyanime_initial_theme_choice_complete")
+    const val IDENTITY = "nyanime_brand_identity"
+    const val CLASSIC_UNLOCKED = "nyanime_classic_theme_unlocked"
 }
 
-data class ThemeSettings(val mode: ThemeMode, val initialChoiceComplete: Boolean)
+enum class NyanimeIdentity { CLASSIC }
+
+data class ThemeSettings(
+    val mode: ThemeMode,
+    val initialChoiceComplete: Boolean,
+    val identity: NyanimeIdentity = NyanimeIdentity.CLASSIC,
+    val classicUnlocked: Boolean = true,
+)
 
 interface ThemeSettingsRepository {
     val settings: Flow<ThemeSettings>
     fun current(): ThemeSettings
     suspend fun save(mode: ThemeMode, completeInitialChoice: Boolean = false): Result<Unit>
+    suspend fun saveIdentity(identity: NyanimeIdentity): Result<Unit>
+    suspend fun unlockClassic(): Result<Unit>
 }
 
 /** Independent of Android configuration, so explicit choices also work in previews. */
@@ -49,5 +60,18 @@ class ThemeController(
             if (result.isSuccess) withContext(Dispatchers.Main.immediate) { applier.apply(mode) }
             result
         }
+    }
+
+    suspend fun selectIdentity(identity: NyanimeIdentity): Result<Unit> = changes.withLock {
+        withContext(NonCancellable) {
+            val result = repository.saveIdentity(identity)
+            // A palette change must not trigger Android night-mode recreation or restart playback.
+            if (result.isSuccess) withContext(Dispatchers.Main.immediate) { reconcile() }
+            result
+        }
+    }
+
+    suspend fun unlockClassic(): Result<Unit> = changes.withLock {
+        withContext(NonCancellable) { repository.unlockClassic() }
     }
 }

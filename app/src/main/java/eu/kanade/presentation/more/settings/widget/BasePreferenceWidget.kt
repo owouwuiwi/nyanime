@@ -8,6 +8,7 @@ import androidx.compose.animation.core.repeatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -41,6 +42,8 @@ internal fun BasePreferenceWidget(
     title: String? = null,
     subcomponent: @Composable (ColumnScope.() -> Unit)? = null,
     icon: @Composable (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
+    onLongClickLabel: String? = null,
     onClick: (() -> Unit)? = null,
     widget: @Composable (() -> Unit)? = null,
 ) {
@@ -50,7 +53,17 @@ internal fun BasePreferenceWidget(
         modifier = modifier
             .highlightBackground(highlighted)
             .sizeIn(minHeight = minHeight)
-            .clickable(enabled = onClick != null, onClick = { onClick?.invoke() })
+            .then(
+                if (onLongClick != null) {
+                    Modifier.combinedClickable(
+                        onClick = { onClick?.invoke() },
+                        onLongClick = onLongClick,
+                        onLongClickLabel = onLongClickLabel,
+                    )
+                } else {
+                    Modifier.clickable(enabled = onClick != null, onClick = { onClick?.invoke() })
+                },
+            )
             .fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {

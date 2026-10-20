@@ -4,7 +4,7 @@ plugins {
     kotlin("plugin.serialization")
 }
 
-android {
+extensions.configure<com.android.build.api.dsl.LibraryExtension>("android") {
     namespace = "tachiyomi.domain"
 
     defaultConfig {
@@ -35,5 +35,6 @@ dependencies {
     compileOnly(libs.compose.stablemarker)
 
     testImplementation(libs.bundles.test)
+    testRuntimeOnly(libs.junit.launcher)
     testImplementation(kotlinx.coroutines.test)
 }

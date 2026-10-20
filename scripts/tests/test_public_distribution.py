@@ -16,7 +16,41 @@ spec = importlib.util.spec_from_file_location('publisher', Path(__file__).resolv
 publisher = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(publisher)
 
+def write_apk_fixture(path, payload):
+    with zipfile.ZipFile(path, 'w') as archive:
+        archive.writestr('classes.dex', payload)
+
+
 class PublicDistributionTest(unittest.TestCase):
+    def test_source_export_materializes_a_pinned_submodule_without_fetching(self):
+        def archive(entries):
+            data = io.BytesIO()
+            with zipfile.ZipFile(data, 'w') as output:
+                for name, content in entries.items():
+                    output.writestr(name, content)
+            return data.getvalue()
+        parent = archive({'.gitmodules': '[submodule "sample"]\npath = vendor/sample\nurl = https://example.invalid/sample.git\n'})
+        child = archive({'src/main/Example.kt': '// Copyright Original Author\n', 'LICENSE': 'Original license\n'})
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            checkout = root / 'checkout'
+            module = checkout / 'vendor/sample'
+            module.mkdir(parents=True)
+            (module / '.git').write_text('gitdir: fixture')
+            revision = 'a' * 40
+            def command(*args, cwd=None):
+                if args[0] == 'ls-tree':
+                    return f'160000 commit {revision}\tvendor/sample\0'.encode()
+                self.assertEqual(args[:2], ('archive', '--format=zip'))
+                return child if cwd == module else parent
+            with patch('scripts.public_distribution.git', side_effect=command) as git:
+                output = root / 'output'
+                export_documents(output, cwd=checkout)
+            self.assertEqual('// Copyright Original Author\n', (output / 'vendor/sample/src/main/Example.kt').read_text())
+            self.assertEqual('Original license\n', (output / 'vendor/sample/LICENSE').read_text())
+            self.assertEqual(3, git.call_count)
+            self.assertEqual(revision, git.call_args.args[-1])
+
     def test_raw_changelog_is_rejected_before_exporting_source_or_reading_apks(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -88,7 +122,7 @@ class PublicDistributionTest(unittest.TestCase):
             apks = root / 'apks'
             apks.mkdir()
             for abi in publisher.ABIS:
-                (apks / f'Nyanime-Production-1.2.3.4-{abi}.apk').write_bytes(b'generic fixture')
+                write_apk_fixture(apks / f'Nyanime-Production-1.2.3.4-{abi}.apk', b'generic fixture')
             notes = root / 'notes.md'
             notes.write_text(NOTES, encoding='utf-8')
             def docs(target, *_):
@@ -181,7 +215,7 @@ class PublicDistributionTest(unittest.TestCase):
             apks = root / 'apks'
             apks.mkdir()
             for abi in publisher.ABIS:
-                (apks / f'Nyanime-Production-1.2.3.4-{abi}.apk').write_bytes(b'signed test fixture ' + abi.encode())
+                write_apk_fixture(apks / f'Nyanime-Production-1.2.3.4-{abi}.apk', b'signed test fixture ' + abi.encode())
             notes = root / 'notes.md'
             notes.write_text(NOTES, encoding='utf-8')
             from unittest.mock import patch
@@ -202,10 +236,13 @@ class PublicDistributionTest(unittest.TestCase):
                 publisher.validate_bundle(root / 'bundle')
 
     def test_source_policy_preserves_code_but_excludes_local_material_and_signing_keys(self):
-        for name in ['app/src/main/Example.kt', 'scripts/release_version.py', 'tools/native/README.md', 'LICENSE']:
+        for name in ['app/src/main/Example.kt', 'scripts/release_version.py', 'tools/native/README.md', 'LICENSE',
+                     'feature/example-module/build.gradle.kts', 'feature/example-module/prepare.py',
+                     'feature/example-module/src/main/Example.kt']:
             self.assertTrue(allowed_source(name), name)
             self.assertTrue(publisher.validate_name('public/' + name), name)
-        for name in ['app/build/output.txt', 'app/local.properties', '.local/secret', 'tools/key.p12',
+        for name in ['app/build/output.txt', 'feature/example-module/build/generated.kt',
+                     'app/local.properties', '.local/secret', 'tools/key.p12',
                      'gradle/../local.properties', 'app/signing.jks', 'app/bin.apk']:
             self.assertFalse(allowed_source(name), name)
             try:
@@ -279,7 +316,7 @@ class PublicDistributionTest(unittest.TestCase):
             import hashlib
             names = [f'Nyanime-Production-1.2.3.4-{abi}.apk' for abi in publisher.ABIS]
             for name in names:
-                (apks / name).write_bytes(name.encode())
+                write_apk_fixture(apks / name, name.encode())
             checksums = ''.join(f'{hashlib.sha256((apks / name).read_bytes()).hexdigest()}  {name}\n' for name in reversed(names))
             (apks / 'SHA256SUMS').write_text(checksums)
             notes = root / 'notes.md'

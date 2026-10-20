@@ -152,7 +152,16 @@ class MpvPlaybackEngine(private val context: Context) {
     var paused: Boolean?
         get() = getPropertyBoolean("pause")
         set(paused) {
-            if (initialized && !isExiting && paused != null) MPVLib.setPropertyBoolean("pause", paused)
+            if (initialized && !isExiting && paused != null) {
+                if (it.lorelore.nyanime.attention.core.AttentionControl.isActive) {
+                    it.lorelore.nyanime.attention.core.AttentionControl.playbackCommand(
+                        "native",
+                        paused,
+                        getPropertyBoolean("pause") != paused,
+                    )
+                }
+                MPVLib.setPropertyBoolean("pause", paused)
+            }
         }
 
     val hwdecActive: String
@@ -297,7 +306,7 @@ class MpvPlaybackEngine(private val context: Context) {
         "time-pos" to MPVLib.mpvFormat.MPV_FORMAT_INT64,
         "demuxer-cache-time" to MPVLib.mpvFormat.MPV_FORMAT_INT64,
         "duration" to MPVLib.mpvFormat.MPV_FORMAT_INT64,
-        "volume" to MPVLib.mpvFormat.MPV_FORMAT_INT64,
+        "volume" to MPVLib.mpvFormat.MPV_FORMAT_DOUBLE,
         "volume-max" to MPVLib.mpvFormat.MPV_FORMAT_INT64,
         "osd-dimensions" to MPVLib.mpvFormat.MPV_FORMAT_NONE,
         Anime4KTelemetry.PROPERTY to MPVLib.mpvFormat.MPV_FORMAT_STRING,

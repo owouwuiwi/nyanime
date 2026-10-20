@@ -41,8 +41,12 @@ versione e non vengono pubblicati.
 Le [istruzioni di compilazione](../CONTRIBUTING.md) descrivono la build Android.
 Il [player nativo](../tools/native/README.md) dispone di un archivio completo
 con le revisioni delle dipendenze, le patch e le configurazioni di tutte le ABI.
-Dalla 0.42.0.2 la pagina di ogni release include anche il manifesto nativo e
-archivi `Nyanime-Native-<versione>-*.tar.gz`, controllati rispetto agli APK.
+Dalla 0.42.0.2 ogni release include il manifesto nativo, che identifica gli
+archivi `Nyanime-Native-<versione>-*.tar.gz` con URL pubblici e SHA-256.
+Se i binari nativi non cambiano, il manifesto riutilizza gli archivi immutabili
+già pubblicati: non è necessario duplicarli sotto ogni nuova versione dell'app.
+Il player e i sorgenti supplementari correnti provengono dalla 0.42.0.2;
+l'archivio WebRTC dalla 0.47.0.2. La corrispondenza va controllata rispetto agli APK.
 Il codice originale, i testi upstream e le istruzioni per creare una propria
 build rimangono disponibili senza registrazione. I binari GPL sono distribuiti
 con i sorgenti corrispondenti; i componenti permissivi precompilati conservano
@@ -64,6 +68,44 @@ Ogni nuovo componente, asset copiato o aggiornamento di una dipendenza richiede
 una verifica della provenienza e della licenza. Un campo mancante non equivale
 a una licenza permissiva. La schermata delle licenze e un rapporto automatico
 non sostituiscono la verifica dei sorgenti corrispondenti.
+
+## Inventario e testi consultabili offline
+
+In **Altro → Info → Licenze delle librerie** sono disponibili l'inventario
+Java/Kotlin e i testi dei componenti inclusi direttamente: player, shader,
+audio, riconoscimento dei pannelli, download, Telegram e voce nelle stanze.
+La consultazione dei testi non richiede una connessione.
+
+L'elenco usa gli stessi registri controllati dalla verifica automatica:
+
+- `app/src/main/assets/licenses/catalog.json`: componenti e avvisi dell'app,
+  con eventuale copyright o NOTICE separato.
+- `app/src/main/assets/licenses/native/catalog.json`: componenti nativi.
+- `app/config/libraries` e `app/config/licenses`: integrazioni dei metadati Maven.
+  La [guida alla manutenzione](../app/config/README.md) spiega come conservare
+  gli identificatori e la provenienza dei testi.
+
+I testi Apache e NOTICE del progetto sono copiati dai file canonici alla build.
+L'inventario generato è letto attraverso l'ID Android della risorsa, così la
+rinomina o l'ottimizzazione delle risorse non dipende da una ricerca per nome.
+Un avviso presente in una schermata separata non giustifica una voce senza
+licenza nell'inventario delle dipendenze: entrambi devono essere completi.
+
+Prima della consegna, controllare gli **APK effettivi**, non soltanto il JSON
+generato dalla build:
+
+```sh
+python3 -m unittest scripts.tests.test_license_catalog
+python3 scripts/verify_license_catalog.py \
+  app/build/generated/aboutLibraries/preview/res/raw/aboutlibraries.json \
+  --apk app/build/outputs/apk/preview/app-*-preview.apk
+```
+
+Il controllo rileva dichiarazioni o testi mancanti, avvisi vuoti o non leggibili,
+percorsi non validi e inventari assenti o diversi negli APK, anche se la risorsa
+è stata rinominata dall'ottimizzatore. La CI esegue questa verifica per tutte
+le varianti ABI. I controlli dei sorgenti e degli hash nativi rimangono separati:
+completare i metadati non certifica da solo licenze, marchi, dati o condizioni API.
 
 ## Marchio, immagini e contenuti
 
@@ -102,3 +144,24 @@ and corresponding source, modifications and build/relinking information.
 An Apache-licensed application component does not override those obligations.
 Source access must identify the actual distributed revision and remain
 available to recipients. Production signing secrets are not published.
+
+## Integrazione ordinaria 0.49.0.0
+
+Il modulo `presentation-player` contiene contributi originali Nyanime Apache-2.0
+e un sottoinsieme grafico adattato da FLOW GPL-3.0-only. Il nome del modulo non
+cambia la licenza dei singoli file: [provenienza e perimetro](player-presentation.md).
+Le due attribuzioni e i relativi testi sono consultabili offline. I motori FLOW,
+YouTube e MELD, i rispettivi client e submoduli non fanno parte di questa versione.
+
+L’archivio dell’app comprende il codice modificato del renderer, avvisi originali,
+ricette, sottoprogetti e sorgenti del submodulo Sandspiel. Il manifesto nativo
+aggiunge lo scambio fonti sulle quattro ABI, con sorgenti Rust, dipendenze Cargo
+vincolate e conservate offline, e materiali originali CameraX/MediaPipe con hash.
+I binari Google Maven sono dichiarati come precompilati: la versione pubblica dei
+sorgenti associati non viene presentata come prova dell’ambiente interno del fornitore.
+I componenti nativi GPL già presenti conservano i loro archivi corrispondenti.
+
+Ogni pubblicazione deve verificare l’APK effettivo e consegnare i materiali elencati:
+una compilazione riuscita o un inventario delle dipendenze non sono una certificazione
+legale. Questa migrazione non rende l’app closed source e non concede diritti sui
+contenuti, marchi, dati o servizi consultati dall’utente.

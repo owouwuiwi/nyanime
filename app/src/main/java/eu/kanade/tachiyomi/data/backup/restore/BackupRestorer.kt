@@ -144,6 +144,9 @@ class BackupRestorer(
                 }
             }
             if (options.sourceSettings) {
+                backup.sourceStudioState?.let { state ->
+                    it.lorelore.nyanime.studio.SourceStudioRepository.get(context).restore(state)
+                }
                 restoreSourcePreferences(backup.backupSourcePreferences).join()
             }
             if (options.libraryEntries) {

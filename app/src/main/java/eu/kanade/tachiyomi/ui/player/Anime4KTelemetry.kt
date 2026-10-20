@@ -16,6 +16,7 @@ data class Anime4KTelemetry(
     val mistimedFrames: Long? = null,
     val renderTimeMillis: Double? = null,
     val redrawTimeMillis: Double? = null,
+    val lastRenderTimeMillis: Double? = null,
 ) {
     fun sample(nowMillis: Long) = Anime4KPerformanceSample(
         timestampMillis = nowMillis,
@@ -26,6 +27,7 @@ data class Anime4KTelemetry(
         renderTimeMillis = renderTimeMillis?.takeIf { it.isFinite() && it > 0 && it < 10_000 },
         redrawTimeMillis = redrawTimeMillis?.takeIf { it.isFinite() && it >= 0 && it < 10_000 },
         playing = playing,
+        lastRenderTimeMillis = lastRenderTimeMillis?.takeIf { it.isFinite() && it > 0 && it < 10_000 },
     )
 
     companion object {

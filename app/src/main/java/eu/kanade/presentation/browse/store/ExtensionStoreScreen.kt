@@ -351,6 +351,18 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                     }
                 }
                 StoreShelves(shelf, owned, discover) { shelf = it }
+                Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp)) {
+                    TextButton(onClick = {
+                        navigator.push(it.lorelore.nyanime.studio.StudioLibraryScreen())
+                    }, modifier = Modifier.weight(1f)) {
+                        Text(stringResource(R.string.studio_title))
+                    }
+                    TextButton(onClick = {
+                        navigator.push(it.lorelore.nyanime.exchange.SourceExchangeScreen())
+                    }, modifier = Modifier.weight(1f)) {
+                        Text(stringResource(R.string.exchange_title))
+                    }
+                }
                 Row(
                     Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),

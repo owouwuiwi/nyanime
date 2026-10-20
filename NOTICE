@@ -40,3 +40,18 @@ WebRTC project authors, BSD-3-Clause, with separately licensed third-party
 components and patent grant. Version 144.7559.15, source revision
 30d5e63ae91da483e06577b5c35ee91cc5e5c3db. Full notices and licenses are bundled
 in core/room-voice/src/main/assets/licenses and accessible in the app.
+
+FLOW player presentation subset, adapted from Flow-Tube/Flow revision
+14afdf9e9426fb8b67e5fcbc76bf4e81af492d16, GPL-3.0-only. Only graphical
+controls, sheets, gesture indicators and presentation utilities are included;
+its YouTube client, extraction engine, accounts, service and storage are not.
+Full original licence, selected original snapshots and modification notice are
+in presentation-player/third-party/flow-ui. Original Nyanime bridge code in
+presentation-player retains Apache-2.0. No upstream trademark rights are granted.
+
+Optional MediaPipe Face Landmarker and CameraX, Apache-2.0 with the original
+CameraX embedded BSD notices; model identity and local statistics-factory
+modification are documented in core/attention. Source exchange ticket parsing
+adapted from Lightning P2P revision 6960642a46f549c53d53abef3f2db7327857e488,
+Copyright 2025-2026 Kerim Sabic, Apache-2.0; its original NOTICE is retained in
+core/source-exchange/native and bundled offline with native dependency notices.

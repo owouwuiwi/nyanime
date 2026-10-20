@@ -61,6 +61,8 @@ data class WatchPlayback(
     val preparedNextKey: String? = null,
     val nextProblem: WatchProblem = WatchProblem.None,
     val bufferedAheadSeconds: Double? = null,
+    /** Local preview only; position/paused still describe the undisturbed shared clock. */
+    val scrubbing: Boolean = false,
 )
 
 /** A source may refresh an episode URL. Only the exact locally resolved entry inherits the room identity. */

@@ -207,6 +207,12 @@ fun WatchTogetherPanel(
     val context = LocalContext.current
     val manager = remember { WatchTogetherManager.get(context) }
     val room by manager.controller.state.collectAsState()
+    val syncplayActive by it.lorelore.nyanime.syncplay.SyncplayManager.active.collectAsState()
+    var showSyncplay by rememberSaveable { mutableStateOf(false) }
+    if (!room.active && incomingCode.isBlank() && (showSyncplay || syncplayActive)) {
+        it.lorelore.nyanime.syncplay.SyncplayPanel(onBack = { showSyncplay = false }, onChooseVideo = onChooseVideo)
+        return
+    }
     val live by manager.tv.state.collectAsState()
     val short by manager.shortRooms.state.collectAsState()
     val opening by manager.opening.collectAsState()
@@ -262,6 +268,7 @@ fun WatchTogetherPanel(
         return
     }
     WatchTogetherContent(
+        onSyncplay = { showSyncplay = true },
         room = room, liveChannel = live.selection?.name, short = short, opening = opening, name = name,
         showHeading = showHeading,
         onName = {
@@ -392,6 +399,7 @@ fun WatchTogetherContent(
     liveChannel: String? = null,
     showHeading: Boolean = true,
     socialContent: @Composable () -> Unit = { WatchLounge(room.members) },
+    onSyncplay: (() -> Unit)? = null,
 ) {
     val text = rememberRoomText()
     val colors = MaterialTheme.colorScheme
@@ -510,6 +518,11 @@ fun WatchTogetherContent(
         }
         if (!room.active) {
             RoomLoungeWelcome(showHeading)
+            if (onSyncplay != null) {
+                TextButton(onSyncplay, Modifier.fillMaxWidth()) {
+                    Text(androidx.compose.ui.res.stringResource(R.string.syncplay_open))
+                }
+            }
             if (short.waiting) {
                 RoomLoungeSurface {
                     Text(

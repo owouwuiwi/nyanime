@@ -89,6 +89,9 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
     @SuppressLint("LaunchActivityFromNotification")
     override fun onCreate() {
         super<Application>.onCreate()
+        // Isolated workers use a different Linux UID and cannot open host preferences or services.
+        // Check before querying ActivityManager, which can reject isolated callers on Android 8.
+        if (android.os.Process.myUid() != applicationInfo.uid) return
         val recoveryProcess = if (Build.VERSION.SDK_INT >= 28) {
             getProcessName()
         } else {
@@ -97,6 +100,7 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
         }
         if (recoveryProcess?.startsWith("$packageName:recovery") == true) return
         if (recoveryProcess?.startsWith("$packageName:migration") == true) return
+        if (recoveryProcess == "$packageName:source_exchange") return
         if (eu.kanade.tachiyomi.data.migration.MigrationState.frozen(this)) {
             migrationStartupDeferred = true
             return

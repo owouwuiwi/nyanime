@@ -10,6 +10,380 @@ identificano modifiche nel repository, non garantiscono che ogni commit sia stat
 distribuito come APK.
 
 
+## 20 ottobre 2026 — 0.49.0.0: Studio, scambio fonti e nuovo player
+
+### Novità
+
+- Studio delle fonti video e manga: canvas a nodi colorati, vista guidata e procedura Assistita per ricavare regole da esempi scelti dall’utente. Ricerca, dettagli, episodi, capitoli, contenuti, Home e filtri usano i contratti generici dell’app, senza siti o cataloghi preconfigurati.
+- Bozze separate dalle versioni attive, prove esplicite dei flussi, importazione ed esportazione, consenso agli script e ripristino della versione precedente. L’attivazione viene rinviata durante l’uso della fonte; identità e progressi sono conservati.
+- «Scambia fonti» nello Store e nello Studio: invio e ricezione tramite codice, link o QR, sulla rete locale o via Internet. Definizioni personali e pacchetti già supportati, incluse estensioni APK, passano dalla revisione e dai controlli esistenti prima dell’attivazione.
+- Backup completi cifrati su WebDAV e integrazione facoltativa Google Drive: chiave di recupero, verifica del caricamento, anteprima, frequenza, rete e conservazione per destinazione. Drive richiede la registrazione OAuth propria di Nyanime; la guida mostra pacchetto e certificato della build installata.
+- Compatibilità video Syncplay facoltativa con server, nickname, stanza e consenso espliciti. Le stanze Nyanime restano disponibili; l’app distingue buffering locale, stato condiviso e conferma del video.
+- Attenzione alla visione sperimentale, inizialmente disattivata: pausa configurabile per distrazione o occhi chiusi, ritorno al punto perso e tasto con l’occhio nel player. La modalità «Solo rilevamento» conserva soltanto intervalli locali stimati, senza pause o avvisi; la pausa automatica non raccoglie tali intervalli.
+- Opening ed ending nelle schede anime, con metadati, versioni, cache e protezione degli spoiler. I collegamenti video e le ricerche richieste dall’utente aprono un’app esterna: nessun motore YouTube è incluso.
+- Episodi raggruppati per stagioni o raccolte dichiarate dalla fonte, con avanzamento, conteggi e ripresa nella sezione corretta; le sezioni separate vengono caricate all’apertura.
+- Sandspiel offline fra le funzioni nascoste: cinque tocchi sul numero di versione in Info, simulazione, pennelli, annullamento e ripresa della creazione.
+
+### Interfaccia
+
+- Controlli, pannelli, timeline e indicatori del player nello stile FLOW approvato, isolati dal suo motore e adattati al player nativo Nyanime. Conservate animazioni, accessibilità e preferenza per il movimento ridotto.
+- Trascinamento della timeline con anteprima del punto e dello scostamento, pausa temporanea e un solo seek al rilascio. Annullamento, tastiera e accessibilità mantengono comportamenti distinti e coerenti.
+- Amplificazione del volume fino al 200%, gesti e indicatore dedicati; transizione Nuvola di SM ottimizzata con un solo video e passaggi temporanei rilasciati a fine effetto.
+- Il tasto Musica resta nella testata e apre una pagina che annuncia l’arrivo della funzione nelle prossime settimane. Non include riproduzione, account o servizi musicali.
+- Conservata l’identità rossa in scuro e arancione in chiaro, senza la variante blu sperimentale.
+
+### Correzioni
+
+- Le brevi attese dopo un doppio tap non fanno ricomparire per un istante barra di avanzamento e pulsanti nascosti. Le attese prolungate hanno un indicatore separato; errori, caricamento iniziale e preparazione delle stanze restano utilizzabili.
+- Il feedback del doppio tap mantiene lato e valore durante la dissolvenza. Un seek orizzontale conserva il gesto anche se il dito devia in verticale, evitando il trascinamento involontario del player verso il basso.
+- Conservate le correzioni a riproduzione, audio separato, selezioni manuali, PiP e ripristino delle schermate della versione ordinaria.
+- Allineate e controllate le versioni delle librerie grafiche e l’accesso ai ViewModel per evitare incompatibilità nelle build ottimizzate.
+- Il database delle attività in background conserva il costruttore usato all’avvio anche senza i moduli opzionali rimossi. La distribuzione controlla questo requisito direttamente negli APK ottimizzati.
+- WorkManager e Room mantengono le versioni già distribuite in NyanimeB, evitando un ritorno al vecchio schema del database e la ricreazione delle attività programmate durante l’aggiornamento.
+- I campi storici dei backup appartenenti a funzioni escluse restano riservati: non vengono riutilizzati con significati diversi.
+
+### Prestazioni
+
+- Anime4K Smart considera sovraccarico GPU e fotogrammi effettivamente persi, separandoli da buffering, seek, decoder e misure incomplete. Recupero graduale della qualità con tentativi limitati; le calibrazioni recenti non impongono limiti permanenti e le scelte manuali mantengono la precedenza.
+- Analisi iniziale dell’immagine facoltativa e sperimentale, inizialmente spenta: piccoli campioni locali, una sola acquisizione e nessun salvataggio o invio delle immagini.
+- Fotocamera, modelli e trasferimenti si avviano soltanto all’uso delle rispettive funzioni. Il rilevamento si sospende nei contesti esclusi e riduce il carico per proteggere la riproduzione.
+
+### Sicurezza
+
+- Gli script importati richiedono consenso e vengono eseguiti in un processo isolato con limiti; importare un file non lo rende automaticamente una fonte attiva.
+- Credenziali delle fonti separate dai documenti condivisi; risultati delle prove e risposte sensibili esclusi dai backup dello Studio.
+- Per l’attenzione non vengono salvate o inviate immagini o misure del volto. La registrazione delle statistiche upstream è sostituita da un’implementazione locale documentata; incognito e cancellazione separata dei dati restano rispettati.
+
+### Compatibilità
+
+- Conservati pacchetto e firma Android per aggiornare senza disinstallare. Versione 0.49.0.0 e codice 280, superiori alla prova NyanimeB 0.48.2.23 / 279.
+- Nessun nuovo metodo obbligatorio per le estensioni esistenti; nessuna regola specifica di una fonte nell’app o nei test.
+- Backup locali e Telegram continuano a usare i percorsi esistenti. File multimediali scaricati esclusi dai backup completi.
+
+### Distribuzione
+
+- Aggiornamento Consigliato, con controllo OTA automatico e accesso alle impostazioni degli aggiornamenti attivi nella variante firmata. Il nome tecnico della variante di compilazione non determina il canale della release.
+- Rimossi integralmente moduli, submoduli e dipendenze dei motori FLOW/YouTube e MELD: nessuna Home YouTube, estrazione, account o servizio di quei client nella build ordinaria.
+- Conservato soltanto il sottoinsieme grafico FLOW, con licenza GPL-3.0, attribuzioni, revisione originale e modifiche documentate; i componenti originali Nyanime del modulo mantengono Apache-2.0.
+- Inventari delle dipendenze, licenze offline, sorgenti corrispondenti e ricette native aggiornati per la nuova distribuzione.
+- Riunita qui anche la cronologia documentata delle prove NyanimeB: ogni sezione è marcata come storico sperimentale e viene esclusa dalle nuove note OTA. Le versioni ordinarie precedenti restano integralmente conservate; non vengono inventate note per numeri interni senza una voce documentata.
+
+### Limitazioni
+
+- Precisione del rilevamento dello sguardo sperimentale: nessuna garanzia di determinare l’effettiva attenzione della persona. Google Drive richiede un client OAuth proprio; disponibilità e puntualità dei servizi remoti dipendono dai relativi fornitori.
+- Traduzione/OCR manga, motori musicali e client YouTube esclusi. Android TV non modificato.
+
+## 19 ottobre 2026 — 0.48.2.23: controlli stabili durante i seek [storico sperimentale]
+
+**Ambito: NyanimeB.** Note storiche della prova, non un elenco delle funzioni incluse nella versione ordinaria attuale.
+
+- Le brevi attese dopo un doppio tap non riaprono più barra di avanzamento e pulsanti personalizzati quando i controlli sono nascosti.
+- Il caricamento prolungato mantiene un indicatore dedicato, senza riaccendere l'intera interfaccia. Restano disponibili controlli iniziali, preparazione delle stanze ed errori.
+
+Build privata di prova NyanimeB, senza OTA ordinaria.
+
+
+## 19 ottobre 2026 — 0.48.2.22: ritorno ai controlli Flow [storico sperimentale]
+
+**Ambito: NyanimeB.** Note storiche della prova, non un elenco delle funzioni incluse nella versione ordinaria attuale.
+
+- Ripristinati controlli, pannelli, indicatori e animazione del doppio tap basati sulla presentazione Flow già usata in NyanimeB, con licenze e attribuzioni originali conservate.
+- Il feedback del doppio tap mantiene lato e valore durante la dissolvenza, evitando cambi improvvisi quando termina il gesto.
+- Un seek orizzontale conserva il controllo del gesto anche se il dito devia verticalmente: il player non viene trascinato verso il basso durante la ricerca del punto desiderato.
+- Mantenute le correzioni di trascinamento, annullamento dei seek, intenzione di pausa e riproduzione, audio e PiP.
+
+Build privata di prova. Il trasferimento verso Nyanime normale resta sospeso in attesa del riscontro sul player.
+
+
+## 19 ottobre 2026 — 0.48.2.21: interfaccia del player indipendente [storico sperimentale]
+
+**Ambito: NyanimeB.** Note storiche della prova, non un elenco delle funzioni incluse nella versione ordinaria attuale.
+
+- Controlli, pannelli e indicatori del player gestiti da un componente Nyanime indipendente dal motore video opzionale.
+- Conservati impostazione compatta e a schermo intero, animazioni native, strumenti e annullamento sicuro della barra temporale.
+- Preferenze di animazione ridotta e accessibilità applicate anche al nuovo renderer.
+
+Build privata di prova; verifiche e limiti nella documentazione del player. Nessuna pubblicazione OTA ordinaria.
+
+
+## 19 ottobre 2026 — 0.48.2.20: backup remoti e compatibilità video [storico sperimentale]
+
+**Ambito: NyanimeB.** Note storiche della prova, non un elenco delle funzioni incluse nella versione ordinaria attuale.
+
+- Corretto un arresto nel pannello informazioni del video causato da versioni diverse della libreria grafica fra Musica, video e app. Aggiunti controlli sulle dipendenze e sull’APK ottimizzato.
+- Backup completi cifrati su WebDAV e integrazione facoltativa Google Drive, con chiave di recupero, verifica dei caricamenti e anteprima prima del ripristino.
+- Frequenza, reti senza consumo e conservazione configurabili separatamente per destinazione. I backup locali e Telegram continuano a usare i percorsi esistenti.
+- Guida OAuth con pacchetto e certificato della build installata. Google Drive richiede ancora la registrazione Nyanime prima della prova con un account reale.
+- Compatibilità video Syncplay esplicita: server e stanza personali, consenso alla visibilità dei dati, conferma del video e sincronizzazione nel player esistente. Le stanze Nyanime restano la modalità principale.
+- Episodi organizzati in sezioni espandibili quando l’estensione dichiara stagioni o raccolte, con conteggi, avanzamento e ripresa nella sezione corretta.
+- Ricerca, indice e azioni sugli episodi conservano identità e progressi; caricamento delle stagioni separate su apertura, senza recuperare tutto in anticipo.
+- Trascinamento nel player con pausa temporanea, un solo spostamento al rilascio e ripresa coerente con lo stato precedente.
+- Indicatore di destinazione e scostamento sempre visibile, anche senza miniature o con i comandi nascosti.
+- Un gesto annullato sulla barra temporale non applica lo spostamento; il rilascio resta distinto dai comandi da tastiera e accessibilità.
+- Gioco segreto Sandspiel offline su NyanimeB: cinque tocchi sul numero di versione in Info, materiali e fluidi originali, pennelli, annullamento e ripresa dell’ultima creazione in pausa. Corretti l’avvio locale e un errore durante il trascinamento con simulazione attiva.
+
+Build privata di prova, senza pubblicazione OTA ordinaria. Traduzione e OCR manga esclusi da questa consegna.
+
+
+## 18 ottobre 2026 — 0.48.2.19: scambio privato delle fonti [storico sperimentale]
+
+**Ambito: NyanimeB.** Note storiche della prova, non un elenco delle funzioni incluse nella versione ordinaria attuale.
+
+- Nuovo accesso «Scambia fonti» nello Store e nello Studio: invio e ricezione espliciti tramite codice o QR, sulla stessa rete oppure via Internet.
+- Invio delle definizioni personali e dei pacchetti supportati, incluse le estensioni APK; i file ricevuti restano separati dalle fonti attive fino alla revisione e all’importazione.
+- Sessioni temporanee con arresto esplicito, verifica del contenuto e limiti di dimensione. Il motore di trasferimento si carica in un processo dedicato soltanto all’avvio di uno scambio.
+- La revisione di una nuova bozza con script conserva il consenso alla versione attiva mentre è ancora in uso; il ripristino di un backup richiede nuovamente l’approvazione locale.
+
+Build privata arm64 installata e provata sul telefono USB, senza pubblicazione OTA ordinaria. Verificati trasferimenti locali e via relay Internet su Wi-Fi; limiti ed evidenze sono documentati in `docs/source-studio.md`.
+
+
+## 18 ottobre 2026 — 0.48.2.18: creazione assistita delle fonti [storico sperimentale]
+
+**Ambito: NyanimeB.** Note storiche della prova, non un elenco delle funzioni incluse nella versione ordinaria attuale.
+
+- Procedura Assistita per scegliere esempi nel sito, generare normali nodi e approvare ogni passaggio dopo una prova HTTP: ricerca, scheda, episodi/capitoli e contenuti.
+- Sezioni Home e generi/filtri configurabili separatamente. Le etichette dei filtri possono corrispondere a valori diversi nelle richieste.
+- Il selettore visuale distingue navigazione e selezione; gli esempi che non sono riproducibili tramite le regole proposte richiedono una correzione o l’editor.
+- Ripristinati fondo e marchi della splash precedenti alla variante blu, sia in chiaro sia in scuro.
+- L’annullamento di una prova chiude anche lo stato di esecuzione dei nodi e impedisce ai risultati precedenti di riattivarlo.
+
+Build privata di NyanimeB in collaudo. Lo scambio P2P delle fonti è un’integrazione distinta ancora in preparazione, non una funzione già distribuita.
+
+
+## 18 ottobre 2026 — 0.48.2.17: Studio delle fonti su NyanimeB [storico sperimentale]
+
+**Ambito: NyanimeB.** Note storiche della prova, non un elenco delle funzioni incluse nella versione ordinaria attuale.
+
+- Studio per creare fonti personali video e manga: vista guidata e canvas con blocchi colorati, collegamenti, proprietà, annulla/ripeti e prove esplicite dei flussi.
+- Selezione visuale nelle pagine, lettura HTML e JSON, campi delle schede, episodi, capitoli, video e sezioni Home tramite i contratti già presenti nell’app.
+- Definizioni dichiarative importabili ed esportabili, bozze separate dalle versioni attive, ripristino della versione precedente e integrazione con il backup delle fonti. Credenziali locali separate dai documenti condivisi.
+- NyanimeB mantiene soltanto l’identità rossa in modalità scura e arancione in modalità chiara, comprese icona e scritta; rimossi scelta, sblocco e risorse della variante blu.
+
+Versione destinata alle prove private. Verificati su telefono USB ricerca, scheda, avvio del video, apertura e cambio pagina nel lettore manga, attivazione rinviata e interruzione degli script fuori tempo. Nessuna pubblicazione sull’OTA ordinaria.
+
+
+## 18 ottobre 2026 — 0.48.2.16: Musica in NyanimeB [storico sperimentale]
+
+**Ambito: NyanimeB.** Note storiche della prova, non un elenco delle funzioni incluse nella versione ordinaria attuale.
+
+- Testata Nyanime con logo, categorie, Stanze e Musica; pulizia delle impostazioni obsolete durante avvio, backup e ripristino.
+- Nuovo spazio Musica con interfaccia rossa, ricerca, libreria, playlist, podcast e controlli del lettore basati su MELD. Accesso dalla testata con il tasto cuffie e configurazione facoltativa degli account.
+- Riproduzione in background, controlli durante la lettura e coordinamento con i lettori video. Database, download, cache e accessi musicali separati dal resto dell’app.
+- Collegamento al Cast esistente attraverso un contratto audio generico; dati musicali portabili nel backup, senza file scaricati o segreti degli account.
+- Crediti e licenze conservati, con sorgenti originali verificabili e materiali corrispondenti per la build privata.
+
+
+## 18 ottobre 2026 — 0.48.2.13: Solo rilevamento [storico sperimentale]
+
+**Ambito: NyanimeB.** Note storiche della prova, non un elenco delle funzioni incluse nella versione ordinaria attuale.
+
+### Novità
+
+- Nuova modalità facoltativa «Solo rilevamento»: il video continua senza pause, riprese o avvisi automatici, conservando soltanto intervalli stimati di attenzione per un futuro riepilogo della visione.
+- Intervalli locali separati per video e inclusi nel backup delle impostazioni; nessun salvataggio in incognito. La pausa automatica non raccoglie questi dati e i progressi restano invariati.
+- Scelta della modalità, conteggio dei video con dati salvati e cancellazione separata nelle impostazioni; lo stesso tasto con l’occhio attiva o disattiva la funzione nei due player.
+
+### Prestazioni
+
+- Aggregazione leggera in memoria e salvataggi fuori dal thread dell’interfaccia; nessuna registrazione di immagini o misure del volto. Fotocamera e raccolta si fermano nei contesti esclusi o disattivando la funzione.
+
+
+## 17 ottobre 2026 — 0.48.2.11: Riconoscimento occhi nei controlli [storico sperimentale]
+
+**Ambito: NyanimeB.** Note storiche della prova, non un elenco delle funzioni incluse nella versione ordinaria attuale.
+
+### Novità
+
+- Tasto con l'occhio nei controlli dei due player per attivare o disattivare il riconoscimento senza lasciare il video; accanto a SM nel player nativo, celeste quando attivo e barrato quando spento.
+- Se manca il permesso della fotocamera, il tasto apre la spiegazione e le impostazioni della funzione. La disattivazione rilascia il rilevatore senza riprendere un video già in pausa.
+
+
+## 17 ottobre 2026 — 0.48.2.10: Attenzione alla visione e sigle [storico sperimentale]
+
+**Ambito: NyanimeB.** Note storiche della prova, non un elenco delle funzioni incluse nella versione ordinaria attuale.
+
+### Novità
+
+- Nuovi controlli facoltativi per mettere in pausa dopo una distrazione o una chiusura prolungata degli occhi, con tempi e ripresa configurabili separatamente.
+- Recupero del punto in cui si è smesso di guardare, tramite pulsante o ritorno automatico scelto dall’utente; punti ordinari inclusi nei backup e punti in incognito soltanto in memoria.
+- Verifica e adattamento facoltativi per la posizione di visione; le letture incerte non intervengono sulla riproduzione. La funzione è sperimentale e parte disattivata.
+- Un solo rilevatore per i due player, senza riprese in background e con sospensione in PiP, Cast, stanze, Shorts e dirette. Il carico della fotocamera viene ridotto o sospeso per preservare il video.
+
+- Opening ed ending nelle schede anime, con brano, artista e versioni fornite dai cataloghi pubblici. Sigla dell’anime e brano completo restano scelte distinte.
+- Video YouTube aperti nel player integrato; ricerca guidata e scelta delle alternative quando manca un collegamento verificato. Le preferenze sui video scelti sono incluse nel backup delle impostazioni.
+
+### Prestazioni
+
+- Metadati delle sigle conservati in cache, richieste condivise e servizi indipendenti: un errore non elimina i dati disponibili. La ricerca dei video parte soltanto su richiesta.
+
+### Sicurezza
+
+- Anteprime delle sigle con spoiler protette e scelte in incognito mantenute soltanto in memoria, senza aggiungere le ricerche alla cronologia.
+
+
+## 16 ottobre 2026 — 0.48.2.9: Icona celeste più leggibile [storico sperimentale]
+
+**Ambito: NyanimeB.** Note storiche della prova, non un elenco delle funzioni incluse nella versione ordinaria attuale.
+
+### Aspetto
+
+- Icona Android con N celeste luminosa, sfumature blu e stelline: più riconoscibile sul fondo blu notte, anche su Home scure. Aggiornate sia l'icona adattiva sia quelle tradizionali.
+
+
+## 16 ottobre 2026 — 0.48.2.8: Nuvola SM, disegno ottimizzato [storico sperimentale]
+
+**Ambito: NyanimeB.** Note storiche della prova, non un elenco delle funzioni incluse nella versione ordinaria attuale.
+
+### Player
+
+- Il contorno luminoso della Nuvola usa un unico disegno a sfumatura continua e un livello grafico dedicato, per ridurre il carico dell'animazione durante la riproduzione.
+- Forma organica, colori e visibilità sono mantenuti; gli shader, i preset e la qualità del video SM restano invariati.
+
+
+## 16 ottobre 2026 — 0.48.2.7: Smart, qualità e fluidità a caldo [storico sperimentale]
+
+**Ambito: NyanimeB.** Note storiche della prova, non un elenco delle funzioni incluse nella versione ordinaria attuale.
+
+### Player
+
+- Smart considera anche le perdite effettive nella presentazione del video: il solo margine GPU non può nascondere scatti ripetuti durante un carico di rendering significativo.
+- Picchi isolati, problemi del decoder e misure incomplete restano distinti; il recupero graduale della qualità mantiene i limiti per episodio e rispetta le scelte manuali.
+- Corretto il formato delle misure native di Anime4K: tempi GPU reali disponibili al controller e alla diagnostica, con ripristino dei preset superiori quando il margine torna sufficiente.
+- Nuvola SM più visibile e leggera, con un solo video e una scia 2D morbida; rimossa la composizione sperimentale che poteva causare scatti.
+
+
+## 16 ottobre 2026 — 0.48.2.6: Nuvola SM su NyanimeB [storico sperimentale]
+
+**Ambito: NyanimeB.** Note storiche della prova, non un elenco delle funzioni incluse nella versione ordinaria attuale.
+
+### Player
+
+- Attivazione manuale di SM con rivelazione a nuvola dal pulsante: il video originale e quello migliorato continuano a muoversi insieme durante il passaggio.
+- Ritorno discreto alla visualizzazione normale, rispetto delle animazioni ridotte e rilascio dei passaggi temporanei alla conclusione.
+- La transizione resta separata dalla calibrazione Smart e conserva qualità, preset e impostazioni personali del renderer.
+
+
+## 16 ottobre 2026 — 0.48.2.5: Smart più reattivo [storico sperimentale]
+
+**Ambito: NyanimeB.** Note storiche della prova, non un elenco delle funzioni incluse nella versione ordinaria attuale.
+
+### Player
+
+- Anime4K Smart reagisce agli overload GPU consecutivi con fotogrammi persi e può recuperare gradualmente qualità dopo una fase stabile, con tentativi limitati e ripristino automatico se il livello superiore non regge.
+- Le calibrazioni recenti restano un suggerimento locale, con scadenza: nessun limite permanente e nessuna impostazione degli episodi cancellata.
+- Nel pannello del player sono visibili preparazione, preset attivo e recupero della qualità. Analisi iniziale dell’immagine opzionale e sperimentale, disattivata inizialmente: solo piccoli campioni locali, senza invio o salvataggio delle immagini.
+
+
+## 16 ottobre 2026 — 0.48.2.4: Blu notte e stelline [storico sperimentale]
+
+**Ambito: NyanimeB.** Note storiche della prova, non un elenco delle funzioni incluse nella versione ordinaria attuale.
+
+### Aspetto
+
+- Nuova identità blu notte per NyanimeB, con superfici petrolio, accenti indaco e loghi con stelline, anche nell’icona Android.
+- Indicatore di aggiornamento a isola uniforme nelle Home e nelle altre schermate con trascinamento per aggiornare.
+- Modalità chiara, scura, automatica e AMOLED conservate. Il tema classico ripristina i precedenti colori rosso/arancione, con una scelta indipendente dalla luminosità.
+- Colore e sblocco vengono conservati nei backup completi; i loghi mantengono trasparenza e fori delle lettere.
+
+### Distribuzione
+
+- Revisione successiva alla build privata: completati i metadati e gli avvisi offline di componenti e script video; documentati licenze originali, modifiche e materiali richiesti prima di una distribuzione NyanimeB.
+- Documentazione dell'identità blu aggiornata; i sorgenti esportati conservano anche il modulo video e la sua ricetta di integrazione.
+
+
+## 16 ottobre 2026 — 0.48.2.3: Amplificazione fino al 200% [storico sperimentale]
+
+**Ambito: NyanimeB.** Note storiche della prova, non un elenco delle funzioni incluse nella versione ordinaria attuale.
+
+### Correzioni
+
+- Il limite predefinito del volume arriva al 200% reale del mixer del video, conservando i limiti personalizzati nelle impostazioni audio. La regolazione fine e la lettura dei valori decimali sono applicate anche al motore incorporato.
+
+
+## 16 ottobre 2026 — 0.48.2.2: Volume preciso con il gesto [storico sperimentale]
+
+**Ambito: NyanimeB.** Note storiche della prova, non un elenco delle funzioni incluse nella versione ordinaria attuale.
+
+### Correzioni
+
+- Il trascinamento del volume regola anche il mixer del video fra i livelli di Android: niente più salti del 6–7%. Regolazione continua dalla modalità silenziosa fino all'amplificazione consentita, mantenendo distinti azzurro e viola.
+
+
+## 16 ottobre 2026 — 0.48.2.1: Amplificazione leggibile [storico sperimentale]
+
+**Ambito: NyanimeB.** Note storiche della prova, non un elenco delle funzioni incluse nella versione ordinaria attuale.
+
+### Correzioni
+
+- Il volume conserva la scala 0–100% azzurra e sovrappone in viola soltanto l'amplificazione: al 130%, lo 0–30 è viola e il 31–100 rimane azzurro.
+- La stessa distinzione separa giallo e arancione negli indicatori di luminosità che supportano valori amplificati.
+
+
+## 16 ottobre 2026 — 0.48.2.0: Player FLOW e ricerca integrata [storico sperimentale]
+
+**Ambito: NyanimeB.** Note storiche della prova, non un elenco delle funzioni incluse nella versione ordinaria attuale.
+
+### Interfaccia
+
+- Il player di anime e serie utilizza la testata, la timeline, i comandi e il pannello delle impostazioni di FLOW. I comandi continuano a usare MPV, mantenendo tracce, qualità, Anime4K, gesti, stanze, timer e pulsanti personalizzati.
+- Schermata di riproduzione riorganizzata con episodio in primo piano, riga della serie e azioni compatte. Anche i canali TV utilizzano i controlli condivisi, conservando guida, preferiti e capacità della diretta.
+- Cerca su YouTube utilizza la barra inferiore di Nyanime, mantenendo suggerimenti, cronologia, filtri e risultati nativi. Le altre sezioni continuano a cercare nelle estensioni, senza includere YouTube.
+- Home, ricerca e libreria video condividono lo sfondo e i colori dell'app, senza una superficie nera separata.
+- Il comando SM rimane compatto e diventa giallo quando è attivo. Un tocco sul video nasconde i comandi anche durante la pausa.
+- Indicatori dei gesti distinti per colore: volume azzurro e viola in amplificazione; luminosità gialla e arancione per valori oltre il 100%, quando supportati.
+
+### Prestazioni
+
+- I controlli condivisi non avviano il motore YouTube quando viene riprodotto un anime. Durante lo scorrimento della timeline MPV aggiorna l'anteprima e applica il salto al rilascio.
+
+
+## 16 ottobre 2026 — 0.48.1.1: Riproduzione e ricerca contestuale [storico sperimentale]
+
+**Ambito: NyanimeB.** Note storiche della prova, non un elenco delle funzioni incluse nella versione ordinaria attuale.
+
+### Correzioni
+
+- Corretto il crash all'avvio degli anime dovuto a un'incompatibilità fra le API AndroidX usate in compilazione e quelle presenti nell'app. Il modello del player utilizza ora la factory pubblica e la stessa versione di Lifecycle del modulo video.
+
+### Interfaccia
+
+- Cerca dalla Home YouTube e dalla libreria Video apre la ricerca dedicata di YouTube. Nelle altre sezioni Atlante cerca nelle estensioni ed esclude YouTube, anche dalle categorie e dai risultati di esplorazione.
+- La pressione prolungata su Cerca continua ad aprire Sfoglia. Uscendo dalla ricerca YouTube si torna alla schermata di provenienza.
+
+
+## 16 ottobre 2026 — 0.48.1.0: NyanimeB, integrazione video privata [storico sperimentale]
+
+**Ambito: NyanimeB.** Note storiche della prova, non un elenco delle funzioni incluse nella versione ordinaria attuale.
+
+### Novità
+
+- Primo sviluppo privato di YouTube integrato nella Home, nella Libreria e nella ricerca Atlante. Il modulo video è compilato nella stessa app; non richiede un addon o un'app separata.
+- Pagine video, Shorts, canali, iscrizioni e playlist utilizzano l'interfaccia nativa di FLOW, conservandone attribuzioni e licenza. La modalità musicale resta esclusa dalla navigazione.
+
+### Prestazioni
+
+- Avvio differito del modulo video, preparazione delle cache fuori dal thread dell'interfaccia e gestione esplicita del passaggio fra i motori di riproduzione.
+- Le ricerche video condividono il limite di concorrenza di Atlante, con annullamento delle query superate e paginazione indipendente.
+
+### Distribuzione
+
+- Sviluppo nel repository privato NyanimeB, senza pubblicazione nei canali OTA dell'app principale. Su richiesta del proprietario l'APK conserva identificativo e firma di produzione per aggiornare l'installazione esistente.
+
+
+## 16 ottobre 2026 — 0.48.0.2: Licenze e attribuzioni offline
+
+Versione preparata nel codice, non ancora pubblicata.
+
+### Correzioni
+
+- Completati i testi delle licenze WebRTC e dei componenti nativi del player nell'inventario delle librerie, conservando gli avvisi originali già inclusi.
+- La schermata delle licenze legge direttamente l'inventario incluso nell'app, mantenendolo disponibile anche dopo l'ottimizzazione delle risorse.
+
+### Distribuzione
+
+- Registri degli avvisi condivisi tra schermata e verificatore; controlli estesi all'inventario e ai testi effettivamente presenti negli APK.
+- Aggiornati crediti, istruzioni per i sorgenti nativi e documentazione delle licenze.
+
 ## 16 ottobre 2026 — 0.48.0.1: Ritorno alla versione consolidata
 
 ### Correzioni

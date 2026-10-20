@@ -35,4 +35,15 @@
   <string name="playback_all_episodes">Tutti (%1$d)</string>
   <string name="playback_previous">Episodio precedente</string>
   <string name="playback_subtitles">Sottotitoli</string>
+  <string name="playback_audio">Tracce audio</string>
+  <string name="playback_speed">Velocità di riproduzione</string>
+  <string name="playback_rotation">Rotazione schermo</string>
+  <string name="playback_settings">Impostazioni del player</string>
+  <string name="playback_share">Condividi</string>
+  <string name="playback_advanced">Altri controlli</string>
+  <string name="playback_video">Video</string>
+  <string name="playback_pip">Picture in picture</string>
+  <string name="playback_lock">Blocca i comandi</string>
+  <string name="playback_autoplay">Riproduci automaticamente il prossimo episodio</string>
+  <string name="online_video_search_hint">Cerca su YouTube…</string>
 </resources>

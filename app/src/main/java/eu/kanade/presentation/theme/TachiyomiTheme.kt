@@ -1,5 +1,6 @@
 package eu.kanade.presentation.theme
 
+import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.ripple.RippleAlpha
 import androidx.compose.material3.ColorScheme
@@ -8,7 +9,9 @@ import androidx.compose.material3.RippleConfiguration
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
@@ -16,6 +19,8 @@ import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import eu.kanade.domain.ui.NyanimeIdentity
+import eu.kanade.domain.ui.ThemeSettingsRepository
 import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.domain.ui.model.AppTheme
 import eu.kanade.domain.ui.resolveDarkTheme
@@ -32,6 +37,7 @@ import eu.kanade.presentation.theme.colorscheme.MochaColorScheme
 import eu.kanade.presentation.theme.colorscheme.MonetColorScheme
 import eu.kanade.presentation.theme.colorscheme.MonochromeColorScheme
 import eu.kanade.presentation.theme.colorscheme.NordColorScheme
+import eu.kanade.presentation.theme.colorscheme.NyanimeClassicColorScheme
 import eu.kanade.presentation.theme.colorscheme.NyanimeColorScheme
 import eu.kanade.presentation.theme.colorscheme.SapphireColorScheme
 import eu.kanade.presentation.theme.colorscheme.StrawberryColorScheme
@@ -41,11 +47,13 @@ import eu.kanade.presentation.theme.colorscheme.TealTurqoiseColorScheme
 import eu.kanade.presentation.theme.colorscheme.TidalWaveColorScheme
 import eu.kanade.presentation.theme.colorscheme.YinYangColorScheme
 import eu.kanade.presentation.theme.colorscheme.YotsubaColorScheme
+import eu.kanade.tachiyomi.ui.base.delegate.ThemingDelegateImpl
 import tachiyomi.presentation.core.util.collectAsState
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
 val LocalNyanimeStyle = staticCompositionLocalOf { false }
+val LocalNyanimeIdentity = staticCompositionLocalOf { NyanimeIdentity.CLASSIC }
 internal val LocalMangaSurfaces = staticCompositionLocalOf<SnapshotStateMap<Any, Color>?> { null }
 
 /** Compatibility wrapper for existing manga screens; the app now has one visual theme. */
@@ -66,12 +74,19 @@ fun TachiyomiTheme(
     content: @Composable () -> Unit,
 ) {
     val uiPreferences = Injekt.get<UiPreferences>()
-    val mode by uiPreferences.themeMode().collectAsState()
+    val repository = remember { Injekt.get<ThemeSettingsRepository>() }
+    val settings by repository.settings.collectAsState(repository.current())
+    val isAmoled by uiPreferences.themeDarkAmoled().collectAsState()
+    val activity = LocalContext.current as? Activity
+    LaunchedEffect(activity, settings.identity, isAmoled, settings.mode) {
+        activity?.let { ThemingDelegateImpl().applyAppTheme(it) }
+    }
     BaseTachiyomiTheme(
         appTheme = appTheme ?: uiPreferences.activeAppTheme(),
-        isAmoled = amoled ?: uiPreferences.themeDarkAmoled().get(),
+        isAmoled = amoled ?: isAmoled,
         modernUi = appTheme?.let { it == AppTheme.NYANIME } ?: true,
-        darkTheme = resolveDarkTheme(mode, isSystemInDarkTheme()),
+        darkTheme = resolveDarkTheme(settings.mode, isSystemInDarkTheme()),
+        identity = settings.identity,
         content = { ProvideMotionPreferences(content) },
     )
 }
@@ -82,8 +97,9 @@ fun TachiyomiPreviewTheme(
     isAmoled: Boolean = false,
     modernUi: Boolean = appTheme == AppTheme.NYANIME,
     darkTheme: Boolean = isSystemInDarkTheme(),
+    identity: NyanimeIdentity = NyanimeIdentity.CLASSIC,
     content: @Composable () -> Unit,
-) = BaseTachiyomiTheme(appTheme, isAmoled, modernUi, darkTheme, content)
+) = BaseTachiyomiTheme(appTheme, isAmoled, modernUi, darkTheme, identity, content)
 
 @Composable
 private fun BaseTachiyomiTheme(
@@ -91,16 +107,18 @@ private fun BaseTachiyomiTheme(
     isAmoled: Boolean,
     modernUi: Boolean,
     darkTheme: Boolean,
+    identity: NyanimeIdentity,
     content: @Composable () -> Unit,
 ) {
     val mangaSurfaces = LocalMangaSurfaces.current ?: remember { mutableStateMapOf() }
     CompositionLocalProvider(
         LocalNyanimeStyle provides modernUi,
         LocalDarkTheme provides darkTheme,
+        LocalNyanimeIdentity provides identity,
         LocalMangaSurfaces provides mangaSurfaces,
     ) {
         MaterialTheme(
-            colorScheme = getThemeColorScheme(appTheme, isAmoled && darkTheme, darkTheme),
+            colorScheme = getThemeColorScheme(appTheme, isAmoled && darkTheme, darkTheme, identity),
             shapes = if (modernUi) NyanimeShapes else androidx.compose.material3.Shapes(),
             typography = if (modernUi) {
                 NyanimeTypography
@@ -118,8 +136,11 @@ private fun getThemeColorScheme(
     appTheme: AppTheme,
     isAmoled: Boolean,
     darkTheme: Boolean,
+    identity: NyanimeIdentity,
 ): ColorScheme {
-    val colorScheme = if (appTheme == AppTheme.MONET) {
+    val colorScheme = if (appTheme == AppTheme.NYANIME) {
+        NyanimeClassicColorScheme
+    } else if (appTheme == AppTheme.MONET) {
         MonetColorScheme(LocalContext.current)
     } else {
         colorSchemes.getOrDefault(appTheme, TachiyomiColorScheme)

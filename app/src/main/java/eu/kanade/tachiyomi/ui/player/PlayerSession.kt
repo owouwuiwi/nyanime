@@ -22,6 +22,7 @@
 
 package eu.kanade.tachiyomi.ui.player
 
+import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.app.PictureInPictureParams
 import android.content.BroadcastReceiver
@@ -55,6 +56,8 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.media.AudioAttributesCompat
 import androidx.media.AudioFocusRequestCompat
 import androidx.media.AudioManagerCompat
@@ -109,6 +112,7 @@ import eu.kanade.tachiyomi.util.system.powerManager
 import eu.kanade.tachiyomi.util.system.toShareIntent
 import eu.kanade.tachiyomi.util.system.toast
 import `is`.xyz.mpv.MPVLib
+import it.lorelore.nyanime.syncplay.SyncplayManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -164,7 +168,12 @@ class PlayerSession(
         private set
     private val modelStore = androidx.lifecycle.ViewModelStore()
     private val model = lazy {
-        PlayerViewModel(this, androidx.lifecycle.SavedStateHandle()).also { modelStore.put("player", it) }
+        androidx.lifecycle.ViewModelProvider.create(
+            modelStore,
+            viewModelFactory {
+                initializer { PlayerViewModel(this@PlayerSession, androidx.lifecycle.SavedStateHandle()) }
+            },
+        )["player", PlayerViewModel::class]
     }
     val viewModel get() = model.value
     private val mutableSnapshot = kotlinx.coroutines.flow.MutableStateFlow(
@@ -208,7 +217,10 @@ class PlayerSession(
         renderer = java.lang.ref.WeakReference(view)
     }
     internal fun releaseRenderHost(view: MpvSurfaceView) {
-        if (renderer.get() === view) renderer.clear()
+        if (renderer.get() === view) {
+            finishAnime4KReveal()
+            renderer.clear()
+        }
     }
     internal suspend fun captureReplacement() {
         replacementFrame.value = try {
@@ -244,6 +256,10 @@ class PlayerSession(
 
     fun detachHost(activity: BaseActivity) {
         if (host.get() !== activity) return
+        viewModel.cancelPlaybackScrub(
+            restorePlayback =
+            activity.isChangingConfigurations || viewModel.playerPreferences.backgroundAudio().get() || pip.value,
+        )
         // PiP parameters belong to the Activity and outlive the service-owned player.
         // Revoke them before the renderer disappears or another Activity claims the video.
         eu.kanade.tachiyomi.ui.player.session.PlaybackActivityBridge.disablePip(activity)
@@ -447,6 +463,7 @@ class PlayerSession(
         }
     }
     fun enterPictureInPictureMode(params: PictureInPictureParams = createPipParams()): Boolean {
+        viewModel.cancelPlaybackScrub()
         val screen = hostActivity ?: return false
         return canEnterPictureInPicture && runCatching { screen.enterPictureInPictureMode(params) }.getOrDefault(false)
     }
@@ -654,6 +671,18 @@ class PlayerSession(
     private var pipReceiver: BroadcastReceiver? = null
     private var httpServer: HttpServer? = null
     private val anime4kShaderPipeline by lazy { Anime4KShaderPipeline(this) }
+    private var anime4kUserToggle = false
+    private val anime4kReveal by lazy {
+        Anime4KReveal(
+            scope = lifecycleScope,
+            selection = advancedPlayerPreferences.anime4kActiveSelection(),
+            measurementBoundary = { anime4kSmartController?.resetTelemetry(SystemClock.elapsedRealtime()) },
+        )
+    }
+
+    internal fun finishAnime4KReveal() = anime4kReveal.finish()
+    internal val anime4kCloudState get() = anime4kReveal.state
+    internal fun completeAnime4KReveal(id: Long) = anime4kReveal.complete(id)
     private var fileLoadedJob: Job? = null
     private var videoLoadJob: Job? = null
     private var handledFailureGeneration = -1L
@@ -661,6 +690,10 @@ class PlayerSession(
     private var anime4kAppliedRoomRestriction: Boolean? = null
     private var anime4kRoomRestorePending = false
     private var anime4kSmartController: Anime4KSmartController? = null
+    private var anime4kContentJob: Job? = null
+    internal val anime4kCaptureInFlight = java.util.concurrent.atomic.AtomicBoolean(false)
+    private var anime4kContentComplete = false
+    private var anime4kContentResult = Anime4KContentResult(Anime4KContentState.Disabled)
     private var anime4kSmartNeedsMediaResolution = true
     private var anime4kSmartResolutionRetryCount = 0
     private var anime4kSmartRetryPending = false
@@ -668,6 +701,9 @@ class PlayerSession(
     private var anime4kTelemetryGeneration = 0L
     private var anime4kTelemetrySession: Anime4KTelemetrySession? = null
     private var anime4kCalibrationKey: String? = null
+    private var anime4kLastDiagnosticLogMillis = 0L
+    private var anime4kRecoveryEpisode: Pair<Long, Long>? = null
+    private var anime4kRecoveryBudget = Anime4KRecoveryBudget()
     private var anime4kCalibrationMediaInfo: Anime4KMediaInfo? = null
     private var anime4kLastSavedCalibration: Anime4KCalibration? = null
     private val anime4kMediaRefresh by lazy {
@@ -911,6 +947,10 @@ class PlayerSession(
                 if (it.active) viewModel.endHoldSpeed()
                 updateAnime4KRoomRestriction()
             }.launchIn(lifecycleScope)
+            SyncplayManager.active.onEach { active ->
+                if (active) viewModel.endHoldSpeed()
+                updateAnime4KRoomRestriction()
+            }.launchIn(lifecycleScope)
             val initialChannel =
                 TvChannelRef(initialIntent.getLongExtra("source", 0), initialIntent.getStringExtra("channel").orEmpty())
             if (!nyanime.tv.api.TvRules.valid(initialChannel)) viewModel.bindWatchPlayer()
@@ -1055,7 +1095,26 @@ class PlayerSession(
         }
     }
 
-    internal fun toggleAnime4KSmart() {
+    internal fun toggleAnime4KSmart(windowX: Float? = null, windowY: Float? = null, animate: Boolean = false) {
+        if (isAnime4KUnavailable() || !available) return
+        val enabling = currentAnime4KSelection().profile != Anime4KProfile.Smart ||
+            anime4kSmartController?.isSuspended == true
+        val origin = if (windowX != null && windowY != null) Anime4KRevealOrigin(windowX, windowY) else null
+        anime4kReveal.toggle(
+            origin,
+            enabling,
+            animate && ValueAnimator.areAnimatorsEnabled(),
+        ) {
+            anime4kUserToggle = true
+            try {
+                toggleAnime4KSmartNow()
+            } finally {
+                anime4kUserToggle = false
+            }
+        }
+    }
+
+    private fun toggleAnime4KSmartNow() {
         if (isAnime4KUnavailable()) return
         val mediaInfo = resolveAnime4KMediaInfo()
         val current = currentAnime4KSelection()
@@ -1108,7 +1167,9 @@ class PlayerSession(
     }
 
     private fun isAnime4KUnavailable() =
-        viewModel.watchTogether.active || UltraFiles.isUltra(viewModel.currentVideo.value)
+        viewModel.watchTogether.active ||
+            SyncplayManager.isActive() ||
+            UltraFiles.isUltra(viewModel.currentVideo.value)
 
     private fun currentAnime4KSelection(): Anime4KSelection =
         advancedPlayerPreferences.anime4kActiveSelection().value
@@ -1182,7 +1243,7 @@ class PlayerSession(
 
     private fun updateAnime4KRoomRestriction() {
         if (isFinishing || isDestroyed || player.isExiting) return
-        val active = viewModel.watchTogether.active
+        val active = viewModel.watchTogether.active || SyncplayManager.isActive()
         if (anime4kAppliedRoomRestriction == active) return
         anime4kAppliedRoomRestriction = active
         anime4kRoomRestorePending = !active
@@ -1199,7 +1260,7 @@ class PlayerSession(
     }
 
     private fun applyAnime4K() {
-        val roomActive = viewModel.watchTogether.active
+        val roomActive = viewModel.watchTogether.active || SyncplayManager.isActive()
         anime4kAppliedRoomRestriction = roomActive
         advancedPlayerPreferences.setAnime4kRoomActive(roomActive)
         advancedPlayerPreferences.setAnime4kUltraActive(false)
@@ -1215,7 +1276,7 @@ class PlayerSession(
     }
 
     private fun loadAnime4KForCurrentEpisode() {
-        advancedPlayerPreferences.setAnime4kRoomActive(viewModel.watchTogether.active)
+        advancedPlayerPreferences.setAnime4kRoomActive(viewModel.watchTogether.active || SyncplayManager.isActive())
         advancedPlayerPreferences.setAnime4kUltraActive(UltraFiles.isUltra(viewModel.currentVideo.value))
         resetAnime4KRuntime()
 
@@ -1270,6 +1331,7 @@ class PlayerSession(
     }
 
     private fun applySmartAnime4KForLoadedMedia() {
+        if (!available || player.isExiting) return
         if (isAnime4KUnavailable()) return
         if (currentAnime4KSelection().profile != Anime4KProfile.Smart) return
 
@@ -1279,13 +1341,28 @@ class PlayerSession(
         }
         val now = SystemClock.elapsedRealtime()
         val controller = anime4kSmartController
+        if (controller == null &&
+            !anime4kContentComplete &&
+            advancedPlayerPreferences.anime4kContentAnalysisEnabled().get()
+        ) {
+            if (anime4kContentJob == null && currentAnime4KSelection().mode == Anime4KMode.Off) {
+                startAnime4KContentProbe()
+            }
+            return
+        }
         if (
             controller == null ||
             anime4kSmartNeedsMediaResolution
         ) {
             val calibrationKey = anime4KRuntimeCalibrationKey(mediaInfo)
             val calibration = advancedPlayerPreferences.anime4kCalibration(calibrationKey)
-            val newController = Anime4KSmartController(mediaInfo, now, calibration)
+            val age = calibration?.let { System.currentTimeMillis() - it.updatedAtMillis }
+            val episode = currentAnime4KEpisodeIds()
+            if (episode != anime4kRecoveryEpisode) {
+                anime4kRecoveryEpisode = episode
+                anime4kRecoveryBudget = Anime4KRecoveryBudget()
+            }
+            val newController = Anime4KSmartController(mediaInfo, now, calibration, age, anime4kRecoveryBudget)
             anime4kSmartController = newController
             anime4kSmartNeedsMediaResolution = false
             anime4kSmartResolutionRetryCount = 0
@@ -1383,6 +1460,12 @@ class PlayerSession(
     }
 
     private fun resetAnime4KRuntime() {
+        if (!anime4kUserToggle) finishAnime4KReveal()
+        anime4kLastDiagnosticLogMillis = 0L
+        anime4kContentJob?.cancel()
+        anime4kContentJob = null
+        anime4kContentComplete = false
+        anime4kContentResult = Anime4KContentResult(Anime4KContentState.Disabled)
         anime4kMediaRefresh.reset()
         stopAnime4KTelemetry()
         anime4kSmartController = null
@@ -1397,8 +1480,59 @@ class PlayerSession(
 
     private fun publishAnime4KSmartState(controller: Anime4KSmartController) {
         advancedPlayerPreferences.setAnime4kDiagnostics(
-            controller.diagnostics.copy(mode = currentAnime4KSelection().mode),
+            controller.diagnostics.copy(
+                mode = currentAnime4KSelection().mode,
+                contentState = anime4kContentResult.state,
+                contentConfidence = anime4kContentResult.assessment.confidence,
+            ),
         )
+    }
+
+    private fun startAnime4KContentProbe() {
+        val generation = anime4kMediaResolutionGeneration
+        anime4kContentResult = Anime4KContentResult(Anime4KContentState.Sampling)
+        advancedPlayerPreferences.setAnime4kDiagnostics(
+            Anime4KSmartDiagnostics(profile = Anime4KProfile.Smart, contentState = Anime4KContentState.Sampling),
+        )
+        anime4kContentJob = lifecycleScope.launch {
+            val result = try {
+                Anime4KContentProbe.collect {
+                    if (!available ||
+                        player.isExiting ||
+                        generation != anime4kMediaResolutionGeneration ||
+                        isAnime4KUnavailable() ||
+                        currentAnime4KSelection().profile != Anime4KProfile.Smart ||
+                        currentAnime4KSelection().mode != Anime4KMode.Off
+                    ) {
+                        null
+                    } else {
+                        renderer.get()?.captureAnalysisFrame()
+                    }
+                }
+            } catch (cancel: kotlinx.coroutines.CancellationException) {
+                throw cancel
+            } catch (_: Exception) {
+                Anime4KContentResult(Anime4KContentState.Unavailable)
+            } catch (_: OutOfMemoryError) {
+                Anime4KContentResult(Anime4KContentState.Unavailable)
+            }
+            if (generation != anime4kMediaResolutionGeneration ||
+                !available ||
+                player.isExiting ||
+                isAnime4KUnavailable() ||
+                currentAnime4KSelection().profile != Anime4KProfile.Smart
+            ) {
+                return@launch
+            }
+            anime4kContentResult = if (advancedPlayerPreferences.anime4kContentAnalysisEnabled().get()) {
+                result
+            } else {
+                Anime4KContentResult(Anime4KContentState.Disabled)
+            }
+            anime4kContentComplete = true
+            anime4kContentJob = null
+            applySmartAnime4KForLoadedMedia()
+        }
     }
 
     private fun saveAnime4KCalibrationIfChanged(controller: Anime4KSmartController) {
@@ -1477,6 +1611,7 @@ class PlayerSession(
             playbackSpeed = getAnime4KPropertyDouble("speed")
                 ?.takeIf { it.isFinite() && it > 0.0 }
                 ?: 1.0,
+            contentTreatment = anime4kContentResult.assessment.treatment,
         )
     }
 
@@ -1541,12 +1676,28 @@ class PlayerSession(
 
     private fun acceptAnime4KSample(sample: Anime4KPerformanceSample) {
         if (isAnime4KUnavailable()) return
+        anime4kReveal.observePerformance(sample)
+        if (anime4kReveal.measuringSuppressed) return
         val controller = anime4kSmartController ?: return
         controller.onSample(sample)?.let { adjustment ->
             applySmartAdjustment(adjustment, sample.timestampMillis)
         }
         publishAnime4KSmartState(controller)
         saveAnime4KCalibrationIfChanged(controller)
+        if (advancedPlayerPreferences.anime4kDiagnosticsEnabled().get() &&
+            sample.timestampMillis - anime4kLastDiagnosticLogMillis >= 5_000L
+        ) {
+            anime4kLastDiagnosticLogMillis = sample.timestampMillis
+            // Opt-in numerical evidence only: no title, source, file path, image or account data.
+            android.util.Log.i(
+                "Anime4KSmart",
+                "Anime4K metrics t=${sample.timestampMillis} mode=${controller.currentMode.name} " +
+                    "playing=${sample.playing} renderMs=${sample.renderTimeMillis} " +
+                    "recentMs=${sample.lastRenderTimeMillis} output=${sample.outputDroppedFrames} " +
+                    "decoder=${sample.decoderDroppedFrames} delayed=${sample.delayedFrames} " +
+                    "mistimed=${sample.mistimedFrames}",
+            )
+        }
     }
 
     private fun getAnime4KPropertyInt(property: String): Int? =
@@ -1801,6 +1952,7 @@ class PlayerSession(
     }
 
     internal fun hostConfigurationChanged() {
+        viewModel.cancelPlaybackScrub()
         if (!nativeReady || closing) return
         updateHostPresentation()
         if (pip.value) viewModel.hideControls()
@@ -1822,8 +1974,7 @@ class PlayerSession(
                 sampleAnime4KSmart()
             }
             "demuxer-cache-time" -> viewModel.updateReadAhead(value = value)
-            "volume" -> viewModel.setMPVVolume(value.toInt())
-            "volume-max" -> viewModel.volumeBoostCap = value.toInt() - 100
+            "volume-max" -> viewModel.volumeBoostCap.value = (value.toInt() - 100).coerceAtLeast(0)
             // "chapter" -> viewModel.updateChapter(value)
             "duration" -> viewModel.duration.update { value.toFloat() }
             "user-data/current-anime/intro-length" -> viewModel.setAnimeSkipIntroLength(value)
@@ -1853,12 +2004,23 @@ class PlayerSession(
         }
         when (property) {
             "pause" -> {
-                if (value && player.paused == true) {
-                    if (viewModel.watchTogether.active) viewModel.onNativePause(true) else viewModel.pause()
-                    setKeepScreenOn(false)
-                } else if (!value && player.paused == false) {
-                    if (viewModel.watchTogether.active) viewModel.onNativePause(false) else viewModel.unpause()
-                    if (!viewModel.paused.value) setKeepScreenOn(true)
+                val scrub = viewModel.scrubState.value
+                if (scrub != null) {
+                    // Native acknowledgement of the preview hold is not an explicit user pause.
+                    viewModel.onNativePause(value)
+                    setKeepScreenOn(!scrub.paused)
+                    runCatching { setPictureInPictureParams(createPipParams()) }
+                    return
+                }
+                it.lorelore.nyanime.attention.core.AttentionControl.nativePauseObserved("native", value)
+                it.lorelore.nyanime.attention.core.AttentionControl.ownedCommand {
+                    if (value && player.paused == true) {
+                        if (viewModel.watchTogether.active) viewModel.onNativePause(true) else viewModel.pause()
+                        setKeepScreenOn(false)
+                    } else if (!value && player.paused == false) {
+                        if (viewModel.watchTogether.active) viewModel.onNativePause(false) else viewModel.unpause()
+                        if (!viewModel.paused.value) setKeepScreenOn(true)
+                    }
                 }
 
                 runCatching {
@@ -1919,6 +2081,11 @@ class PlayerSession(
     internal fun onObserverEvent(property: String, value: Double) {
         if (player.isExiting || live.value != null) return
         when (property) {
+            "volume" -> if (available) {
+                // Events are posted to the UI thread: read the latest native value so a queued
+                // intermediate event cannot rewind the meter during a continuous drag.
+                viewModel.setMPVVolume(MPVLib.getPropertyDouble("volume") ?: value)
+            }
             "speed" -> {
                 val baseSpeed = if (viewModel.watchTogether.isManagedSpeed(value)) {
                     viewModel.watchTogether.preferredSpeed().also {
@@ -1987,7 +2154,7 @@ class PlayerSession(
 
     fun createPipParams(): PictureInPictureParams {
         val builder = PictureInPictureParams.Builder()
-        val paused = if (player.isExiting) true else player.paused ?: true
+        val paused = if (player.isExiting) true else viewModel.scrubState.value?.paused ?: player.paused ?: true
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val channel = live.value?.session?.state?.value?.media?.channel
             val anime = viewModel.currentAnime.value
@@ -2027,6 +2194,7 @@ class PlayerSession(
 
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     internal fun pipChanged(isInPictureInPictureMode: Boolean) {
+        viewModel.cancelPlaybackScrub()
         if (!nativeReady) {
             return
         }
@@ -2276,6 +2444,7 @@ class PlayerSession(
     }
 
     fun setVideo(video: Video?, position: Long? = null) {
+        viewModel.cancelPlaybackScrub(restorePlayback = false)
         if (player.isExiting) return
         if (video == null) return
         advancedPlayerPreferences.setAnime4kUltraActive(UltraFiles.isUltra(video))

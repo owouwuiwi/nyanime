@@ -21,25 +21,40 @@ data class NyanimeBrandColors(
     val artworkShade: Color,
     val actionBackground: Color,
     val actionText: Color,
+    val atmosphere: Color,
+    val floatingStart: Color,
+    val floatingEnd: Color,
+    val floatingText: Color,
+    val floatingBorder: Color,
 )
 
-private val darkBrand = NyanimeBrandColors(
+private val classicDarkBrand = NyanimeBrandColors(
     Color(0xFFE50914),
     Color.White,
     Color.Black,
     Color.White,
     Color.Black,
+    Color(0xFF69203D),
+    Color(0xFF26080E),
+    Color(0xFF490D19),
+    Color.White,
+    Color.White.copy(alpha = 0.10f),
 )
-private val lightBrand = NyanimeBrandColors(
+private val classicLightBrand = NyanimeBrandColors(
     Color(0xFFC45110),
     Color(0xFF20201F),
     Color.White,
     Color(0xFFC45110),
     Color.White,
+    Color(0xFFEEC0C3),
+    Color(0xFFFFFCF8),
+    Color(0xFFFFF3E9),
+    Color(0xFF32251F),
+    Color(0xFFE4DAD2),
 )
 
 val nyanimeBrandColors: NyanimeBrandColors
-    @Composable get() = if (LocalDarkTheme.current) darkBrand else lightBrand
+    @Composable get() = if (LocalDarkTheme.current) classicDarkBrand else classicLightBrand
 
 @Composable
 fun nyanimeHeroGradient(artworkHeight: Dp): Brush {

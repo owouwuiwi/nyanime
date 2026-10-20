@@ -326,7 +326,14 @@ private fun NowCasting(state: CastState, modifier: Modifier = Modifier) {
 
 @Composable
 internal fun CastArtwork(media: CastMedia?, modifier: Modifier = Modifier) {
-    if (media?.cover?.url != null) {
+    if (media?.artworkUrl != null) {
+        coil3.compose.AsyncImage(
+            model = media.artworkUrl,
+            contentDescription = null,
+            modifier = modifier.aspectRatio(1f).clip(RoundedCornerShape(8.dp)),
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+        )
+    } else if (media?.cover?.url != null) {
         ItemCover.Book(
             data = media.cover,
             modifier = modifier,

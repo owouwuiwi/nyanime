@@ -1,6 +1,5 @@
 -- Anime4K telemetry uses mpv's public native properties. No network or per-frame polling.
 -- Keep this filename equal to Anime4KTelemetry.SCRIPT_NAME (mpv sanitizes client names).
-local utils = require 'mp.utils'
 local enabled = false
 local token = ''
 local sequence = 0
@@ -14,13 +13,14 @@ local function counter(name)
     if finite(value) and value >= 0 and value <= 9007199254740991 and value % 1 == 0 then return value end
 end
 
-local function render_time(passes)
+local function render_time(passes, field)
     if type(passes) ~= 'table' or #passes == 0 or #passes > 128 then return nil end
     local total = 0
     for _, pass in ipairs(passes) do
-        if type(pass) ~= 'table' or not finite(pass.avg) or pass.avg < 0 or
+        local cost = type(pass) == 'table' and pass[field or 'avg'] or nil
+        if type(pass) ~= 'table' or not finite(cost) or cost < 0 or
             not finite(pass.count) or pass.count <= 0 then return nil end
-        total = total + pass.avg
+        total = total + cost
     end
     if total > 0 and total < 10000000000 then return total / 1000000 end
 end
@@ -42,8 +42,12 @@ local function sample()
         mistimedFrames = counter('mistimed-frame-count'),
         renderTimeMillis = type(passes) == 'table' and render_time(passes.fresh) or nil,
         redrawTimeMillis = type(passes) == 'table' and render_time(passes.redraw) or nil,
+        lastRenderTimeMillis = type(passes) == 'table' and render_time(passes.fresh, 'last') or nil,
     }
-    mp.set_property('user-data/aniyomi-anime4k/telemetry', utils.format_json(data))
+    -- user-data is a native node property. Storing serialized JSON as a string
+    -- makes STRING observers receive escaped JSON instead of a protocol object.
+    -- Publish the map directly; MPV_FORMAT_STRING observers receive its JSON form.
+    mp.set_property_native('user-data/aniyomi-anime4k/telemetry', data)
 end
 
 local timer = mp.add_periodic_timer(1, sample)

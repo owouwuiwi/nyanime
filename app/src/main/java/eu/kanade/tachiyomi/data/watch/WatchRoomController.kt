@@ -1300,7 +1300,7 @@ class WatchRoomController(
         if (running) hasPlayedCurrentMedia = true
         val localPaused = paused || localBuffering || state.value.localHold
         expectsPaused = localPaused
-        if (!localBuffering && !state.value.localHold && !observing) {
+        if (!localBuffering && !state.value.localHold && !observing && !sample.scrubbing) {
             val correction = driftCorrector.correct(
                 sample.position,
                 position,
@@ -1705,7 +1705,7 @@ class WatchRoomController(
         val shouldPause = !moving || sample.buffering || pausePending || atEnd
         expectsPaused = shouldPause
         if (sample.paused != shouldPause) player.pause(shouldPause)
-        if (!sample.buffering && sample.ready) {
+        if (!sample.buffering && sample.ready && (!sample.scrubbing || remote.seekRevision != appliedSeekRevision)) {
             val forced = remote.seekRevision != appliedSeekRevision
             val correction = driftCorrector.correct(
                 sample.position,

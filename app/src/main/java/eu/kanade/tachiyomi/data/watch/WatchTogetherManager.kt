@@ -12,6 +12,7 @@ import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.animesource.online.AnimeHttpSource
 import eu.kanade.tachiyomi.data.cast.liveObservation
 import eu.kanade.tachiyomi.ui.player.PlayerActivity
+import it.lorelore.nyanime.syncplay.SyncplayManager
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -114,6 +115,7 @@ class WatchTogetherManager private constructor(private val application: Applicat
         },
         SystemClock::elapsedRealtime,
         onSessionStarted = { invite, identity, name ->
+            SyncplayManager.existing()?.leave()
             interactions.start(WatchInteractionCrypto(invite, identity))
             roomArchive.begin(invite, identity, name)
             mutableRecoverable.value = false
@@ -537,6 +539,11 @@ class WatchTogetherManager private constructor(private val application: Applicat
         persistentPlayback = false
     }
 
+    /** Compatibility clients can control only the attached ordinary video, never live/reader/Cast. */
+    fun compatibilityPlayer(): WatchPlayer? = delegate.takeIf {
+        !controller.active && !controller.liveMode && it !is WatchObserverPlayer
+    }
+
     fun retryOpening() {
         val media = controller.state.value.media ?: return
         if (controller.state.value.host || !controller.active || opening.value.loading) return
@@ -711,6 +718,10 @@ class WatchTogetherManager private constructor(private val application: Applicat
     }
 
     companion object {
+        fun isNyanimeRoomActive(): Boolean = instance?.controller?.active == true
+        fun isRoomActive(): Boolean = isNyanimeRoomActive() || SyncplayManager.isActive()
+        fun existing(): WatchTogetherManager? = instance
+
         @Volatile private var instance: WatchTogetherManager? = null
         fun get(context: Context): WatchTogetherManager = instance ?: synchronized(this) {
             instance ?: WatchTogetherManager(context.applicationContext as Application).also { instance = it }

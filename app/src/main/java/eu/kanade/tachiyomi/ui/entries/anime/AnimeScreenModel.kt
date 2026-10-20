@@ -74,6 +74,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonObject
 import logcat.LogPriority
 import mihon.domain.items.episode.interactor.FilterEpisodesForDownload
@@ -107,12 +108,14 @@ import tachiyomi.domain.items.episode.interactor.UpdateEpisode
 import tachiyomi.domain.items.episode.model.Episode
 import tachiyomi.domain.items.episode.model.EpisodeUpdate
 import tachiyomi.domain.items.episode.model.NoEpisodesException
+import tachiyomi.domain.items.episode.model.group
 import tachiyomi.domain.items.episode.service.calculateEpisodeGap
 import tachiyomi.domain.items.episode.service.getEpisodeSort
 import tachiyomi.domain.items.season.interactor.SetAnimeDefaultSeasonFlags
 import tachiyomi.domain.items.season.service.getSeasonSortComparator
 import tachiyomi.domain.items.season.service.seasonSortAlphabetically
 import tachiyomi.domain.library.service.LibraryPreferences
+import tachiyomi.domain.source.anime.model.StubAnimeSource
 import tachiyomi.domain.source.anime.service.AnimeSourceManager
 import tachiyomi.domain.track.anime.interactor.GetAnimeTracks
 import tachiyomi.i18n.MR
@@ -247,6 +250,135 @@ class AnimeScreenModel(
 
     private val processedEpisodes: List<EpisodeList.Item>?
         get() = successState?.processedEpisodes
+
+    private val seasonObservers = mutableMapOf<Long, Job>()
+    private val seasonRequests = mutableMapOf<Long, Job>()
+
+    /** Called by expansion only. Existing season entries and their episode identities stay intact. */
+    fun expandEpisodeSeason(id: Long, retry: Boolean = false) {
+        val current = successState ?: return
+        val season = current.seasons.firstOrNull { it.seasonAnime.id == id }?.seasonAnime?.anime ?: return
+        if (season.fetchType != FetchType.Episodes) return
+        if (id !in current.seasonEpisodes) {
+            updateSuccessState {
+                it.copy(
+                    seasonEpisodes =
+                    it.seasonEpisodes + (id to SeasonEpisodes(season, loading = true)),
+                )
+            }
+        }
+        if (seasonObservers[id] == null) {
+            seasonObservers[id] = screenModelScope.launchIO {
+                combine(
+                    getAnimeAndEpisodesAndSeasons.subscribe(id),
+                    downloadCache.changes,
+                    downloadManager.queueState,
+                ) { value, _, _ -> value }.flowWithLifecycle(lifecycle).collectLatest { (owner, episodes, _) ->
+                    val items = episodes.toEpisodeListItems(owner)
+                    updateSuccessState { state ->
+                        val previous = state.seasonEpisodes[id]
+                        state.copy(
+                            seasonEpisodes = state.seasonEpisodes +
+                                (
+                                    id to SeasonEpisodes(
+                                        owner,
+                                        items,
+                                        loaded = previous?.loaded == true || items.isNotEmpty(),
+                                        loading = previous?.loading ?: false,
+                                        failed = previous?.failed ?: false,
+                                    )
+                                    ),
+                        )
+                    }
+                }
+            }
+        }
+        if (seasonRequests[id]?.isActive == true || (!retry && id in current.requestedSeasons)) return
+        updateSuccessState { it.copy(requestedSeasons = it.requestedSeasons + id) }
+        seasonRequests[id] = screenModelScope.launchIO {
+            val cached = try {
+                getEpisodesByAnimeId.await(id)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                logcat(LogPriority.WARN, error) { "Could not read expanded episode section" }
+                updateSuccessState { state ->
+                    state.copy(seasonEpisodes = state.seasonEpisodes + (id to SeasonEpisodes(season, failed = true)))
+                }
+                return@launchIO
+            }
+            updateSuccessState { state ->
+                state.copy(
+                    seasonEpisodes =
+                    state.seasonEpisodes +
+                        (
+                            id to
+                                SeasonEpisodes(
+                                    season,
+                                    cached.toEpisodeListItems(season),
+                                    loaded = cached.isNotEmpty(),
+                                    loading = true,
+                                )
+                            ),
+                )
+            }
+            val due = retry ||
+                cached.isEmpty() ||
+                ReleasePolicy.isDue(
+                    ReleaseStore().check(ReleaseMedium.ANIME, id),
+                    System.currentTimeMillis(),
+                    foreground = true,
+                )
+            if (!due || (source is StubAnimeSource)) {
+                updateSuccessState { state ->
+                    state.copy(
+                        seasonEpisodes = state.seasonEpisodes +
+                            (
+                                id to state.seasonEpisodes.getValue(id).copy(loading = false, loaded = true)
+                                ),
+                    )
+                }
+                return@launchIO
+            }
+            updateSuccessState { state ->
+                state.copy(
+                    seasonEpisodes =
+                    state.seasonEpisodes +
+                        (id to state.seasonEpisodes.getValue(id).copy(loading = true, failed = false)),
+                )
+            }
+            try {
+                EpisodeSeasonLoadGate.forSource(season.source).withLock {
+                    updateAnimeFromRemote.awaitEpisodesUpdate(
+                        anime = season,
+                        fetchEpisodes = true,
+                        manualFetch = retry,
+                    ).getOrThrow()
+                }
+                val owner = animeRepository.getAnimeById(id)
+                val episodes = getEpisodesByAnimeId.await(id).toEpisodeListItems(owner)
+                updateSuccessState { state ->
+                    state.copy(
+                        seasonEpisodes =
+                        state.seasonEpisodes + (id to SeasonEpisodes(owner, episodes, loaded = true)),
+                    )
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                logcat(LogPriority.WARN, error) { "Could not update expanded episode section" }
+                updateSuccessState { state ->
+                    state.copy(
+                        seasonEpisodes =
+                        state.seasonEpisodes +
+                            (id to state.seasonEpisodes.getValue(id).copy(loading = false, failed = true)),
+                    )
+                }
+            }
+        }
+    }
+
+    private fun ownerOf(episode: Episode): Anime? = successState?.owner(episode.animeId)
 
     val episodeSwipeStartAction = libraryPreferences.swipeEpisodeEndAction().get()
     val episodeSwipeEndAction = libraryPreferences.swipeEpisodeStartAction().get()
@@ -460,7 +592,9 @@ class AnimeScreenModel(
                             .getOrThrow()
 
                         if (libraryPreferences.updateSeasonOnRefresh().get()) {
-                            fetchEpisodesFromSeasons(update.newSeasons, manualFetch)
+                            successState?.requestedSeasons.orEmpty().forEach {
+                                expandEpisodeSeason(it, retry = manualFetch)
+                            }
                         }
                     }
                 }
@@ -700,7 +834,7 @@ class AnimeScreenModel(
     private fun observeDownloads() {
         screenModelScope.launchIO {
             downloadManager.statusFlow()
-                .filter { it.anime.id == successState?.anime?.id }
+                .filter { successState?.owner(it.anime.id) != null }
                 .catch { error -> logcat(LogPriority.ERROR, error) }
                 .flowWithLifecycle(lifecycle)
                 .collect {
@@ -712,7 +846,7 @@ class AnimeScreenModel(
 
         screenModelScope.launchIO {
             downloadManager.progressFlow()
-                .filter { it.anime.id == successState?.anime?.id }
+                .filter { successState?.owner(it.anime.id) != null }
                 .catch { error -> logcat(LogPriority.ERROR, error) }
                 .flowWithLifecycle(lifecycle)
                 .collect {
@@ -725,6 +859,25 @@ class AnimeScreenModel(
 
     private fun updateDownloadState(download: AnimeDownload) {
         updateSuccessState { successState ->
+            if (download.anime.id != successState.anime.id) {
+                val child = successState.seasonEpisodes[download.anime.id] ?: return@updateSuccessState successState
+                return@updateSuccessState successState.copy(
+                    seasonEpisodes = successState.seasonEpisodes +
+                        (
+                            download.anime.id to child.copy(
+                                episodes = child.episodes.map {
+                                    if (it.id ==
+                                        download.episode.id
+                                    ) {
+                                        it.copy(downloadState = download.status, downloadProgress = download.progress)
+                                    } else {
+                                        it
+                                    }
+                                },
+                            )
+                            ),
+                )
+            }
             val modifiedIndex = successState.episodes.indexOfFirst { it.id == download.episode.id }
             if (modifiedIndex < 0) return@updateSuccessState successState
 
@@ -896,7 +1049,7 @@ class AnimeScreenModel(
     }
 
     private fun getUnseenEpisodes(): List<Episode> {
-        return successState?.processedEpisodes
+        return successState?.displayEpisodes
             ?.filter { (episode, dlStatus) -> !episode.seen && dlStatus == AnimeDownload.State.NOT_DOWNLOADED }
             ?.map { it.episode }
             ?.toList()
@@ -904,9 +1057,7 @@ class AnimeScreenModel(
     }
 
     private fun getUnseenEpisodesSorted(): List<Episode> {
-        val anime = successState?.anime ?: return emptyList()
-        val episodes = getUnseenEpisodes().sortedWith(getEpisodeSort(anime))
-        return if (anime.sortDescending()) episodes.reversed() else episodes
+        return successState?.nextDownloadEpisodes().orEmpty()
     }
 
     private fun startDownload(
@@ -989,8 +1140,9 @@ class AnimeScreenModel(
     }
 
     fun markPreviousEpisodeSeen(pointer: Episode) {
-        val anime = successState?.anime ?: return
-        val episodes = processedEpisodes.orEmpty().map { it.episode }.toList()
+        val anime = ownerOf(pointer) ?: return
+        val episodes = successState?.displayEpisodes.orEmpty().map { it.episode }
+            .filter { it.animeId == pointer.animeId && it.group?.id == pointer.group?.id }
         val prevEpisodes = if (anime.sortDescending()) episodes.asReversed() else episodes
         val pointerPos = prevEpisodes.indexOf(pointer)
         if (pointerPos != -1) markEpisodesSeen(prevEpisodes.take(pointerPos), true)
@@ -1010,45 +1162,53 @@ class AnimeScreenModel(
                 episodes = episodes.toTypedArray(),
             )
 
-            if (!seen || successState?.hasLoggedInTrackers == false || autoTrackState == AutoTrackState.NEVER) {
+            if (!seen || autoTrackState == AutoTrackState.NEVER) {
                 return@launchIO
             }
+            for ((ownerId, owned) in episodes.groupBy { it.animeId }) {
+                if (getTracks.await(ownerId).none { trackerManager.get(it.trackerId)?.isLoggedIn == true }) continue
+                refreshTrackers(targetAnimeId = ownerId)
+                val tracks = getTracks.await(ownerId)
+                val maxEpisodeNumber = owned.maxOf { it.episodeNumber }
+                val shouldPromptTrackingUpdate = tracks.any { track -> maxEpisodeNumber > track.lastEpisodeSeen }
 
-            refreshTrackers()
+                if (!shouldPromptTrackingUpdate) continue
 
-            val tracks = getTracks.await(animeId)
-            val maxEpisodeNumber = episodes.maxOf { it.episodeNumber }
-            val shouldPromptTrackingUpdate = tracks.any { track -> maxEpisodeNumber > track.lastEpisodeSeen }
-
-            if (!shouldPromptTrackingUpdate) return@launchIO
-
-            if (autoTrackState == AutoTrackState.ALWAYS) {
-                trackEpisode.await(context, animeId, maxEpisodeNumber)
-                withUIContext {
-                    context.toast(
-                        context.stringResource(AYMR.strings.trackers_updated_summary_anime, maxEpisodeNumber.toInt()),
-                    )
+                if (autoTrackState == AutoTrackState.ALWAYS) {
+                    trackEpisode.await(context, ownerId, maxEpisodeNumber)
+                    withUIContext {
+                        context.toast(
+                            context.stringResource(
+                                AYMR.strings.trackers_updated_summary_anime,
+                                maxEpisodeNumber.toInt(),
+                            ),
+                        )
+                    }
+                    continue
                 }
-                return@launchIO
-            }
 
-            val result = snackbarHostState.showSnackbar(
-                message = context.stringResource(AYMR.strings.confirm_tracker_update_anime, maxEpisodeNumber.toInt()),
-                actionLabel = context.stringResource(MR.strings.action_ok),
-                duration = SnackbarDuration.Short,
-                withDismissAction = true,
-            )
+                val result = snackbarHostState.showSnackbar(
+                    message = context.stringResource(
+                        AYMR.strings.confirm_tracker_update_anime,
+                        maxEpisodeNumber.toInt(),
+                    ),
+                    actionLabel = context.stringResource(MR.strings.action_ok),
+                    duration = SnackbarDuration.Short,
+                    withDismissAction = true,
+                )
 
-            if (result == SnackbarResult.ActionPerformed) {
-                trackEpisode.await(context, animeId, maxEpisodeNumber)
+                if (result == SnackbarResult.ActionPerformed) {
+                    trackEpisode.await(context, ownerId, maxEpisodeNumber)
+                }
             }
         }
     }
 
     private suspend fun refreshTrackers(
         refreshTracks: RefreshAnimeTracks = Injekt.get(),
+        targetAnimeId: Long = animeId,
     ) {
-        refreshTracks.await(animeId)
+        refreshTracks.await(targetAnimeId)
             .filter { it.first != null }
             .forEach { (track, e) ->
                 logcat(LogPriority.ERROR, e) {
@@ -1075,8 +1235,9 @@ class AnimeScreenModel(
         alt: Boolean = false,
         video: Video? = null,
     ) {
-        val anime = successState?.anime ?: return
-        downloadManager.downloadEpisodes(anime, episodes, true, alt, video)
+        episodes.groupBy { it.animeId }.values.forEach { owned ->
+            ownerOf(owned.first())?.let { owner -> downloadManager.downloadEpisodes(owner, owned, true, alt, video) }
+        }
         toggleAllSelection(false)
     }
 
@@ -1099,8 +1260,8 @@ class AnimeScreenModel(
      * @param episodes the list of episodes to fillermark.
      */
     fun fillermarkEpisodes(episodes: List<Episode>, fillermarked: Boolean) {
-        successState?.anime?.let { anime ->
-            episodes.forEach { episodeGuides.setOverride(anime, it.url, fillermarked) }
+        episodes.forEach { episode ->
+            ownerOf(episode)?.let { episodeGuides.setOverride(it, episode.url, fillermarked) }
         }
         screenModelScope.launchIO {
             episodes
@@ -1119,11 +1280,12 @@ class AnimeScreenModel(
     fun deleteEpisodes(episodes: List<Episode>) {
         screenModelScope.launchNonCancellable {
             try {
-                successState?.let { state ->
+                episodes.groupBy { it.animeId }.values.forEach { owned ->
+                    val owner = ownerOf(owned.first()) ?: return@forEach
                     downloadManager.deleteEpisodes(
-                        episodes,
-                        state.anime,
-                        state.source,
+                        owned,
+                        owner,
+                        sourceManager.getOrStub(owner.source),
                     )
                 }
             } catch (e: Throwable) {
@@ -1740,8 +1902,19 @@ class AnimeScreenModel(
     }
 
     private fun showQualitiesDialog(episode: Episode) {
-        updateSuccessState { it.copy(dialog = Dialog.ShowQualities(episode, it.anime, it.source)) }
+        val owner = ownerOf(episode) ?: return
+        updateSuccessState {
+            it.copy(dialog = Dialog.ShowQualities(episode, owner, sourceManager.getOrStub(owner.source)))
+        }
     }
+
+    data class SeasonEpisodes(
+        val anime: Anime,
+        val episodes: List<EpisodeList.Item> = emptyList(),
+        val loaded: Boolean = false,
+        val loading: Boolean = false,
+        val failed: Boolean = false,
+    )
 
     sealed interface State {
         @Immutable
@@ -1754,6 +1927,8 @@ class AnimeScreenModel(
             val isFromSource: Boolean,
             val episodes: List<EpisodeList.Item>,
             val seasons: List<AnimeSeasonItem>,
+            val seasonEpisodes: Map<Long, SeasonEpisodes> = emptyMap(),
+            val requestedSeasons: Set<Long> = emptySet(),
             val guide: GuideSnapshot = GuideSnapshot(),
             val classifications: Map<Long, EpisodeClassification> = emptyMap(),
             val hideGuideFillers: Boolean = false,
@@ -1775,9 +1950,15 @@ class AnimeScreenModel(
             fun withGuide(repository: eu.kanade.tachiyomi.data.episodeguide.EpisodeGuideRepository) = copy(
                 guide = repository.snapshot(anime),
                 hideGuideFillers = repository.hidden(anime),
-                classifications = episodes.associate {
+                classifications = (episodes + seasonEpisodes.values.flatMap { it.episodes }).associate {
                     val episode = it.episode
-                    it.id to repository.classification(anime, episode.url, episode.episodeNumber, episode.fillermark)
+                    it.id to
+                        repository.classification(
+                            owner(episode.animeId) ?: anime,
+                            episode.url,
+                            episode.episodeNumber,
+                            episode.fillermark,
+                        )
                 },
             )
 
@@ -1787,6 +1968,40 @@ class AnimeScreenModel(
 
             val processedEpisodes by lazy {
                 episodes.applyFilters(anime).toList()
+            }
+
+            val displayEpisodes: List<EpisodeList.Item> by lazy {
+                if (anime.fetchType != FetchType.Seasons) {
+                    processedEpisodes
+                } else {
+                    processedSeasons.flatMap { section ->
+                        val child = seasonEpisodes[section.seasonAnime.id]
+                        child?.episodes?.applyFilters(child.anime)?.toList().orEmpty()
+                    }
+                }
+            }
+
+            /** Download-next follows season order, then each actual owner's episode ordering. */
+            fun nextDownloadEpisodes(): List<Episode> {
+                val available = displayEpisodes.filter {
+                    !it.episode.seen && it.downloadState == AnimeDownload.State.NOT_DOWNLOADED
+                }.map { it.episode }
+                if (anime.fetchType != FetchType.Seasons) {
+                    val sorted = available.sortedWith(getEpisodeSort(anime))
+                    return if (anime.sortDescending()) sorted.reversed() else sorted
+                }
+                val byOwner = available.groupBy { it.animeId }
+                val ordered = if (anime.seasonSortDescending()) processedSeasons.asReversed() else processedSeasons
+                return ordered.flatMap { section ->
+                    val owner = section.seasonAnime.anime
+                    byOwner[owner.id].orEmpty().sortedWith(getEpisodeSort(owner, sortDescending = false))
+                }
+            }
+
+            fun owner(id: Long): Anime? = if (anime.id == id) {
+                anime
+            } else {
+                seasonEpisodes[id]?.anime ?: seasons.firstOrNull { it.seasonAnime.id == id }?.seasonAnime?.anime
             }
 
             val episodeListItems by lazy {
@@ -1842,6 +2057,7 @@ class AnimeScreenModel(
                 val downloadedFilter = anime.downloadedFilter
                 val bookmarkedFilter = anime.bookmarkedFilter
                 val fillermarkedFilter = anime.fillermarkedFilter
+                val comparator = getEpisodeSort(anime)
                 return asSequence()
                     .filter { (episode) -> applyFilter(unseenFilter) { !episode.seen } }
                     .filter { (episode) -> applyFilter(bookmarkedFilter) { episode.bookmark } }
@@ -1851,10 +2067,7 @@ class AnimeScreenModel(
                     }
                     .filter { applyFilter(downloadedFilter) { it.isDownloaded || isLocalAnime } }
                     .sortedWith { (episode1), (episode2) ->
-                        getEpisodeSort(anime).invoke(
-                            episode1,
-                            episode2,
-                        )
+                        comparator(episode1, episode2)
                     }
             }
 

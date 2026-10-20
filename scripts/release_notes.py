@@ -23,6 +23,7 @@ def previous_tag(current_tag: str, revision: str = "HEAD") -> str | None:
 
 
 FORMAT_MARKER = "<!-- nyanime-changelog:1 -->"
+HISTORICAL_HEADING_SUFFIX = " [storico sperimentale]"
 CATEGORIES = ("Novità", "Correzioni", "Prestazioni", "Interfaccia", "Compatibilità",
               "Sicurezza", "Distribuzione", "Verifiche", "Limitazioni")
 
@@ -123,6 +124,10 @@ def release_notes(current: str, previous: str | None, tag: str) -> str:
     old_entries = {entry for _, entries in sections(previous or "") for entry in entries}
     notes = [FORMAT_MARKER, "", f"## Novità di Nyanime {tag.removeprefix('v')}", ""]
     for heading, groups in current_sections:
+        # Imported experimental history stays in the complete changelog, but is
+        # not a newly delivered feature of the ordinary release.
+        if heading.endswith(HISTORICAL_HEADING_SUFFIX):
+            continue
         added_groups = [(category, [entry for entry in entries if entry not in old_entries])
                         for category, entries in groups]
         if any(entries for _, entries in added_groups):

@@ -43,6 +43,7 @@ import eu.kanade.tachiyomi.ui.player.controls.components.TogetherLoadingGlyph
 import eu.kanade.tachiyomi.ui.player.controls.components.WatchPlaybackButton
 import eu.kanade.tachiyomi.ui.player.controls.components.playbackPressFeedback
 import `is`.xyz.mpv.Utils
+import it.lorelore.nyanime.presentation.player.VideoTransportControls
 import tachiyomi.i18n.aniyomi.AYMR
 import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.stringResource
@@ -78,6 +79,22 @@ fun MiddlePlayerControls(
     reduceMotion: Boolean = false,
     onWatchRetry: () -> Unit = {},
 ) {
+    if (failure == null && gestureSeekAmount == null && !watchRoom.active) {
+        AnimatedVisibility(visible = controlsShown && !areControlsLocked, enter = enter, exit = exit) {
+            VideoTransportControls(
+                playing = !paused,
+                buffering = (isLoading || isLoadingEpisode) && showLoadingCircle,
+                hasPrevious = hasPrevious,
+                hasNext = hasNext,
+                onPlayPause = onPlayPauseClick,
+                onPrevious = onSkipPrevious,
+                onNext = onSkipNext,
+                modifier = modifier,
+                reduceMotion = reduceMotion,
+            )
+        }
+        return
+    }
     val roomActionOverlay = !controlsShown &&
         watchRoom.activity?.let { it.actorId != watchRoom.localMemberId } == true
     val compactLargeText = LocalConfiguration.current.screenHeightDp < 360 && LocalDensity.current.fontScale > 1.3f

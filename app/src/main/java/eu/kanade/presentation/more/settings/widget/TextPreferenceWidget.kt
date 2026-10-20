@@ -24,6 +24,8 @@ fun TextPreferenceWidget(
     icon: ImageVector? = null,
     iconTint: Color = MaterialTheme.colorScheme.primary,
     widget: @Composable (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
+    onLongClickLabel: String? = null,
     onPreferenceClick: (() -> Unit)? = null,
 ) {
     BasePreferenceWidget(
@@ -55,6 +57,8 @@ fun TextPreferenceWidget(
             null
         },
         onClick = onPreferenceClick,
+        onLongClick = onLongClick,
+        onLongClickLabel = onLongClickLabel,
         widget = widget,
     )
 }

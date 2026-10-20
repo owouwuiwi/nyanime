@@ -7,7 +7,7 @@ plugins {
     id("mihon.code.lint")
 }
 
-android {
+extensions.configure<com.android.build.api.dsl.LibraryExtension>("android") {
     configureAndroid(this)
     configureTest()
 }

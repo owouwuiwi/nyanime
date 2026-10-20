@@ -278,6 +278,11 @@ object SettingsDataScreen : SearchableSettings {
                 },
 
                 // Automatic backups
+                Preference.PreferenceItem.TextPreference(
+                    title = context.getString(eu.kanade.tachiyomi.R.string.remote_backup_title),
+                    subtitle = context.getString(eu.kanade.tachiyomi.R.string.remote_settings_summary),
+                    onClick = { navigator.push(it.lorelore.nyanime.backup.remote.RemoteBackupsScreen()) },
+                ),
                 Preference.PreferenceItem.ListPreference(
                     preference = backupPreferences.backupInterval(),
                     entries = persistentMapOf(

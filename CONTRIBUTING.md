@@ -102,6 +102,10 @@ Per lo sviluppo usa `assembleDebug`, che non richiede la chiave di produzione.
 Il codice usa la [licenza Apache 2.0](LICENSE); conserva copyright e
 attribuzioni esistenti nelle modifiche. Consulta [licenze e sorgenti](docs/licensing.md)
 prima di aggiornare o aggiungere componenti, soprattutto quelli nativi.
+La [configurazione delle attribuzioni](app/config/README.md) documenta gli
+avvisi offline e gli identificatori delle licenze Maven. Non correggere soltanto
+il JSON generato: la build deve rigenerare testi completi e la verifica deve
+controllare anche quelli effettivamente inclusi negli APK.
 
 Prima di pubblicare un nuovo APK, incrementa la versione in `release.properties`
 con `python3 scripts/release_version.py --bump fix` (oppure `improvement`/`feature`)

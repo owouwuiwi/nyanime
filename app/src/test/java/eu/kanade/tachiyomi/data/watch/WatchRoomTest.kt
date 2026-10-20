@@ -22,6 +22,7 @@ class WatchRoomTest {
         var media: WatchMedia? = WatchMedia("Test Animation", "Episode 1", 1.0, 1400.0, 7, "/title", "/1")
         var ready = true
         var buffering = false
+        var scrubbing = false
         var paused = true
         var speed = 1.0
         var seeks = 0
@@ -42,7 +43,7 @@ class WatchRoomTest {
             last = at
             return WatchPlayback(
                 media, position, paused, ready, buffering, speed, ended, problem, upcoming,
-                canAdvance, preparedNextKey, nextProblem, bufferedAhead,
+                canAdvance, preparedNextKey, nextProblem, bufferedAhead, scrubbing,
             )
         }
         override fun pause(paused: Boolean) {
@@ -135,6 +136,47 @@ class WatchRoomTest {
             scope.advanceTimeBy(ms)
             scope.runCurrent()
         }
+    }
+
+    @Test
+    fun localPreviewKeepsHostHeartbeatsAndDoesNotPauseOtherParticipants() = runTest {
+        val pair = Pairing(this)
+        pair.join()
+        pair.host.requestPause(false)
+        pair.advance(8000)
+        pair.hostPlayer.scrubbing = true
+        val hostSeeks = pair.hostPlayer.seeks
+        pair.advance(40_000)
+        assertFalse(pair.guestPlayer.paused)
+        assertFalse(pair.host.state.value.phase == WatchPhase.Buffering)
+        assertEquals(hostSeeks, pair.hostPlayer.seeks)
+        pair.hostPlayer.scrubbing = false
+        pair.host.requestSeek(300.0)
+        runCurrent()
+        assertEquals(hostSeeks + 1, pair.hostPlayer.seeks)
+        pair.advance(3000)
+        assertTrue(abs(pair.guestPlayer.sample().position - pair.hostPlayer.sample().position) < 1.5)
+        pair.host.leave()
+        pair.guest.leave()
+    }
+
+    @Test
+    fun aGuestPreviewDoesNotAnnounceFalseBufferingOrTriggerDriftSeeks() = runTest {
+        val pair = Pairing(this)
+        pair.join()
+        pair.host.requestPause(false)
+        pair.advance(8000)
+        pair.guestPlayer.scrubbing = true
+        val guestSeeks = pair.guestPlayer.seeks
+        pair.advance(20_000)
+        assertFalse(pair.hostPlayer.paused)
+        assertEquals(guestSeeks, pair.guestPlayer.seeks)
+        pair.guestPlayer.scrubbing = false
+        pair.host.requestPause(true)
+        pair.advance(3000)
+        assertTrue(pair.guestPlayer.paused)
+        pair.host.leave()
+        pair.guest.leave()
     }
 
     @Test

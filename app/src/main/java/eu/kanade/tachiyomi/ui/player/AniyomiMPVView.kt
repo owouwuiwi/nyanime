@@ -243,7 +243,7 @@ class AniyomiMPVView(context: Context, attributes: AttributeSet) : BaseMPVView(c
         "time-pos" to MPVLib.mpvFormat.MPV_FORMAT_INT64,
         "demuxer-cache-time" to MPVLib.mpvFormat.MPV_FORMAT_INT64,
         "duration" to MPVLib.mpvFormat.MPV_FORMAT_INT64,
-        "volume" to MPVLib.mpvFormat.MPV_FORMAT_INT64,
+        "volume" to MPVLib.mpvFormat.MPV_FORMAT_DOUBLE,
         "volume-max" to MPVLib.mpvFormat.MPV_FORMAT_INT64,
         "osd-dimensions" to MPVLib.mpvFormat.MPV_FORMAT_NONE,
         Anime4KTelemetry.PROPERTY to MPVLib.mpvFormat.MPV_FORMAT_STRING,

@@ -171,6 +171,7 @@ data class Anime4KMediaInfo(
     val displayRefreshRate: Double? = null,
     val frameRateKnown: Boolean = true,
     val playbackSpeed: Double = 1.0,
+    val contentTreatment: Anime4KMode? = null,
 )
 
 data class Anime4KPerformanceSample(
@@ -182,6 +183,7 @@ data class Anime4KPerformanceSample(
     val mistimedFrames: Long? = null,
     val redrawTimeMillis: Double? = null,
     val playing: Boolean = true,
+    val lastRenderTimeMillis: Double? = null,
 )
 
 enum class Anime4KHealth {
@@ -212,6 +214,9 @@ data class Anime4KSmartDiagnostics(
     val probing: Boolean = false,
     val suspended: Boolean = false,
     val reason: String? = null,
+    val contentState: Anime4KContentState = Anime4KContentState.Disabled,
+    val contentConfidence: Double = 0.0,
+    val recoveryAttempts: Int = 0,
 )
 
 data class Anime4KCalibration(
@@ -264,7 +269,7 @@ object Anime4KSelectionRules {
 object Anime4K {
     const val VERSION = "4.0.1"
     const val SHADER_REVISION = "4.0.1"
-    const val CALIBRATION_REVISION = "gpu-telemetry-3"
+    const val CALIBRATION_REVISION = "smart-quality-4"
 
     /** Anime4K documents secondary passes for an upscale ratio of roughly 2x or higher. */
     private const val SECONDARY_PASS_MIN_SCALE = 2.0
@@ -308,6 +313,9 @@ object Anime4K {
 
     /** Chooses the least expensive useful preset for this source family. */
     fun resolveSmartMode(mediaInfo: Anime4KMediaInfo): Anime4KMode {
+        mediaInfo.contentTreatment?.takeIf {
+            it == Anime4KMode.ModeA || it == Anime4KMode.ModeB || it == Anime4KMode.ModeC
+        }?.let { return it }
         val sourceShortSide = min(mediaInfo.sourceWidth, mediaInfo.sourceHeight).coerceAtLeast(1)
         return when {
             sourceShortSide >= 900 -> Anime4KMode.ModeA
@@ -451,6 +459,7 @@ object Anime4K {
             bucket(mediaInfo.targetHeight),
             refreshBucket(mediaInfo.displayRefreshRate),
             fpsBucket(effectiveFrameRate(mediaInfo)),
+            resolveSmartMode(mediaInfo).name,
         ).joinToString("|")
     }
 
@@ -511,11 +520,7 @@ object Anime4K {
     fun moreDemandingMode(mode: Anime4KMode, mediaInfo: Anime4KMediaInfo): Anime4KMode? {
         val secondaryAllowed = supportsSecondaryPass(mediaInfo)
         return when (mode) {
-            Anime4KMode.Off -> when {
-                min(mediaInfo.sourceWidth, mediaInfo.sourceHeight) >= 900 -> Anime4KMode.ModeA
-                min(mediaInfo.sourceWidth, mediaInfo.sourceHeight) >= 600 -> Anime4KMode.ModeB
-                else -> Anime4KMode.ModeC
-            }
+            Anime4KMode.Off -> resolveSmartMode(mediaInfo)
             Anime4KMode.ModeA -> if (secondaryAllowed) Anime4KMode.ModeAPlus else Anime4KMode.ModeAHq
             Anime4KMode.ModeAPlus -> Anime4KMode.ModeAPlusHq
             Anime4KMode.ModeAHq -> if (secondaryAllowed) Anime4KMode.ModeAPlusHq else null

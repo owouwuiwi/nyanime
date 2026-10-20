@@ -669,4 +669,5 @@
     <string name="transfer_saving">Salvataggio e verifica</string>
     <string name="transfer_remaining">%s rimanenti</string>
     <string name="transfer_slots_info">Automatico adatta le connessioni alla velocità e ai limiti del server. I download si sospendono durante la visione e riprendono all’uscita dal player. Le pause manuali restano attive.</string>
+    <string name="attention_title">Attenzione alla visione</string>
 </resources>

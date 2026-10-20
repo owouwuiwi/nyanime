@@ -132,4 +132,21 @@ class Anime4KShaderPipelineTest {
         assertTrue(commands.isEmpty())
         assertTrue(pipeline.apply(Anime4KMode.Off))
     }
+
+    @Test
+    fun `retired reveal files and only their owned shader entries are removed`() {
+        val pipeline = pipeline()
+        val owned = File(directory, "owned/Nyanime_SM_Reveal.glsl")
+        requireNotNull(owned.parentFile).mkdirs()
+        owned.writeText("retired")
+        val custom = File(directory, "user/Nyanime_SM_Reveal.glsl")
+        requireNotNull(custom.parentFile).mkdirs()
+        custom.writeText("custom")
+        shaders = listOf(owned.absolutePath, custom.absolutePath).joinToString(File.pathSeparator)
+        assertTrue(pipeline.copyAssets())
+        assertFalse(owned.exists())
+        assertTrue(custom.isFile)
+        assertTrue(pipeline.apply(Anime4KMode.Off))
+        assertEquals(custom.absolutePath, shaders)
+    }
 }

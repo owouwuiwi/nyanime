@@ -151,6 +151,7 @@ private fun HomeHeaderActions(onUpdates: (() -> Unit)?, hasUpdates: Boolean) {
             }
         }
         eu.kanade.tachiyomi.ui.watch.WatchTogetherButton()
+        it.lorelore.nyanime.music.MusicComingSoonButton()
     }
 }
 

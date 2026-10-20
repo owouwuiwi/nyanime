@@ -178,6 +178,9 @@ class PlaybackSessionService : Service(), androidx.lifecycle.DefaultLifecycleObs
 
     override fun onStop(owner: androidx.lifecycle.LifecycleOwner) {
         val current = session ?: return
+        current.viewModel.cancelPlaybackScrub(
+            restorePlayback = current.viewModel.playerPreferences.backgroundAudio().get() || current.pip.value,
+        )
         if (!current.viewModel.playerPreferences.backgroundAudio().get() && !current.pip.value) {
             current.viewModel.watchTogether.hold()
             current.pause()

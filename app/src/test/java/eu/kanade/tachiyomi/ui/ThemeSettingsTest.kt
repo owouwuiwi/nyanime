@@ -1,6 +1,7 @@
 package eu.kanade.tachiyomi.ui
 
 import android.content.SharedPreferences
+import eu.kanade.domain.ui.NyanimeIdentity
 import eu.kanade.domain.ui.ThemeController
 import eu.kanade.domain.ui.ThemeModeApplier
 import eu.kanade.domain.ui.ThemePreferenceKeys
@@ -91,6 +92,10 @@ class ThemeSettingsTest {
             val repository = object : ThemeSettingsRepository {
                 override val settings = state
                 override fun current() = state.value
+                override suspend fun saveIdentity(
+                    identity: NyanimeIdentity,
+                ): Result<Unit> = error("Unexpected identity save")
+                override suspend fun unlockClassic(): Result<Unit> = error("Unexpected unlock")
                 override suspend fun save(mode: ThemeMode, completeInitialChoice: Boolean): Result<Unit> {
                     started.complete(Unit)
                     finishCommit.await()
@@ -124,6 +129,94 @@ class ThemeSettingsTest {
         assertTrue(BackupPreferencePolicy.isPortable(ThemePreferenceKeys.MODE))
         val store = TestPreferences(mutableMapOf(ThemePreferenceKeys.MODE to "future-theme"))
         assertEquals(ThemeMode.SYSTEM, store.repository.current().mode)
+    }
+
+    @Test
+    fun oldAndUnknownIdentityValuesNormalizeWithoutResettingNightMode() {
+        val store = TestPreferences(mutableMapOf(ThemePreferenceKeys.MODE to ThemeMode.DARK.name))
+        assertEquals(NyanimeIdentity.CLASSIC, store.repository.current().identity)
+        assertTrue(store.repository.current().classicUnlocked)
+        assertEquals(ThemeMode.DARK, store.repository.current().mode)
+        for (raw in listOf("BLUE", "future-identity", NyanimeIdentity.CLASSIC.name)) {
+            val locked = TestPreferences(mutableMapOf(ThemePreferenceKeys.IDENTITY to raw))
+            assertEquals(NyanimeIdentity.CLASSIC, locked.repository.current().identity)
+        }
+        val malformed = TestPreferences(
+            mutableMapOf(
+                ThemePreferenceKeys.IDENTITY to "future-identity",
+                ThemePreferenceKeys.CLASSIC_UNLOCKED to true,
+            ),
+        )
+        assertEquals(NyanimeIdentity.CLASSIC, malformed.repository.current().identity)
+    }
+
+    @Test
+    fun singleIdentityIsAlwaysAvailableAndNeverChangesTheNightMode() = runBlocking {
+        val store = TestPreferences(mutableMapOf(ThemePreferenceKeys.MODE to ThemeMode.LIGHT.name))
+        assertTrue(store.repository.saveIdentity(NyanimeIdentity.CLASSIC).isSuccess)
+        assertTrue(store.commits.isNotEmpty())
+        assertTrue(store.repository.unlockClassic().isSuccess)
+        assertEquals(NyanimeIdentity.CLASSIC, store.repository.current().identity)
+        assertTrue(store.repository.saveIdentity(NyanimeIdentity.CLASSIC).isSuccess)
+        val recreated = AndroidThemeSettingsRepository(store.preferences)
+        assertEquals(ThemeSettings(ThemeMode.LIGHT, false, NyanimeIdentity.CLASSIC, true), recreated.current())
+        recreated.save(ThemeMode.SYSTEM, true)
+        assertEquals(NyanimeIdentity.CLASSIC, recreated.current().identity)
+        recreated.saveIdentity(NyanimeIdentity.CLASSIC)
+        assertTrue(recreated.current().classicUnlocked)
+        assertEquals(ThemeMode.SYSTEM, recreated.current().mode)
+    }
+
+    @Test
+    fun failedUnlockAndIdentityWritesKeepThePreviousCompleteSnapshot() = runBlocking {
+        val store = TestPreferences()
+        store.failNextCommit = true
+        assertTrue(store.repository.unlockClassic().isFailure)
+        assertTrue(store.repository.current().classicUnlocked)
+        store.repository.unlockClassic()
+        val before = store.repository.current()
+        store.failNextCommit = true
+        assertTrue(store.repository.saveIdentity(NyanimeIdentity.CLASSIC).isFailure)
+        assertEquals(before, store.repository.current())
+        assertEquals(before, AndroidThemeSettingsRepository(store.preferences).current())
+    }
+
+    @Test
+    fun paletteSelectionReconcilesTheIconWithoutApplyingAndroidNightMode() = runBlocking {
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+        try {
+            val store = TestPreferences(mutableMapOf(ThemePreferenceKeys.MODE to ThemeMode.DARK.name))
+            val events = mutableListOf<String>()
+            val applier = object : ThemeModeApplier {
+                override fun apply(mode: ThemeMode) {
+                    error("A palette must not recreate the Activity")
+                }
+                override fun reconcile(mode: ThemeMode) {
+                    assertEquals(NyanimeIdentity.CLASSIC, store.repository.current().identity)
+                    events += mode.name
+                }
+            }
+            val controller = ThemeController(store.repository, applier)
+            assertTrue(controller.selectIdentity(NyanimeIdentity.CLASSIC).isSuccess)
+            assertEquals(listOf("DARK"), events)
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
+    fun oldAndNewBackupsUseTheSingleIdentityAndPreserveNightMode() = runBlocking {
+        val store = TestPreferences()
+        store.repository.unlockClassic()
+        store.repository.saveIdentity(NyanimeIdentity.CLASSIC)
+        store.repository.save(ThemeMode.LIGHT)
+        val portable = store.preferences.all.filterKeys(BackupPreferencePolicy::isPortable).toMutableMap()
+        val restored = TestPreferences(portable)
+        assertEquals(store.repository.current(), restored.repository.current())
+        assertTrue(BackupPreferencePolicy.isPortable(ThemePreferenceKeys.IDENTITY))
+        assertTrue(BackupPreferencePolicy.isPortable(ThemePreferenceKeys.CLASSIC_UNLOCKED))
+        val old = TestPreferences(mutableMapOf(ThemePreferenceKeys.MODE to ThemeMode.LIGHT.name))
+        assertEquals(NyanimeIdentity.CLASSIC, old.repository.current().identity)
     }
 
     private class TestPreferences(private val values: MutableMap<String, Any?> = mutableMapOf()) {

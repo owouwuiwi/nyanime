@@ -15,7 +15,11 @@ import kotlin.math.min
  * The child surface keeps its layout size during motion. Only its RenderNode transform changes;
  * MPV keeps the same buffer through page/mini transitions. Only window or video geometry changes it.
  */
-internal class MpvRenderView(context: Context, session: PlayerSession, activity: BaseActivity) : FrameLayout(context) {
+internal class MpvRenderView(
+    context: Context,
+    private val session: PlayerSession,
+    activity: BaseActivity,
+) : FrameLayout(context) {
     private val video = MpvSurfaceView(context, session, activity)
     private var renderWidth = 1
     private var renderHeight = 1
@@ -38,6 +42,7 @@ internal class MpvRenderView(context: Context, session: PlayerSession, activity:
     }
 
     fun configure(width: Int, height: Int, mode: VideoAspect, windowCovered: Boolean, radius: () -> Float) {
+        if (this.mode != mode) session.finishAnime4KReveal()
         this.mode = mode
         this.radius = radius
         // SurfaceView has a separate compositor layer. While the app window owns its
@@ -45,6 +50,7 @@ internal class MpvRenderView(context: Context, session: PlayerSession, activity:
         // rotation transaction cannot appear outside the cover for one frame.
         video.alpha = if (windowCovered) 0f else 1f
         if (renderWidth != width || renderHeight != height) {
+            session.finishAnime4KReveal()
             renderWidth = width.coerceAtLeast(1)
             renderHeight = height.coerceAtLeast(1)
             video.layoutParams = LayoutParams(renderWidth, renderHeight)

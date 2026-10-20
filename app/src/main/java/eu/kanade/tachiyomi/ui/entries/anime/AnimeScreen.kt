@@ -186,6 +186,7 @@ class AnimeScreen(
         }
 
         AnimeScreen(
+            onExpandEpisodeSeason = screenModel::expandEpisodeSeason,
             state = successState,
             continuity = successState.mangaContinuity,
             onOpenManga = { manga, chapter ->

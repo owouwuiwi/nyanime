@@ -760,4 +760,5 @@
     <string name="transfer_saving">Saving and verifying</string>
     <string name="transfer_remaining">%s remaining</string>
     <string name="transfer_slots_info">Automatic adapts connections to speed and server limits. Downloads pause while watching and resume when you leave the player. Manual pauses remain paused.</string>
+    <string name="attention_title">Viewing attention</string>
 </resources>

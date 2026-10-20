@@ -2,7 +2,7 @@ plugins {
     id("mihon.benchmark")
 }
 
-android {
+extensions.configure<com.android.build.api.dsl.TestExtension>("android") {
     namespace = "tachiyomi.macrobenchmark"
 
     defaultConfig {

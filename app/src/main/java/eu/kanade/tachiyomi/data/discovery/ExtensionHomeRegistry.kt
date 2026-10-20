@@ -5,6 +5,8 @@ import eu.kanade.domain.source.anime.interactor.GetAnimeIncognitoState
 import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.tachiyomi.extension.anime.AnimeExtensionManager
 import eu.kanade.tachiyomi.extension.anime.model.AnimeExtension
+import it.lorelore.nyanime.studio.StudioHomeProvider
+import it.lorelore.nyanime.studio.homeManifest
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
@@ -93,13 +95,46 @@ class ExtensionHomeRegistry(
                 // An incompatible optional capability must not take the Home down with it.
                 emptyList()
             }
-        }.distinctBy { it.key }.sortedWith(compareBy({ it.title }, { it.key }))
+        } +
+            manager.getOnlineSources().filter {
+                it is StudioHomeProvider && visibility.isEnabled(it)
+            }.mapNotNull { source ->
+                val provider = source as StudioHomeProvider
+                val manifest = provider.homeManifest() ?: return@mapNotNull null
+                val filters = source.getFilterList()
+                SourceHomeSource(
+                    id = source.id,
+                    revision = "studio:${provider.definition.revision}:${provider.definition.hashCode()}",
+                    sections = ExtensionHomeFilters.sections(
+                        manifest,
+                        filters,
+                    ),
+                    categories = ExtensionHomeFilters.categories(manifest, filters),
+                    key = "studio:${provider.definition.uuid}:${source.id}",
+                    title = manifest.title,
+                    sourceName = source.name,
+                    language = source.lang,
+                    search = ExtensionHomeFilters.search(
+                        manifest,
+                        filters,
+                    ),
+                    homeId = manifest.id,
+                    primary = manifest.primary,
+                    browseFilters = ExtensionHomeFilters.browseFilters(manifest, filters),
+                    random = ExtensionHomeFilters.random(
+                        manifest,
+                        filters,
+                    ),
+                    randomEpisode = ExtensionHomeFilters.randomEpisode(manifest, filters),
+                )
+            }
+        val orderedHomes = homes.distinctBy { it.key }.sortedWith(compareBy({ it.title }, { it.key }))
         val declared = homes.map { it.id }.toSet()
         val nativeFallback = homes.none { it.primary } &&
             installed.any { extension ->
                 extension.sources.any { it.id !in declared && manager.get(it.id) === it && visibility.isEnabled(it) }
             }
-        return SourceHomeListing(loading = false, homes = homes, nativeFallback = nativeFallback)
+        return SourceHomeListing(loading = false, homes = orderedHomes, nativeFallback = nativeFallback)
     }
 
     fun access(key: String): SourceHomeAccess {

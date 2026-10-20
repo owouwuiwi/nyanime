@@ -26,6 +26,11 @@ class Anime4KShaderPipeline internal constructor(
     )
 
     private val shaderNames = Anime4K.bundledShaderNames.toSet()
+    private val retiredRevealNames = setOf(
+        "Nyanime_SM_Capture.glsl",
+        "Nyanime_SM_Reveal.glsl",
+        "Nyanime_SM_Reveal_next.glsl",
+    )
     private var assetsVerified = false
 
     /** Verify bytes once per player initialization, repairing interrupted or corrupt copies. */
@@ -34,6 +39,7 @@ class Anime4KShaderPipeline internal constructor(
         assetsVerified = false
         return try {
             if (!shaderDir.isDirectory && !shaderDir.mkdirs()) return false
+            retiredRevealNames.forEach { File(shaderDir, it).delete() }
             for (filename in shaderNames) {
                 val expected = assetReader(filename).use { it.readBytes() }
                 if (expected.isEmpty()) throw IOException("Empty bundled Anime4K shader: $filename")
@@ -102,6 +108,7 @@ class Anime4KShaderPipeline internal constructor(
 
     private fun isOwnedShader(path: String): Boolean {
         val file = File(path)
-        return file.name in shaderNames && file.canonicalFile.parentFile == shaderDir.canonicalFile
+        return (file.name in shaderNames || file.name in retiredRevealNames) &&
+            file.canonicalFile.parentFile == shaderDir.canonicalFile
     }
 }

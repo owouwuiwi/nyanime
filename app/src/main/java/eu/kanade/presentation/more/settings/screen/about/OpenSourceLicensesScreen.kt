@@ -30,10 +30,10 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import com.mikepenz.aboutlibraries.Libs
 import com.mikepenz.aboutlibraries.entity.Library
 import com.mikepenz.aboutlibraries.ui.compose.m3.util.htmlReadyLicenseContent
-import com.mikepenz.aboutlibraries.util.withContext
 import eu.kanade.presentation.components.AppBar
 import eu.kanade.presentation.more.settings.widget.TextPreferenceWidget
 import eu.kanade.presentation.util.Screen
+import eu.kanade.tachiyomi.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -49,123 +49,8 @@ class OpenSourceLicensesScreen : Screen() {
         val catalog by produceState<LicenseCatalog>(initialValue = LicenseCatalog.Loading, context) {
             value = withContext(Dispatchers.IO) {
                 runCatching {
-                    val bundled = listOf(
-                        BundledAsset(
-                            "Nyanime — copyright and attribution",
-                            "https://github.com/owouwuiwi/nyanime",
-                            "Apache-2.0 · third-party licenses apply separately",
-                            "licenses/Nyanime-LICENSE.txt",
-                            "licenses/Nyanime-NOTICE.txt",
-                        ),
-                        BundledAsset(
-                            "FFmpeg — native media libraries",
-                            "https://github.com/owouwuiwi/nyanime/tree/main/tools/native",
-                            "GPL-3.0-or-later",
-                            "licenses/GPL-3.0.txt",
-                            "licenses/player-NOTICE.txt",
-                        ),
-                        BundledAsset(
-                            "libmpv — native video player",
-                            "https://github.com/mpv-player/mpv",
-                            "GPL-2.0-or-later · combined player: GPL-3.0",
-                            "licenses/GPL-2.0.txt",
-                            "licenses/player-NOTICE.txt",
-                        ),
-                        BundledAsset(
-                            "mpv-android — Android player bridge",
-                            "https://github.com/aniyomiorg/aniyomi-mpv-lib",
-                            "MIT",
-                            "licenses/mpv-android-LICENSE.txt",
-                            "licenses/player-NOTICE.txt",
-                        ),
-                        BundledAsset(
-                            "FFmpegKit — Android media bridge",
-                            "https://github.com/jmir1/ffmpeg-kit/tree/1.18",
-                            "LGPL-3.0 · bundled FFmpeg: GPL-3.0-or-later",
-                            "licenses/LGPL-3.0.txt",
-                            "licenses/player-NOTICE.txt",
-                        ),
-                        BundledAsset(
-                            "Anime4K — image processing shaders",
-                            "https://github.com/bloc97/Anime4K",
-                            "MIT",
-                            "anime4k/LICENSE",
-                        ),
-                        BundledAsset(
-                            "Cinema — audio processing",
-                            "https://github.com/owouwuiwi/nyanime",
-                            "License and credits included with the component",
-                            "audio/cinema/LICENSE.txt",
-                        ),
-                        BundledAsset(
-                            "SymSpellKt — adapted search correction",
-                            "https://github.com/wavesonics/SymSpellKt",
-                            "MIT",
-                            "licenses/SymSpellKt-LICENSE.txt",
-                        ),
-                        BundledAsset(
-                            "Transitions.dev — motion reference",
-                            "https://transitions.dev",
-                            "Transitions.dev License",
-                            "licenses/Transitions-dev-LICENSE.txt",
-                        ),
-                        BundledAsset(
-                            "DeepPanel — panel recognition model",
-                            "https://github.com/pedrovgs/DeepPanelAndroid",
-                            "Apache-2.0",
-                            "deeppanel/LICENSE.txt",
-                            "deeppanel/NOTICE.txt",
-                        ),
-                        BundledAsset(
-                            "Piik — lounge and connection recovery inspiration",
-                            "https://github.com/TNTcraftHIM/Piik",
-                            "MIT",
-                            "licenses/Piik-LICENSE.txt",
-                        ),
-                        BundledAsset(
-                            "WebRTC — optional room voice",
-                            "https://github.com/webrtc-sdk/webrtc/tree/30d5e63ae91da483e06577b5c35ee91cc5e5c3db",
-                            "BSD-3-Clause and third-party licenses",
-                            "licenses/WebRTC-LICENSE.txt",
-                            "licenses/WebRTC-ThirdParty.md",
-                        ),
-                        BundledAsset(
-                            "WebRTC SDKs — Android binding",
-                            "https://github.com/webrtc-sdk/android",
-                            "MIT",
-                            "licenses/WebRTC-SDK-LICENSE.txt",
-                            "licenses/WebRTC-PATENTS.txt",
-                        ),
-                        BundledAsset(
-                            "Downpour — adapted connection tuner",
-                            "https://github.com/AlirezaJavan/Downpour",
-                            "Apache-2.0",
-                            "licenses/Downpour-LICENSE.txt",
-                            "licenses/download-NOTICE.txt",
-                        ),
-                        BundledAsset(
-                            "Fetch — adapted speed average",
-                            "https://github.com/tonyofrancis/Fetch",
-                            "Apache-2.0",
-                            "licenses/Fetch-LICENSE.txt",
-                            "licenses/download-NOTICE.txt",
-                        ),
-                        BundledAsset(
-                            "TDLib — official Telegram engine",
-                            "https://github.com/tdlib/td",
-                            "BSL-1.0",
-                            "licenses/TDLib-LICENSE.txt",
-                            "licenses/telegram-NOTICE.txt",
-                        ),
-                        BundledAsset(
-                            "OpenSSL — Telegram native transport",
-                            "https://github.com/openssl/openssl",
-                            "Apache-2.0",
-                            "licenses/OpenSSL-LICENSE.txt",
-                            "licenses/telegram-NOTICE.txt",
-                        ),
-                    ) +
-                        context.assets.open("licenses/native/catalog.json").bufferedReader().use { reader ->
+                    val bundled = listOf("licenses/catalog.json", "licenses/native/catalog.json").flatMap { path ->
+                        context.assets.open(path).bufferedReader().use { reader ->
                             val entries = JSONArray(reader.readText())
                             List(entries.length()) { index ->
                                 val item = entries.getJSONObject(index)
@@ -174,9 +59,11 @@ class OpenSourceLicensesScreen : Screen() {
                                     item.getString("website"),
                                     item.getString("licenseName"),
                                     item.getString("asset"),
+                                    item.optString("notice").takeIf(String::isNotBlank),
                                 )
                             }
                         }
+                    }
                     val bundledLicenses = bundled.map { asset ->
                         BundledLicense(
                             asset.name,
@@ -189,7 +76,11 @@ class OpenSourceLicensesScreen : Screen() {
                         )
                     }
                     LicenseCatalog.Ready(
-                        Libs.Builder().withContext(context).build().libraries.toList(),
+                        Libs.Builder().withJson(
+                            context.resources.openRawResource(R.raw.aboutlibraries).bufferedReader().use {
+                                it.readText()
+                            },
+                        ).build().libraries.toList(),
                         bundledLicenses,
                     )
                 }.getOrElse { LicenseCatalog.Failed }

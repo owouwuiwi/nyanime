@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -81,6 +83,11 @@ import eu.kanade.tachiyomi.data.tv.TvPlaybackFailure
 import eu.kanade.tachiyomi.data.tv.TvPlayerSession
 import eu.kanade.tachiyomi.data.tv.TvSelection
 import eu.kanade.tachiyomi.data.tv.TvServices
+import it.lorelore.nyanime.presentation.player.VideoActionChip
+import it.lorelore.nyanime.presentation.player.VideoChromeActions
+import it.lorelore.nyanime.presentation.player.VideoChromeButton
+import it.lorelore.nyanime.presentation.player.VideoChromeState
+import it.lorelore.nyanime.presentation.player.VideoPlaybackChrome
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -163,7 +170,7 @@ internal fun TvPlayerControls(
     val motion = appMotionEnabled()
     val duration = if (motion) ModernMotion.PAGE_MILLIS else 0
     val channel = state.media?.channel
-    val show = visible || state.paused || state.failed || panel != null
+    val show = visible || state.failed || panel != null
     LaunchedEffect(show, state.ready, state.paused, state.failed, interaction, panel) {
         if (show && state.ready && !state.paused && !state.failed && panel == null) {
             delay(4000)
@@ -216,68 +223,136 @@ internal fun TvPlayerControls(
             })
         },
     ) {
-        AnimatedVisibility(show, enter = fadeIn(tween(duration)), exit = fadeOut(tween(duration))) {
-            Box(
-                Modifier.fillMaxSize().background(
-                    Brush.verticalGradient(
-                        listOf(Color.Black.copy(alpha = .72f), Color.Transparent, Color.Black.copy(alpha = .8f)),
-                    ),
-                ),
+        VideoPlaybackChrome(
+            state = VideoChromeState(
+                visible = show,
+                playing = !state.paused,
+                buffering = state.loading || state.buffering,
+                title = channel?.name ?: stringResource(R.string.tv_title),
+                subtitle = channel?.feedName ?: stringResource(R.string.tv_live),
+                durationMs = 0,
+                fullscreen = true,
+                portraitFullscreen =
+                androidx.compose.ui.platform.LocalConfiguration.current.orientation ==
+                    android.content.res.Configuration.ORIENTATION_PORTRAIT,
+                live = true,
+                queue = true,
+            ),
+            actions = VideoChromeActions(
+                playPause = {
+                    if (state.paused) session.live() else session.pause(true)
+                    interaction++
+                },
+                back = onBack,
+                settings = {
+                    panel = "quality"
+                    interaction++
+                },
+                fullscreen = onBack,
+                cast = {
+                    castDialog = true
+                    interaction++
+                },
+                queue = {
+                    panel = "channels"
+                    interaction++
+                },
+                live = {
+                    session.live()
+                    interaction++
+                },
+            ),
+            position = { 0L },
+            modifier = Modifier.fillMaxSize().padding(bottom = 76.dp),
+            reduceMotion = !motion,
+            windowInsets = WindowInsets(0),
+            center = if (state.failed) ({ Box(Modifier.size(68.dp)) }) else null,
+            extraActions = {
+                if (!state.room) {
+                    VideoChromeButton("SM", {
+                        session.toggleEnhancement()
+                        interaction++
+                    }, selected = state.enhanced, selectedContentColor = Color(0xFFFFD54F))
+                }
+                VideoChromeButton(stringResource(R.string.tv_room), {
+                    if (room.active) socialPanel = true else channel?.let(onRoom)
+                }, Icons.Outlined.Group, selected = room.active)
+            },
+        )
+        AnimatedVisibility(
+            show,
+            enter = fadeIn(tween(duration)),
+            exit = fadeOut(tween(duration)),
+            modifier = Modifier.align(Alignment.BottomCenter),
+        ) {
+            Column(
+                Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Row(
-                    Modifier.align(
-                        Alignment.TopCenter,
-                    ).fillMaxWidth().statusBarsPadding().padding(horizontal = 10.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                if (actionError) {
+                    Text(
+                        stringResource(R.string.tv_settings_error),
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                }
+                if (room.liveMode) {
+                    Text(
+                        stringResource(
+                            if (liveRoom.adjustment ==
+                                nyanime.tv.api.TvLiveAdjustment.Unverified
+                            ) {
+                                R.string.tv_room_unverified
+                            } else {
+                                R.string.tv_room_local_controls
+                            },
+                        ),
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                }
+                if (state.paused) {
+                    Text(
+                        stringResource(R.string.tv_paused_local),
+                        color = Color.White,
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                }
+                val rewindStart = native.rewindStart
+                val rewindEnd = native.rewindEnd
+                if (state.stream?.rewind == true &&
+                    rewindStart != null &&
+                    rewindEnd != null &&
+                    rewindEnd > rewindStart
                 ) {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Outlined.ArrowBack,
-                            stringResource(R.string.tv_back),
-                            tint = Color.White,
-                        )
-                    }
-                    Column(Modifier.weight(1f).padding(horizontal = 8.dp)) {
-                        Text(
-                            channel?.name ?: stringResource(R.string.tv_title),
-                            color = Color.White,
-                            style = MaterialTheme.typography.titleLarge,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            channel?.feedName ?: stringResource(R.string.tv_live),
-                            color = Color.White.copy(alpha = .72f),
-                            style = MaterialTheme.typography.bodySmall,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    IconButton(onClick = {
-                        castDialog = true
-                    }, enabled = channel != null) {
-                        Icon(Icons.Outlined.Cast, stringResource(R.string.tv_cast), tint = Color.White)
-                    }
+                    var seeking by remember(state.reference) { mutableStateOf<Float?>(null) }
+                    Slider(
+                        value = (seeking ?: native.position?.toFloat() ?: rewindEnd.toFloat()).coerceIn(
+                            rewindStart.toFloat(),
+                            rewindEnd.toFloat(),
+                        ),
+                        onValueChange = {
+                            seeking = it
+                            interaction++
+                        },
+                        onValueChangeFinished = {
+                            seeking?.let { session.seek(it.toDouble()) }
+                            seeking = null
+                        },
+                        valueRange = rewindStart.toFloat()..rewindEnd.toFloat(),
+                        enabled = state.ready,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    )
+                }
+                LazyRow(
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     channel?.let { selected ->
-                        IconButton(onClick = {
-                            onShare(selected)
-                            interaction++
-                        }) { Icon(Icons.Outlined.Share, stringResource(R.string.tv_share), tint = Color.White) }
-                        IconButton(onClick = {
-                            actionError =
-                                runCatching {
-                                    services.personal.favourite(selected.ref, selected.ref !in favourites)
-                                }.isFailure
-                            interaction++
-                        }) {
-                            Icon(
-                                if (selected.ref in
-                                    favourites
-                                ) {
-                                    Icons.Outlined.Star
-                                } else {
-                                    Icons.Outlined.StarOutline
-                                },
+                        item("favourite") {
+                            VideoActionChip(
+                                if (selected.ref in favourites) Icons.Outlined.Star else Icons.Outlined.StarOutline,
                                 stringResource(
                                     if (selected.ref in
                                         favourites
@@ -287,169 +362,52 @@ internal fun TvPlayerControls(
                                         R.string.tv_add_favourite
                                     },
                                 ),
-                                tint = Color.White,
-                            )
-                        }
-                    }
-                }
-                if (!state.loading && !state.buffering && !state.failed) {
-                    FilledIconButton(
-                        onClick = {
-                            if (state.paused) session.live() else session.pause(true)
-                            interaction++
-                        },
-                        modifier = Modifier.align(Alignment.Center).size(68.dp),
-                        shape = CircleShape,
-                        colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = Color.White.copy(alpha = .16f),
-                            contentColor = Color.White,
-                        ),
-                    ) {
-                        Icon(
-                            if (state.paused) Icons.Outlined.PlayArrow else Icons.Outlined.Pause,
-                            stringResource(if (state.paused) R.string.tv_resume_live else R.string.tv_pause),
-                            Modifier.size(36.dp),
-                        )
-                    }
-                }
-                Column(
-                    Modifier.align(
-                        Alignment.BottomCenter,
-                    ).fillMaxWidth().navigationBarsPadding().padding(horizontal = 18.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    if (actionError) {
-                        Text(
-                            stringResource(R.string.tv_settings_error),
-                            color = Color.White,
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-                    if (room.liveMode) {
-                        Text(
-                            stringResource(
-                                if (liveRoom.adjustment ==
-                                    nyanime.tv.api.TvLiveAdjustment.Unverified
-                                ) {
-                                    R.string.tv_room_unverified
-                                } else {
-                                    R.string.tv_room_local_controls
-                                },
-                            ),
-                            color = Color.White.copy(alpha = .8f),
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-                    if (state.paused) {
-                        Text(
-                            stringResource(R.string.tv_paused_local),
-                            color = Color.White,
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    }
-                    val rewindStart = native.rewindStart
-                    val rewindEnd = native.rewindEnd
-                    if (state.stream?.rewind == true &&
-                        rewindStart != null &&
-                        rewindEnd != null &&
-                        rewindEnd > rewindStart
-                    ) {
-                        var seeking by remember(state.reference) { mutableStateOf<Float?>(null) }
-                        Slider(
-                            value = (seeking ?: native.position?.toFloat() ?: rewindEnd.toFloat()).coerceIn(
-                                rewindStart.toFloat(),
-                                rewindEnd.toFloat(),
-                            ),
-                            onValueChange = {
-                                seeking = it
-                                interaction++
-                            },
-                            onValueChangeFinished = {
-                                seeking?.let { session.seek(it.toDouble()) }
-                                seeking = null
-                            },
-                            valueRange = rewindStart.toFloat()..rewindEnd.toFloat(),
-                            modifier = Modifier.fillMaxWidth(),
-                            enabled = state.ready,
-                        )
-                    }
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Surface(
-                            color = Color.White.copy(alpha = .12f),
-                            contentColor = Color.White,
-                            shape = RoundedCornerShape(50),
-                        ) {
-                            TextButton(onClick = {
-                                session.live()
-                                interaction++
-                            }, colors = ButtonDefaults.textButtonColors(contentColor = Color.White)) {
-                                Box(Modifier.size(6.dp).background(Color.White, CircleShape))
-                                Spacer(Modifier.width(8.dp))
-                                Text(stringResource(R.string.tv_live), fontWeight = FontWeight.SemiBold)
-                            }
-                        }
-                        Spacer(Modifier.weight(1f))
-                        if (!state.room) {
-                            TextButton(
-                                onClick = {
-                                    session.toggleEnhancement()
-                                    interaction++
-                                },
-                                colors = ButtonDefaults.textButtonColors(
-                                    contentColor = if (state.enhanced) Color.White else Color.White.copy(alpha = .5f),
-                                ),
                             ) {
-                                Text("SM", style = MaterialTheme.typography.labelLarge)
+                                actionError = runCatching {
+                                    services.personal.favourite(selected.ref, selected.ref !in favourites)
+                                }.isFailure
+                                interaction++
+                            }
+                        }
+                        item("share") {
+                            VideoActionChip(Icons.Outlined.Share, stringResource(R.string.tv_share)) {
+                                onShare(selected)
+                                interaction++
                             }
                         }
                     }
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically,
+                    item {
+                        VideoActionChip(
+                            Icons.Outlined.Schedule,
+                            stringResource(R.string.tv_programming),
+                        ) {
+                            panel =
+                                "programme"
+                            interaction++
+                        }
+                    }
+                    if (!room.active ||
+                        room.host
                     ) {
-                        IconButton(onClick = {
-                            panel = "programme"
-                            interaction++
-                        }, enabled = channel != null) {
-                            Icon(Icons.Outlined.Schedule, stringResource(R.string.tv_programming), tint = Color.White)
-                        }
-                        IconButton(onClick = {
-                            panel = "channels"
-                            interaction++
-                        }, enabled = !room.active || room.host) {
-                            Icon(Icons.Outlined.LiveTv, stringResource(R.string.tv_channels), tint = Color.White)
-                        }
-                        if (room.active) {
-                            eu.kanade.tachiyomi.ui.watch.WatchPlayerRoomAccess(room) { socialPanel = true }
-                        } else {
-                            IconButton(onClick = { channel?.let(onRoom) }) {
-                                Icon(Icons.Outlined.Group, stringResource(R.string.tv_room), tint = Color.White)
+                        item {
+                            VideoActionChip(
+                                Icons.Outlined.LiveTv,
+                                stringResource(R.string.tv_channels),
+                            ) {
+                                panel =
+                                    "channels"
+                                interaction++
                             }
                         }
-                        IconButton(onClick = {
-                            panel = "volume"
+                    }
+                    item {
+                        VideoActionChip(
+                            Icons.AutoMirrored.Outlined.VolumeUp,
+                            stringResource(R.string.tv_volume),
+                        ) {
+                            panel =
+                                "volume"
                             interaction++
-                        }) {
-                            Icon(
-                                Icons.AutoMirrored.Outlined.VolumeUp,
-                                stringResource(R.string.tv_volume),
-                                tint = Color.White,
-                            )
-                        }
-                        IconButton(onClick = {
-                            panel = "quality"
-                            interaction++
-                        }, enabled = state.media != null) {
-                            Icon(
-                                Icons.Outlined.Settings,
-                                stringResource(R.string.tv_playback_options),
-                                tint = Color.White,
-                            )
                         }
                     }
                 }
@@ -465,7 +423,7 @@ internal fun TvPlayerControls(
                 modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(end = 16.dp, top = 68.dp),
             )
         }
-        if (state.loading || state.buffering || state.failed) {
+        if (state.failed) {
             Column(
                 Modifier.align(Alignment.Center).padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,

@@ -16,21 +16,19 @@ snapshots = {}
 reads = {}
 messages = {}
 writes = 0
-package.preload['mp.utils'] = function()
-    return { format_json = function(value)
-        snapshots[#snapshots + 1] = value
-        return 'snapshot'
-    end }
-end
 mp = {
     get_property_native = function(name, default)
         reads[name] = (reads[name] or 0) + 1
         if props[name] == nil then return default end
         return props[name]
     end,
-    set_property = function(name, value)
+    set_property = function()
+        error('serialized JSON strings are escaped by native node STRING observers')
+    end,
+    set_property_native = function(name, value)
         assert(name == 'user-data/aniyomi-anime4k/telemetry')
-        assert(value == 'snapshot')
+        assert(type(value) == 'table')
+        snapshots[#snapshots + 1] = value
         writes = writes + 1
     end,
     add_periodic_timer = function(interval, callback)
@@ -97,6 +95,22 @@ class AdapterChecks:
             with self.subTest(value=value):
                 self.lua.execute("props['vo-passes'] = " + value)
                 self.assertIsNone(self.tick().renderTimeMillis)
+
+    def test_recent_cost_is_optional_and_separate_from_the_average(self):
+        self.enable()
+        self.lua.execute("""
+            props['vo-passes'] = {fresh={
+                {avg=1000000, last=4000000, count=4},
+                {avg=2000000, last=5000000, count=4}
+            }}
+        """)
+        packet = self.tick()
+        self.assertEqual(3.0, packet.renderTimeMillis)
+        self.assertEqual(9.0, packet.lastRenderTimeMillis)
+        self.lua.execute("props['vo-passes'].fresh[2].last = nil")
+        packet = self.tick()
+        self.assertEqual(3.0, packet.renderTimeMillis)
+        self.assertIsNone(packet.lastRenderTimeMillis)
 
     def test_pause_cache_seek_idle_and_eof_never_sample_gpu(self):
         self.enable()

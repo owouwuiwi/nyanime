@@ -1,10 +1,19 @@
 import unittest
 from unittest.mock import patch
 
-from scripts.release_notes import CATEGORIES, FORMAT_MARKER, previous_tag, release_notes, validate_notes_format
+from scripts.release_notes import CATEGORIES, FORMAT_MARKER, HISTORICAL_HEADING_SUFFIX, previous_tag, release_notes, sections, validate_notes_format
 
 
 class ReleaseNotesTest(unittest.TestCase):
+    def test_imported_experimental_history_remains_readable_but_is_not_new_ota_content(self):
+        history = "## 19 October — 0.48.2.23: Experimental" + HISTORICAL_HEADING_SUFFIX + "\n### Novità\n- Historical engine.\n"
+        current = "## 20 October — 0.49.0.0: Ordinary\n### Novità\n- New ordinary feature.\n" + history
+        notes = release_notes(current, "## Older\n- Older feature.\n", "v0.49.0.0")
+        validate_notes_format(notes)
+        self.assertIn("New ordinary feature.", notes)
+        self.assertNotIn("Historical engine.", notes)
+        self.assertEqual(sections(history)[0][1], ["Historical engine."])
+
     def test_generated_categorized_notes_pass_publication_validation(self):
         current = "## 15 October — 1.2.3.4: Update\n" + "".join(
             f"### {category}\n- Entry {index}.\n" for index, category in enumerate(CATEGORIES)

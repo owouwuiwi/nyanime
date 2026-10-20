@@ -5,6 +5,9 @@ import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.animesource.online.AnimeHttpSource
 import eu.kanade.tachiyomi.data.download.anime.AnimeDownloadManager
 import eu.kanade.tachiyomi.extension.anime.AnimeExtensionManager
+import it.lorelore.nyanime.studio.SourceStudioRepository
+import it.lorelore.nyanime.studio.StudioAnimeSource
+import it.lorelore.nyanime.studio.StudioMedium
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -13,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -46,8 +50,14 @@ class AndroidAnimeSourceManager(
 
     init {
         scope.launch {
-            extensionManager.installedExtensionsFlow
-                .collectLatest { extensions ->
+            combine(extensionManager.installedExtensionsFlow, SourceStudioRepository.get(context).active) {
+                    extensions,
+                    definitions,
+                ->
+                extensions to
+                    definitions
+            }
+                .collectLatest { (extensions, definitions) ->
                     val mutableMap = ConcurrentHashMap<Long, AnimeSource>(
                         mapOf(
                             LocalAnimeSource.ID to LocalAnimeSource(
@@ -64,6 +74,13 @@ class AndroidAnimeSourceManager(
                         extension.sources.forEach {
                             mutableMap[it.id] = it
                             registerStubSource(StubAnimeSource.from(it))
+                        }
+                    }
+                    definitions.filter { it.medium == StudioMedium.VIDEO }.forEach { definition ->
+                        if (!mutableMap.containsKey(definition.sourceId)) {
+                            val source = StudioAnimeSource(definition, SourceStudioRepository.get(context))
+                            mutableMap[source.id] = source
+                            registerStubSource(StubAnimeSource.from(source))
                         }
                     }
                     sourcesMapFlow.value = mutableMap

@@ -12,7 +12,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.AbstractComposeView
 import eu.kanade.presentation.reader.ChapterTransition
-import eu.kanade.presentation.theme.LegacyMangaTheme
+import eu.kanade.presentation.theme.TachiyomiTheme
 import eu.kanade.tachiyomi.data.download.manga.MangaDownloadManager
 import eu.kanade.tachiyomi.ui.reader.model.ChapterTransition
 import tachiyomi.domain.entries.manga.model.Manga
@@ -51,7 +51,7 @@ class ReaderTransitionView @JvmOverloads constructor(context: Context, attrs: At
     @Composable
     override fun Content() {
         data?.let {
-            LegacyMangaTheme {
+            TachiyomiTheme {
                 CompositionLocalProvider(
                     LocalTextStyle provides MaterialTheme.typography.bodySmall,
                     LocalContentColor provides MaterialTheme.colorScheme.onBackground,

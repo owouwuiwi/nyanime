@@ -38,6 +38,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.navigator.Navigator
 import coil3.compose.AsyncImage
+import eu.kanade.presentation.theme.nyanimeWordmarkResource
 import eu.kanade.presentation.util.DefaultNavigatorScreenTransition
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.cloud.CloudPreferences
@@ -113,7 +114,7 @@ internal fun CloudIntroductionContent(onConnect: () -> Unit, onSkip: () -> Unit)
         ) {
             item {
                 AsyncImage(
-                    model = if (dark) R.raw.nyanime_wordmark_dark else R.raw.nyanime_wordmark_light,
+                    model = nyanimeWordmarkResource(),
                     contentDescription = "Nyanime",
                     modifier = Modifier.width(160.dp).height(40.dp),
                     contentScale = ContentScale.Fit,

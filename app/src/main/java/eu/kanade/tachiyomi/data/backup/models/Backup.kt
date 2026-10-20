@@ -65,4 +65,6 @@ data class Backup(
     // 510 is retired: older backups used it for a different optional document.
     @ProtoNumber(511) val guidedReading: List<nyanime.panels.GuidedPageRecord> = emptyList(),
     @ProtoNumber(512) val readerSpreads: List<eu.kanade.tachiyomi.ui.reader.spread.SpreadRecord> = emptyList(),
+    // 513 is reserved for legacy optional music state; never re-use it.
+    @ProtoNumber(514) val sourceStudioState: String? = null,
 )

@@ -2,11 +2,13 @@ import mihon.buildlogic.configureCompose
 
 plugins {
     id("com.android.application")
-    kotlin("android")
 
     id("mihon.code.lint")
 }
 
-android {
+// Apply after the host migration properties are available; the schema probe has no project properties.
+apply(plugin = "org.jetbrains.kotlin.android")
+
+extensions.configure<com.android.build.api.dsl.ApplicationExtension>("android") {
     configureCompose(this)
 }

@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -33,6 +34,7 @@ import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Subtitles
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
@@ -79,6 +81,10 @@ import eu.kanade.tachiyomi.ui.player.controls.components.PlaybackPlayPauseGlyph
 import eu.kanade.tachiyomi.ui.player.controls.components.PlaybackSeekBar
 import eu.kanade.tachiyomi.ui.player.controls.components.WatchPlaybackButton
 import eu.kanade.tachiyomi.ui.player.settings.PlayerPreferences
+import it.lorelore.nyanime.presentation.player.VideoActionChip
+import it.lorelore.nyanime.presentation.player.VideoChromeActions
+import it.lorelore.nyanime.presentation.player.VideoChromeState
+import it.lorelore.nyanime.presentation.player.VideoPlaybackChrome
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import tachiyomi.domain.entries.anime.model.Anime
@@ -88,186 +94,75 @@ import uy.kohesive.injekt.api.get
 
 @Composable
 internal fun PlaybackCompactControls(session: PlayerSession, onReduce: () -> Unit) {
+    if (session.snapshot.value.live) {
+        LiveCompactPlaybackControls(session, onReduce)
+    } else {
+        eu.kanade.tachiyomi.ui.player.controls.MpvPlaybackChrome(session, fullscreen = false, onBack = onReduce)
+    }
+}
+
+@Composable
+private fun LiveCompactPlaybackControls(session: PlayerSession, onReduce: () -> Unit) {
     val state by session.snapshot.collectAsState()
+    val runtime by session.live.collectAsState()
+    val live = runtime ?: return
+    val native by live.output.status.collectAsState()
+    val channel by live.session.state.collectAsState()
+    val rewindStart = native.rewindStart
+    val rewindEnd = native.rewindEnd
+    val rewind = channel.stream?.rewind == true && rewindStart != null && rewindEnd != null && rewindEnd > rewindStart
+    var seeking by remember(state.sessionId) { mutableStateOf<Float?>(null) }
+    var cast by remember { mutableStateOf(false) }
+    if (cast) {
+        eu.kanade.tachiyomi.ui.cast.CastDevicesDialog(request = session::castRequest, onDismiss = {
+            cast = false
+        })
+    }
     val controls by session.viewModel.controlsShown.collectAsState()
-    val room by session.viewModel.watchTogether.state.collectAsState()
-    val readAhead by session.viewModel.readAhead.collectAsState()
-    val timelinePosition by session.viewModel.timelinePosition.collectAsState()
-    val hasPrevious by session.viewModel.hasPreviousEpisode.collectAsState()
-    val hasNext by session.viewModel.hasNextEpisode.collectAsState()
-    val reduceMotion by Injekt.get<PlayerPreferences>().reduceMotion().collectAsState()
-    var scrubbing by remember { mutableStateOf(false) }
-    var pending by remember { mutableFloatStateOf(0f) }
-    val togetherBusy = room.active &&
-        (room.preparingPlayback || room.pendingPlaybackPaused != null || room.resumeSeconds != null)
     Box(Modifier.fillMaxSize()) {
-        androidx.compose.animation.AnimatedVisibility(
-            controls || state.paused || togetherBusy || scrubbing || state.buffering,
-            enter = androidx.compose.animation.fadeIn(
-                androidx.compose.animation.core.tween(if (reduceMotion) 0 else 150),
+        VideoPlaybackChrome(
+            state = VideoChromeState(
+                visible = controls || state.buffering,
+                playing = !state.paused,
+                buffering = state.buffering || state.preparingSelection,
+                title = state.title,
+                subtitle = state.episode,
+                durationMs = 0,
+                live = true,
             ),
-            exit = androidx.compose.animation.fadeOut(
-                androidx.compose.animation.core.tween(if (reduceMotion) 0 else 120),
-            ),
-        ) {
-            Box(Modifier.fillMaxSize()) {
-                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.28f)))
-                Row(
-                    Modifier.align(Alignment.TopStart).fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    PlaybackControlButton(onClick = onReduce) {
-                        Icon(
-                            Icons.Filled.ExpandMore,
-                            stringResource(R.string.playback_minimize),
-                            tint = Color.White,
-                        )
-                    }
-                    Spacer(Modifier.weight(1f))
-                    if (!state.live) {
-                        PlaybackControlButton(onClick = { session.viewModel.showSheet(Sheets.SubtitleTracks) }) {
-                            Icon(
-                                Icons.Outlined.Subtitles,
-                                stringResource(R.string.playback_subtitles),
-                                tint = Color.White,
-                            )
-                        }
-                    }
-                    PlaybackControlButton(onClick = {
-                        if (state.live) {
-                            session.present(PlaybackPresentation.Fullscreen)
-                        } else {
-                            session.viewModel.showSheet(Sheets.More)
-                        }
-                    }) {
-                        Icon(Icons.Outlined.Settings, stringResource(R.string.playback_options), tint = Color.White)
-                    }
-                }
-                Row(
-                    Modifier.align(Alignment.Center),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(24.dp),
-                ) {
-                    if (!state.live) {
-                        PlaybackControlButton(onClick = {
-                            session.viewModel.changeEpisode(true)
-                        }, enabled = hasPrevious) {
-                            Icon(
-                                Icons.Filled.SkipPrevious,
-                                stringResource(R.string.playback_previous),
-                                tint = Color.White.copy(alpha = if (hasPrevious) 1f else 0.35f),
-                            )
-                        }
-                    }
-                    if (room.active && !state.live) {
-                        WatchPlaybackButton(
-                            room, state.buffering, state.paused, enabled = true, reduceMotion = reduceMotion,
-                            onClick = session::playPause,
-                            onRetry = {
-                                if (room.recovery == WatchRecovery.Connection) {
-                                    session.viewModel.watchTogether.retryConnection()
-                                } else {
-                                    session.viewModel.watchTogether.retryFailedCommand()
-                                }
-                            },
-                            modifier = Modifier.size(64.dp), showParticipants = false, showCaption = false,
-                        )
+            actions = VideoChromeActions(
+                playPause = session::playPause,
+                back = onReduce,
+                settings = { session.present(PlaybackPresentation.Fullscreen) },
+                fullscreen = { session.present(PlaybackPresentation.Fullscreen) },
+                live = { session.live.value?.session?.live() },
+                cast = {
+                    if (session.castRequest() !=
+                        null
+                    ) {
+                        cast = true
                     } else {
-                        PlaybackControlButton(
-                            onClick = session::playPause,
-                            modifier = Modifier.size(64.dp)
-                                .background(
-                                    Color.Black.copy(alpha = 0.25f),
-                                    androidx.compose.foundation.shape.CircleShape,
-                                ),
-                        ) {
-                            if (state.buffering || state.preparingSelection) {
-                                CircularProgressIndicator(
-                                    Modifier.size(56.dp),
-                                    color = Color.White,
-                                    strokeWidth = 2.dp,
-                                )
-                            }
-                            PlaybackPlayPauseGlyph(
-                                paused = state.paused,
-                                reduceMotion = reduceMotion,
-                                modifier = Modifier.size(40.dp),
-                                contentDescription = stringResource(
-                                    if (state.paused) R.string.playback_play else R.string.playback_pause,
-                                ),
-                            )
-                        }
+                        session.present(PlaybackPresentation.Fullscreen)
                     }
-                    if (!state.live) {
-                        PlaybackControlButton(onClick = session::next, enabled = hasNext) {
-                            Icon(
-                                Icons.Filled.SkipNext,
-                                stringResource(R.string.playback_next),
-                                tint = Color.White.copy(alpha = if (hasNext) 1f else 0.35f),
-                            )
-                        }
-                    }
-                }
-
-                if (state.seekable) {
-                    PlaybackSeekBar(
-                        value = when {
-                            scrubbing -> pending.toDouble()
-                            state.live -> state.positionSeconds
-                            else -> timelinePosition.toDouble()
-                        },
-                        duration = state.durationSeconds,
-                        onChange = {
-                            scrubbing = true
-                            pending = it.toFloat()
-                        },
-                        onFinished = {
-                            session.seek(pending.toDouble())
-                            scrubbing = false
-                        },
-                        onCancelled = { scrubbing = false },
-                        modifier = Modifier.align(Alignment.BottomCenter),
-                        buffered = readAhead.toDouble(),
-                        bottomAligned = true,
-                        reduceMotion = reduceMotion,
-                        advancing = !state.paused && !state.buffering,
-                    )
-                }
-                // Place actions above the rail in the input tree: their lower hit areas must not seek.
-                Row(
-                    Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(bottom = 12.dp, start = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        if (state.live) {
-                            stringResource(R.string.tv_live)
-                        } else {
-                            "${playbackTime(
-                                if (scrubbing) pending.toDouble() else timelinePosition.toDouble(),
-                            )} / " +
-                                playbackTime(state.durationSeconds)
-                        },
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelMedium,
-                    )
-                    Spacer(Modifier.weight(1f))
-                    PlaybackControlButton(onClick = { session.present(PlaybackPresentation.Fullscreen) }) {
-                        Icon(
-                            Icons.Filled.Fullscreen,
-                            stringResource(R.string.playback_fullscreen),
-                            tint = Color.White,
-                        )
-                    }
-                }
-            }
-        }
-        room.resumeSeconds?.let { seconds ->
-
-            Text(
-                stringResource(R.string.playback_room_starting, seconds),
-                Modifier.align(Alignment.Center).padding(top = 108.dp),
-                color = Color.White,
-                style = MaterialTheme.typography.labelLarge,
+                },
+            ),
+            position = { 0L },
+            modifier = Modifier.padding(bottom = if (rewind && controls) 40.dp else 0.dp),
+        )
+        if (rewind && controls && rewindStart != null && rewindEnd != null) {
+            androidx.compose.material3.Slider(
+                value = (seeking ?: native.position?.toFloat() ?: rewindEnd.toFloat()).coerceIn(
+                    rewindStart.toFloat(),
+                    rewindEnd.toFloat(),
+                ),
+                onValueChange = { seeking = it },
+                onValueChangeFinished = {
+                    seeking?.let { live.session.seek(it.toDouble()) }
+                    seeking = null
+                },
+                valueRange = rewindStart.toFloat()..rewindEnd.toFloat(),
+                enabled = channel.ready,
+                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(horizontal = 12.dp),
             )
         }
     }
@@ -365,21 +260,49 @@ internal fun PlaybackWatchPage(
         state = list,
         modifier = modifier.fillMaxSize().playbackVisibility(visibility),
         contentPadding = PaddingValues(bottom = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item(key = "heading") {
-            Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp)) {
+            Column(
+                Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 Text(
-                    state.title.ifBlank { stringResource(R.string.playback_preparing) },
+                    state.episode.ifBlank { state.title }.ifBlank { stringResource(R.string.playback_preparing) },
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                Text(
-                    state.episode,
-                    Modifier.padding(top = 6.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Row(
+                    Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).clickable(enabled = title != null) {
+                        title?.let { openTitleDetails(session, activity, it) }
+                    }.padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    title?.let { SourceHomeArtwork(it, Modifier.size(44.dp).clip(CircleShape)) }
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            state.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            stringResource(R.string.playback_all_episodes, episodes.size),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Icon(
+                        Icons.Outlined.Info,
+                        stringResource(R.string.playback_info),
+                        Modifier.size(22.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
         item(key = "actions") {
@@ -387,6 +310,13 @@ internal fun PlaybackWatchPage(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                item {
+                    WatchAction(
+                        Icons.Outlined.Share,
+                        stringResource(R.string.playback_share),
+                        session::shareCurrentContent,
+                    )
+                }
                 item {
                     WatchAction(
                         Icons.Filled.People,
@@ -563,23 +493,14 @@ internal fun PlaybackWatchPage(
 
 @Composable
 private fun WatchAction(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
-    Surface(onClick = onClick, shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
-        Row(
-            Modifier.height(48.dp).padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Icon(icon, null, Modifier.size(20.dp))
-            Text(label, style = MaterialTheme.typography.labelLarge)
-        }
-    }
+    VideoActionChip(icon, label, onClick)
 }
 
 @Composable
 private fun PlaybackEpisodeCard(episode: Episode, selected: Boolean, title: Anime?, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(10.dp),
+        shape = MaterialTheme.shapes.large,
         color = if (selected) {
             MaterialTheme.colorScheme.primaryContainer
         } else {

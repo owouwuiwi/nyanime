@@ -4,6 +4,15 @@ Le guide descrivono il codice presente nel repository. Alcune funzioni dipendono
 da un'estensione compatibile, da un servizio esterno o dalle capacità del dispositivo.
 I documenti tecnici in inglese conservano i nomi delle API e dei componenti.
 
+## Novità della versione 0.49
+
+- [Studio delle fonti e scambio](source-studio.md)
+- [Backup remoti](remote-backups.md)
+- [Compatibilità Syncplay](syncplay-compatibility.md)
+- [Attenzione alla visione](viewing-attention.md)
+- [Presentazione del player e attribuzioni](player-presentation.md)
+- [Migrazione dalla prova NyanimeB](normal-migration.md)
+
 ## Per chi usa l'app
 
 | Guida | Contenuto |
@@ -75,6 +84,7 @@ Il progetto segue il modello [bring your own content](responsible-use.md).
 - [Crediti e licenze](credits.md).
 - [Integrazione Mihon](mihon-integration.md): riferimento stabile, adattamenti, compatibilità e verifiche.
 - [Licenza e copyright Nyanime](licensing.md).
+- [Verifica delle attribuzioni del 16 ottobre 2026](license-audit-2026-10-16.md): inventario, testi offline, sorgenti pubblicati e limiti dei controlli.
 - [Changelog storico AniYomi](history/aniyomi-changelog.md): archivio upstream,
   non elenco delle release Nyanime.
 

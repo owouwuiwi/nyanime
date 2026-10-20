@@ -52,6 +52,7 @@ import eu.kanade.presentation.more.UpdateChannelChoice
 import eu.kanade.presentation.motion.ModernMotion
 import eu.kanade.presentation.motion.appMotionEnabled
 import eu.kanade.presentation.theme.NyanimeWordmark
+import eu.kanade.presentation.theme.nyanimeWordmarkResource
 import eu.kanade.tachiyomi.BuildConfig
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.ui.addon.InitialAddonIntroductionGate
@@ -161,7 +162,7 @@ fun InitialUpdateChoiceGate(onReady: () -> Unit, content: @Composable () -> Unit
         ) {
             item {
                 SubcomposeAsyncImage(
-                    model = if (dark) R.raw.nyanime_wordmark_dark else R.raw.nyanime_wordmark_light,
+                    model = nyanimeWordmarkResource(),
                     contentDescription = "Nyanime",
                     modifier = Modifier.widthIn(max = 148.dp).height(36.dp),
                     contentScale = ContentScale.Fit,

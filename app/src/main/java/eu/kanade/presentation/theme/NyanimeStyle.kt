@@ -36,11 +36,16 @@ internal val NyanimeTypography = Typography(
 )
 
 @Composable
+fun nyanimeWordmarkResource(): Int = if (LocalDarkTheme.current) {
+    R.drawable.nyanime_wordmark_dark
+} else {
+    R.drawable.nyanime_wordmark_light
+}
+
+@Composable
 fun NyanimeWordmark(modifier: Modifier = Modifier) {
     Image(
-        painter = painterResource(
-            if (LocalDarkTheme.current) R.drawable.nyanime_wordmark_dark else R.drawable.nyanime_wordmark_light,
-        ),
+        painter = painterResource(nyanimeWordmarkResource()),
         contentDescription = "Nyanime",
         modifier = modifier
             .wrapContentWidth(Alignment.Start)

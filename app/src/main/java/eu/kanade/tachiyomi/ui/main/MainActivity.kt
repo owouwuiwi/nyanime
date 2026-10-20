@@ -177,7 +177,12 @@ class MainActivity : BaseActivity() {
         registerSecureActivity(this)
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+    override fun onCreate(savedState: Bundle?) {
+        // Removed optional workspaces may occur in an older saved Voyager stack.
+        // Discard only that Activity snapshot; library, preferences and progress stay on disk.
+        val savedInstanceState = savedState?.takeIf {
+            NavigationRestorePolicy.canRestore(it.getInt(NavigationRestorePolicy.KEY, 0))
+        }
         if (eu.kanade.tachiyomi.data.migration.MigrationState.deferredStartup(this)) {
             super.onCreate(savedInstanceState)
             startActivity(Intent(this, eu.kanade.tachiyomi.data.migration.MigrationActivity::class.java))
@@ -352,6 +357,7 @@ class MainActivity : BaseActivity() {
                         CheckForUpdates()
                     }
                     eu.kanade.tachiyomi.ui.player.session.PlaybackHost(this@MainActivity)
+                    it.lorelore.nyanime.attention.AttentionHost(this@MainActivity)
                 }
 
                 var showChangelog by remember { mutableStateOf(didMigration && wasConfigured && !BuildConfig.DEBUG) }
@@ -729,7 +735,13 @@ class MainActivity : BaseActivity() {
             }
             Intent.ACTION_VIEW -> {
                 // Versioned content links always resolve through an installed extension.
-                if (ContentLinks.isContentUri(intent.data.toString())) {
+                if (intent.scheme == "nyanime" && intent.data?.host == "sources" && intent.data?.path == "/v1") {
+                    navigator.push(
+                        it.lorelore.nyanime.exchange.SourceExchangeScreen(
+                            initialTicket = intent.data?.fragment?.take(65536),
+                        ),
+                    )
+                } else if (ContentLinks.isContentUri(intent.data.toString())) {
                     navigator.popUntilRoot()
                     navigator.push(SharedContentScreen(intent.data.toString()))
                 }
@@ -772,6 +784,7 @@ class MainActivity : BaseActivity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
+        outState.putInt(NavigationRestorePolicy.KEY, NavigationRestorePolicy.SCHEMA)
         outState.putBoolean("nyanime_launch_intent_handled", launchIntentHandled)
         if (!launchIntentHandled) outState.putParcelable("nyanime_pending_launch_intent", intent)
         super.onSaveInstanceState(outState)

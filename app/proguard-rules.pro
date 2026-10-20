@@ -102,3 +102,13 @@
 -keep class androidx.lifecycle.** { *; }
 -keep class androidx.savedstate.** { *; }
 -keep class androidx.core.** { *; }
+
+# Injekt resolves generic type tokens through their runtime superclass signature.
+# R8 full mode must retain anonymous tokens in all application namespaces.
+-keepattributes Signature,InnerClasses,EnclosingMethod
+-keep class * extends uy.kohesive.injekt.api.FullTypeReference { *; }
+
+# Room 2.6.1 keeps generated database classes but not their reflective constructor.
+# Keep the upstream Room fix locally, independently of optional feature modules.
+# https://android.googlesource.com/platform/frameworks/support/+/e4765e38e27a3f4d86188b996df97a52403dff46
+-keep class * extends androidx.room.RoomDatabase { void <init>(); }

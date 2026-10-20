@@ -3,30 +3,107 @@ import mihon.buildlogic.getBuildTime
 import mihon.buildlogic.getCommitCount
 import mihon.buildlogic.getGitSha
 import mihon.buildlogic.tasks.EnglishFallbackResourcesTask
+import mihon.buildlogic.tasks.PrepareShortcutsTask
 import java.util.Properties
 
 plugins {
     id("mihon.android.application")
     id("mihon.android.application.compose")
-    id("com.github.zellius.shortcut-helper")
     kotlin("plugin.serialization")
     alias(libs.plugins.aboutLibraries)
     id("com.android.compose.screenshot") version "0.0.1-alpha15"
 }
 
-shortcutHelper.setFilePath("./shortcuts.xml")
+androidComponents.onVariants { variant ->
+    variant.instrumentation.transformClassesWith(
+        it.lorelore.nyanime.buildlogic.LocalMediaPipeLogging::class.java,
+        com.android.build.api.instrumentation.InstrumentationScope.ALL,
+    ) {}
+    val shortcuts = tasks.register<PrepareShortcutsTask>(
+        "prepare${variant.name.replaceFirstChar(Char::uppercase)}Shortcuts",
+    ) {
+        template.set(layout.projectDirectory.file("shortcuts.xml"))
+        targetPackage.set(variant.applicationId)
+        outputDirectory.set(layout.buildDirectory.dir("generated/shortcuts/${variant.name}"))
+    }
+    variant.sources.res?.addGeneratedSourceDirectory(shortcuts) { it.outputDirectory }
+}
+
+// Exercise the same application variant and library graph that is signed for the device.
+androidComponents.beforeVariants(androidComponents.selector().withBuildType("preview")) {
+    it.hostTests[com.android.build.api.variant.HostTestBuilder.UNIT_TEST_TYPE]?.enable = true
+}
 
 aboutLibraries {
     configPath = file("config").absolutePath
 }
 
+// A restored branch can select the same artifacts with different declarations/notices.
+tasks.matching { it.name.startsWith("collectDependencies") }.configureEach {
+    inputs.files(rootProject.allprojects.map { it.buildFile })
+        .withPropertyName("dependencyDeclarations")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.files(rootProject.fileTree("gradle") { include("*.versions.toml") })
+        .withPropertyName("dependencyCatalogs")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.dir(layout.projectDirectory.dir("config"))
+        .withPropertyName("attributionOverrides")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+}
+
 // Copy the canonical project texts so offline attribution cannot drift from GitHub.
-val generateProjectLicenses by tasks.registering(Sync::class) {
+abstract class GeneratedProjectAssets : Sync() {
+    @get:OutputDirectory
+    abstract val generatedDirectory: DirectoryProperty
+}
+
+val verifyOrdinaryRuntimeBoundary = tasks.register("verifyOrdinaryRuntimeBoundary") {
+    group = "verification"
+    description = "Keep the ordinary application free of the excluded video and music engines."
+    notCompatibleWithConfigurationCache("Inspects the application's dependency graphs")
+    val report = layout.buildDirectory.file("reports/ordinary-runtime-dependencies.json")
+    outputs.file(report)
+    outputs.upToDateWhen { false }
+    doLast {
+        val forbidden = Regex("(?i)(aedev|newpipe|metrolist|innertubex|tinypinyin)")
+        val resolved = configurations.filter {
+            it.isCanBeResolved && it.name in setOf("previewCompileClasspath", "previewRuntimeClasspath")
+        }.associate { configuration ->
+            configuration.name to configuration.incoming.resolutionResult.allComponents.map { component ->
+                val projectId = component.id as? org.gradle.api.artifacts.component.ProjectComponentIdentifier
+                check(
+                    projectId?.projectPath !in
+                        setOf(
+                            ":feature:online-video",
+                            ":feature:music",
+                            ":feature:music:innertube",
+                            ":feature:music:quickjs",
+                        ),
+                ) {
+                    "Excluded feature in ordinary application: ${component.id}"
+                }
+                val module = component.moduleVersion?.toString() ?: component.id.displayName
+                check(!forbidden.containsMatchIn(module)) { "Excluded runtime dependency: $module" }
+                module
+            }.sorted()
+        }
+        check(resolved.size == 2) { "The ordinary preview compile/runtime graphs were not checked" }
+        report.get().asFile.apply { parentFile.mkdirs() }
+            .writeText(groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(resolved)))
+        logger.lifecycle("ORDINARY_RUNTIME_BOUNDARY_OK")
+    }
+}
+tasks.named("preBuild") { dependsOn(verifyOrdinaryRuntimeBoundary) }
+
+val generateProjectLicenses by tasks.registering(GeneratedProjectAssets::class) {
+    generatedDirectory.set(layout.buildDirectory.dir("generated/projectLicenses"))
     from(rootProject.file("LICENSE")) { rename { "Nyanime-LICENSE.txt" } }
     from(rootProject.file("NOTICE")) { rename { "Nyanime-NOTICE.txt" } }
-    into(layout.buildDirectory.dir("generated/projectLicenses/licenses"))
+    into(generatedDirectory.dir("licenses"))
 }
-android.sourceSets.getByName("main").assets.srcDir(layout.buildDirectory.dir("generated/projectLicenses"))
+androidComponents.onVariants { variant ->
+    variant.sources.assets?.addGeneratedSourceDirectory(generateProjectLicenses) { it.generatedDirectory }
+}
 tasks.configureEach {
     if (name.startsWith("merge") && name.endsWith("Assets")) {
         dependsOn(generateProjectLicenses)
@@ -72,7 +149,7 @@ require(publicVersionCode in 134..2_100_000_000) { "Invalid Android versionCode"
 val productionIdentity = providers.gradleProperty("productionIdentity").orElse("true").get().toBooleanStrict()
 val appIdentity = Properties().apply { rootProject.file("app-identity.properties").inputStream().use(::load) }
 
-android {
+extensions.configure<com.android.build.api.dsl.ApplicationExtension>("android") {
     experimentalProperties["android.experimental.enableScreenshotTest"] = true
     namespace = "eu.kanade.tachiyomi"
 
@@ -113,6 +190,8 @@ android {
 
         testInstrumentationRunner = if (providers.gradleProperty("updateProbe").orNull == "true") {
             "eu.kanade.tachiyomi.updater.UpdatePageDeviceProbe"
+        } else if (providers.gradleProperty("remoteBackupProbe").orNull == "true") {
+            "it.lorelore.nyanime.backup.remote.RemoteBackupDeviceProbe"
         } else if (providers.gradleProperty("cloudSyncProbe").orNull == "true") {
             "eu.kanade.tachiyomi.cloud.CloudSyncDeviceProbe"
         } else if (providers.gradleProperty("telegramProbe").orNull == "true") {
@@ -161,6 +240,7 @@ android {
 
             versionNameSuffix = ""
             signingConfig = productionSigning ?: debug.signingConfig
+            // This is the signed OTA variant; the publication channel is separate.
             buildConfigField("boolean", "UPDATER_ENABLED", "true")
 
             matchingFallbacks.addAll(commonMatchingFallbacks)
@@ -172,6 +252,9 @@ android {
                 proguardFiles("migration-probe-rules.pro")
             }
             // Device probes call these entry points from a separate test APK.
+            if (providers.gradleProperty("remoteBackupProbe").orNull == "true") {
+                proguardFiles("remote-backup-probe-rules.pro")
+            }
             if (providers.gradleProperty("downloadProbe").orNull == "true") {
                 proguardFiles("download-probe-rules.pro")
             }
@@ -203,6 +286,9 @@ android {
     }
 
     sourceSets {
+        if (providers.gradleProperty("remoteBackupProbe").orNull == "true") {
+            getByName("androidTest").java.setSrcDirs(listOf("src/remoteBackupProbe/java"))
+        }
         getByName("main").res.setSrcDirs(emptyList<String>())
         getByName("preview").res.srcDirs("src/debug/res")
         getByName("benchmark").res.srcDirs("src/debug/res")
@@ -212,6 +298,7 @@ android {
     }
     if (providers.gradleProperty("downloadProbe").orNull == "true" ||
         providers.gradleProperty("rinProbe").orNull == "true" ||
+        providers.gradleProperty("remoteBackupProbe").orNull == "true" ||
         providers.gradleProperty("cloudSyncProbe").orNull == "true" ||
         providers.gradleProperty("telegramProbe").orNull == "true" ||
         providers.gradleProperty("updateProbe").orNull == "true"
@@ -260,10 +347,16 @@ android {
                 "libswscale",
                 "libtorrserver",
                 "libxml2",
+                "libnyanime_source_exchange",
+                "libmediapipe_tasks_jni",
+                "libimage_processing_util_jni",
+                "libsurface_util_jni",
             )
                 .map { "**/$it.so" }
         }
         resources {
+            // Both Kuromoji modules include their contributors; retain both notices.
+            merges += setOf("META-INF/CONTRIBUTORS.md", "META-INF/LICENSE.md", "META-INF/NOTICE.md")
             excludes += setOf(
                 "kotlin-tooling-metadata.json",
                 "LICENSE.txt",
@@ -357,6 +450,15 @@ val nyanimePreviewArtwork by tasks.registering(Jar::class) {
 }
 
 dependencies {
+    implementation(projects.core.attention)
+    implementation(projects.core.sourceStudio)
+    implementation(projects.core.sourceExchange)
+    implementation(projects.core.syncplay)
+    implementation("com.google.android.gms:play-services-auth:22.0.0")
+    implementation(libs.androidx.webkit)
+    implementation(androidx.camera.view)
+    implementation(project(":presentation-player"))
+    implementation(project(":feature:secret-game"))
     add("screenshotTestImplementation", files(nyanimePreviewArtwork))
     add("screenshotTestImplementation", "com.android.tools.screenshot:screenshot-validation-api:0.0.1-alpha15")
     add("screenshotTestImplementation", "io.coil-kt.coil3:coil-test:3.1.0")
@@ -422,14 +524,16 @@ dependencies {
 
     // Job scheduling
     implementation(androidx.workmanager)
+    // Keep NyanimeB's persisted background-work schema and Room runtime after removing optional clients.
+    implementation(androidx.room.runtime)
 
     // RxJava
     implementation(libs.rxjava)
 
     // Networking
+    implementation(libs.conscrypt.android) // Preserve Android 8/9 TLS support.
     implementation(libs.bundles.okhttp)
     implementation(libs.okio)
-    implementation(libs.conscrypt.android) // TLS 1.3 support for Android < 10
     implementation(libs.cloud.scanner)
 
     implementation("com.android.tools.build:apksig:8.9.1")
@@ -484,6 +588,7 @@ dependencies {
 
     // Tests
     testImplementation(libs.bundles.test)
+    testRuntimeOnly(libs.junit.launcher)
     testImplementation(libs.okhttp.mockwebserver)
     testImplementation(libs.okhttp.tls)
     androidTestImplementation(libs.okhttp.mockwebserver)
@@ -537,14 +642,19 @@ buildscript {
 }
 
 providers.gradleProperty("rinProbeAssets").orNull?.let { probeAssets ->
-    android.sourceSets.getByName("androidTest").assets.srcDir(probeAssets)
+    extensions.getByType<com.android.build.api.dsl.ApplicationExtension>().sourceSets.getByName(
+        "androidTest",
+    ).assets.srcDir(probeAssets)
 }
 
 // The reviewed history ships with the app: opening Info never waits for a network request.
-val prepareUpdateHistory by tasks.registering(Copy::class) {
+val prepareUpdateHistory by tasks.registering(GeneratedProjectAssets::class) {
+    generatedDirectory.set(layout.buildDirectory.dir("generated/updateHistory"))
     from(rootProject.file("CHANGELOG.md"))
-    into(layout.buildDirectory.dir("generated/updateHistory/raw"))
+    into(generatedDirectory.dir("raw"))
     rename { "nyanime_update_history.md" }
 }
-android.sourceSets.getByName("main").res.srcDir(layout.buildDirectory.dir("generated/updateHistory"))
+androidComponents.onVariants { variant ->
+    variant.sources.res?.addGeneratedSourceDirectory(prepareUpdateHistory) { it.generatedDirectory }
+}
 tasks.named("preBuild") { dependsOn(prepareUpdateHistory) }

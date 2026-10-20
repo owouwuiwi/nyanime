@@ -24,8 +24,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,14 +43,8 @@ internal fun MigrationPage(
     actions: @Composable ColumnScope.() -> Unit,
 ) {
     val dark = isSystemInDarkTheme()
-    val accent = if (dark) Color(0xFFE5223E) else Color(0xFFC84C16)
-    MaterialTheme(
-        colorScheme = if (dark) {
-            darkColorScheme(primary = accent, onPrimary = Color.White, secondary = accent, onSecondary = Color.White)
-        } else {
-            lightColorScheme(primary = accent, onPrimary = Color.White, secondary = accent, onSecondary = Color.White)
-        },
-    ) {
+    eu.kanade.presentation.theme.TachiyomiPreviewTheme(darkTheme = dark) {
+        val accent = MaterialTheme.colorScheme.primary
         Surface(Modifier.fillMaxSize()) {
             Box(
                 Modifier.fillMaxSize().background(
@@ -68,7 +60,7 @@ internal fun MigrationPage(
                 ) {
                     Image(
                         painterResource(
-                            if (dark) R.drawable.nyanime_wordmark_dark else R.drawable.nyanime_wordmark_light,
+                            eu.kanade.presentation.theme.nyanimeWordmarkResource(),
                         ),
                         null,
                         Modifier.height(36.dp).align(Alignment.Start),

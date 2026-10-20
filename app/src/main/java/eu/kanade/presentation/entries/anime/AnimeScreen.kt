@@ -178,9 +178,11 @@ fun AnimeScreen(
     onRelatedAnimeClicked: (Anime) -> Unit,
     onRelatedAnimeLongClicked: (Anime) -> Unit,
     relatedAnimeDisplayMode: LibraryDisplayMode,
+    onExpandEpisodeSeason: (Long, Boolean) -> Unit = { _, _ -> },
 ) {
     if (eu.kanade.presentation.theme.LocalNyanimeStyle.current) {
         AnimeDetailsScreen(
+            onExpandEpisodeSeason = onExpandEpisodeSeason,
             state = state,
             continuity = continuity,
             onOpenManga = onOpenManga,

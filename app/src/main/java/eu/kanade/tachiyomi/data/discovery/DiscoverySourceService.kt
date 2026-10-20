@@ -63,6 +63,9 @@ class DiscoverySourceService(
     fun isEnabled(source: AnimeSource): Boolean {
         if (source.id.toString() in preferences.disabledAnimeSources().get()) return false
         if (source.lang !in preferences.enabledLanguages().get()) return false
+        if (source is it.lorelore.nyanime.studio.StudioHomeProvider) {
+            return preferences.showNsfwSource().get() || !source.definition.adult
+        }
         val extension = extensions.installedExtensionsFlow.value.firstOrNull { extension ->
             extension.sources.any {
                 it.id ==

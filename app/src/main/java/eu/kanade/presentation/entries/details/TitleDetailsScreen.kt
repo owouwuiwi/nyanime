@@ -156,6 +156,11 @@ internal fun TitleDetailsScreen(
     partLabel: String? = null,
     seasonColumns: Int = 1,
     seasonItem: (@Composable (DetailPart, () -> Unit) -> Unit)? = null,
+    episodeSections: List<DetailEpisodeSection> = emptyList(),
+    countEpisodeSections: Boolean = false,
+    initialEpisodeSection: String? = null,
+    onExpandEpisodeSection: (String, Boolean) -> Unit = { _, _ -> },
+    onOpenEpisodeSection: (String) -> Unit = {},
     backgroundArtwork: Boolean = false,
     sourceAvailable: Boolean = true,
     hasFilters: Boolean = false,
@@ -188,12 +193,32 @@ internal fun TitleDetailsScreen(
     var tabsHeight by remember { mutableStateOf(0) }
     var extrasHeight by remember { mutableIntStateOf(0) }
     val visibleParts = remember(parts, query) { DetailParts.search(parts, query) }
+    var expandedSections by rememberSaveable(entryId) { mutableStateOf(arrayListOf<String>()) }
+    var collapsedSearchSections by rememberSaveable(entryId, query) { mutableStateOf(arrayListOf<String>()) }
+    var sectionsInitialized by rememberSaveable(entryId) { mutableStateOf(false) }
+    LaunchedEffect(episodeSections, currentId, primaryLoading) {
+        if (!sectionsInitialized && episodeSections.isNotEmpty() && !primaryLoading) {
+            DetailEpisodeSections.initial(episodeSections, currentId, initialEpisodeSection)?.let { key ->
+                expandedSections = arrayListOf(key)
+                onExpandEpisodeSection(key, false)
+            }
+            sectionsInitialized = true
+        }
+    }
+    // Restoring an expanded section must also restore its subscription after process recreation.
+    LaunchedEffect(expandedSections, episodeSections.map { it.key }) {
+        expandedSections.forEach { onExpandEpisodeSection(it, false) }
+    }
+    val sectionRows = remember(episodeSections, expandedSections, collapsedSearchSections, query) {
+        DetailEpisodeSections.rows(episodeSections, expandedSections.toSet(), query, collapsedSearchSections.toSet())
+    }
     val fresh = remember(parts) { parts.filter { it.fresh && !it.completed } }
     val columns = if (seasonItem == null) 1 else seasonColumns.coerceAtLeast(1)
     val density = LocalDensity.current
-    val rowKeys = remember(visibleParts, columns, seasonItem != null, searching, detailsTab) {
+    val rowKeys = remember(visibleParts, sectionRows, columns, seasonItem != null, searching, detailsTab) {
         when {
             !searching || detailsTab -> emptyList()
+            episodeSections.isNotEmpty() && sectionRows.isNotEmpty() -> sectionRows.map { it.key }
             visibleParts.isEmpty() -> listOf(DetailListLayout.EMPTY_ROW)
             seasonItem != null -> visibleParts.chunked(columns).map { "season:${it.first().id}" }
             else -> visibleParts.map { "part:${it.id}" }
@@ -206,7 +231,7 @@ internal fun TitleDetailsScreen(
     val libraryIcon = if (favorite) TitleDetailsIcons.BookmarkCheck else TitleDetailsIcons.Bookmark
     val libraryLabel = stringResource(if (favorite) R.string.detail_in_library else R.string.detail_add_library)
     val freshLabel = stringResource(if (manga) R.string.detail_new_read else R.string.detail_new_watch)
-    val canResume = DetailListLayout.rowIndex(visibleParts, currentId, columns) != null
+    val canResume = parts.any { it.id == currentId }
     val scope = rememberCoroutineScope()
     val focus = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
@@ -269,7 +294,26 @@ internal fun TitleDetailsScreen(
     }
     val jumpTo: (Long) -> Unit = { id ->
         scope.launch {
-            val destination = DetailListLayout.rowIndex(visibleParts, id, columns)
+            val section = episodeSections.firstOrNull { it.parts.any { part -> part.id == id } }
+            if (section != null && section.key !in expandedSections) {
+                expandedSections = ArrayList(expandedSections + section.key)
+                onExpandEpisodeSection(section.key, false)
+                withFrameNanos { }
+            }
+            if (section != null) collapsedSearchSections = ArrayList(collapsedSearchSections - section.key)
+            val destination = if (episodeSections.isEmpty()) {
+                DetailListLayout.rowIndex(visibleParts, id, columns)
+            } else {
+                DetailEpisodeSections.index(
+                    DetailEpisodeSections.rows(
+                        episodeSections,
+                        expandedSections.toSet(),
+                        query,
+                        collapsedSearchSections.toSet(),
+                    ),
+                    id,
+                )
+            }
             if (destination != null) {
                 focus.clearFocus()
                 keyboard?.hide()
@@ -475,7 +519,15 @@ internal fun TitleDetailsScreen(
                                                 }
                                             }) {
                                                 DetailListControls(
-                                                    plural, visibleParts.size, totalCount, hasFilters, query, searching,
+                                                    plural,
+                                                    if (countEpisodeSections) {
+                                                        sectionRows.count {
+                                                            it is DetailEpisodeRow.Header
+                                                        }
+                                                    } else {
+                                                        visibleParts.size
+                                                    },
+                                                    totalCount, hasFilters, query, searching,
                                                     requestFocus = requestSearchFocus,
                                                     onFocusRequested = { requestSearchFocus = false },
                                                     compact = LocalConfiguration.current.screenHeightDp < 520,
@@ -526,7 +578,112 @@ internal fun TitleDetailsScreen(
                     } else if (detailsTab) {
                         item("details") { Box(sectionModifier.padding(top = 20.dp)) { details() } }
                     } else {
-                        if (visibleParts.isEmpty()) {
+                        if (episodeSections.isNotEmpty() && sectionRows.isNotEmpty()) {
+                            items(sectionRows, key = { it.key }, contentType = {
+                                when (it) {
+                                    is DetailEpisodeRow.Header -> "episode-section"
+                                    is DetailEpisodeRow.Item -> "part"
+                                    is DetailEpisodeRow.Status -> "episode-section-status"
+                                }
+                            }) { row ->
+                                when (row) {
+                                    is DetailEpisodeRow.Header -> DetailEpisodeSectionHeader(
+                                        row.section,
+                                        if (query.isNotBlank()) {
+                                            row.section.key !in collapsedSearchSections
+                                        } else {
+                                            row.section.key in
+                                                expandedSections
+                                        },
+                                        onToggle = {
+                                            val key = row.section.key
+                                            if (query.isNotBlank()) {
+                                                collapsedSearchSections = if (key in collapsedSearchSections) {
+                                                    onExpandEpisodeSection(key, false)
+                                                    ArrayList(collapsedSearchSections - key)
+                                                } else {
+                                                    ArrayList(collapsedSearchSections + key)
+                                                }
+                                            } else {
+                                                expandedSections = if (key in expandedSections) {
+                                                    ArrayList(expandedSections - key)
+                                                } else {
+                                                    onExpandEpisodeSection(key, false)
+                                                    ArrayList(expandedSections + key)
+                                                }
+                                            }
+                                        },
+                                        onOpen = { onOpenEpisodeSection(row.section.key) },
+                                        modifier = sectionModifier.onSizeChanged { rowHeights[row.key] = it.height },
+                                    )
+                                    is DetailEpisodeRow.Status -> Column(
+                                        rowModifier(row.key).padding(vertical = 12.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        if (row.section.loading) {
+                                            Text(
+                                                stringResource(R.string.episode_section_loading),
+                                                style = MaterialTheme.typography.bodySmall,
+                                            )
+                                            repeat(2) { Skeleton(Modifier.fillMaxWidth().height(44.dp)) }
+                                        } else if (row.section.failed || !row.section.loaded) {
+                                            Text(
+                                                stringResource(
+                                                    if (row.section.failed) {
+                                                        R.string.episode_section_failed
+                                                    } else {
+                                                        R.string.episode_section_not_loaded
+                                                    },
+                                                ),
+                                            )
+                                            TextButton(onClick = { onExpandEpisodeSection(row.section.key, true) }) {
+                                                Text(
+                                                    stringResource(
+                                                        if (row.section.failed) {
+                                                            R.string.episode_section_retry
+                                                        } else {
+                                                            R.string.episode_section_load
+                                                        },
+                                                    ),
+                                                )
+                                            }
+                                        } else {
+                                            Text(
+                                                stringResource(R.string.episode_section_empty),
+                                                style = MaterialTheme.typography.bodySmall,
+                                            )
+                                        }
+                                    }
+                                    is DetailEpisodeRow.Item -> DetailListRowFrame(
+                                        row.part.id == highlightedId,
+                                        rowModifier(row.key).animateItem(
+                                            fadeInSpec = tween(if (motion) ModernMotion.EXIT_MILLIS else 0),
+                                            fadeOutSpec = tween(if (motion) ModernMotion.EXIT_MILLIS else 0),
+                                            placementSpec = null,
+                                        ),
+                                    ) {
+                                        swipe(row.part) {
+                                            DetailPartRow(
+                                                row.part,
+                                                row.part.id == currentId,
+                                                false,
+                                                false,
+                                                onClick = { onOpenPart(row.part.id) },
+                                                onLongClick = {
+                                                    focus.clearFocus()
+                                                    keyboard?.hide()
+                                                    initialSelection = row.part.id
+                                                    managerFilter = DetailFilter.INDEX
+                                                    managerQuery = query
+                                                    manager = true
+                                                },
+                                                trailing = { download(row.part.id) },
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        } else if (visibleParts.isEmpty()) {
                             item(DetailListLayout.EMPTY_ROW) {
                                 Column(rowModifier(DetailListLayout.EMPTY_ROW).padding(vertical = 24.dp)) {
                                     Text(
@@ -596,17 +753,65 @@ internal fun TitleDetailsScreen(
         }
     }
     if (indexOpen) {
-        val firstId = visibleParts.getOrNull(
-            ((partsState.firstVisibleItemIndex - DetailListLayout.FIRST_ROW).coerceAtLeast(0)) * columns,
-        )?.id
-        DetailGroupSheet(visibleParts.size, DetailParts.groupFor(visibleParts, firstId), { group ->
-            indexOpen = false
-            DetailListLayout.groupTarget(visibleParts, group)?.let(jumpTo)
-        }) { indexOpen = false }
+        if (episodeSections.isNotEmpty()) {
+            ModalBottomSheet(onDismissRequest = { indexOpen = false }) {
+                Text(
+                    plural,
+                    Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+                    style = MaterialTheme.typography.titleLarge,
+                )
+                LazyColumn(Modifier.navigationBarsPadding()) {
+                    items(episodeSections, key = { it.key }) { section ->
+                        DetailEpisodeSectionHeader(
+                            section,
+                            section.key in expandedSections,
+                            onToggle = {
+                                indexOpen = false
+                                expandedSections = ArrayList((expandedSections + section.key).distinct())
+                                collapsedSearchSections = ArrayList(collapsedSearchSections - section.key)
+                                onExpandEpisodeSection(section.key, false)
+                                scope.launch {
+                                    withFrameNanos { }
+                                    val rows = DetailEpisodeSections.rows(
+                                        episodeSections,
+                                        expandedSections.toSet(),
+                                        query,
+                                        collapsedSearchSections.toSet(),
+                                    )
+                                    val index = rows.indexOfFirst {
+                                        it is DetailEpisodeRow.Header &&
+                                            it.section.key == section.key
+                                    }
+                                    if (index >=
+                                        0
+                                    ) {
+                                        partsState.scrollToItem(DetailListLayout.FIRST_ROW + index, -tabsHeight)
+                                    }
+                                }
+                            },
+                            onOpen = {
+                                indexOpen = false
+                                onOpenEpisodeSection(section.key)
+                            },
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                        )
+                    }
+                }
+            }
+        } else {
+            val firstId = visibleParts.getOrNull(
+                ((partsState.firstVisibleItemIndex - DetailListLayout.FIRST_ROW).coerceAtLeast(0)) * columns,
+            )?.id
+            DetailGroupSheet(visibleParts.size, DetailParts.groupFor(visibleParts, firstId), { group ->
+                indexOpen = false
+                DetailListLayout.groupTarget(visibleParts, group)?.let(jumpTo)
+            }) { indexOpen = false }
+        }
     }
     if (manager) {
         DetailManager(
-            entryId, title, plural, parts, currentId, onOpenPart, onFilter, partActions, download, swipe,
+            entryId, title, if (countEpisodeSections) stringResource(R.string.detail_episodes) else plural,
+            parts, currentId, onOpenPart, onFilter, partActions, download, swipe,
             seasonColumns = seasonColumns,
             seasonItem = seasonItem,
             initialSelection = initialSelection,

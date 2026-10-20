@@ -38,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -62,7 +63,6 @@ import eu.kanade.tachiyomi.ui.player.PlayerLongPressAction
 import eu.kanade.tachiyomi.ui.player.PlayerViewModel
 import eu.kanade.tachiyomi.ui.player.Sheets
 import eu.kanade.tachiyomi.ui.player.controls.components.DoubleTapSeekTriangles
-import eu.kanade.tachiyomi.ui.player.settings.AudioPreferences
 import eu.kanade.tachiyomi.ui.player.settings.GesturePreferences
 import eu.kanade.tachiyomi.ui.player.settings.PlayerPreferences
 import `is`.xyz.mpv.MPVLib
@@ -88,7 +88,6 @@ fun GestureHandler(
     val presentationDragEnd by rememberUpdatedState(onPresentationDragEnd)
     val playerPreferences = remember { Injekt.get<PlayerPreferences>() }
     val gesturePreferences = remember { Injekt.get<GesturePreferences>() }
-    val audioPreferences = remember { Injekt.get<AudioPreferences>() }
 
     val panelShown by viewModel.panelShown.collectAsState()
     val allowGesturesInPanels by playerPreferences.allowGestures().collectAsState()
@@ -116,11 +115,11 @@ fun GestureHandler(
     val room by viewModel.watchTogether.state.collectAsState()
     val sheetShown by viewModel.sheetShown.collectAsState()
     val episode by viewModel.currentEpisode.collectAsState()
-    val currentVolume by viewModel.currentVolume.collectAsState()
-    val currentMPVVolume by viewModel.currentMPVVolume.collectAsState()
     val currentBrightness by viewModel.currentBrightness.collectAsState()
-    val volumeBoostingCap = audioPreferences.volumeBoostCap().get()
     val haptics = LocalHapticFeedback.current
+    DisposableEffect(viewModel, episode?.id, areControlsLocked, seekGesture, horizontalSeekEnabled, preciseSeeking) {
+        onDispose { viewModel.cancelPlaybackScrub() }
+    }
 
     Box(
         modifier = modifier
@@ -195,50 +194,38 @@ fun GestureHandler(
                     },
                 )
             }
-            .pointerInput(areControlsLocked, seekGesture, horizontalSeekEnabled) {
+            .pointerInput(
+                viewModel,
+                episode?.id,
+                areControlsLocked,
+                seekGesture,
+                horizontalSeekEnabled,
+                preciseSeeking,
+            ) {
                 if (!horizontalSeekEnabled || !seekGesture || areControlsLocked) return@pointerInput
                 var startingPosition = viewModel.pos.value.toInt()
                 var startingX = 0f
-                var wasPlayerAlreadyPause = false
+                var scrubAccepted = false
                 detectHorizontalDragGestures(
                     onDragStart = {
                         startingPosition = viewModel.pos.value.toInt()
                         startingX = it.x
-                        wasPlayerAlreadyPause = viewModel.paused.value
-                        viewModel.updateIsSeeking(true)
+                        scrubAccepted = viewModel.beginPlaybackScrub()
                     },
                     onDragEnd = {
-                        viewModel.seekTo(
-                            viewModel.seekPosition.value.coerceIn(0f, viewModel.duration.value).toInt(),
-                            preciseSeeking,
-                        )
-                        viewModel.updateIsSeeking(false)
-                        viewModel.gestureSeekAmount.update { null }
-                        viewModel.hideSeekBar()
-                        if (!wasPlayerAlreadyPause) viewModel.unpause()
+                        if (scrubAccepted) viewModel.commitPlaybackScrub(preciseSeeking)
+                        scrubAccepted = false
                     },
                     onDragCancel = {
-                        viewModel.updateIsSeeking(false)
-                        viewModel.gestureSeekAmount.value = null
-                        viewModel.hideSeekBar()
+                        if (scrubAccepted) viewModel.cancelPlaybackScrub()
+                        scrubAccepted = false
                     },
-                ) { change, dragAmount ->
-                    // Read the playback clock only when a gesture needs it. Observing every tick
-                    // here recomposed all gesture detectors even while the controls were hidden.
-                    val position = viewModel.pos.value
-                    val duration = viewModel.duration.value
-                    if (position <= 0f && dragAmount < 0) return@detectHorizontalDragGestures
-                    if (position >= duration && dragAmount > 0) return@detectHorizontalDragGestures
-                    calculateNewHorizontalGestureValue(startingPosition, startingX, change.position.x, 0.15f).let {
-                        viewModel.gestureSeekAmount.update { _ ->
-                            Pair(
-                                startingPosition,
-                                (it - startingPosition)
-                                    .coerceIn(0 - startingPosition, (duration - startingPosition).toInt()),
-                            )
-                        }
-                        viewModel.updateSeekPos(it.toFloat().coerceIn(0f, duration))
-                    }
+                ) { change, _ ->
+                    if (!scrubAccepted) return@detectHorizontalDragGestures
+                    change.consume()
+                    val target =
+                        calculateNewHorizontalGestureValue(startingPosition, startingX, change.position.x, 0.15f)
+                    viewModel.updatePlaybackScrub(target.toFloat())
 
                     if (showSeekbar) viewModel.showSeekBar()
                 }
@@ -247,25 +234,11 @@ fun GestureHandler(
                 if ((presentationDrag == null && !gestureVolumeBrightness) || areControlsLocked) return@pointerInput
                 var presentationGesture = false
                 var startingY = 0f
-                var mpvVolumeStartingY = 0f
-                var originalVolume = currentVolume
-                var originalMPVVolume = currentMPVVolume
+                var volumeGesture = false
+                var volumeLevel = viewModel.currentVolumeLevel.value
                 var originalBrightness = currentBrightness
                 val brightnessGestureSens = 0.001f
-                val volumeGestureSens = 0.001f * viewModel.maxVolume
-                val mpvVolumeGestureSens = 0.001f * volumeBoostingCap
-                val isIncreasingVolumeBoost: (Float) -> Boolean = {
-                    volumeBoostingCap > 0 &&
-                        currentVolume == viewModel.maxVolume &&
-                        currentMPVVolume - 100 < volumeBoostingCap &&
-                        it < 0
-                }
-                val isDecreasingVolumeBoost: (Float) -> Boolean = {
-                    volumeBoostingCap > 0 &&
-                        currentVolume == viewModel.maxVolume &&
-                        currentMPVVolume - 100 in 1..volumeBoostingCap &&
-                        it > 0
-                }
+                val volumeGestureSens = 0.001f
                 detectVerticalDragGestures(
                     onDragEnd = {
                         if (presentationGesture) presentationDragEnd?.invoke(false)
@@ -279,9 +252,10 @@ fun GestureHandler(
                         presentationGesture = presentationDrag != null &&
                             (presentationDragEverywhere || it.x in (size.width * 0.35f)..(size.width * 0.65f))
                         startingY = 0f
-                        mpvVolumeStartingY = 0f
-                        originalVolume = currentVolume
-                        originalMPVVolume = currentMPVVolume
+                        volumeGesture = (it.x >= size.width / 2) != swapVolumeBrightness
+                        if (!presentationGesture && volumeGesture && gestureVolumeBrightness) {
+                            volumeLevel = viewModel.beginVolumeAdjustment()
+                        }
                         originalBrightness = currentBrightness
                     },
                 ) { change, amount ->
@@ -292,36 +266,9 @@ fun GestureHandler(
                     }
                     if (!gestureVolumeBrightness) return@detectVerticalDragGestures
                     val changeVolume: () -> Unit = {
-                        if (isIncreasingVolumeBoost(amount) || isDecreasingVolumeBoost(amount)) {
-                            if (mpvVolumeStartingY == 0f) {
-                                startingY = 0f
-                                originalVolume = currentVolume
-                                mpvVolumeStartingY = change.position.y
-                            }
-                            viewModel.changeMPVVolumeTo(
-                                calculateNewVerticalGestureValue(
-                                    originalMPVVolume,
-                                    mpvVolumeStartingY,
-                                    change.position.y,
-                                    mpvVolumeGestureSens,
-                                )
-                                    .coerceIn(100..volumeBoostingCap + 100),
-                            )
-                        } else {
-                            if (startingY == 0f) {
-                                mpvVolumeStartingY = 0f
-                                originalMPVVolume = currentMPVVolume
-                                startingY = change.position.y
-                            }
-                            viewModel.changeVolumeTo(
-                                calculateNewVerticalGestureValue(
-                                    originalVolume,
-                                    startingY,
-                                    change.position.y,
-                                    volumeGestureSens,
-                                ),
-                            )
-                        }
+                        volumeLevel = (volumeLevel - amount * volumeGestureSens)
+                            .coerceIn(0f, 1f + viewModel.volumeBoostCap.value / 100f)
+                        viewModel.changeVolumeLevelTo(volumeLevel)
                         viewModel.displayVolumeSlider()
                     }
                     val changeBrightness: () -> Unit = {
@@ -336,11 +283,8 @@ fun GestureHandler(
                         )
                         viewModel.displayBrightnessSlider()
                     }
-                    if (swapVolumeBrightness) {
-                        if (change.position.x > size.width / 2) changeBrightness() else changeVolume()
-                    } else {
-                        if (change.position.x < size.width / 2) changeBrightness() else changeVolume()
-                    }
+                    change.consume()
+                    if (volumeGesture) changeVolume() else changeBrightness()
                 }
             },
     )

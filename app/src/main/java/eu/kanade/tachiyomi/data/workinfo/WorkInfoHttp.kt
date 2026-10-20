@@ -1,6 +1,7 @@
 package eu.kanade.tachiyomi.data.workinfo
 
 import eu.kanade.tachiyomi.network.await
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
@@ -17,17 +18,24 @@ class WorkInfoHttp(client: OkHttpClient, private val json: Json) {
         .callTimeout(18, TimeUnit.SECONDS).build()
     private val gates = HOSTS.associateWith { Mutex() }
     private val retryAt = java.util.concurrent.ConcurrentHashMap<String, Long>()
+    private val lastRequestAt = java.util.concurrent.ConcurrentHashMap<String, Long>()
 
     suspend fun get(url: HttpUrl): JsonElement {
         require(url.isHttps && url.host in HOSTS)
         return gates.getValue(url.host).withLock {
             val now = System.currentTimeMillis()
             if ((retryAt[url.host] ?: 0L) > now) throw IOException("Catalogue cooling down")
-            client.newCall(
+            if (url.host == "api.jikan.moe") {
+                delay((1100L - (now - (lastRequestAt[url.host] ?: 0L))).coerceIn(0L, 1100L))
+            }
+            lastRequestAt[url.host] = System.currentTimeMillis()
+            val call = client.newCall(
                 Request.Builder().url(url)
                     .header("User-Agent", "Nyanime/WorkInformation (https://github.com/owouwuiwi/nyanime)")
                     .header("Accept", "application/json").build(),
-            ).await().use { response ->
+            )
+            if (url.host == "api.jikan.moe") call.timeout().timeout(10, TimeUnit.SECONDS)
+            call.await().use { response ->
                 if (response.code == 429 || response.code in 500..599) {
                     val seconds = response.header("Retry-After")?.toLongOrNull()?.coerceIn(60, 3600) ?: 60
                     retryAt[url.host] = now + seconds * 1000
@@ -46,7 +54,8 @@ class WorkInfoHttp(client: OkHttpClient, private val json: Json) {
 
     companion object {
         private const val MAX_BYTES = 4 * 1024 * 1024L
-        private val HOSTS = setOf("api.tvmaze.com", "www.wikidata.org", "query.wikidata.org")
+        private val HOSTS =
+            setOf("api.tvmaze.com", "www.wikidata.org", "query.wikidata.org", "api.animethemes.moe", "api.jikan.moe")
     }
 }
 

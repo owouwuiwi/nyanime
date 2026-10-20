@@ -189,6 +189,13 @@ class BackupCreator(
                 } else {
                     null
                 },
+                sourceStudioState = if (options.sourceSettings) {
+                    it.lorelore.nyanime.studio.SourceStudioRepository.get(
+                        context,
+                    ).backup()
+                } else {
+                    null
+                },
             )
 
             val byteArray = parser.encodeToByteArray(Backup.serializer(), backup)

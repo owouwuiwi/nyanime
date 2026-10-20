@@ -14,7 +14,7 @@ import androidx.compose.ui.platform.AbstractComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.view.isVisible
 import com.google.android.material.progressindicator.CircularProgressIndicator
-import eu.kanade.presentation.theme.LegacyMangaTheme
+import eu.kanade.presentation.theme.TachiyomiTheme
 import tachiyomi.presentation.core.components.CombinedCircularProgressIndicator
 
 /**
@@ -39,7 +39,7 @@ class ReaderProgressIndicator @JvmOverloads constructor(
 
     @Composable
     override fun Content() {
-        LegacyMangaTheme {
+        TachiyomiTheme {
             CombinedCircularProgressIndicator(progress = { progress })
         }
     }

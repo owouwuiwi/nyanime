@@ -2,6 +2,7 @@ package eu.kanade.tachiyomi.ui.player.session
 
 import android.content.Intent
 import android.graphics.Rect
+import android.view.MotionEvent
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -35,10 +36,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.motionEventSpy
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
@@ -87,6 +90,7 @@ internal fun PlaybackHost(
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun SessionHost(session: PlayerSession, activity: BaseActivity, reader: Boolean, reservedBottomDp: Float) {
     val presentation by session.presentation.collectAsState()
@@ -322,6 +326,11 @@ private fun SessionHost(session: PlayerSession, activity: BaseActivity, reader: 
                         layout(renderWidth, renderHeight) { child.place(0, 0) }
                     }
                     .onGloballyPositioned { inputCoordinates.value = it }
+                    // Observe cancellation on the common ancestor. A fullscreen sibling observer
+                    // would win hit testing and prevent the gesture layer below from receiving input.
+                    .motionEventSpy { event ->
+                        if (event.actionMasked == MotionEvent.ACTION_CANCEL) session.viewModel.cancelPlaybackScrub()
+                    }
                     .pointerInput(session.sessionId, shown, inPip, width, height, bottom) {
                         // Input coordinates belong to the stationary app window. Tracking on the moving
                         // video feeds its translation back into the next drag delta and causes judder.
@@ -367,10 +376,18 @@ private fun SessionHost(session: PlayerSession, activity: BaseActivity, reader: 
                             var accumulated = androidx.compose.ui.geometry.Offset.Zero
                             var accumulatedZoom = 1f
                             var multiplePointers = false
+                            val axisLock = PlaybackGestureAxisLock(viewConfiguration.touchSlop)
                             try {
                                 do {
                                     val event =
                                         awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+                                    // This ancestor sees Initial before the seek handler. It must not
+                                    // steal a horizontal scrub when the finger later drifts downward.
+                                    if (shown != PlaybackPresentation.Mini &&
+                                        session.viewModel.isSeeking.value
+                                    ) {
+                                        return@awaitEachGesture
+                                    }
                                     if (event.changes.count { it.pressed || it.previousPressed } >
                                         1
                                     ) {
@@ -391,13 +408,18 @@ private fun SessionHost(session: PlayerSession, activity: BaseActivity, reader: 
                                     if (!moved) {
                                         accumulated += pan
                                         accumulatedZoom *= zoom
+                                        val axis = axisLock.sample(accumulated)
+                                        if (shown != PlaybackPresentation.Mini &&
+                                            axis == PlaybackGestureAxis.Horizontal
+                                        ) {
+                                            return@awaitEachGesture
+                                        }
                                         moved = if (shown == PlaybackPresentation.Mini) {
                                             accumulated.getDistance() > viewConfiguration.touchSlop ||
                                                 abs(accumulatedZoom - 1f) * initial.width > viewConfiguration.touchSlop
                                         } else {
-                                            val vertical = abs(accumulated.y) > abs(accumulated.x)
                                             val allowed = shown != PlaybackPresentation.Fullscreen || accumulated.y > 0
-                                            abs(accumulated.y) > viewConfiguration.touchSlop && vertical && allowed
+                                            axis == PlaybackGestureAxis.Vertical && allowed
                                         }
                                         if (moved) {
                                             pan = accumulated

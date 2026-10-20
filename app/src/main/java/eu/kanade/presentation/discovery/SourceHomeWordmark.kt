@@ -160,16 +160,7 @@ internal fun SourceHomeWordmarkTransition(value: SourceHomeLoadedLogo?, motion: 
 
 @Composable
 private fun NyanimeHomeWordmark() {
-    val darkTheme = MaterialTheme.colorScheme.background.luminance() < .5f
-    SubcomposeAsyncImage(
-        model = if (darkTheme) R.raw.nyanime_wordmark_dark else R.raw.nyanime_wordmark_light,
-        contentDescription = "Nyanime",
-        modifier = Modifier.widthIn(max = 148.dp).height(36.dp),
-        contentScale = ContentScale.Fit,
-        alignment = Alignment.CenterStart,
-        loading = { NyanimeWordmark() },
-        error = { NyanimeWordmark() },
-    )
+    NyanimeWordmark(Modifier.widthIn(max = 148.dp).height(36.dp))
 }
 
 @Composable

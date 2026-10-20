@@ -33,10 +33,17 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Audiotrack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.HighQuality
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.PictureInPicture
+import androidx.compose.material.icons.filled.PlaylistPlay
+import androidx.compose.material.icons.filled.ScreenRotation
+import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.FilterChip
@@ -59,17 +66,23 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import eu.kanade.presentation.player.components.PlayerSheet
 import eu.kanade.tachiyomi.R
+import eu.kanade.tachiyomi.ui.player.Anime4K
+import eu.kanade.tachiyomi.ui.player.Anime4KContentState
 import eu.kanade.tachiyomi.ui.player.Anime4KMode
 import eu.kanade.tachiyomi.ui.player.Anime4KProfile
 import eu.kanade.tachiyomi.ui.player.Decoder
+import eu.kanade.tachiyomi.ui.player.Sheets
 import eu.kanade.tachiyomi.ui.player.applyAudioChannels
 import eu.kanade.tachiyomi.ui.player.execute
 import eu.kanade.tachiyomi.ui.player.executeLongPress
+import eu.kanade.tachiyomi.ui.player.session.LocalPlayerSession
 import eu.kanade.tachiyomi.ui.player.settings.AdvancedPlayerPreferences
 import eu.kanade.tachiyomi.ui.player.settings.AudioChannels
 import eu.kanade.tachiyomi.ui.player.settings.AudioPreferences
 import eu.kanade.tachiyomi.ui.player.settings.PlayerPreferences
 import `is`.xyz.mpv.MPVLib
+import it.lorelore.nyanime.presentation.player.VideoSettingsAction
+import it.lorelore.nyanime.presentation.player.VideoSettingsGroup
 import kotlinx.collections.immutable.ImmutableList
 import tachiyomi.domain.custombuttons.model.CustomButton
 import tachiyomi.domain.entries.anime.model.Anime
@@ -102,11 +115,13 @@ fun MoreSheet(
     modifier: Modifier = Modifier,
     anime4kAvailable: Boolean = true,
 ) {
+    val session = LocalPlayerSession.current
     val advancedPreferences = remember { Injekt.get<AdvancedPlayerPreferences>() }
     val audioPreferences = remember { Injekt.get<AudioPreferences>() }
     val playerPreferences = remember { Injekt.get<PlayerPreferences>() }
     val showAudioShortcut by playerPreferences.showAudioShortcut().collectPreferenceAsState()
     val showQualityShortcut by playerPreferences.showQualityShortcut().collectPreferenceAsState()
+    val globalAutoplay by playerPreferences.autoplayEnabled().collectPreferenceAsState()
     val globalAutoSkip by playerPreferences.autoSkipIntro().collectPreferenceAsState()
     val autoSkipOverrides by playerPreferences.autoSkipIntroOverrides().collectPreferenceAsState()
     val animeAutoSkip = playerPreferences.autoSkipIntroOverride(anime, autoSkipOverrides)
@@ -114,10 +129,13 @@ fun MoreSheet(
     val statisticsPage by advancedPreferences.playerStatisticsPage().collectPreferenceAsState()
     val anime4kSelection by advancedPreferences.anime4kActiveSelection().collectAsState()
     val anime4kDiagnosticsEnabled by advancedPreferences.anime4kDiagnosticsEnabled().collectPreferenceAsState()
+    val anime4kDiagnostics by advancedPreferences.anime4kDiagnostics().collectAsState()
+    val imageAnalysisEnabled by advancedPreferences.anime4kContentAnalysisEnabled().collectPreferenceAsState()
 
     PlayerSheet(
         onDismissRequest = onDismissRequest,
         modifier = modifier,
+        title = androidStringResource(R.string.playback_settings),
     ) {
         Column(
             modifier = Modifier
@@ -126,30 +144,129 @@ fun MoreSheet(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(MaterialTheme.padding.small),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = stringResource(AYMR.strings.player_sheets_more_title),
-                    style = MaterialTheme.typography.headlineMedium,
-                )
-                TextButton(onClick = onEnterFiltersPanel) {
-                    Icon(imageVector = Icons.Default.Tune, contentDescription = null)
-                    Text(
-                        text = stringResource(AYMR.strings.player_sheets_filters_title),
-                        modifier = Modifier.padding(start = 8.dp),
+            VideoSettingsGroup(
+                androidStringResource(R.string.playback_video),
+                buildList {
+                    if (qualityAvailable) {
+                        add(
+                            VideoSettingsAction(
+                                androidStringResource(R.string.player_video_quality),
+                                Icons.Default.HighQuality,
+                                onClick = onOpenQuality,
+                            ),
+                        )
+                    }
+                    add(
+                        VideoSettingsAction(
+                            androidStringResource(R.string.playback_speed),
+                            Icons.Default.Speed,
+                            value = "${session.viewModel.playbackSpeed.value}×",
+                            onClick = { session.viewModel.showSheet(Sheets.PlaybackSpeed) },
+                        ),
                     )
-                }
-            }
-            if (onShareContent != null) {
-                OutlinedButton(onClick = onShareContent, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Outlined.Share, contentDescription = null)
-                    Text(stringResource(AYMR.strings.content_share_title), Modifier.padding(start = 8.dp))
-                }
-            }
+                    add(
+                        VideoSettingsAction(
+                            androidStringResource(R.string.playback_audio),
+                            Icons.Default.Audiotrack,
+                            onClick = onOpenAudio,
+                        ),
+                    )
+                    add(
+                        VideoSettingsAction(
+                            androidStringResource(R.string.playback_subtitles),
+                            Icons.Default.Subtitles,
+                            onClick = { session.viewModel.showSheet(Sheets.SubtitleTracks) },
+                        ),
+                    )
+                },
+            )
+            VideoSettingsGroup(
+                androidStringResource(R.string.playback_advanced),
+                buildList {
+                    add(
+                        VideoSettingsAction(
+                            androidStringResource(R.string.playback_episodes),
+                            Icons.Default.PlaylistPlay,
+                            onClick = {
+                                session.viewModel.showSheet(Sheets.None)
+                                session.viewModel.showEpisodeListDialog()
+                            },
+                        ),
+                    )
+                    add(
+                        VideoSettingsAction(
+                            androidStringResource(R.string.playback_rotation),
+                            Icons.Default.ScreenRotation,
+                            onClick = {
+                                session.viewModel.cycleScreenRotations()
+                                onDismissRequest()
+                            },
+                        ),
+                    )
+                    add(
+                        VideoSettingsAction(
+                            androidStringResource(R.string.playback_lock),
+                            Icons.Default.Lock,
+                            onClick = {
+                                onDismissRequest()
+                                session.viewModel.lockControls()
+                            },
+                        ),
+                    )
+                    if (session.isPipSupportedAndEnabled) {
+                        add(
+                            VideoSettingsAction(
+                                androidStringResource(R.string.playback_pip),
+                                Icons.Default.PictureInPicture,
+                                onClick = {
+                                    onDismissRequest()
+                                    session.enterPictureInPictureMode(session.createPipParams())
+                                },
+                            ),
+                        )
+                    }
+                    add(
+                        VideoSettingsAction(
+                            androidStringResource(R.string.player_frame),
+                            Icons.Default.PhotoCamera,
+                            onClick = onOpenScreenshot,
+                        ),
+                    )
+                    add(
+                        VideoSettingsAction(
+                            stringResource(AYMR.strings.player_sheets_filters_title),
+                            Icons.Default.Tune,
+                            onClick = onEnterFiltersPanel,
+                        ),
+                    )
+                    onShareContent?.let { share ->
+                        add(
+                            VideoSettingsAction(
+                                androidStringResource(R.string.playback_share),
+                                Icons.Outlined.Share,
+                                onClick = share,
+                            ),
+                        )
+                    }
+                    add(
+                        VideoSettingsAction(
+                            androidStringResource(R.string.playback_close),
+                            Icons.Default.Close,
+                            onClick = {
+                                onDismissRequest()
+                                session.requestClose()
+                            },
+                        ),
+                    )
+                },
+            )
+            ShortcutPreference(
+                androidStringResource(R.string.playback_autoplay),
+                globalAutoplay,
+                session.viewModel::setAutoPlay,
+            )
             eu.kanade.presentation.episodeguide.EpisodeGuidePlayerPreferences(anime)
+            it.lorelore.nyanime.attention.AttentionPlayerEntry()
             SleepTimerEntry(remainingTime, onOpenSleepTimer, timerAtEpisodeEnd)
             eu.kanade.presentation.privacy.PlayerPrivacyEntry()
             Text(androidStringResource(R.string.player_intro_skip), style = MaterialTheme.typography.titleMedium)
@@ -176,22 +293,6 @@ fun MoreSheet(
                         onClick = { playerPreferences.setAutoSkipIntroOverride(anime, false) },
                         label = { Text(androidStringResource(R.string.player_do_not_skip)) },
                     )
-                }
-            }
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onOpenAudio) {
-                    Icon(Icons.Default.Audiotrack, null)
-                    Text("Audio", Modifier.padding(start = 8.dp))
-                }
-                if (qualityAvailable) {
-                    OutlinedButton(onClick = onOpenQuality) {
-                        Icon(Icons.Default.HighQuality, null)
-                        Text(androidStringResource(R.string.player_video_quality), Modifier.padding(start = 8.dp))
-                    }
-                }
-                OutlinedButton(onClick = onOpenScreenshot) {
-                    Icon(Icons.Default.PhotoCamera, null)
-                    Text(androidStringResource(R.string.player_frame), Modifier.padding(start = 8.dp))
                 }
             }
             TextButton(onClick = { customizeControls = !customizeControls }) {
@@ -266,6 +367,50 @@ fun MoreSheet(
 
             if (anime4kAvailable) {
                 Text(stringResource(AYMR.strings.pref_anime4k))
+                if (anime4kSelection.profile == Anime4KProfile.Smart) {
+                    val status = when {
+                        anime4kDiagnostics.contentState == Anime4KContentState.Sampling ->
+                            androidStringResource(R.string.smart_status_analysing)
+                        anime4kDiagnostics.probing -> androidStringResource(R.string.smart_status_recovering)
+                        anime4kDiagnostics.suspended -> androidStringResource(R.string.smart_status_original)
+                        anime4kSelection.mode == Anime4KMode.Off -> androidStringResource(
+                            R.string.smart_status_preparing,
+                        )
+                        else -> androidStringResource(
+                            R.string.smart_status_active,
+                            Anime4K.smartButtonLabel(anime4kSelection.mode),
+                        )
+                    }
+                    Text(
+                        status,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        minLines = 2,
+                    )
+                    if (anime4kDiagnostics.contentState != Anime4KContentState.Disabled &&
+                        anime4kDiagnostics.contentState != Anime4KContentState.Sampling
+                    ) {
+                        Text(
+                            androidStringResource(
+                                if (anime4kDiagnostics.contentState == Anime4KContentState.Applied) {
+                                    R.string.smart_analysis_applied
+                                } else {
+                                    R.string.smart_analysis_fallback
+                                },
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                ShortcutPreference(androidStringResource(R.string.smart_analysis_toggle), imageAnalysisEnabled) {
+                    advancedPreferences.anime4kContentAnalysisEnabled().set(it)
+                }
+                Text(
+                    androidStringResource(R.string.smart_analysis_description),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 FlowRow(
                     verticalArrangement = Arrangement.spacedBy(MaterialTheme.padding.small),
                     horizontalArrangement = Arrangement.spacedBy(MaterialTheme.padding.small),

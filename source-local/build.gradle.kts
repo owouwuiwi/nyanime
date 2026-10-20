@@ -40,7 +40,7 @@ kotlin {
     }
 }
 
-android {
+extensions.configure<com.android.build.api.dsl.LibraryExtension>("android") {
     namespace = "tachiyomi.source.local"
 
     defaultConfig {

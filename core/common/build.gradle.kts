@@ -4,7 +4,7 @@ plugins {
     kotlin("plugin.serialization")
 }
 
-android {
+extensions.configure<com.android.build.api.dsl.LibraryExtension>("android") {
     namespace = "eu.kanade.tachiyomi.core.common"
 }
 
@@ -58,4 +58,5 @@ dependencies {
 
     // Tests
     testImplementation(libs.bundles.test)
+    testRuntimeOnly(libs.junit.launcher)
 }

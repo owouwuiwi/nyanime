@@ -4,7 +4,7 @@ plugins {
     kotlin("android")
 }
 
-android {
+extensions.configure<com.android.build.api.dsl.LibraryExtension>("android") {
     namespace = "tachiyomi.presentation.core"
 
     defaultConfig {

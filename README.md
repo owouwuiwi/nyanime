@@ -6,7 +6,7 @@
   Anime4K, Cast e visione sincronizzata con gli amici.</p>
 </div>
 
-Questa repository pubblica contiene il codice di Nyanime, le istruzioni di build,
+La distribuzione pubblica comprende il codice di Nyanime, le istruzioni di build,
 le licenze, il changelog e gli APK firmati. Ogni nuova release include anche un
 archivio dei sorgenti della versione distribuita. Gli aggiornamenti OTA restano
 disponibili anche alle installazioni precedenti.
@@ -33,6 +33,10 @@ consultare, rispettando copyright, licenze e condizioni di accesso.
 | **Home ricche di contenuti** | Esplora cataloghi, stagioni, classifiche e calendario; usa le Home anime e manga definite dalle estensioni compatibili. |
 | **Le tue uscite** | Segui anime e manga dalla scheda, ricevi avvisi delle nuove disponibilita e consulta le date annunciate nel calendario. [Come funziona](docs/release-monitor.md). AnimeSchedule facoltativo e widget: [configurazione guidata](docs/animeschedule.md). |
 | **Riprendi da dove eri** | Ritrova “Continua a guardare” e “Continua a leggere”, con avanzamento locale e accesso all'episodio o capitolo. |
+| **Studio delle fonti** | Crea e collauda fonti personali video/manga con nodi, vista guidata o procedura Assistita; importa, esporta e revisiona senza cataloghi preconfigurati. [Guida](docs/source-studio.md). |
+| **Scambia fonti** | Condividi pacchetti tramite codice o QR su rete locale o Internet; l'importazione richiede revisione separata. |
+| **Backup remoti** | WebDAV cifrato e Google Drive facoltativo con configurazione OAuth propria, oltre ai backup locali e Telegram. [Guida](docs/remote-backups.md). |
+| **Attenzione facoltativa** | Rilevamento locale sperimentale, inizialmente spento, con pausa configurabile oppure soli intervalli stimati, senza salvare immagini. |
 | **Nyanime Cloud** | Collega Telegram per conservare backup completi in un canale privato, scegliere le copie da mantenere e ripristinarle su un altro telefono. [Configurazione e limiti](docs/telegram-cloud.md). |
 | **Anime4K Ultra offline** | Copie A+ HQ con carico dosato, pause per temperatura e ripresa dei segmenti salvati. Stato, comandi ed esportazione direttamente dagli episodi; coda in Download → Ultra. [Dettagli e requisiti](docs/anime4k-ultra.md). |
 | **Anime4K Smart** | Applica shader nel player interno con qualità adattiva, avvio automatico configurabile e modalità manuali. |
@@ -46,6 +50,10 @@ consultare, rispettando copyright, licenze e condizioni di accesso.
 Le stanze video e manga funzionano senza un profilo: crea una stanza e condividi
 il suo codice o link. Backup e sincronizzazione personali continuano attraverso
 [Cloud](docs/cloud-sync-protocol.md), indipendentemente dalle stanze.
+
+La versione 0.49 conserva lo stile del player FLOW con attribuzione GPL,
+senza includere il suo motore YouTube o MELD. Il tasto Musica apre soltanto
+l'annuncio della funzione futura. [Ambito della migrazione](docs/normal-migration.md).
 
 ## Tutte le aree dell'app
 
@@ -209,6 +217,10 @@ Il codice originale di Nyanime è distribuito sotto [Apache License 2.0](LICENSE
 con copyright **© 2026 owouwuiwi e contributori Nyanime**. Il [NOTICE](NOTICE)
 conserva le attribuzioni del codice ereditato. Le dipendenze mantengono le
 proprie licenze, inclusi gli obblighi GPL/LGPL dei componenti nativi.
+L'APK con il player GPL è un'opera combinata soggetta alle relative condizioni:
+la licenza Apache delle parti originali non rende l'intera distribuzione Apache
+o proprietaria. Testi e attribuzioni sono consultabili offline da **Info →
+Licenze delle librerie** e verificati anche negli APK ottimizzati.
 Sono disponibili la [guida alle licenze](docs/licensing.md),
 i [crediti dei componenti](docs/credits.md), la documentazione del
 [demuxer nativo](tools/native/README.md) e le licenze incluse nell'app.

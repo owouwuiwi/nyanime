@@ -1,3 +1,6 @@
+// ktlint 1.7 rewrites named context parameters into a form rejected by the same rule.
+@file:Suppress("ktlint:standard:context-receiver-list-wrapping")
+
 package eu.kanade.presentation.util
 
 import android.content.Context
