@@ -29,6 +29,7 @@ import eu.kanade.tachiyomi.data.releases.ReleasePreferences
 import eu.kanade.tachiyomi.data.releases.ReleaseReminderKind
 import eu.kanade.tachiyomi.data.releases.ReleaseReminders
 import eu.kanade.tachiyomi.data.releases.ReleaseStatus
+import it.lorelore.nyanime.notifications.ReleaseTitleNotificationsScreen
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.combine
 import tachiyomi.i18n.aniyomi.AYMR
@@ -62,13 +63,56 @@ object SettingsReleaseNotificationsScreen : SearchableSettings {
                     canNotify = ReleaseNotifications.canPost(context)
                     canRemind = ReleaseNotifications.canPost(context, ReleaseReminders.CHANNEL)
                     exact = ReleaseReminders.exactAllowed(context)
+                    ReleaseNotifications.afterCommit(context)
+                    ReleaseReminders.reschedule(context)
                 }
             }
             lifecycleOwner.lifecycle.addObserver(observer)
             onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
         }
 
-        return listOf(
+        return listOfNotNull(
+            if (!canNotify || !canRemind) {
+                Preference.PreferenceGroup(
+                    title = context.getString(R.string.release_notification_blocked_title),
+                    preferenceItems = persistentListOf(
+                        Preference.PreferenceItem.TextPreference(
+                            title = context.getString(R.string.release_enable_notifications),
+                            subtitle = context.getString(R.string.release_notification_blocked),
+                            onClick = {
+                                context.startActivity(
+                                    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                                        .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName),
+                                )
+                            },
+                        ),
+                    ),
+                )
+            } else {
+                null
+            },
+            Preference.PreferenceGroup(
+                title = context.getString(R.string.release_title_notifications),
+                preferenceItems = persistentListOf(
+                    Preference.PreferenceItem.TextPreference(
+                        title = context.getString(R.string.release_title_notifications),
+                        subtitle = context.getString(R.string.release_title_notifications_hint),
+                        onClick = { navigator.push(ReleaseTitleNotificationsScreen()) },
+                    ),
+                    Preference.PreferenceItem.SwitchPreference(
+                        preference = preferences.explicitAlertsOnly,
+                        title = context.getString(R.string.release_explicit_alerts_only),
+                        subtitle = context.getString(R.string.release_explicit_alerts_only_description),
+                        onValueChanged = {
+                            ContextCompat.getMainExecutor(context).execute {
+                                ReleaseNotifications.afterCommit(context)
+                                ReleaseReminders.reschedule(context)
+                            }
+                            true
+                        },
+                    ),
+                ),
+            ),
             Preference.PreferenceGroup(
                 title = context.getString(R.string.release_reminder),
                 preferenceItems = persistentListOf(
@@ -162,7 +206,8 @@ object SettingsReleaseNotificationsScreen : SearchableSettings {
                     ),
                     Preference.PreferenceItem.TextPreference(
                         title = context.getString(R.string.release_test_reminder),
-                        onClick = { ReleaseStatus.showTestNotification(context, ReleaseReminders.CHANNEL) },
+                        subtitle = context.getString(R.string.release_test_scheduled_description),
+                        onClick = { ReleaseReminders.scheduleTest(context) },
                     ),
                     Preference.PreferenceItem.TextPreference(
                         title = context.getString(R.string.release_status),

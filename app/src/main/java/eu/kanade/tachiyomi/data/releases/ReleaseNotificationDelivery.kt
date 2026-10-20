@@ -2,7 +2,7 @@ package eu.kanade.tachiyomi.data.releases
 
 internal object ReleaseNotificationDelivery {
     suspend fun deliver(
-        allowed: () -> Boolean,
+        allowed: suspend () -> Boolean,
         post: suspend () -> Unit,
         acknowledge: suspend () -> Unit,
     ) {

@@ -154,6 +154,17 @@ class BackupRestorer(
                     .join()
                 restoreManga(backup.backupManga, if (options.categories) backup.backupCategories else emptyList())
                     .join()
+                val personalTitles = backup.backupAnime.map { entry ->
+                    Triple(it.lorelore.nyanime.tracking.TrackingMedium.ANIME, entry.source, entry.url)
+                }.toSet() +
+                    backup.backupManga.map { entry ->
+                        Triple(it.lorelore.nyanime.tracking.TrackingMedium.MANGA, entry.source, entry.url)
+                    }
+                it.lorelore.nyanime.tracking.PersonalTrackingStore.get(context).merge(
+                    backup.personalTracking.filter { record ->
+                        Triple(record.subject.medium, record.subject.source, record.subject.url) in personalTitles
+                    },
+                )
                 val guidedTitles = backup.backupManga.mapTo(hashSetOf()) { it.source to it.url }
                 if (options.appSettings) {
                     eu.kanade.tachiyomi.ui.reader.spread.SpreadStore.get(context).merge(

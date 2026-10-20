@@ -44,6 +44,10 @@ class BackupDecoder(
                         .toBackup()
                 } else {
                     parser.decodeFromByteArray(Backup.serializer(), backupString)
+                }.also { backup ->
+                    if (backup.personalTracking.size > 100_000 || backup.personalTracking.any { !it.valid() }) {
+                        throw IOException(context.stringResource(MR.strings.invalid_backup_file_unknown))
+                    }
                 }
             } catch (_: SerializationException) {
                 throw IOException(context.stringResource(MR.strings.invalid_backup_file_unknown))

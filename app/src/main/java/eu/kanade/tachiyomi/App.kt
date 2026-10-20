@@ -354,6 +354,7 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
             }
         }
         RetroactiveTracking.onForeground()
+        it.lorelore.nyanime.tracking.TrackingEditWorker.resumePending(this)
         LibraryAutoTracking.onForeground()
     }
 

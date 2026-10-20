@@ -4,7 +4,11 @@ Le guide descrivono il codice presente nel repository. Alcune funzioni dipendono
 da un'estensione compatibile, da un servizio esterno o dalle capacità del dispositivo.
 I documenti tecnici in inglese conservano i nomi delle API e dei componenti.
 
-## Novità della versione 0.49
+## Novità recenti
+
+La versione 0.51 aggiunge il [pannello di tracking](tracking-panel.md) e i
+[controlli delle notifiche per titolo](release-alert-controls.md), con avviso
+in Home quando Android blocca la consegna.
 
 La versione 0.50 aggiunge gli [aggiornamenti differenziali verificati](delta-updates.md),
 con download completo di ripiego e compatibilità con gli aggiornatori precedenti.
@@ -20,6 +24,8 @@ con download completo di ripiego e compatibilità con gli aggiornatori precedent
 
 | Guida | Contenuto |
 | --- | --- |
+| [Pannello di tracking](tracking-panel.md) | Stati, progresso, voti reali, dati personali senza account, salvataggio e Annulla. |
+| [Notifiche per titolo](release-alert-controls.md) | Silenziare singoli titoli, filtro Segui e controlli Android. |
 | [Condivisione in Nyanime](content-sharing.md) | Schede, episodi con minutaggio e capitoli con pagina, senza logica specifica delle fonti. |
 | [Primi passi e FAQ](getting-started.md) | Installazione, aggiornamenti, estensioni, preferenze e problemi comuni. |
 | [Guida di benvenuto](welcome.md) | Primo avvio, cartella automatica, permessi facoltativi e ripristino. |
@@ -39,6 +45,9 @@ con download completo di ripiego e compatibilità con gli aggiornatori precedent
 | [Novità Nyanime](../CHANGELOG.md) | Modifiche del fork e collegamento allo storico upstream. |
 
 ## Funzioni e architettura
+
+Il nuovo codice segue la [migrazione graduale verso `it.lorelore.*`](package-migration.md),
+preservando aggiornamenti, dati e attribuzioni.
 
 Per creare un'estensione, usa il [template pubblico](https://github.com/owouwuiwi/nyanime-extension-template)
 e l'unica [guida completa in inglese](https://owouwuiwi.github.io/example/guide/): API, esempi, Home, compilazione, firma, installazione e verifica.

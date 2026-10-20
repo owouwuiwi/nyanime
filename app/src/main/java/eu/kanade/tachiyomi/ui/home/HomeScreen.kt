@@ -125,6 +125,10 @@ import eu.kanade.tachiyomi.ui.search.AtlasUpgradeDialog
 import eu.kanade.tachiyomi.ui.search.AtlasUpgradeNotice
 import eu.kanade.tachiyomi.ui.search.LocalAtlasSearch
 import eu.kanade.tachiyomi.ui.updates.UpdatesTab
+import it.lorelore.nyanime.notifications.LocalNotificationAccess
+import it.lorelore.nyanime.notifications.NotificationAccessEdgeGlow
+import it.lorelore.nyanime.notifications.NotificationAccessWarningButton
+import it.lorelore.nyanime.notifications.rememberNotificationAccess
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
@@ -203,6 +207,9 @@ object HomeScreen : Screen() {
                 tabNavigator.current = tab
             }
             val searching = tabNavigator.current == AtlasSearchTab
+            val notificationAccess by rememberNotificationAccess(
+                ownsMiniControllers && (tabNavigator.current == DiscoveryTab || searching),
+            )
             LaunchedEffect(searching) {
                 if (searching && newsSearch && !news.state.value.searching) news.openSearch()
                 if (searching && !newsSearch && !atlas.state.value.open) atlas.open()
@@ -231,6 +238,7 @@ object HomeScreen : Screen() {
                     LocalDiscoveryHeaderHost provides if (modern) headerHost else null,
                     LocalSelectHomeTab provides selectTab,
                     LocalCloseAtlas provides closeAtlas,
+                    LocalNotificationAccess provides notificationAccess,
                 ) {
                     val bottomNavVisible by produceState(initialValue = true) {
                         showBottomNavEvent.receiveAsFlow().collectLatest { value = it }
@@ -352,6 +360,13 @@ object HomeScreen : Screen() {
                                 },
                             )
                         }
+                        NotificationAccessEdgeGlow(
+                            visible =
+                            ownsMiniControllers &&
+                                tabNavigator.current == DiscoveryTab &&
+                                notificationAccess.blocked,
+                            modifier = Modifier.matchParentSize(),
+                        )
                     }
                 }
             }
@@ -471,6 +486,7 @@ object HomeScreen : Screen() {
                 }
             }
             eu.kanade.tachiyomi.ui.watch.WatchTogetherButton()
+            NotificationAccessWarningButton()
             it.lorelore.nyanime.music.MusicComingSoonButton()
         }
     }

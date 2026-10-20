@@ -5,6 +5,11 @@ le sue personalizzazioni; non cambia la provenienza del codice mantenuto.
 
 ## App e progetti upstream
 
+Il [pannello di tracking](tracking-panel.md) riprende come riferimento di prodotto
+il pannello mostrato da [Karasu](https://github.com/Suzora/Karasu).
+L'implementazione Compose di Nyanime è originale e non importa codice web,
+componenti o asset di Karasu.
+
 - [AniYomi](https://github.com/aniyomiorg/aniyomi): base video e manga,
   player, estensioni e numerose funzioni conservate.
 - [Mihon](https://github.com/mihonapp/mihon) e Tachiyomi: base del lettore,

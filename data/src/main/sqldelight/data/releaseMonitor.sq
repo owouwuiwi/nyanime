@@ -78,5 +78,14 @@ SELECT r.item_id, r.entry_id, r.created_at, r.delivered_at, r.source_at, i.chapt
 FROM release_notice r JOIN chapters i ON i._id = r.item_id
 WHERE i.read = 0 ORDER BY r.created_at DESC;
 
+getAlertTitles:
+SELECT p._id, p.title, p.thumbnail_url, p.source, p.favorite, p.cover_last_modified, COALESCE(s.mode, 'AUTO') AS mode,
+       COALESCE(s.availability, 1) AS availability, COALESCE(s.reminder, 1) AS reminder
+FROM mangas p LEFT JOIN release_subscription s ON s.entry_id = p._id
+WHERE s.entry_id IS NOT NULL OR p.favorite = 1
+   OR EXISTS(SELECT 1 FROM manga_sync t WHERE t.manga_id = p._id)
+   OR EXISTS(SELECT 1 FROM chapters i WHERE i.manga_id = p._id AND (i.read = 1 OR i.last_page_read > 0))
+ORDER BY p.title COLLATE NOCASE, p._id;
+
 markMetadata:
 UPDATE release_check SET metadata_at = ? WHERE entry_id = ?;

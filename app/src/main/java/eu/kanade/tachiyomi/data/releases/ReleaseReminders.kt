@@ -31,6 +31,7 @@ import uy.kohesive.injekt.api.get
 /** One alarm for the nearest reminder, not an alarm per title or a network polling timer. */
 object ReleaseReminders {
     const val CHANNEL = "release-reminders"
+    private const val TEST_ACTION = "nyanime.release.TEST_REMINDER"
     private val mutex = Mutex()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -97,7 +98,7 @@ object ReleaseReminders {
         for (event in AiringRepository().effectiveEvents().first()) {
             if (event.entryId !in followed) continue
             val allowed = eligible[event.entryId] ?: (
-                store.subscription(ReleaseMedium.ANIME, event.entryId).reminder &&
+                store.alertsAllowed(ReleaseMedium.ANIME, event.entryId, reminder = true) &&
                     ReleaseEligibility.source(ReleaseMedium.ANIME, event.entryId) != null
                 ).also { eligible[event.entryId] = it }
             if (!allowed) continue
@@ -150,26 +151,56 @@ object ReleaseReminders {
             // Stable identity also makes replay after a process death replace the existing tray item.
             val tag = "release-reminder-${reminder.keys.sorted().first()}-${reminder.kind.name}"
             ReleaseNotifications.reserveSlot(context, tag, event.episode)
+            if (!ReleaseNotifications.canPost(context, CHANNEL) ||
+                !ReleasePreferences().reminders.get() ||
+                !ReleaseStore().alertsAllowed(ReleaseMedium.ANIME, event.entryId, reminder = true)
+            ) {
+                return
+            }
             try {
                 NotificationManagerCompat.from(context).notify(tag, event.episode, notification)
             } catch (_: SecurityException) {
                 // Permission can be revoked between the check and notify; keep the receipt pending.
                 return
             }
+            if (!ReleaseNotifications.canPost(context, CHANNEL)) return
         }
         acknowledge()
     }
 
-    private fun scheduleAlarm(context: Context, at: Long) {
+    fun scheduleTest(context: Context) {
+        createChannel(context)
+        NotificationManagerCompat.from(context).cancel("release-test-$CHANNEL", 23062)
+        if (!ReleaseNotifications.canPost(context, CHANNEL)) {
+            ReleaseStatus.showTestNotification(context, CHANNEL)
+            return
+        }
+        val operation = PendingIntent.getBroadcast(
+            context,
+            23063,
+            Intent(context, ReleaseReminderReceiver::class.java).setAction(TEST_ACTION),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        scheduleAlarm(context, System.currentTimeMillis() + ReleasePolicy.MINUTE, operation)
+        android.widget.Toast.makeText(context, R.string.release_test_scheduled, android.widget.Toast.LENGTH_LONG).show()
+    }
+
+    fun deliverTest(context: Context, intent: Intent): Boolean {
+        if (intent.action != TEST_ACTION) return false
+        if (ReleaseNotifications.canPost(context, CHANNEL)) ReleaseStatus.showTestNotification(context, CHANNEL)
+        return true
+    }
+
+    private fun scheduleAlarm(context: Context, at: Long, operation: PendingIntent = intent(context)) {
         val alarm = context.getSystemService(AlarmManager::class.java)
         try {
             if (exactAllowed(context)) {
-                alarm.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, intent(context))
+                alarm.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, operation)
             } else {
-                alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, intent(context))
+                alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, operation)
             }
         } catch (_: SecurityException) {
-            alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, intent(context))
+            alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, operation)
         }
     }
 
@@ -183,6 +214,7 @@ object ReleaseReminders {
 
 class ReleaseReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        if (ReleaseReminders.deliverTest(context, intent)) return
         val pending = goAsync()
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {

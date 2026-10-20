@@ -10,6 +10,31 @@ identificano modifiche nel repository, non garantiscono che ogni commit sia stat
 distribuito come APK.
 
 
+## 20 ottobre 2026 — 0.51.0.0: tracking personale e controllo degli avvisi
+
+### Novità
+
+- Nuovo pannello di tracking comune per anime e manga: stati a scelta rapida, progresso con meno/più o inserimento diretto, voto interattivo e dettagli personali. Funziona anche senza account, con dati locali separati dai servizi collegati.
+- Distribuzione reale dei voti della community e media AniList quando sono disponibili un ID verificato e il consenso alle informazioni pubbliche sulle opere. Il voto personale resta utilizzabile anche senza statistiche.
+- Note, tag, date, rivisioni/riletture e volumi personali; inclusione dei record locali nei backup della libreria e del tracking.
+- Gestione delle notifiche per singolo titolo, con ricerca e filtri anime/manga. Silenziare gli avvisi non rimuove il titolo da libreria, agenda o tracker.
+- Opzione facoltativa per ricevere avvisi soltanto dai titoli seguiti esplicitamente, conservando l'attuale comportamento automatico come impostazione iniziale.
+
+### Interfaccia
+
+- Salvataggio automatico con Annulla, stato della sincronizzazione, Riprova e gestione delle modifiche in attesa. I servizi mantengono le proprie scale di voto e capacità; associazione e rimozione restano disponibili.
+- Avviso immediato nelle impostazioni se Android blocca le notifiche, ricontrollo dei permessi al ritorno e prova di un promemoria programmato tra un minuto, anche uscendo dall'app.
+- Bordi gialli nella Home e indicatore di attenzione accanto alla musica quando Android blocca gli avvisi. L'indicatore spiega come riabilitarli e sparisce al ripristino dell'accesso.
+- Etichette e messaggi in italiano e inglese, transizioni coordinate e rispetto delle animazioni ridotte.
+
+### Affidabilità e privacy
+
+- Modifiche remote conservate prima dell'invio, limitate ai campi cambiati e vincolate all'account originale. Una risposta in ritardo non cancella modifiche più recenti o Annulla.
+- Coordinamento con tracking automatico e refresh per proteggere gli arretramenti manuali del progresso. Le modifiche al tracking non segnano automaticamente come visti o letti i contenuti locali.
+- Le stagioni automatiche rispettano le preferenze di avviso della serie; una scelta esplicita sulla singola stagione resta indipendente.
+- Le scelte di avviso sono ricontrollate prima della consegna. Notifiche bloccate da Android o da un canale non vengono considerate ricevute.
+- Nessuna nuova dipendenza, catalogo di fonti o logica specifica di siti nel core.
+
 ## 20 ottobre 2026 — 0.50.0.0: aggiornamenti differenziali
 
 ### Novità

@@ -4,6 +4,13 @@ Nyanime è un'app Android che gestisce localmente librerie, progressi di visione
 
 ## Dati sul dispositivo
 
+Il pannello di tracking permette di conservare stati, voti, note, tag, ripetizioni
+e progresso anche senza account. Questi dati personali sono locali e possono
+essere inclusi nel backup selezionando libreria e tracking. Le modifiche destinate
+a un tracker collegato sono conservate sul dispositivo finché non vengono
+sincronizzate con quel servizio. Il collegamento di un account non trasferisce
+automaticamente le note o il record locale.
+
 La libreria, la cronologia, i punti di ripresa, le impostazioni, i file scaricati e i dati delle estensioni restano nell'archivio dell'app sul dispositivo. Backup ed esportazioni vengono creati solo quando li richiedi e sono sotto il tuo controllo. Il backup completo `.nyabk` può includere credenziali e token delle impostazioni selezionate: non è cifrato e va conservato in privato. Non include video o pagine scaricati. Disinstallare l'app o cancellarne i dati può eliminare queste informazioni; i file esportati separatamente seguono le regole della posizione in cui li salvi.
 
 ## Connessioni facoltative
@@ -36,6 +43,11 @@ senza URL delle fonti, cookie, credenziali o progressi personali. Le informazion
 pubbliche consultate possono essere conservate in una cache locale ricostruibile;
 in incognito non si registrano nuovi dati o associazioni persistenti. Il consenso
 e le associazioni manuali sono inclusi nei backup delle impostazioni.
+
+La distribuzione pubblica dei voti nel pannello di tracking riusa il consenso alle
+informazioni sulle opere: AniList riceve un ID di catalogo verificato, senza
+progresso, note o riferimenti alle fonti. Mancando consenso o dati verificati,
+il voto personale resta disponibile senza statistiche inventate.
 
 ## Backup Cloud facoltativi
 

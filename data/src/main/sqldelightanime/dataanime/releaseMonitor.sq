@@ -82,6 +82,19 @@ SELECT r.item_id, r.entry_id, r.created_at, r.delivered_at, r.source_at, i.episo
 FROM release_notice r JOIN episodes i ON i._id = r.item_id
 WHERE i.seen = 0 ORDER BY r.created_at DESC;
 
+getAlertTitles:
+SELECT p._id, p.title, p.thumbnail_url, p.source, p.favorite, p.cover_last_modified, COALESCE(s.mode, 'AUTO') AS mode,
+       COALESCE(s.availability, 1) AS availability, COALESCE(s.reminder, 1) AS reminder,
+       COALESCE(ps.mode, 'AUTO') AS parentMode, COALESCE(ps.availability, 1) AS parentAvailability,
+       COALESCE(ps.reminder, 1) AS parentReminder
+FROM animes p LEFT JOIN release_subscription s ON s.entry_id = p._id
+LEFT JOIN release_subscription ps ON ps.entry_id = p.parent_id
+WHERE s.entry_id IS NOT NULL OR p.favorite = 1
+   OR EXISTS(SELECT 1 FROM anime_sync t WHERE t.anime_id = p._id)
+   OR EXISTS(SELECT 1 FROM episodes i WHERE i.anime_id = p._id AND (i.seen = 1 OR i.last_second_seen > 0))
+   OR (p.parent_id > 0 AND EXISTS(SELECT 1 FROM animes parent WHERE parent._id = p.parent_id AND parent.favorite = 1))
+ORDER BY p.title COLLATE NOCASE, p._id;
+
 markMetadata:
 UPDATE release_check SET metadata_at = ? WHERE entry_id = ?;
 

@@ -151,7 +151,7 @@ class ReleaseStatusScreen : Screen() {
                             }
                             if (!canRemind) Text(stringResource(R.string.release_notification_blocked))
                             TextButton(onClick = {
-                                ReleaseStatus.showTestNotification(context, ReleaseReminders.CHANNEL)
+                                ReleaseReminders.scheduleTest(context)
                             }) { Text(stringResource(R.string.release_test_reminder)) }
                             if (!exact && Build.VERSION.SDK_INT >= 31) {
                                 Text(

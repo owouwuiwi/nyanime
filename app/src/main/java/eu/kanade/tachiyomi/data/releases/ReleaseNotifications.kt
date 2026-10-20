@@ -79,7 +79,7 @@ object ReleaseNotifications {
             val skipped = ArrayList<Long>()
             val eligible = pending.groupBy { it.entryId }.filter { (id, notices) ->
                 val keep = id in followed &&
-                    store.subscription(medium, id).availability &&
+                    store.alertsAllowed(medium, id, reminder = false) &&
                     ReleasePreferences().availability.get() &&
                     ReleaseEligibility.source(medium, id) != null
                 if (!keep) skipped.addAll(notices.map { it.itemId })
@@ -90,7 +90,13 @@ object ReleaseNotifications {
             val dismissed = Injekt.get<eu.kanade.domain.ui.UiPreferences>().dismissedLibraryUpdates().get()
             for ((id, notices) in eligible) {
                 ReleaseNotificationDelivery.deliver(
-                    allowed = { canPost(context) },
+                    allowed = {
+                        canPost(context) &&
+                            ReleasePreferences().enabled.get() &&
+                            ReleasePreferences().availability.get() &&
+                            store.alertsAllowed(medium, id, reminder = false) &&
+                            !Injekt.get<BasePreferences>().incognitoMode().get()
+                    },
                     post = {
                         when (medium) {
                             ReleaseMedium.ANIME -> {

@@ -93,10 +93,31 @@ data class AnimeTrackInfoDialogHomeScreen(
     private val animeId: Long,
     private val animeTitle: String,
     private val sourceId: Long,
+    private val servicesOnly: Boolean = false,
 ) : Screen() {
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
+        if (!servicesOnly) {
+            it.lorelore.nyanime.tracking.TrackingPanel(
+                model = rememberScreenModel {
+                    it.lorelore.nyanime.tracking.TrackingPanelModel(false, animeId, sourceId)
+                },
+                manga = false,
+                entryId = animeId,
+                title = animeTitle,
+                sourceId = sourceId,
+                onManageServices = { navigator.push(copy(servicesOnly = true)) },
+                onConnect = {
+                    navigator.push(
+                        eu.kanade.tachiyomi.ui.setting.SettingsScreen(
+                            eu.kanade.tachiyomi.ui.setting.SettingsScreen.Destination.Tracking,
+                        ),
+                    )
+                },
+            )
+            return
+        }
         val context = LocalContext.current
         val screenModel = rememberScreenModel { Model(animeId, sourceId) }
 
@@ -108,6 +129,7 @@ data class AnimeTrackInfoDialogHomeScreen(
         val state by screenModel.state.collectAsState()
 
         AnimeTrackInfoDialogHome(
+            managementOnly = true,
             trackItems = state.trackItems,
             dateFormat = dateFormat,
             onStatusClick = {

@@ -202,7 +202,8 @@ internal fun MangaDetailsScreen(
         if (state.trackingAvailable) {
             add(
                 DetailAction(
-                    androidStringResource(R.string.detail_tracking) + " · ${state.trackingCount}",
+                    androidStringResource(R.string.detail_tracking) +
+                        if (state.trackingCount > 0) " · ${state.trackingCount}" else "",
                     TitleDetailsIcons.Checks,
                     onTrackingClicked,
                 ),

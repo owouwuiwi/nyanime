@@ -67,4 +67,5 @@ data class Backup(
     @ProtoNumber(512) val readerSpreads: List<eu.kanade.tachiyomi.ui.reader.spread.SpreadRecord> = emptyList(),
     // 513 is reserved for legacy optional music state; never re-use it.
     @ProtoNumber(514) val sourceStudioState: String? = null,
+    @ProtoNumber(515) val personalTracking: List<it.lorelore.nyanime.tracking.PersonalTrackingRecord> = emptyList(),
 )

@@ -2685,7 +2685,7 @@ class PlayerViewModel @JvmOverloads constructor(
     }
 
     private fun updateTrackEpisodeSeen(episode: Episode) {
-        if (basePreferences.incognitoMode().get() || !hasTrackers) return
+        if (basePreferences.incognitoMode().get()) return
         if (!trackPreferences.autoUpdateTrack().get()) return
 
         val anime = currentAnime.value ?: return

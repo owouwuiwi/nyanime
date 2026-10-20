@@ -94,9 +94,31 @@ data class MangaTrackInfoDialogHomeScreen(
     private val mangaId: Long,
     private val mangaTitle: String,
     private val sourceId: Long,
+    private val servicesOnly: Boolean = false,
 ) : Screen() {
     @Composable
     override fun Content() {
+        if (!servicesOnly) {
+            val navigator = LocalNavigator.currentOrThrow
+            it.lorelore.nyanime.tracking.TrackingPanel(
+                model = rememberScreenModel {
+                    it.lorelore.nyanime.tracking.TrackingPanelModel(true, mangaId, sourceId)
+                },
+                manga = true,
+                entryId = mangaId,
+                title = mangaTitle,
+                sourceId = sourceId,
+                onManageServices = { navigator.push(copy(servicesOnly = true)) },
+                onConnect = {
+                    navigator.push(
+                        eu.kanade.tachiyomi.ui.setting.SettingsScreen(
+                            eu.kanade.tachiyomi.ui.setting.SettingsScreen.Destination.Tracking,
+                        ),
+                    )
+                },
+            )
+            return
+        }
         LegacyMangaTheme { LegacyContent() }
     }
 
@@ -114,6 +136,7 @@ data class MangaTrackInfoDialogHomeScreen(
         val state by screenModel.state.collectAsState()
 
         MangaTrackInfoDialogHome(
+            managementOnly = true,
             trackItems = state.trackItems,
             dateFormat = dateFormat,
             onStatusClick = {

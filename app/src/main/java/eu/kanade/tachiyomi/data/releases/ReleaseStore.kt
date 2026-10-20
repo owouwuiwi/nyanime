@@ -2,10 +2,14 @@ package eu.kanade.tachiyomi.data.releases
 
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.tachiyomi.data.backup.models.BackupReleaseSubscription
+import it.lorelore.nyanime.notifications.ReleaseAlertPolicy
 import kotlinx.coroutines.flow.Flow
 import tachiyomi.data.handlers.anime.AnimeDatabaseHandler
 import tachiyomi.data.handlers.manga.MangaDatabaseHandler
+import tachiyomi.domain.entries.EntryCover
+import tachiyomi.domain.entries.anime.model.AnimeCover
 import tachiyomi.domain.entries.anime.repository.AnimeRepository
+import tachiyomi.domain.entries.manga.model.MangaCover
 import tachiyomi.domain.entries.manga.repository.MangaRepository
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
@@ -84,6 +88,77 @@ class ReleaseStore(
     suspend fun monitoredIds(medium: ReleaseMedium): List<Long> = when (medium) {
         ReleaseMedium.ANIME -> anime.awaitList { releaseMonitorQueries.getMonitoredIds() }
         ReleaseMedium.MANGA -> manga.awaitList { releaseMonitorQueries.getMonitoredIds() }
+    }
+
+    suspend fun alertsAllowed(medium: ReleaseMedium, id: Long, reminder: Boolean): Boolean {
+        val selected = subscription(medium, id)
+        val parent = if (medium == ReleaseMedium.ANIME && selected.mode == FollowMode.AUTO) {
+            Injekt.get<AnimeRepository>().getAnimeById(id).parentId?.takeIf { it > 0 }
+                ?.let { subscription(medium, it) }
+        } else {
+            null
+        }
+        return ReleaseAlertPolicy.allows(selected, ReleasePreferences().explicitAlertsOnly.get(), reminder, parent)
+    }
+
+    data class AlertTitle(
+        val medium: ReleaseMedium,
+        val id: Long,
+        val title: String,
+        val cover: EntryCover,
+        val subscription: ReleaseSubscription,
+        val parent: ReleaseSubscription? = null,
+    ) {
+        val key get() = "${medium.name}:$id"
+    }
+
+    fun alertTitles(medium: ReleaseMedium): Flow<List<AlertTitle>> = when (medium) {
+        ReleaseMedium.ANIME -> anime.subscribeToList {
+            releaseMonitorQueries.getAlertTitles {
+                    id,
+                    title,
+                    cover,
+                    source,
+                    favorite,
+                    modified,
+                    mode,
+                    availability,
+                    reminder,
+                    parentMode,
+                    parentAvailability,
+                    parentReminder,
+                ->
+                AlertTitle(
+                    medium,
+                    id,
+                    title,
+                    AnimeCover(id, source, favorite, cover, modified),
+                    subscription(mode, availability, reminder),
+                    subscription(parentMode, parentAvailability, parentReminder),
+                )
+            }
+        }
+        ReleaseMedium.MANGA -> manga.subscribeToList {
+            releaseMonitorQueries.getAlertTitles {
+                    id,
+                    title,
+                    cover,
+                    source,
+                    favorite,
+                    modified,
+                    mode,
+                    availability,
+                    reminder,
+                ->
+                AlertTitle(
+                    medium,
+                    id,
+                    title,
+                    MangaCover(id, source, favorite, cover, modified),
+                    subscription(mode, availability, reminder),
+                )
+            }
+        }
     }
 
     fun monitoredFlow(medium: ReleaseMedium): Flow<List<Long>> = when (medium) {

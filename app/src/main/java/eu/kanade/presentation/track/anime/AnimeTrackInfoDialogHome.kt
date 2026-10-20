@@ -67,6 +67,7 @@ fun AnimeTrackInfoDialogHome(
     onRemoved: (AnimeTrackItem) -> Unit,
     onCopyLink: (AnimeTrackItem) -> Unit,
     onTogglePrivate: (AnimeTrackItem) -> Unit,
+    managementOnly: Boolean = false,
 ) {
     Column(
         modifier = Modifier
@@ -83,6 +84,7 @@ fun AnimeTrackInfoDialogHome(
                 val supportsReadingDates = item.tracker.supportsReadingDates
                 val supportsPrivate = item.tracker.supportsPrivateTracking
                 TrackInfoItem(
+                    managementOnly = managementOnly,
                     title = item.track.title,
                     tracker = item.tracker,
                     status = (item.tracker as? AnimeTracker)?.getStatusForAnime(item.track.status),
@@ -119,7 +121,7 @@ fun AnimeTrackInfoDialogHome(
                     onCopyLink = { onCopyLink(item) },
                     private = item.track.private,
                     onTogglePrivate = { onTogglePrivate(item) }
-                        .takeIf { supportsPrivate },
+                        .takeIf { supportsPrivate && !managementOnly },
                 )
             } else {
                 TrackInfoItemEmpty(
@@ -133,6 +135,7 @@ fun AnimeTrackInfoDialogHome(
 
 @Composable
 private fun TrackInfoItem(
+    managementOnly: Boolean,
     title: String,
     tracker: Tracker,
     status: StringResource?,
@@ -211,54 +214,56 @@ private fun TrackInfoItem(
             )
         }
 
-        Box(
-            modifier = Modifier
-                .padding(top = 12.dp)
-                .clip(MaterialTheme.shapes.medium)
-                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                .padding(8.dp)
-                .clip(RoundedCornerShape(6.dp)),
-        ) {
-            Column {
-                Row(modifier = Modifier.height(IntrinsicSize.Min)) {
-                    TrackDetailsItem(
-                        modifier = Modifier.weight(1f),
-                        text = status?.let { stringResource(it) } ?: "",
-                        onClick = onStatusClick,
-                    )
-                    VerticalDivider()
-                    TrackDetailsItem(
-                        modifier = Modifier.weight(1f),
-                        text = episodes,
-                        onClick = onEpisodesClick,
-                    )
-                    if (onScoreClick != null) {
+        if (!managementOnly) {
+            Box(
+                modifier = Modifier
+                    .padding(top = 12.dp)
+                    .clip(MaterialTheme.shapes.medium)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                    .padding(8.dp)
+                    .clip(RoundedCornerShape(6.dp)),
+            ) {
+                Column {
+                    Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+                        TrackDetailsItem(
+                            modifier = Modifier.weight(1f),
+                            text = status?.let { stringResource(it) } ?: "",
+                            onClick = onStatusClick,
+                        )
                         VerticalDivider()
                         TrackDetailsItem(
                             modifier = Modifier.weight(1f),
-                            text = score,
-                            placeholder = stringResource(MR.strings.score),
-                            onClick = onScoreClick,
+                            text = episodes,
+                            onClick = onEpisodesClick,
                         )
+                        if (onScoreClick != null) {
+                            VerticalDivider()
+                            TrackDetailsItem(
+                                modifier = Modifier.weight(1f),
+                                text = score,
+                                placeholder = stringResource(MR.strings.score),
+                                onClick = onScoreClick,
+                            )
+                        }
                     }
-                }
 
-                if (onStartDateClick != null && onEndDateClick != null) {
-                    HorizontalDivider()
-                    Row(modifier = Modifier.height(IntrinsicSize.Min)) {
-                        TrackDetailsItem(
-                            modifier = Modifier.weight(1F),
-                            text = startDate,
-                            placeholder = stringResource(MR.strings.track_started_reading_date),
-                            onClick = onStartDateClick,
-                        )
-                        VerticalDivider()
-                        TrackDetailsItem(
-                            modifier = Modifier.weight(1F),
-                            text = endDate,
-                            placeholder = stringResource(MR.strings.track_finished_reading_date),
-                            onClick = onEndDateClick,
-                        )
+                    if (onStartDateClick != null && onEndDateClick != null) {
+                        HorizontalDivider()
+                        Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+                            TrackDetailsItem(
+                                modifier = Modifier.weight(1F),
+                                text = startDate,
+                                placeholder = stringResource(MR.strings.track_started_reading_date),
+                                onClick = onStartDateClick,
+                            )
+                            VerticalDivider()
+                            TrackDetailsItem(
+                                modifier = Modifier.weight(1F),
+                                text = endDate,
+                                placeholder = stringResource(MR.strings.track_finished_reading_date),
+                                onClick = onEndDateClick,
+                            )
+                        }
                     }
                 }
             }

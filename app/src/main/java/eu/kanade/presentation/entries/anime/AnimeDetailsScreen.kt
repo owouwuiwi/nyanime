@@ -336,7 +336,8 @@ internal fun AnimeDetailsScreen(
         onTrackingClicked?.let {
             add(
                 DetailAction(
-                    androidStringResource(R.string.detail_tracking) + " · ${state.trackingCount}",
+                    androidStringResource(R.string.detail_tracking) +
+                        if (state.trackingCount > 0) " · ${state.trackingCount}" else "",
                     TitleDetailsIcons.Checks,
                     it,
                 ),

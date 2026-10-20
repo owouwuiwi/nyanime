@@ -377,6 +377,12 @@ disponibilità e compatibilità dipendono dal servizio scelto.
 
 ## Tracker, backup e privacy
 
+Il [pannello di tracking](tracking-panel.md) unifica stati, progresso, voto e
+opzioni personali per anime e manga. Funziona anche senza account; i servizi
+collegati restano distinti e rispettano le proprie scale e capacità. Il salvataggio
+automatico offre Annulla, coda durevole per le modifiche remote e gestione degli
+errori. La distribuzione della community usa dati pubblici reali quando disponibili.
+
 I servizi di tracking integrati sono **MyAnimeList, AniList, Kitsu, MangaUpdates,
 Shikimori, Simkl e Bangumi**. Per i server personali sono presenti integrazioni con
 **Komga, Kavita, Suwayomi e Jellyfin**. Disponibilità per anime/manga e operazioni

@@ -196,6 +196,20 @@ class BackupCreator(
                 } else {
                     null
                 },
+                personalTracking = if (options.libraryEntries && options.tracking) {
+                    val identities =
+                        backupAnime.map { entry ->
+                            Triple(it.lorelore.nyanime.tracking.TrackingMedium.ANIME, entry.source, entry.url)
+                        }.toSet() +
+                            backupManga.map { entry ->
+                                Triple(it.lorelore.nyanime.tracking.TrackingMedium.MANGA, entry.source, entry.url)
+                            }
+                    it.lorelore.nyanime.tracking.PersonalTrackingStore.get(context).snapshot().filter { record ->
+                        Triple(record.subject.medium, record.subject.source, record.subject.url) in identities
+                    }
+                } else {
+                    emptyList()
+                },
             )
 
             val byteArray = parser.encodeToByteArray(Backup.serializer(), backup)
