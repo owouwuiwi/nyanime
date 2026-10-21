@@ -10,6 +10,11 @@ object SyncMaintenancePolicy {
     const val PROOF_LIFETIME_SECONDS = 86_400L
     const val BATCH_SIZE = 20
 
+    /** Suppress only an unsent revision already causally replaced in this exact field. */
+    fun superseded(change: SyncChange, frontier: SyncRegister?): Boolean = frontier != null &&
+        frontier.versions.none { it.dot == change.dot } &&
+        covered(change, frontier)
+
     fun covered(change: SyncChange, checkpoint: SyncRegister?): Boolean {
         change.validate()
         if (checkpoint == null ||

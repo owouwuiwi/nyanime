@@ -344,12 +344,12 @@ class CloudSyncTransportTest {
         }
         var retained: SyncDelivery? = null
         val transport =
-            TelegramSyncTransport(context, client, 1, -100, space) {
+            TelegramSyncTransport(context, client, 1, -100, space, retained = {
                 retained?.takeIf { item ->
                     item.receipt.messageId ==
                         it
                 }
-            }
+            })
         val receipt = transport.send(packet) { assertEquals(100L, it) }
         assertEquals(100L, receipt.messageId)
         assertTrue(original.isFile, "A server receipt does not mean the history has been staged locally")

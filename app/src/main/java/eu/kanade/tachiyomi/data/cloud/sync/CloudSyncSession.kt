@@ -3,7 +3,6 @@ package eu.kanade.tachiyomi.data.cloud.sync
 import android.content.Context
 import eu.kanade.tachiyomi.data.telegram.TelegramClient
 import it.lorelore.nyanime.cloud.sync.SyncMaintenanceIndex
-import it.lorelore.nyanime.cloud.sync.SyncMaintenancePolicy
 import it.lorelore.nyanime.cloud.sync.SyncWorkProgress
 import it.lorelore.nyanime.cloud.sync.SyncWorkStage
 import it.lorelore.nyanime.cloud.sync.SyncWorkUnit
@@ -45,6 +44,7 @@ internal class CloudSyncSession(
         keys.chat,
         keys.space,
         files::retainedDelivery,
+        files,
     )
     val checkpoints = CloudSyncCheckpoints(store, files, transport, device)
     val maintenanceIndex = SyncMaintenanceIndex(context, keys.account, keys.space, keys.chat)
@@ -125,11 +125,9 @@ internal class CloudSyncSession(
             val next = store.nextMessage(cursor)?.takeIf { it <= through } ?: break
             val delivery = files.delivery(next)
             require(delivery.receipt.messageId == next)
-            if (delivery.packet.kind == "commit") {
-                val commit = checkpoints.verifiedCommit(delivery, keys)
-                if (commit?.epoch == keys.epoch && commit.maintenanceVersion >= SyncMaintenancePolicy.VERSION) {
-                    store.state("maintenance-capability/${keys.epoch}/${commit.author}", next.toString())
-                    if (maintenanceIndex.plan() == null) maintenanceIndex.put("next", "0")
+            if (delivery.packet.kind in setOf("commit", "capability")) {
+                if (checkpoints.registerCapability(delivery, keys) && maintenanceIndex.plan() == null) {
+                    maintenanceIndex.put("next", "0")
                 }
             }
             try {
@@ -202,7 +200,8 @@ internal class CloudSyncSession(
                 require(envelope.epoch <= keys.epoch)
                 if (store.state("checkpoint") != packet.id) checkpoints.restore(delivery, keys)
             }
-            "checkpoint", "pairing", "recovery" -> Unit // Parts become data only via a verified complete commit.
+            // Capabilities were verified above; parts have no independent data authority.
+            "capability", "checkpoint", "checkpoint-pack", "pairing", "recovery" -> Unit
             else -> error("Unsupported synchronization packet")
         }
     }

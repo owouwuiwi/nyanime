@@ -66,7 +66,10 @@ internal fun CloudWorkProgress(progress: SyncWorkProgress) {
 }
 
 @Composable
-internal fun CloudMaintenanceProgress(status: SyncMaintenanceStatus) {
+internal fun CloudMaintenanceProgress(
+    status: SyncMaintenanceStatus,
+    packing: it.lorelore.nyanime.cloud.sync.SyncPackingStatus,
+) {
     Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceContainer) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
@@ -89,6 +92,27 @@ internal fun CloudMaintenanceProgress(status: SyncMaintenanceStatus) {
                 else -> R.string.cloud_sync_maintenance_waiting
             }
             Text(stringResource(message), style = MaterialTheme.typography.bodyMedium)
+            if (packing.totalDevices > 0) {
+                Text(
+                    if (packing.ready) {
+                        stringResource(R.string.cloud_packing_ready)
+                    } else {
+                        stringResource(R.string.cloud_packing_waiting, packing.supportedDevices, packing.totalDevices)
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (packing.documents > 0) {
+                    ProgressLine(R.string.cloud_packing_copy, packing.documents, packing.chunks)
+                }
+                if (packing.format == 2) {
+                    Text(
+                        stringResource(R.string.cloud_packing_retention),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
             if (status.totalParts > 0) {
                 ProgressLine(R.string.cloud_maintenance_parts, status.verifiedParts, status.totalParts)
                 if (status.phase == SyncMaintenancePhase.VERIFYING) {

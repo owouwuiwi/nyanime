@@ -25,16 +25,33 @@ class CloudSyncDeviceProbe : Instrumentation() {
     private var localState = false
     private var cleanupOnly = false
     private var remoteMaintenance = false
+    private var localCompaction = false
     override fun onCreate(arguments: Bundle?) {
         localState = arguments?.getString("localState") == "true"
         cleanupOnly = arguments?.getString("cleanupOnly") == "true"
         remoteMaintenance = arguments?.getString("remoteMaintenance") == "true"
+        localCompaction = arguments?.getString("localCompaction") == "true"
         super.onCreate(arguments)
         start()
     }
 
     override fun onStart() {
         val report = Bundle()
+        if (localCompaction) {
+            val probe = CloudCompactionDeviceProbe(targetContext)
+            try {
+                report.putString("stream", kotlinx.coroutines.runBlocking { probe.run() })
+                finish(Activity.RESULT_OK, report)
+            } catch (error: Throwable) {
+                report.putString(
+                    "stream",
+                    "${probe.stage}: ${error.javaClass.simpleName}: ${error.message?.take(240)} at " +
+                        error.stackTrace.take(6).joinToString(),
+                )
+                finish(Activity.RESULT_CANCELED, report)
+            }
+            return
+        }
         if (localState || cleanupOnly) {
             try {
                 val result = if (cleanupOnly) {

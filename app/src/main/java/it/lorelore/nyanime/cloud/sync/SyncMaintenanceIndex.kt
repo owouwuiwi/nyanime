@@ -14,7 +14,12 @@ import java.io.File
 import java.util.UUID
 
 @Serializable
-internal data class MaintenanceProof(val delivery: SyncDelivery, val commit: SyncCheckpointCommit, val part: Int = 0)
+internal data class MaintenanceProof(
+    val delivery: SyncDelivery,
+    val commit: SyncCheckpointCommit,
+    val part: Int = 0,
+    val chunk: Int = 0,
+)
 
 @Serializable
 internal data class MaintenanceCandidate(
@@ -23,6 +28,8 @@ internal data class MaintenanceCandidate(
     val part: Int = 0,
     val deleting: Boolean = false,
     val deletedParts: Int = 0,
+    val chunk: Int = 0,
+    val deletedChunk: Int = 0,
 )
 
 @Serializable

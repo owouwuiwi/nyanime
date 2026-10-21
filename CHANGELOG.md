@@ -10,6 +10,15 @@ identificano modifiche nel repository, non garantiscono che ogni commit sia stat
 distribuito come APK.
 
 
+## 21 ottobre 2026 — 0.53.0.0: recupero compatto su Telegram
+
+- Le copie di recupero possono riunire fino a 128 blocchi cifrati in un documento indicizzato, letto a blocchi e senza caricare l’intera libreria in memoria. Firme, cifratura e verifica del contenuto restano obbligatorie.
+- Il formato compatto si attiva dopo la conferma firmata di tutti i dispositivi autorizzati. Durante la transizione restano disponibili le copie precedenti; i client vecchi non possono consumare un formato non supportato.
+- Le modifiche non ancora inviate e già sostituite causalmente vengono accorpate. Restano distinti i cambiamenti concorrenti offline e i campi diversi; gli invii incerti mantengono la propria identità.
+- Le copie già preparate da una versione precedente vengono completate senza riscriverne i dati. La conferma del nuovo formato avviene separatamente; gli invii interrotti recuperano il file atomico prima di verificarne l’identità.
+- La schermata mostra compatibilità dei dispositivi e documenti/blocchi dell’ultima copia. La verifica e la pulizia riprendono anche all’interno di un contenitore, mantenendo due recuperi completi e almeno sette giorni di protezione.
+- Non vengono eliminate copie manuali, messaggi estranei, file fissati o dati non coperti dalle copie verificate. Nessuna nuova dipendenza o modifica alle fonti.
+
 ## 21 ottobre 2026 — 0.52.1.0: sincronizzazione più chiara
 
 ### Correzioni

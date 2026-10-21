@@ -26,7 +26,7 @@ capabilities bypass the ordinary scan delay, never a Telegram error backoff.
   remain. Root, control, pairing and recovery messages are never garbage-collected.
 - Old checkpoint parts are eligible only after every current member has signed an optional
   `maintenanceVersion=1` checkpoint in the current epoch. The latest declaration per member
-  is retained with its complete parts, in addition to the two recovery checkpoints. A new or
+  is retained with its complete parts during legacy operation, in addition to the two recovery checkpoints. A new or
   old offline member blocks checkpoint removal until it upgrades and declares support.
 - Immediately before deleting a superseded checkpoint, the archive descriptor gains a fourth
   `maintenance=1` line. Old three-line-only clients fail archive validation before reading
@@ -50,6 +50,21 @@ capabilities bypass the ordinary scan delay, never a Telegram error backoff.
 Verification must distinguish unit/fake-transport and isolated SQLite device probes from
 real two-account/long-offline recovery. Compilation alone is not evidence of remote deletion
 or complete cross-device recovery. See issue #33 for the delivery evidence and limits.
+
+### Compact recovery (0.53)
+
+The [packed recovery format](telegram-sync-packing.md) preserves these causal and deletion rules.
+Unsent operations already replaced in the same field are omitted before encryption; assigned
+outbox bytes remain immutable. Recovery containers hold bounded, separately authenticated
+legacy blocks. Two complete recovery proofs and the seven-day minimum age remain mandatory.
+
+Every current member must advertise a signed reader capability before the `maintenance=2`
+archive fence and packed writes. The original author also signs a small portable capability,
+bound to the account and exact membership control. Once fenced, another member can relay this
+proof without relaying the old full checkpoint. Such a carrier is data-neutral and takes priority
+as the compatibility anchor, allowing an offline author's obsolete full copy to retire safely.
+Unknown readers must upgrade before accessing the fenced archive. Actual independent-client
+validation remains distinct from the isolated stores on one physical phone described below.
 
 The synchronization protocol is in `core/telegram/.../sync`. It does not depend on an Android
 database schema, a content catalog, an extension implementation or a player. Android adapters

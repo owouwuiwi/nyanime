@@ -160,7 +160,7 @@ internal fun CloudSyncStatusCard(
                 }
             }
             status.progress?.let { CloudWorkProgress(it) }
-            CloudMaintenanceProgress(status.maintenance)
+            CloudMaintenanceProgress(status.maintenance, status.packing)
             if (status.retryAt > 0 &&
                 status.phase in setOf(
                     CloudSyncPhase.NETWORK,

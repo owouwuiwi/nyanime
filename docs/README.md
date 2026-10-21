@@ -6,6 +6,9 @@ I documenti tecnici in inglese conservano i nomi delle API e dei componenti.
 
 ## Novità recenti
 
+La versione 0.53 aggiunge il [recupero compatto su Telegram](telegram-sync-packing.md):
+contenitori cifrati, accordo fra i dispositivi e accorpamento delle modifiche già sostituite.
+
 La versione 0.52.1.0 rende visibile il [lavoro del sync e della pulizia Telegram](telegram-sync-maintenance.md),
 con progressi persistenti e meno copie complete ridondanti.
 
@@ -40,6 +43,7 @@ con download completo di ripiego e compatibilità con gli aggiornatori precedent
 | [Aggiornamenti e storico](update-history.md) | Versioni intermedie, note suddivise per categoria e cronologia completa anche offline. |
 | [Nyanime Cloud](telegram-cloud.md) | Account Telegram condiviso, backup privati, ripristino e configurazione di sviluppo. |
 | [Avanzamento e pulizia del sync](telegram-sync-maintenance.md) | Contatori verificati, attese, ripresa e conservazione dello storico. |
+| [Recupero compatto](telegram-sync-packing.md) | Formato a blocchi, migrazione dei dispositivi e verifiche della compattazione. |
 | [Sincronizzazione personale](cloud-sync-protocol.md) | Associazione dei dispositivi, dati portabili, cifratura, conflitti e verifiche. |
 | [Trasferimento del repository](repository-migration.md) | Nuovo proprietario, continuità degli aggiornamenti e dei collegamenti. |
 | [Aiuto](support.md) | Archiviazione, migrazione, tracker e risoluzione dei problemi. |

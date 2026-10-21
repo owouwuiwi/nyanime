@@ -4,7 +4,7 @@ data class SyncArchiveDescriptor(val space: String, val rootMessage: Long, val m
     fun encode(): String {
         requireSyncId(space)
         require(rootMessage >= 0) // Zero is an explicitly unfinished, resumable setup.
-        require(maintenanceVersion in 0..1)
+        require(maintenanceVersion in 0..2)
         require(maintenanceVersion == 0 || rootMessage > 0)
         return "${SyncEnvelope.ARCHIVE_MARKER}\n$space\n$rootMessage" +
             if (maintenanceVersion > 0) "\nmaintenance=$maintenanceVersion" else ""
@@ -15,8 +15,8 @@ data class SyncArchiveDescriptor(val space: String, val rootMessage: Long, val m
             val lines = description.lines()
             require(lines.size in 3..4 && lines[0] == SyncEnvelope.ARCHIVE_MARKER)
             val maintenance = if (lines.size == 4) {
-                require(lines[3] == "maintenance=1")
-                1
+                require(lines[3] in setOf("maintenance=1", "maintenance=2"))
+                lines[3].substringAfter('=').toInt()
             } else {
                 0
             }

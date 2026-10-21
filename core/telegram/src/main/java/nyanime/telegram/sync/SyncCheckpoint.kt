@@ -18,7 +18,7 @@ data class SyncCheckpointChunk(
 }
 
 @Serializable
-data class SyncCheckpointPart(val id: String, val hash: String, val messageId: Long)
+data class SyncCheckpointPart(val id: String, val hash: String, val messageId: Long, val chunks: Int = 1)
 
 @Serializable
 data class SyncCheckpointCommit(
@@ -31,17 +31,26 @@ data class SyncCheckpointCommit(
     val parts: List<SyncCheckpointPart>,
     /** Optional signed capability; version-1 clients ignore this field and retain their wire format. */
     val maintenanceVersion: Int = 0,
+    /** Signed reader capability; legacy writers continue working during migration. */
+    val packingVersion: Int = 0,
+    val formatVersion: Int = 1,
+    val readerCapability: SyncSignedReaderCapability? = null,
 ) {
     fun validate() {
         require(version == 1 && epoch > 0 && throughMessage >= 0)
         require(maintenanceVersion >= 0)
+        require(packingVersion >= 0 && formatVersion in 1..2)
+        require(formatVersion == 1 || packingVersion >= 1)
+        require(packingVersion == 0 || readerCapability != null)
         requireSyncId(id)
         requireSyncId(space)
         requireSyncId(author)
         require(parts.size <= 4096 && parts.map { it.id }.distinct().size == parts.size)
+        require(parts.sumOf { it.chunks.toLong() } <= 4096)
         parts.forEach {
             requireSyncId(it.id)
             require(it.messageId > 0 && it.hash.matches(Regex("[a-f0-9]{64}")))
+            require(it.chunks in 1..128 && (formatVersion == 2 || it.chunks == 1))
         }
     }
 }
@@ -68,6 +77,11 @@ object SyncCheckpoints {
         require(commit.space == membership.space && commit.epoch == membership.epoch)
         val author = membership.devices[commit.author] ?: error("Checkpoint author is no longer authorized")
         require(SyncDeviceCrypto.verify(author, binding(account, signed.payload), signed.signature))
+        commit.readerCapability?.let {
+            val reader = SyncReaderCapabilities.verify(it, account, membership)
+            require(reader.author == commit.author && reader.packingVersion == commit.packingVersion)
+            require(reader.maintenanceVersion == commit.maintenanceVersion)
+        }
         return commit
     }
 

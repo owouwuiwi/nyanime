@@ -99,7 +99,10 @@ class SyncMaintenancePolicyTest {
         val fenced = old.copy(maintenanceVersion = 1)
         assertEquals(4, fenced.encode().lines().size)
         assertEquals(fenced, SyncArchiveDescriptor.parse(fenced.encode()))
-        assertNull(SyncArchiveDescriptor.parse(old.encode() + "\nmaintenance=2"))
+        val packed = old.copy(maintenanceVersion = 2)
+        assertEquals(packed, SyncArchiveDescriptor.parse(packed.encode()))
+        assertTrue(packed.encode().lines()[3] != "maintenance=1") // A v1-only reader rejects this fence.
+        assertNull(SyncArchiveDescriptor.parse(old.encode() + "\nmaintenance=3"))
     }
 
     @Test fun randomizedDeliveryAfterCompactionConvergesWithConcurrentAndUnsentEdits() {

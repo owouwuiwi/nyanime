@@ -28,6 +28,7 @@ internal data class CloudSyncStatus(
     val lastVerified: Long = 0,
     val retryAt: Long = 0,
     val devices: List<CloudSyncDevice> = emptyList(),
+    val packing: it.lorelore.nyanime.cloud.sync.SyncPackingStatus = it.lorelore.nyanime.cloud.sync.SyncPackingStatus(),
     val maintenance: it.lorelore.nyanime.cloud.sync.SyncMaintenanceStatus =
         it.lorelore.nyanime.cloud.sync.SyncMaintenanceStatus(),
 ) {

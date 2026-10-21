@@ -6,13 +6,15 @@ Data synchronization and history maintenance have independent status. A successf
 
 The existing rebuildable maintenance SQLite index stores the typed plan and its verified chunk cursors atomically with exact causal coverage. Additional optional fields retain a bounded page queue (at most twenty IDs), per-pass examined/protected/young/uncovered counts, confirmed removals and the last completed activity. Old plans deserialize with defaults. Per-pass counts are distinct from lifetime confirmed removals. Queued candidates survive process death; every destructive request rechecks ownership, archive privacy, pin status, exact payload and permissions.
 
-A changed signed capability set appends the newly required device proofs without resetting verified chunks. Membership epoch changes and expired causal proofs still invalidate the corresponding proof. No capability is inferred from app version alone.
+A changed signed capability set adds or replaces the required device proofs without resetting verified chunks. Matched checked anchors remain checked; a newly selected anchor is checked again. Membership epoch changes and expired causal proofs still invalidate the corresponding proof. No capability is inferred from app version alone.
 
 ## Snapshot growth
 
 A backlog above 256 changes is not a checkpoint trigger. Ordinary deltas drain it. Initial creation, membership capability announcements and interrupted checkpoint uploads retain their explicit reasons. Daily rotation requires pending changes and uses the latest complete verified archive checkpoint, including a peer copy. Concurrent publishers can still race, but an unchanged library is not uploaded on every sync tick.
 
 Deletion requires two independently verified complete checkpoints, exact causal coverage, at least seven days of age, current authorized membership and unpinned owned messages. A successful delete request is followed by checking absence; an uncertain result keeps the candidate and is not reported as removed. A growing chat can still be expected during the initial seven-day retention period, proof verification or incompatible device protection. No finite archive-size guarantee is implied while edits continue.
+
+The [0.53 container layout](telegram-sync-packing.md) groups physical documents while preserving bounded logical-block work. Proof, candidate and deletion cursors include the block position inside a container. Causal coverage is checked for every block before removal. Compact portable reader signatures can replace full-copy compatibility anchors only after unanimous signed support and the newer archive fence; they never act as data recovery copies.
 
 ## Verification
 

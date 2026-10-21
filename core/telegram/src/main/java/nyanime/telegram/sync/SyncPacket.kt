@@ -7,7 +7,19 @@ import kotlinx.serialization.Serializable
 data class SyncPacket(val version: Int = 1, val kind: String, val id: String, val space: String, val payload: String) {
     fun validate() {
         require(version == 1)
-        require(kind in setOf("root", "control", "data", "checkpoint", "commit", "pairing", "recovery"))
+        require(
+            kind in setOf(
+                "root",
+                "control",
+                "data",
+                "checkpoint",
+                "checkpoint-pack",
+                "commit",
+                "capability",
+                "pairing",
+                "recovery",
+            ),
+        )
         requireSyncId(id)
         requireSyncId(space)
         require(payload.length in 1..SyncEnvelope.MAX_ENCODED_SIZE)

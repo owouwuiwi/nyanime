@@ -26,6 +26,7 @@ import nyanime.telegram.sync.SyncRef
 import nyanime.telegram.sync.syncJson
 import nyanime.telegram.tdRequest
 import nyanime.telegram.text
+import nyanime.telegram.type
 import java.io.File
 import java.util.UUID
 import kotlin.random.Random
@@ -39,6 +40,7 @@ internal class CloudMaintenanceServerProbe(private val context: Context) {
     var engineIdentity = "unknown"
         private set
     suspend fun run(): String = withTimeout(8 * 60_000) {
+        check(eu.kanade.tachiyomi.BuildConfig.ISOLATED_CLOUD_PROBE)
         val cloud = CloudRepository.get(context)
         val client = cloud.client
         val lease = client.retain()
@@ -130,7 +132,26 @@ internal class CloudMaintenanceServerProbe(private val context: Context) {
             )
             stage = "publish-first-checkpoint"
             stage = "server-step-3"
+            val rewritten = SyncRef("probe-rewritten", 31, "/rewritten")
+            for (position in listOf(10, 20, 30)) {
+                first.store.capture(rewritten, mapOf("position" to JsonPrimitive(position)), 1)
+            }
+            repeat(220) { row ->
+                first.store.capture(
+                    SyncRef("probe-packed", 31, "/item/$row"),
+                    mapOf(
+                        "position" to JsonPrimitive(row),
+                        "read" to JsonPrimitive(false),
+                        "bookmark" to JsonPrimitive(false),
+                        "name" to JsonPrimitive("Synthetic item $row"),
+                        "seenAt" to JsonPrimitive(1000L + row),
+                    ),
+                    1,
+                )
+            }
+            check(!first.checkpoints.packingReady(first.keys)) // The offline member has not announced support.
             val older = first.checkpoints.publish(first.keys)
+            check(requireNotNull(first.checkpoints.verifiedCommit(older, first.keys)).formatVersion == 1)
             stage = "pull-then-publish-second-checkpoint"
             stage = "server-step-4"
             while (!first.pull()) delay(25)
@@ -163,14 +184,35 @@ internal class CloudMaintenanceServerProbe(private val context: Context) {
             stage = "server-step-13"
             while (!second.pull()) delay(25)
             stage = "server-step-14"
-            second.checkpoints.publish(second.keys)
+            val peerLegacy = second.checkpoints.publish(second.keys)
+            check(requireNotNull(second.checkpoints.verifiedCommit(peerLegacy, second.keys)).formatVersion == 1)
             stage = "pull-then-publish-second-checkpoint"
             stage = "server-step-15"
             while (!first.pull()) delay(25)
             stage = "server-step-16"
-            first.checkpoints.publish(first.keys)
+            check(first.checkpoints.packingReady(first.keys))
+            val packedFirst = first.checkpoints.publish(first.keys)
+            val firstPack = requireNotNull(first.checkpoints.verifiedCommit(packedFirst, first.keys))
+            check(firstPack.formatVersion == 2 && firstPack.parts.size == 1 && firstPack.parts.sumOf { it.chunks } > 1)
             stage = "server-step-17"
             while (!first.pull()) delay(25)
+            stage = "second-packed-copy-and-portable-proof-anchors"
+            val packedSecond = first.checkpoints.publish(first.keys)
+            val secondPack = requireNotNull(first.checkpoints.verifiedCommit(packedSecond, first.keys))
+            check(secondPack.formatVersion == 2 && secondPack.parts.size == 1 && secondPack.id != firstPack.id)
+            while (!first.pull()) delay(25)
+            val carriers = first.store.messagesOfKind("capability", limit = 128)
+            check(carriers.size >= 2)
+            for (message in carriers) {
+                val value = client.request(
+                    tdRequest(
+                        "getMessage",
+                        "chat_id" to JsonPrimitive(createdChat),
+                        "message_id" to JsonPrimitive(message),
+                    ),
+                )
+                check(value.objectOrNull("content")?.type() == "messageText")
+            }
             stage = "server-step-18"
             val personal = client.request(
                 tdRequest(
@@ -253,6 +295,10 @@ internal class CloudMaintenanceServerProbe(private val context: Context) {
             val removedIds = beforeCleanup.keys - afterCleanup.keys
             val actualRemoved = removedIds.size.toLong()
             val documentBytesRemoved = removedIds.sumOf { beforeCleanup.getValue(it) }
+            val beforeDocuments = beforeCleanup.count { it.value > 0 }
+            val afterDocuments = afterCleanup.count { it.value > 0 }
+            check(afterDocuments < beforeDocuments)
+            check((firstPack.parts + secondPack.parts).all { afterCleanup.getValue(it.messageId) > 0 })
             check(documentBytesRemoved > 0)
             check(actualRemoved >= 3)
             check(first.maintenanceIndex.value("removed")?.toLongOrNull() == actualRemoved)
@@ -263,6 +309,7 @@ internal class CloudMaintenanceServerProbe(private val context: Context) {
             check(transport.maintenanceMessage(redundantData) == null)
             stage = "verify-obsolete-checkpoint-removed"
             check(transport.maintenanceMessage(older.receipt.messageId) == null)
+            check(transport.maintenanceMessage(peerLegacy.receipt.messageId) == null)
             stage = "verify-protected-messages"
             check(transport.maintenanceMessage(pinnedData)?.pinned == true)
             check(transport.message(rootId).packet.kind == "root")
@@ -300,6 +347,12 @@ internal class CloudMaintenanceServerProbe(private val context: Context) {
             check(recovered.fields.getValue("position").versions.size == 3)
             check(third.store.record(extraRef)!!.fields.getValue("favorite").resolved()!!.value == JsonPrimitive(true))
             check(third.store.pendingCount() == 1L)
+            val recoveredPosition = third.store.record(rewritten)!!.fields.getValue("position").versions.single().value
+            check(recoveredPosition == JsonPrimitive(30))
+            check(
+                third.store.record(SyncRef("probe-packed", 31, "/item/219"))!!
+                    .fields.getValue("position").resolved()!!.value == JsonPrimitive(219),
+            )
             second.store.capture(ref, mapOf("position" to JsonPrimitive(3)), 5)
             stage = "revocation"
             check(first.changeDevices(remove = deviceB.public.id))
@@ -309,6 +362,8 @@ internal class CloudMaintenanceServerProbe(private val context: Context) {
             check(second.store.pendingCount() > 0)
             stage = "completed"
             "PASS: actualRemoved=$actualRemoved; documentBytesRemoved=$documentBytesRemoved; " +
+                "beforeDocuments=$beforeDocuments; afterDocuments=$afterDocuments; packedRecoveryDocuments=2; " +
+                "portableProofsAreText=true; overwrittenValueRecovered=30; offlineLegacyAnchorRetired=true; " +
                 "examined=${cleaner.status.examined}; " +
                 "verifiedParts=${cleaner.status.verifiedParts}/${cleaner.status.totalParts}; " +
                 "real private test archive; document transport, two checkpoint coverage, pinned and unrelated " +

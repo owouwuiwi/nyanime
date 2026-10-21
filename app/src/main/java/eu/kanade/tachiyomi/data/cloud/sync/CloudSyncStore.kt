@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import it.lorelore.nyanime.cloud.sync.SyncMaintenancePolicy
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import nyanime.telegram.sync.SyncBatch
@@ -189,6 +190,7 @@ internal class CloudSyncStore(context: Context, account: Long, private val space
         db.delete("wire", null, null)
         db.delete("inbox", null, null)
         db.delete("state", "key LIKE 'maintenance-%'", null)
+        db.delete("state", "key LIKE 'packing-%'", null)
         listOf(
             "received", "processed", "pull-before", "pull-top", "compact-through", "compacted-through",
             "checkpoint", "checkpoint-pending", "lastCheckpoint", "archive-last-checkpoint", "progress-receive-pages",
@@ -230,7 +232,12 @@ internal class CloudSyncStore(context: Context, account: Long, private val space
 
     /** Validation of every encrypted chunk must finish before entering this transaction. */
     @Synchronized
-    fun restoreSnapshot(checkpoint: String, message: Long, chunks: Sequence<List<SyncChange>>) = transaction { db ->
+    fun restoreSnapshot(
+        checkpoint: String,
+        message: Long,
+        chunks: Sequence<List<SyncChange>>,
+        onChunkApplied: (Long) -> Unit = {},
+    ) = transaction { db ->
         require(UUID.fromString(checkpoint).toString() == checkpoint && message > 0)
         chunks.forEachIndexed { index, changes ->
             changes.groupBy { it.dot.device }.forEach { (author, values) ->
@@ -240,6 +247,7 @@ internal class CloudSyncStore(context: Context, account: Long, private val space
                 val batch = SyncBatch(id = id, space = space, device = author, changes = values)
                 receive(batch, SyncCheckpoints.hash(syncJson.encodeToString(batch)), message)
             }
+            onChunkApplied(index + 1L)
         }
         replace(db, "state", "key" to "checkpoint", "value" to checkpoint)
     }
@@ -403,6 +411,8 @@ internal class CloudSyncStore(context: Context, account: Long, private val space
         val existing = value(db, "outbox", "data", null, null)
         if (existing != null) return@transaction syncJson.decodeFromString<Pending>(existing)
         var bytes = 0
+        val superseded = mutableListOf<SyncDot>()
+        val records = linkedMapOf<String, SyncRecord?>()
         val changes = db.query(
             "changes",
             arrayOf("data"),
@@ -411,16 +421,36 @@ internal class CloudSyncStore(context: Context, account: Long, private val space
             null,
             null,
             "sequence",
-            "1024",
+            "4096",
         ).use { cursor ->
             buildList {
                 while (cursor.moveToNext()) {
                     val data = cursor.getString(0)
+                    val change = syncJson.decodeFromString<SyncChange>(data)
+                    val ref = change.ref.key()
+                    if (ref !in records) {
+                        if (records.size == 16) records.remove(records.keys.first())
+                        records[ref] = record(db, ref)
+                    }
+                    val frontier = records[ref]?.fields?.get(change.field)
+                    if (SyncMaintenancePolicy.superseded(change, frontier)) {
+                        superseded += change.dot
+                        continue
+                    }
                     bytes += data.toByteArray(Charsets.UTF_8).size
                     if (isNotEmpty() && bytes > 2 * 1024 * 1024) break
-                    add(syncJson.decodeFromString<SyncChange>(data))
+                    add(change)
+                    if (size == 1024) break
                 }
             }
+        }
+        // Only unassigned, causally superseded edits can be omitted. Never mutate an uncertain upload.
+        // Keep the digest so delayed delivery cannot reuse a revision with different content.
+        superseded.forEach { dot ->
+            db.execSQL(
+                "UPDATE changes SET outgoing=0, data=NULL WHERE device=? AND sequence=? AND batch IS NULL AND outgoing=1",
+                arrayOf<Any>(dot.device, dot.sequence),
+            )
         }
         if (changes.isEmpty()) return@transaction null
         val batch = SyncBatch(id = UUID.randomUUID().toString(), space = space, device = device(), changes = changes)

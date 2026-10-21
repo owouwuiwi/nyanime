@@ -282,6 +282,8 @@ internal class CloudSyncManager private constructor(private val context: Context
                 if (checkpointDue ||
                     current.store.state("initial-checkpoint") == "true" ||
                     current.store.state("maintenance-announced") != current.keys.membership.control ||
+                    current.store.state("packing-announced") != current.keys.membership.control ||
+                    current.checkpoints.packingMigrationDue(current.keys) ||
                     !current.store.state("checkpoint-pending").isNullOrEmpty()
                 ) {
                     if (RinSessions.busy.value) {
@@ -651,6 +653,8 @@ internal class CloudSyncManager private constructor(private val context: Context
             lastConfirmed = current?.store?.state("lastSent")?.toLongOrNull() ?: 0,
             lastVerified = current?.store?.state("lastVerified")?.toLongOrNull() ?: 0,
             devices = devices,
+            packing =
+            current?.checkpoints?.packingStatus(current.keys) ?: it.lorelore.nyanime.cloud.sync.SyncPackingStatus(),
             maintenance = (maintenance?.status ?: it.lorelore.nyanime.cloud.sync.SyncMaintenanceStatus()).let {
                 when (phase) {
                     CloudSyncPhase.OFF, CloudSyncPhase.PAUSED, CloudSyncPhase.WAITING_IDLE ->

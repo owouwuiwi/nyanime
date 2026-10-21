@@ -5,6 +5,7 @@ import eu.kanade.tachiyomi.data.cloud.sync.CloudSyncSession
 import eu.kanade.tachiyomi.data.cloud.sync.SyncMaintenanceMessage
 import eu.kanade.tachiyomi.data.cloud.sync.SyncMaintenancePage
 import eu.kanade.tachiyomi.data.cloud.sync.TelegramSyncTransport
+import eu.kanade.tachiyomi.data.cloud.sync.VerifiedSyncSupport
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -276,8 +277,8 @@ class CloudSyncMaintenanceTest {
         val cap = f.proof(150)
         every { f.session.store.state("maintenance-capability/1/${f.device.public.id}") } returns "150"
         coEvery { f.transport.maintenanceMessage(150) } returns SyncMaintenanceMessage(cap.delivery, false)
-        every { f.session.checkpoints.verifiedCommit(cap.delivery, f.keys) } returns
-            cap.commit.copy(maintenanceVersion = 1)
+        every { f.session.checkpoints.verifiedCapability(cap.delivery, f.keys) } returns
+            VerifiedSyncSupport(cap.commit.author, cap.commit.epoch, 1, 0)
         val part = SyncCheckpointPart(UUID.randomUUID().toString(), "0".repeat(64), 90)
         f.plan =
             f.plan.copy(
@@ -293,6 +294,29 @@ class CloudSyncMaintenanceTest {
         assertTrue(f.plan.proofs.all { it.part == 1 })
         assertEquals(1, f.plan.checkedAnchors)
         assertEquals(1, engine.status.compatibleDevices)
+        io.mockk.verify(exactly = 0) { f.index.reset(any()) }
+        coVerify(exactly = 0) { f.transport.maintenanceDelete(any()) }
+    }
+
+    @Test fun aCompactProofCanReplaceAnOldFullAnchorWithoutResettingCausalCoverage() = runTest {
+        val f = Fixture()
+        val cap = f.proof(150)
+        val oldProofs = f.plan.proofs
+        f.plan = f.plan.copy(
+            anchors = listOf(120),
+            checkedAnchors = 1,
+            capabilities = mapOf(f.device.public.id to 120),
+            complete = true,
+        )
+        f.state["next"] = (f.now + 80_000).toString()
+        every { f.session.store.state("maintenance-capability/1/${f.device.public.id}") } returns "150"
+        coEvery { f.transport.maintenanceMessage(150) } returns SyncMaintenanceMessage(cap.delivery, false)
+        every { f.session.checkpoints.verifiedCapability(cap.delivery, f.keys) } returns
+            VerifiedSyncSupport(f.device.public.id, 1, 1, 1)
+        f.engine.step()
+        assertEquals(listOf(150L), f.plan.anchors)
+        assertEquals(1, f.plan.checkedAnchors)
+        assertEquals(oldProofs, f.plan.proofs)
         io.mockk.verify(exactly = 0) { f.index.reset(any()) }
         coVerify(exactly = 0) { f.transport.maintenanceDelete(any()) }
     }

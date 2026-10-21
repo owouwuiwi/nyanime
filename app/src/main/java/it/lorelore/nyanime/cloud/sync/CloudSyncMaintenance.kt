@@ -64,7 +64,7 @@ internal class CloudSyncMaintenance(
                 publish(SyncMaintenancePhase.RETRY, wait = retryReason())
                 return
             }
-            val capabilityChanged = index.plan()?.let { it.capabilities.keys != capabilityAnchors().keys } == true
+            val capabilityChanged = index.plan()?.let { it.capabilities != capabilityAnchors() } == true
             if (!idleBatch && !capabilityChanged && now() < (index.value("next")?.toLongOrNull() ?: 0)) {
                 publish(status.phase, wait = SyncMaintenanceWait.INTERVAL)
                 return
@@ -108,19 +108,20 @@ internal class CloudSyncMaintenance(
                     capabilities = capabilityAnchors(),
                     lastActivity = now(),
                     candidate = plan?.takeIf { it.control == keys.membership.control }?.candidate?.let {
-                        if (it.deleting) it else it.copy(part = 0)
+                        if (it.deleting) it.copy(deletedChunk = 0) else it.copy(part = 0, chunk = 0)
                     },
                 )
                 index.reset(plan)
             }
             val capabilities = capabilityAnchors()
-            if (capabilities.keys != plan.capabilities.keys) {
-                val added = capabilities.filterKeys { it !in plan.capabilities }.values
-                    .filterNot { it in plan.anchors }
+            if (capabilities != plan.capabilities) {
+                val current = capabilities.values.distinct()
+                val checked = plan.anchors.take(plan.checkedAnchors).filter { it in current }
                 val wasComplete = plan.complete
                 plan = plan.copy(
-                    capabilities = plan.capabilities + capabilities.filterKeys { it !in plan.capabilities },
-                    anchors = plan.anchors + added,
+                    capabilities = capabilities,
+                    anchors = checked + current.filterNot { it in checked },
+                    checkedAnchors = checked.size,
                     removeCheckpoints = capabilities.size == keys.membership.devices.size,
                     complete = false,
                     before = if (wasComplete) plan.proofs.minOf { it.delivery.receipt.messageId } else plan.before,
@@ -141,7 +142,7 @@ internal class CloudSyncMaintenance(
                 guard()
                 val id = plan.anchors[plan.checkedAnchors]
                 val delivery = requireNotNull(session.transport.maintenanceMessage(id)).delivery
-                val commit = requireNotNull(session.checkpoints.verifiedCommit(delivery, keys))
+                val commit = requireNotNull(session.checkpoints.verifiedCapability(delivery, keys))
                 require(commit.epoch == keys.epoch && commit.maintenanceVersion >= SyncMaintenancePolicy.VERSION)
                 require(commit.author in keys.membership.devices)
                 index.save(plan.copy(checkedAnchors = plan.checkedAnchors + 1, lastActivity = now()))
@@ -153,14 +154,21 @@ internal class CloudSyncMaintenance(
                 guard()
                 val proof = plan.proofs[next]
                 val part = proof.commit.parts[proof.part]
-                val delivery = requireNotNull(session.transport.maintenanceMessage(part.messageId)).delivery
-                val chunk = session.checkpoints.verifiedChunk(delivery, part, proof.commit, keys)
+                val delivery = (if (proof.chunk > 0) session.files.retainedDelivery(part.messageId) else null)
+                    ?: requireNotNull(
+                        session.transport.maintenanceMessage(part.messageId),
+                    ).delivery.also(session.files::stage)
+                val chunk = session.checkpoints.verifiedChunk(delivery, part, proof.commit, keys, proof.chunk)
                 publish(SyncMaintenancePhase.VERIFYING, active = true)
                 val advanced = plan.copy(
                     indexedChanges = Math.addExact(plan.indexedChanges, chunk.changes.size.toLong()),
                     lastActivity = now(),
                     proofs = plan.proofs.toMutableList().also {
-                        it[next] = proof.copy(part = proof.part + 1)
+                        it[next] = if (proof.chunk + 1 < part.chunks) {
+                            proof.copy(chunk = proof.chunk + 1)
+                        } else {
+                            proof.copy(part = proof.part + 1, chunk = 0)
+                        }
                     },
                 )
                 index.addPart(proof.commit.id, chunk.changes, advanced)
@@ -291,6 +299,10 @@ internal class CloudSyncMaintenance(
     private suspend fun advanceCandidate(plan: MaintenancePlan) {
         val candidate = requireNotNull(plan.candidate)
         guard()
+        if (candidate.delivery.receipt.messageId in plan.anchors) {
+            skip(plan)
+            return
+        }
         // If the commit disappeared after another cleaner, the kept proofs still stand. A
         // locally persisted candidate retains the signed part list and resumes orphan cleanup.
         if (!candidate.deleting && candidate.part < candidate.commit.parts.size) {
@@ -308,12 +320,27 @@ internal class CloudSyncMaintenance(
                 skip(plan)
                 return
             }
-            val chunk = session.checkpoints.verifiedChunk(remote.delivery, part, candidate.commit, session.keys)
+            val chunk = session.checkpoints.verifiedChunk(
+                remote.delivery,
+                part,
+                candidate.commit,
+                session.keys,
+                candidate.chunk,
+            )
             if (!index.covers(plan, chunk.changes)) {
                 skip(plan)
                 return
             }
-            index.save(plan.copy(candidate = candidate.copy(part = candidate.part + 1), lastActivity = now()))
+            index.save(
+                plan.copy(
+                    candidate = if (candidate.chunk + 1 < part.chunks) {
+                        candidate.copy(chunk = candidate.chunk + 1)
+                    } else {
+                        candidate.copy(part = candidate.part + 1, chunk = 0)
+                    },
+                    lastActivity = now(),
+                ),
+            )
             return
         }
         if (!candidate.deleting) {
@@ -327,17 +354,39 @@ internal class CloudSyncMaintenance(
         if (candidate.deletedParts < candidate.commit.parts.size) {
             val part = candidate.commit.parts[candidate.deletedParts]
             val remote = session.transport.maintenanceMessage(part.messageId)
-            val removed = if (remote != null) {
-                // Recheck the hash, encryption and causal coverage after interruptions.
-                val chunk = session.checkpoints.verifiedChunk(remote.delivery, part, candidate.commit, session.keys)
+            if (remote != null && part.chunks > 1 && candidate.deletedChunk < part.chunks) {
+                val chunk = session.checkpoints.verifiedChunk(
+                    remote.delivery,
+                    part,
+                    candidate.commit,
+                    session.keys,
+                    candidate.deletedChunk,
+                )
                 require(index.covers(plan, chunk.changes))
+                index.save(
+                    plan.copy(
+                        candidate = candidate.copy(deletedChunk = candidate.deletedChunk + 1),
+                        lastActivity = now(),
+                    ),
+                )
+                return
+            }
+            val removed = if (remote != null) {
+                // Each bounded block was rechecked above. Server bytes/pins are rechecked by delete.
+                if (part.chunks == 1) {
+                    val chunk = session.checkpoints.verifiedChunk(remote.delivery, part, candidate.commit, session.keys)
+                    require(index.covers(plan, chunk.changes))
+                }
                 guard()
                 session.transport.maintenanceDelete(listOf(remote.delivery))
             } else {
                 0
             }
             index.advance(
-                plan.copy(candidate = candidate.copy(deletedParts = candidate.deletedParts + 1), lastActivity = now()),
+                plan.copy(
+                    candidate = candidate.copy(deletedParts = candidate.deletedParts + 1, deletedChunk = 0),
+                    lastActivity = now(),
+                ),
                 removed,
             )
         } else {
@@ -425,8 +474,10 @@ internal class CloudSyncMaintenance(
             } else {
                 index.value("next")?.toLongOrNull() ?: 0
             },
-            verifiedParts = plan?.proofs?.sumOf { it.part } ?: 0,
-            totalParts = plan?.proofs?.sumOf { it.commit.parts.size } ?: 0,
+            verifiedParts = plan?.proofs?.sumOf { proof ->
+                proof.commit.parts.take(proof.part).sumOf { it.chunks } + proof.chunk
+            } ?: 0,
+            totalParts = plan?.proofs?.sumOf { proof -> proof.commit.parts.sumOf { it.chunks } } ?: 0,
             checkedAnchors = plan?.checkedAnchors ?: 0, totalAnchors = plan?.anchors?.size ?: 0,
             compatibleDevices = plan?.capabilities?.size ?: 0,
             totalDevices = session.keys.membership.devices.size,

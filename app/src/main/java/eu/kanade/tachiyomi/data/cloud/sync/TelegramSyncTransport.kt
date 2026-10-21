@@ -3,6 +3,7 @@ package eu.kanade.tachiyomi.data.cloud.sync
 import android.content.Context
 import eu.kanade.tachiyomi.data.rin.RinSessions
 import eu.kanade.tachiyomi.data.telegram.TelegramClient
+import it.lorelore.nyanime.cloud.sync.SyncCheckpointPack
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -52,7 +53,9 @@ internal class TelegramSyncTransport(
     private val chat: Long,
     private val space: String,
     private val retained: (Long) -> SyncDelivery? = { null },
+    packetFilesOverride: CloudSyncPacketFiles? = null,
 ) : SyncTransport {
+    private val packetFiles by lazy { packetFilesOverride ?: CloudSyncPacketFiles(context, account, space) }
     var beforeSend: suspend () -> Unit = {}
     override suspend fun verifyArchive() {
         check(client.state.value.ready && client.state.value.account?.id == account)
@@ -78,8 +81,10 @@ internal class TelegramSyncTransport(
         beforeSend()
         verifyArchive()
         val payload = syncJson.encodeToString(packet)
-        deferBulk(payload.toByteArray(Charsets.UTF_8).size.toLong())
-        val content = if (payload.length + SyncEnvelope.MARKER.length <= 3600) {
+        val packed = packet.kind == "checkpoint-pack"
+        val pack = if (packed) requireNotNull(packetFiles.packFile(packet.id, prepared = true)) else null
+        deferBulk(pack?.length() ?: payload.toByteArray(Charsets.UTF_8).size.toLong())
+        val content = if (!packed && payload.length + SyncEnvelope.MARKER.length <= 3600) {
             tdRequest(
                 "inputMessageText",
                 "text" to formatted(SyncEnvelope.MARKER + payload),
@@ -88,7 +93,7 @@ internal class TelegramSyncTransport(
         } else {
             val file = outbox(packet.id)
             // Bytes are already encrypted; retrying uses the same persisted envelope identity.
-            file.writeText(payload, Charsets.UTF_8)
+            if (packed) packetFiles.materializePack(packet.id, file) else file.writeText(payload, Charsets.UTF_8)
             tdRequest(
                 "inputMessageDocument",
                 "document" to tdRequest(
@@ -258,7 +263,14 @@ internal class TelegramSyncTransport(
         val document = content.objectOrNull("document") ?: error("Missing synchronization document")
         require(document.text("file_name") == "$id.nysync")
         val file = document.objectOrNull("document") ?: error("Missing synchronization file")
-        require(file.number("size") in 1..SyncEnvelope.MAX_ENCODED_SIZE.toLong())
+        val limit = if (kind ==
+            "checkpoint-pack"
+        ) {
+            SyncCheckpointPack.MAX_BYTES
+        } else {
+            SyncEnvelope.MAX_ENCODED_SIZE.toLong()
+        }
+        require(file.number("size") in 1..limit)
         deferBulk(file.number("size"))
         var current = client.request(
             tdRequest(
@@ -276,7 +288,12 @@ internal class TelegramSyncTransport(
         }
         val downloaded = CloudSyncDocumentFiles(context.noBackupFilesDir)
             .verified(current.objectOrNull("local")!!.text("path"), id, file.number("size"))
-        return downloaded.readText(Charsets.UTF_8).also {
+        val payload = if (kind == "checkpoint-pack") {
+            syncJson.encodeToString(packetFiles.stagePack(downloaded, id))
+        } else {
+            downloaded.readText(Charsets.UTF_8)
+        }
+        return payload.also {
             val packet = syncJson.decodeFromString<SyncPacket>(it)
             require(packet.id == id && packet.kind == kind)
         }
@@ -450,6 +467,32 @@ internal class TelegramSyncTransport(
         return descriptor.maintenanceVersion >= 1
     }
 
+    /** Called only after every current member has signed reader support. Old readers fail before pulling. */
+    suspend fun enableCheckpointPacking() {
+        verifyArchive()
+        val archive = client.request(tdRequest("getChat", "chat_id" to JsonPrimitive(chat)))
+        val group = archive.objectOrNull("type")?.number("supergroup_id") ?: error("Missing archive")
+        val info = client.request(tdRequest("getSupergroupFullInfo", "supergroup_id" to JsonPrimitive(group)))
+        val descriptor = requireNotNull(SyncArchiveDescriptor.parse(info.text("description")))
+        require(descriptor.space == space && descriptor.rootMessage > 0)
+        if (descriptor.maintenanceVersion < 2) {
+            client.request(
+                tdRequest(
+                    "setChatDescription",
+                    "chat_id" to JsonPrimitive(chat),
+                    "description" to JsonPrimitive(descriptor.copy(maintenanceVersion = 2).encode()),
+                ),
+            )
+        }
+        val confirmed = client.request(tdRequest("getSupergroupFullInfo", "supergroup_id" to JsonPrimitive(group)))
+        require(
+            SyncArchiveDescriptor.parse(confirmed.text("description"))?.let {
+                it.space == space && it.rootMessage == descriptor.rootMessage && it.maintenanceVersion == 2
+            } == true,
+        )
+        verifyArchive()
+    }
+
     /** A durable local delivery survives a partially downloaded page and TDLib cache eviction. */
     private fun retainedPayload(message: JsonObject): String? {
         val cached = retained(message.number("id")) ?: return null
@@ -457,6 +500,11 @@ internal class TelegramSyncTransport(
         require(cached.packet.space == space)
         require(cached.receipt == SyncReceipt(message.number("id"), message.number("date")))
         val encoded = syncJson.encodeToString(cached.packet)
+        val pack = if (cached.packet.kind == "checkpoint-pack") {
+            packetFiles.packFile(cached.packet.id) ?: return null
+        } else {
+            null
+        }
         val text = SyncWire.text(message)
         if (text != null) {
             require(text == encoded) { "Synchronization message was modified" }
@@ -470,7 +518,8 @@ internal class TelegramSyncTransport(
             val document = content.objectOrNull("document") ?: error("Missing synchronization document")
             require(document.text("file_name") == "${cached.packet.id}.nysync")
             require(
-                document.objectOrNull("document")?.number("size") == encoded.toByteArray(Charsets.UTF_8).size.toLong(),
+                document.objectOrNull("document")?.number("size") ==
+                    (pack?.length() ?: encoded.toByteArray(Charsets.UTF_8).size.toLong()),
             )
         }
         return encoded
