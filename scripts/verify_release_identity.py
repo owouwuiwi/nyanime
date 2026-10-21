@@ -5,11 +5,32 @@ import re
 import subprocess
 
 
+def verify_signing_certificate(signing, expected):
+    """Accept known apksigner 36/37 labels, never an extra or unrecognized app signer."""
+    if not re.fullmatch(r'[a-fA-F0-9]{64}', expected):
+        raise ValueError('Invalid expected signing identity')
+    certificates = []
+    for line in signing.splitlines():
+        line = line.strip()
+        if 'certificate SHA-256 digest:' not in line:
+            continue
+        # A source stamp is not the identity Android uses to install/update this application.
+        if line.startswith('Source Stamp Signer: certificate SHA-256 digest: '):
+            continue
+        signer = re.fullmatch(
+            r'(?:Signer #1|V(?:1|2|3\.0) Signer(?: #1)?):? certificate SHA-256 digest: ([a-fA-F0-9]{64})',
+            line,
+        )
+        if signer is None:
+            raise ValueError('Unrecognized or additional APK signing identity: ' + line)
+        certificates.append(signer[1].upper())
+    if certificates != [expected.upper()]:
+        raise ValueError('Unexpected release signing certificate')
+
+
 def verify(apk, apksigner, aapt, identity, version, code):
     signing = subprocess.check_output([str(apksigner), 'verify', '--verbose', '--print-certs', str(apk)], text=True)
-    certificates = re.findall(r'^Signer #\d+ certificate SHA-256 digest: ([a-fA-F0-9]{64})$', signing, re.MULTILINE)
-    if len(certificates) != 1 or certificates[0].upper() != identity['certificateSha256']:
-        raise ValueError('Unexpected release signing certificate')
+    verify_signing_certificate(signing, identity['certificateSha256'])
     badging = subprocess.check_output([str(aapt), 'dump', 'badging', str(apk)], text=True)
     header = re.search(r"^package: name='([^']+)' versionCode='(\d+)' versionName='([^']+)'", badging, re.MULTILINE)
     if not header or header.groups() != (identity['applicationId'], str(code), version):
