@@ -17,7 +17,10 @@ class GetApplicationRelease(
     suspend fun await(arguments: Arguments): Result {
         val now = Instant.now()
         val lastChecked = preferenceStore.getLong(
-            Preference.appStateKey("last_app_check_${arguments.repository}_${arguments.channel.key}"),
+            // Installing a checkpoint must not inherit the old client's three-day cooldown.
+            Preference.appStateKey(
+                "last_app_check_${arguments.repository}_${arguments.channel.key}_${arguments.versionName}",
+            ),
             0,
         )
 
@@ -78,6 +81,7 @@ class GetApplicationRelease(
         val channel: UpdateChannel = if (isPreview) UpdateChannel.INCLUDING_PREVIEWS else UpdateChannel.RECOMMENDED,
         val fallbackRepositories: List<String> = emptyList(),
         val assetPrefix: String = "Nyanime",
+        val requireCompletePackage: Boolean = false,
     )
 
     sealed interface Result {

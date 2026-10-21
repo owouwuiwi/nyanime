@@ -10,12 +10,19 @@ object ApplicationReleasePolicy {
         channel: UpdateChannel,
         supportedAbis: List<String>,
         assetPrefix: String = "Nyanime",
+        allowGraph: Boolean = true,
     ): GithubRelease? =
         releases.asSequence()
             .filter { !it.draft && (channel == UpdateChannel.INCLUDING_PREVIEWS || !it.prerelease) }
             .mapNotNull { release -> ReleaseVersion.parse(release.version)?.let { it to release } }
             .filter { (_, release) ->
-                ApplicationReleaseAssets.select(release.assets, supportedAbis, assetPrefix) !=
+                ApplicationReleaseAssets.selectUpdate(
+                    release.assets,
+                    supportedAbis,
+                    assetPrefix,
+                    release.version,
+                    allowGraph,
+                ) !=
                     null
             }
             .maxByOrNull { it.first }?.second

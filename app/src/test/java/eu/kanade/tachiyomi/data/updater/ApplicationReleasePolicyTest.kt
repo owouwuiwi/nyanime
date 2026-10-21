@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.data.updater
 
+import it.lorelore.nyanime.update.ReleaseGraph
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -77,6 +78,60 @@ class ApplicationReleasePolicyTest {
             "r9999",
         ).copy(assets = listOf(GitHubAsset("app-universal-preview.apk", "https://example.test/bridge.apk")))
         assertNull(ApplicationReleasePolicy.select(listOf(bridge), UpdateChannel.INCLUDING_PREVIEWS, abis))
+    }
+
+    @Test
+    fun capableClientFindsPatchOnlyReleaseWhileTheOldSelectorKeepsTheCompleteCheckpoint() {
+        val full = release("v0.52.0.1").copy(
+            assets = listOf(
+                GitHubAsset(
+                    "Nyanime-Production-0.52.0.1-arm64-v8a.apk",
+                    "https://example.test/checkpoint.apk",
+                ),
+            ),
+        )
+        val patch = full.copy(
+            version = "v0.52.1.0",
+            assets = listOf(
+                GitHubAsset(
+                    ReleaseGraph.FILE_NAME,
+                    ReleaseGraph.assetUrl(GITHUB_REPO, "0.52.1.0", ReleaseGraph.FILE_NAME),
+                ),
+            ),
+        )
+        assertEquals(
+            "v0.52.1.0",
+            ApplicationReleasePolicy.select(
+                listOf(full, patch),
+                UpdateChannel.RECOMMENDED,
+                abis,
+                "Nyanime-Production",
+            )!!.version,
+        )
+        // The shipped APK-only selector must still find a real complete package.
+        assertEquals(
+            full.version,
+            ApplicationReleasePolicy.select(
+                listOf(full, patch),
+                UpdateChannel.RECOMMENDED,
+                abis,
+                "Nyanime-Production",
+                allowGraph = false,
+            )!!.version,
+        )
+        assertNull(ApplicationReleaseAssets.select(patch.assets, abis, "Nyanime-Production"))
+        assertEquals(
+            "https://example.test/checkpoint.apk",
+            ApplicationReleaseAssets.select(full.assets, abis, "Nyanime-Production"),
+        )
+        val wrong = patch.copy(
+            assets = listOf(
+                patch.assets.single().copy(downloadLink = "https://elsewhere.test/${ReleaseGraph.FILE_NAME}"),
+            ),
+        )
+        assertNull(
+            ApplicationReleasePolicy.select(listOf(wrong), UpdateChannel.RECOMMENDED, abis, "Nyanime-Production"),
+        )
     }
 
     /** Frozen pre-numeric asset contract: do not replace this with the current selector. */

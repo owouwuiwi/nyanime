@@ -96,6 +96,7 @@ internal object MigrationInstallOffer {
                             repository = GITHUB_REPO,
                             forceCheck = true,
                             assetPrefix = "Nyanime-Production",
+                            requireCompletePackage = true,
                         ),
                     )
                 }

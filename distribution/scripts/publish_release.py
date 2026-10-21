@@ -7,6 +7,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.request
 import urllib.error
@@ -19,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from scripts.public_distribution import allowed_source, validate_release_notes
 from scripts.verify_native_distribution import validate as validate_native
 from scripts.delta_updates import MANIFEST as DELTA_MANIFEST, PATCH_NAME, validate_manifest as validate_delta_manifest
+from scripts.release_graph import FILE_NAME as GRAPH_NAME, publication_graph, reconstruct, verify_android, verify_capability, check_transition
 
 PUBLIC = 'owouwuiwi/nyanime'
 SOURCE = 'owouwuiwi/nyanime-source'
@@ -52,6 +54,8 @@ def document(name):
         '.github/assets/nyanime.svg', '.github/assets/logo.png'}
 
 def validate_name(name):
+    if name == 'numeric/' + GRAPH_NAME:
+        return True
     p = PurePosixPath(name)
     if p.is_absolute() or '..' in p.parts or '\\' in name or ':' in name or not p.parts:
         raise ValueError('Unsafe publication archive path')
@@ -103,6 +107,8 @@ def validate_bundle(directory):
         fields.add('nativeManifest')
     if 'deltaSha256' in metadata:
         fields.add('deltaSha256')
+    if 'graphSha256' in metadata or 'delivery' in metadata:
+        fields |= {'graphSha256', 'delivery'}
     if set(metadata) != fields or metadata['schema'] not in {2, 3, 4}:
         raise ValueError('Unknown publication metadata')
     if not re.fullmatch(r'\d+\.\d+\.\d+\.\d+', version):
@@ -114,11 +120,36 @@ def validate_bundle(directory):
     expected = {f'{ASSET_PREFIX}-{version}-{abi}.apk' for abi in ABIS}
     if set(metadata['sha256']) != expected:
         raise ValueError('Missing ABI or unexpected APK')
+    graph = publication_graph(directory / 'numeric', metadata, PUBLIC) if 'graphSha256' in metadata else None
+    if metadata.get('delivery', 'full') not in {'full', 'patches'}:
+        raise ValueError('Unknown delivery mode')
+    replay = None
+    apk_directory = directory / 'numeric'
+    if metadata.get('delivery') == 'patches':
+        if graph is None:
+            raise ValueError('Patch-only release lacks a closure')
+        transition = check_transition(directory / 'public/distribution/ota-transition.json')
+        if any((directory / 'numeric' / name).exists() for name in expected):
+            raise ValueError('Patch-only bundle unexpectedly contains full target APKs')
+        replay = tempfile.TemporaryDirectory(prefix='nyanime-publisher-replay-')
+        apk_directory = Path(replay.name)
+        for digest in graph['targets']:
+            node = next(item for item in graph['packages'] if item['sha256'] == digest)
+            def verify(file, item):
+                verify_android(file, item, APPLICATION_ID, CERTIFICATE)
+                if item.get('url'):
+                    if item['versionCode'] < transition['versionCode']:
+                        raise ValueError('Retained complete base predates the capable client')
+                    verify_capability(file)
+            reconstruct(graph, digest, apk_directory / f'{ASSET_PREFIX}-{version}-{node["abi"]}.apk',
+                        directory / 'numeric', verify=verify)
     checksums = ''
     for name, digest in metadata['sha256'].items():
-        apk = directory / 'numeric' / name
+        apk = apk_directory / name
         if hashlib.sha256(apk.read_bytes()).hexdigest() != digest:
             raise ValueError('APK hash mismatch')
+        if graph is not None and metadata.get('delivery') == 'full':
+            verify_capability(apk)
         checksums += f'{digest}  {name}\n'
     if (directory / 'numeric/SHA256SUMS').read_text() != checksums:
         raise ValueError('Checksum manifest mismatch')
@@ -152,7 +183,7 @@ def validate_bundle(directory):
             if manifest_file.read_bytes() != (directory / 'public/tools/native/distribution.json').read_bytes():
                 raise ValueError('Native manifest differs from public source snapshot')
             for abi in ABIS:
-                validate_native(directory / 'numeric' / f'{ASSET_PREFIX}-{version}-{abi}.apk', declaration, directory / 'numeric')
+                validate_native(apk_directory / f'{ASSET_PREFIX}-{version}-{abi}.apk', declaration, directory / 'numeric')
         if not re.fullmatch(r'[0-9a-f]{40}', metadata['sourceRevision']) or set(metadata['sourceSha256']) != expected_sources:
             raise ValueError('Invalid source identity')
         for material, digest in metadata['sourceSha256'].items():
@@ -176,6 +207,8 @@ def validate_bundle(directory):
                     raise ValueError('Source archive differs from public snapshot')
     if not (directory / 'public/CHANGELOG.md').is_file() or not (directory / 'notes.md').is_file():
         raise ValueError('Missing release documentation')
+    if replay is not None:
+        replay.cleanup()
     return metadata
 
 def git(*args):
@@ -289,7 +322,7 @@ def published(tag, directory, notes, metadata, commit, canonical):
         subprocess.run(['gh', 'release', 'upload', tag, str(file), '--repo', PUBLIC], check=True,
                        env={**os.environ, 'GH_TOKEN': token})
     latest = False
-    if canonical and metadata['channel'] == 'recommended':
+    if canonical and metadata['channel'] == 'recommended' and metadata.get('delivery', 'full') == 'full':
         try:
             previous = request(base + '/latest', token)['tag_name'].removeprefix('v')
             latest = tuple(map(int, metadata['versionName'].split('.'))) >= tuple(map(int, previous.split('.')))
@@ -445,11 +478,18 @@ def reviewed_release_inputs(payload):
     expected_apks = {f'{ASSET_PREFIX}-{version}-{abi}.apk' for abi in ABIS}
     if set(metadata['sha256']) != expected_apks:
         raise ValueError('Reviewed APK architecture set changed')
+    if any(not re.fullmatch(r'[a-f0-9]{64}', digest) for digest in metadata['sha256'].values()):
+        raise ValueError('Invalid reviewed target APK hash')
+    graph_hashes = metadata.get('graphSha256', {})
+    if 'graphSha256' in metadata and (set(graph_hashes) != {GRAPH_NAME} or metadata.get('delivery') not in {'full', 'patches'}):
+        raise ValueError('Invalid reviewed release graph')
+    if metadata.get('delivery') == 'patches' and not graph_hashes:
+        raise ValueError('Missing reviewed patch-only graph')
     delta_hashes = metadata.get('deltaSha256', {})
     if 'deltaSha256' in metadata and (not isinstance(delta_hashes, dict) or DELTA_MANIFEST not in delta_hashes or not 2 <= len(delta_hashes) <= 16 or
                         any(name != DELTA_MANIFEST and not PATCH_NAME.fullmatch(name) for name in delta_hashes)):
         raise ValueError('Invalid reviewed delta materials')
-    expected = metadata['sha256'] | metadata['sourceSha256'] | delta_hashes
+    expected = (metadata['sha256'] if metadata.get('delivery', 'full') == 'full' else {}) | metadata['sourceSha256'] | delta_hashes | graph_hashes
     if any(not validate_name('numeric/' + name) or not re.fullmatch(r'[a-f0-9]{64}', digest)
            for name, digest in expected.items()):
         raise ValueError('Invalid reviewed material name or hash')
@@ -581,7 +621,7 @@ def reviewed_release(payload):
             saved[name]['uploader']['login'] != 'github-actions[bot]' for name, digest in expected.items()):
         raise ValueError('Bot publication differs from the reviewed files')
     latest = False
-    if metadata['channel'] == 'recommended':
+    if metadata['channel'] == 'recommended' and metadata.get('delivery', 'full') == 'full':
         try:
             previous = request(base + '/latest', token)['tag_name'].removeprefix('v')
             latest = tuple(map(int, version.split('.'))) >= tuple(map(int, previous.split('.')))

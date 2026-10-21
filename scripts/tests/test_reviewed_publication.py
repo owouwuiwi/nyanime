@@ -71,6 +71,16 @@ class ReviewedPublicationTest(unittest.TestCase):
             with self.subTest(mutation=mutation.__name__), self.assertRaises(ValueError):
                 self.inputs(mutation)
 
+    def test_patch_only_upload_set_retains_target_hashes_without_full_apk_uploads(self):
+        metadata, uploads, _ = self.inputs(lambda metadata, _: metadata.update(
+            delivery='patches', graphSha256={'Nyanime-Release-v2.json': 'f' * 64}))
+        self.assertEqual(5, len(metadata['sha256']))
+        self.assertFalse(any(name.endswith('.apk') for name in uploads))
+        self.assertIn('Nyanime-Release-v2.json', uploads)
+        self.assertIn('SHA256SUMS', uploads)
+        with self.assertRaises(ValueError):
+            self.inputs(lambda metadata, _: metadata.update(delivery='patches'))
+
     def test_immutable_tag_must_match_version_code_and_channel(self):
         for properties in ['versionName=1.2.3.3\nversionCode=200\nchannel=recommended',
                            'versionName=1.2.3.4\nversionCode=199\nchannel=recommended',
@@ -153,8 +163,10 @@ class ReviewedPublicationTest(unittest.TestCase):
         self.run_release('publish', api)
         self.assertEqual(calls, ['GET'])
 
-    def publish_fixture(self, bad_bytes=False, validation_error=False, existing_bot=False, phase="publish", personal_author=False):
+    def publish_fixture(self, bad_bytes=False, validation_error=False, existing_bot=False, phase="publish", personal_author=False, patch_only=False):
         metadata, _ = self.metadata()
+        if patch_only:
+            metadata.update(delivery='patches', graphSha256={'Nyanime-Release-v2.json': 'f' * 64})
         source_name = 'Nyanime-Source-1.2.3.4.zip'
         archive = io.BytesIO()
         with zipfile.ZipFile(archive, 'w') as package:
@@ -208,7 +220,7 @@ class ReviewedPublicationTest(unittest.TestCase):
                 self.assertEqual(uploads.call_count, 0 if existing_bot else 2)
                 self.assertFalse(release['draft'])
                 self.assertFalse(release['prerelease'])
-                self.assertEqual(release['make_latest'], 'true')
+                self.assertEqual(release['make_latest'], 'false' if patch_only else 'true')
 
     def test_personal_author_repaired_only_after_complete_byte_and_native_validation(self):
         self.publish_fixture(phase="repair", personal_author=True, bad_bytes=True)
@@ -224,6 +236,9 @@ class ReviewedPublicationTest(unittest.TestCase):
 
     def test_retry_reuses_matching_bot_assets_without_replacement(self):
         self.publish_fixture(existing_bot=True)
+
+    def test_old_latest_only_clients_keep_the_complete_checkpoint_after_patch_only_publish(self):
+        self.publish_fixture(patch_only=True)
 
 
 if __name__ == '__main__':

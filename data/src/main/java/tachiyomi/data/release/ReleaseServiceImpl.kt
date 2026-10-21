@@ -6,6 +6,9 @@ import eu.kanade.tachiyomi.network.HttpException
 import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.network.awaitSuccess
 import eu.kanade.tachiyomi.network.parseAs
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.serialization.json.Json
 import tachiyomi.domain.release.interactor.GetApplicationRelease
 import tachiyomi.domain.release.model.Release
@@ -17,6 +20,7 @@ import tachiyomi.domain.release.service.ReleaseService
 class ReleaseServiceImpl(
     private val networkService: NetworkHelper,
     private val json: Json,
+    private val supportedAbis: List<String> = Build.SUPPORTED_ABIS.toList(),
 ) : ReleaseService {
 
     override suspend fun latest(arguments: GetApplicationRelease.Arguments): Release? {
@@ -35,7 +39,7 @@ class ReleaseServiceImpl(
         var page = 1
         while (true) {
             val batch = with(json) {
-                networkService.client.newCall(
+                networkService.apiClient.newCall(
                     GET("https://api.github.com/repos/${arguments.repository}/releases?per_page=100&page=$page"),
                 ).awaitSuccess().parseAs<List<GithubRelease>>()
             }
@@ -49,7 +53,7 @@ class ReleaseServiceImpl(
             arguments.versionName,
             throughVersion,
             arguments.channel,
-            Build.SUPPORTED_ABIS.toList(),
+            supportedAbis,
             arguments.assetPrefix,
         )
     }
@@ -60,7 +64,7 @@ class ReleaseServiceImpl(
             // GitHub already excludes previews here, even after thousands of preview releases.
             try {
                 val recommended = with(json) {
-                    networkService.client.newCall(
+                    networkService.apiClient.newCall(
                         GET("https://api.github.com/repos/${arguments.repository}/releases/latest"),
                     )
                         .awaitSuccess().parseAs<GithubRelease>()
@@ -70,48 +74,71 @@ class ReleaseServiceImpl(
                 if (e.code != 404) throw e
             }
         }
-        // Preview publications can be frequent: paginate until a compatible recommended
-        // release is found rather than losing it behind the first page of previews.
+        // /latest deliberately stays on a complete checkpoint for old clients.
+        // Always read the feed too, so capable clients discover newer patch-only releases.
         for (page in 1..5) {
-            if (ApplicationReleasePolicy.select(
+            if (page == 1 &&
+                arguments.requireCompletePackage &&
+                arguments.channel == UpdateChannel.RECOMMENDED &&
+                ApplicationReleasePolicy.select(
                     candidates,
                     arguments.channel,
-                    Build.SUPPORTED_ABIS.toList(),
+                    supportedAbis,
                     arguments.assetPrefix,
-                ) !=
-                null
+                    allowGraph = false,
+                ) != null
             ) {
                 break
             }
-            val batch = with(json) {
-                networkService.client
-                    .newCall(
-                        GET("https://api.github.com/repos/${arguments.repository}/releases?per_page=100&page=$page"),
-                    )
-                    .awaitSuccess().parseAs<List<GithubRelease>>()
-            }
-            candidates.addAll(batch)
-            if (ApplicationReleasePolicy.select(
+            val batch = try {
+                with(json) {
+                    networkService.apiClient
+                        .newCall(
+                            GET(
+                                "https://api.github.com/repos/${arguments.repository}/releases?per_page=100&page=$page",
+                            ),
+                        )
+                        .awaitSuccess().parseAs<List<GithubRelease>>()
+                }
+            } catch (cancel: CancellationException) {
+                throw cancel
+            } catch (error: Exception) {
+                currentCoroutineContext().ensureActive()
+                val known = ApplicationReleasePolicy.select(
                     candidates,
                     arguments.channel,
-                    Build.SUPPORTED_ABIS.toList(),
+                    supportedAbis,
                     arguments.assetPrefix,
-                ) !=
-                null ||
-                batch.size < 100
-            ) {
+                    allowGraph = !arguments.requireCompletePackage,
+                )
+                val installed = ReleaseVersion.installed(arguments.versionName)
+                val available = known?.version?.let(ReleaseVersion::parse)
+                // A partial feed can still offer a verified newer candidate. Do not turn
+                // a failed check into a successful NoNewUpdate and its three-day cooldown.
+                if (installed == null || available == null || available <= installed) throw error
+                break
+            }
+            candidates.addAll(batch)
+            if (batch.size < 100) {
                 break
             }
         }
         val release = ApplicationReleasePolicy.select(
             candidates,
             arguments.channel,
-            Build.SUPPORTED_ABIS.toList(),
+            supportedAbis,
             arguments.assetPrefix,
+            allowGraph = !arguments.requireCompletePackage,
         ) ?: return null
 
         val downloadLink =
-            ApplicationReleaseAssets.select(release.assets, Build.SUPPORTED_ABIS.toList(), arguments.assetPrefix)
+            ApplicationReleaseAssets.selectUpdate(
+                release.assets,
+                supportedAbis,
+                arguments.assetPrefix,
+                release.version,
+                allowGraph = !arguments.requireCompletePackage,
+            )
                 ?: return null
 
         return Release(

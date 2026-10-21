@@ -146,8 +146,10 @@ class GetApplicationReleaseTest {
         every { oldCheck.get() } returns Instant.now().toEpochMilli()
         every { newCheck.get() } returns 0
         every { newCheck.set(any()) } answers { }
-        every { store.getLong(Preference.appStateKey("last_app_check_previous/app_recommended"), 0) } returns oldCheck
-        every { store.getLong(Preference.appStateKey("last_app_check_current/app_recommended"), 0) } returns newCheck
+        every { store.getLong(Preference.appStateKey("last_app_check_previous/app_recommended_0.19.0.0"), 0) } returns
+            oldCheck
+        every { store.getLong(Preference.appStateKey("last_app_check_current/app_recommended_0.19.0.0"), 0) } returns
+            newCheck
         val release = Release("0.19.0.1", "notes", "https://example.test/release", "https://example.test/app.apk")
         coEvery { releaseService.latest(any()) } returns release
         val checker = GetApplicationRelease(releaseService, store)
@@ -157,6 +159,26 @@ class GetApplicationReleaseTest {
         checker.await(arguments.copy(repository = "current/app")) shouldBe
             GetApplicationRelease.Result.NewUpdate(release)
         coVerify(exactly = 1) { releaseService.latest(match { it.repository == "current/app" }) }
+    }
+
+    @Test
+    fun `Installing an intermediate checkpoint checks for later patches immediately`() = runTest {
+        val store = mockk<PreferenceStore>()
+        val previous = mockk<Preference<Long>>()
+        val current = mockk<Preference<Long>>()
+        every { previous.get() } returns Instant.now().toEpochMilli()
+        every { current.get() } returns 0
+        every { current.set(any()) } answers { }
+        every { store.getLong(Preference.appStateKey("last_app_check_test_recommended_1.0.0.0"), 0) } returns previous
+        every { store.getLong(Preference.appStateKey("last_app_check_test_recommended_1.0.0.1"), 0) } returns current
+        val release =
+            Release("1.0.0.2", "patch release", "https://example.test/release", "https://example.test/descriptor")
+        coEvery { releaseService.latest(any()) } returns release
+        val checker = GetApplicationRelease(releaseService, store)
+        val arguments = GetApplicationRelease.Arguments(false, 0, "1.0.0.0", "test")
+        checker.await(arguments) shouldBe GetApplicationRelease.Result.NoNewUpdate
+        checker.await(arguments.copy(versionName = "1.0.0.1")) shouldBe GetApplicationRelease.Result.NewUpdate(release)
+        coVerify(exactly = 1) { releaseService.latest(any()) }
     }
 
     @Test

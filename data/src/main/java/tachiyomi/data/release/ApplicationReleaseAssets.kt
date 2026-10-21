@@ -1,7 +1,25 @@
 package tachiyomi.data.release
 
+import it.lorelore.nyanime.update.ReleaseGraph
+
 /** Select application packages only: extension APKs, checksums and source archives are not app updates. */
 object ApplicationReleaseAssets {
+    fun selectUpdate(
+        assets: List<GitHubAsset>,
+        supportedAbis: List<String>,
+        prefix: String,
+        version: String,
+        allowGraph: Boolean = true,
+    ): String? {
+        if (allowGraph && prefix == "Nyanime-Production") {
+            assets.firstOrNull {
+                it.name == ReleaseGraph.FILE_NAME &&
+                    ReleaseGraph.descriptorVersion(it.downloadLink, "owouwuiwi/nyanime") == version.removePrefix("v")
+            }?.let { return it.downloadLink }
+        }
+        return select(assets, supportedAbis, prefix)
+    }
+
     private val abis = listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
     private val stableTag = Regex("[vr][0-9][A-Za-z0-9.+-]*")
     private val numericName =

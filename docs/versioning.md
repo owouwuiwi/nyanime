@@ -59,9 +59,12 @@ until the initial setup is complete.
 ## Publication and permanent compatibility
 
 From 0.50.0.0, the in-app downloader can use optional
-[byte-exact differential updates](delta-updates.md). Full APKs and their names remain
-mandatory so older updaters continue to work. The first delta-capable version is
-itself downloaded as a full package by previous clients.
+[byte-exact differential updates](delta-updates.md). Until the v2 client transition
+has been published and verified, full APKs remain mandatory. The first capable
+version is itself available as a complete package. Later patch-only releases must
+retain a reachable complete checkpoint, keep `/releases/latest` on that checkpoint
+for older clients, and satisfy the [release graph gates](ota-release-graph.md).
+Existing asset names and published bytes remain immutable.
 
 The main Android workflow builds the production package and verifies its release certificate.
 Canonical releases use `vX.Y.Z.W` tags. From 0.42.0.0, they contain only
@@ -69,7 +72,8 @@ Canonical releases use `vX.Y.Z.W` tags. From 0.42.0.0, they contain only
 certificate. Previously published old-identity assets and `rNNNN` aliases remain
 unchanged as migration bridges; new releases do not recreate these aliases.
 Recommended releases are not GitHub prereleases; previews are. Both have a numeric
-title, per-release notes, checksums and compatible ABI/universal packages.
+title, per-release notes, checksums and compatible ABI/universal targets. A verified
+patch-only release reconstructs those exact signed targets from retained materials.
 
 The last existing compatibility alias remains first for the earliest clients,
 including those that inspect only the first suitable release. It still points to

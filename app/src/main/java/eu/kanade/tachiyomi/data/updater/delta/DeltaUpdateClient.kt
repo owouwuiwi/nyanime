@@ -59,9 +59,10 @@ internal interface DeltaUpdateEnvironment {
     val splitInstallation: Boolean
     fun availableSpace(directory: File): Long
     fun validate(file: File, versionCode: Long, versionName: String)
+    fun validateReference(file: File, versionCode: Long, versionName: String) = validate(file, versionCode, versionName)
 }
 
-private class AndroidDeltaEnvironment(private val context: Context) : DeltaUpdateEnvironment {
+internal class AndroidDeltaEnvironment(private val context: Context) : DeltaUpdateEnvironment {
     override val packageName get() = context.packageName
     override val installedApk get() = File(context.applicationInfo.sourceDir)
     override val installedVersionCode get() = PackageInfoCompat.getLongVersionCode(
@@ -74,6 +75,8 @@ private class AndroidDeltaEnvironment(private val context: Context) : DeltaUpdat
         versionCode: Long,
         versionName: String,
     ) = AppUpdateApkValidator.validate(context, file, versionCode, versionName)
+    override fun validateReference(file: File, versionCode: Long, versionName: String) =
+        AppUpdateApkValidator.validate(context, file, versionCode, versionName, requireNewer = false)
 }
 
 internal class DeltaUpdateClient(private val environment: DeltaUpdateEnvironment, client: OkHttpClient) {

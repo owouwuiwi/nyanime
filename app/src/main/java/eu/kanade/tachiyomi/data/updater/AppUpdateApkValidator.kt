@@ -11,7 +11,13 @@ import java.security.MessageDigest
 /** Shared final gate for both full downloads and reconstructed APKs. No re-signing. */
 internal object AppUpdateApkValidator {
     @Suppress("DEPRECATION")
-    fun validate(context: Context, file: File, expectedCode: Long? = null, expectedName: String? = null) {
+    fun validate(
+        context: Context,
+        file: File,
+        expectedCode: Long? = null,
+        expectedName: String? = null,
+        requireNewer: Boolean = true,
+    ) {
         val flags = if (Build.VERSION.SDK_INT >=
             28
         ) {
@@ -25,12 +31,13 @@ internal object AppUpdateApkValidator {
         require(archive.packageName == context.packageName) { "Wrong APK package" }
         val code = PackageInfoCompat.getLongVersionCode(archive)
         require(
-            isNewerAppUpdate(
-                PackageInfoCompat.getLongVersionCode(installed),
-                installed.versionName,
-                code,
-                archive.versionName,
-            ),
+            !requireNewer ||
+                isNewerAppUpdate(
+                    PackageInfoCompat.getLongVersionCode(installed),
+                    installed.versionName,
+                    code,
+                    archive.versionName,
+                ),
         ) {
             "Update is not newer"
         }

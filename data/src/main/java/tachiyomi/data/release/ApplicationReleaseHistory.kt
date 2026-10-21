@@ -22,7 +22,13 @@ object ApplicationReleaseHistory {
             .filter { (version, release) ->
                 version > installed &&
                     version <= through &&
-                    ApplicationReleaseAssets.select(release.assets, supportedAbis, assetPrefix) != null
+                    ApplicationReleaseAssets.selectUpdate(
+                        release.assets,
+                        supportedAbis,
+                        assetPrefix,
+                        release.version,
+                    ) !=
+                    null
             }
             .distinctBy { it.first }
             .sortedByDescending { it.first }

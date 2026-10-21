@@ -6,6 +6,10 @@ I documenti tecnici in inglese conservano i nomi delle API e dei componenti.
 
 ## Novità recenti
 
+La transizione 0.52.0.1 prepara i [checkpoint e le catene di patch](ota-release-graph.md),
+preservando l’accesso agli APK completi per i vecchi aggiornatori. Le misure e i
+profili locali sono descritti nella [guida alle build](local-build-performance.md).
+
 La versione 0.51 aggiunge il [pannello di tracking](tracking-panel.md) e i
 [controlli delle notifiche per titolo](release-alert-controls.md), con avviso
 in Home quando Android blocca la consegna.

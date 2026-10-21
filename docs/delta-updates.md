@@ -15,11 +15,13 @@ through downloads, hashing and copying and does not start the full download.
 
 The first upgrade to an updater with delta support is a **full APK**. An older
 updater cannot apply a feature it does not have. Subsequent releases can supply
-patches from up to three previous signed releases. Every release still includes
-all five full APKs and the unchanged APK-only `SHA256SUMS`. Existing clients
-ignore the new assets and continue updating normally.
+patches from up to three previous signed releases. This v1 publication path
+includes all five full APKs and the unchanged APK-only `SHA256SUMS`. Existing
+clients ignore the new assets and continue updating normally. The separately
+gated [v2 release graph](ota-release-graph.md) adds bounded chains and allows
+future patch-only publications after a complete capable-client transition.
 
-No compatible patch, split installation, unknown base bytes, unsupported metadata,
+For the v1 path, no compatible patch, split installation, unknown base bytes, unsupported metadata,
 insufficient reconstruction space, rejected redirect, corrupt patch, reconstruction
 or verification error returns control to the original full-APK downloader. A full
 download must also pass cryptographic signature, package and version checks.

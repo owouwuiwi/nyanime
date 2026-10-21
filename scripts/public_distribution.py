@@ -177,7 +177,8 @@ def native_materials(manifest, destination, cache=None):
                 raise ValueError('Native-source archive hash mismatch')
 
 
-def prepare_bundle(output, apk_directory, version, code, channel, notes, revision, materials=None, delta_bases=None):
+def prepare_bundle(output, apk_directory, version, code, channel, notes, revision, materials=None, delta_bases=None,
+                   release_graph=False, previous_graph=None, patch_only=False):
     if not re.fullmatch(r'\d+\.\d+\.\d+\.\d+', version):
         raise ValueError('Invalid OTA version')
     if channel not in {'preview', 'recommended'}:
@@ -264,6 +265,22 @@ def prepare_bundle(output, apk_directory, version, code, channel, notes, revisio
         metadata['sourceSha256'].update({key: item['sha256'] for key, item in declaration['sourcePackages'].items()})
         for abi in ABIS:
             validate(assets / f'{ASSET_PREFIX}-{version}-{abi}.apk', declaration, assets)
+    if patch_only and not release_graph:
+        raise ValueError('Patch-only delivery requires a release graph')
+    if release_graph:
+        from scripts.release_graph import prepare, FILE_NAME, check_transition, verify_capability
+        previous = json.loads(previous_graph.read_text(encoding='utf-8')) if previous_graph else None
+        if patch_only:
+            check_transition(docs / 'distribution/ota-transition.json')
+            if previous is None:
+                raise ValueError('Patch-only delivery requires the retained previous release closure')
+        prepare(assets, version, code, APPLICATION_ID, PUBLIC_REPOSITORY, previous, patch_only)
+        for abi in ABIS:
+            verify_capability(assets / f'{ASSET_PREFIX}-{version}-{abi}.apk')
+        metadata.update(delivery='patches' if patch_only else 'full', graphSha256={FILE_NAME: hashlib.sha256((assets / FILE_NAME).read_bytes()).hexdigest()})
+        if patch_only:
+            for abi in ABIS:
+                (assets / f'{ASSET_PREFIX}-{version}-{abi}.apk').unlink()
     (output / 'publication.json').write_text(json.dumps(metadata, indent=2) + '\n', encoding='utf-8')
 
 def main():
@@ -280,6 +297,9 @@ def main():
                         help='Previous immutable signed APKs, at most three releases; optional')
     parser.add_argument('--no-auto-deltas', action='store_true',
                         help='Skip best-effort cached retrieval of the last public full APKs')
+    parser.add_argument('--release-graph', action='store_true', help='Include the bounded v2 OTA closure')
+    parser.add_argument('--previous-release-graph', type=Path, help='Verified previous immutable v2 closure')
+    parser.add_argument('--patch-only', action='store_true', help='Requires a verified full client transition first')
     args = parser.parse_args()
     delta_bases = args.delta_base_directory
     if not delta_bases and not args.no_auto_deltas and not (args.apk_directory / 'Nyanime-Delta-v1.json').exists():
@@ -287,7 +307,8 @@ def main():
         delta_bases = fetch_latest_base(Path('.local/ota-delta-bases'), args.version)
         print('Delta preparation: ' + ('using verified cached public base APKs' if delta_bases else 'no base available; full APKs remain available'), flush=True)
     prepare_bundle(args.output, args.apk_directory, args.version, args.code,
-                   args.channel, args.notes, args.revision, args.native_materials, delta_bases)
+                   args.channel, args.notes, args.revision, args.native_materials, delta_bases,
+                   args.release_graph, args.previous_release_graph, args.patch_only)
 
 if __name__ == '__main__':
     main()

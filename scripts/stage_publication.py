@@ -20,10 +20,13 @@ def make_archive(directory, archive):
         raise ValueError('Unsafe publication staging directory')
     metadata = validate_bundle(directory)
     version = metadata['versionName']
-    if verify_assets(directory / 'numeric', version) != metadata['sha256']:
+    if metadata.get('delivery', 'full') == 'full' and verify_assets(directory / 'numeric', version) != metadata['sha256']:
         raise ValueError('Publication metadata differs from APK checksums')
     required = {'publication.json', 'notes.md', 'numeric/SHA256SUMS', 'public/CHANGELOG.md'}
-    required.update(f'numeric/{ASSET_PREFIX}-{version}-{abi}.apk' for abi in ABIS)
+    if metadata.get('delivery', 'full') == 'full':
+        required.update(f'numeric/{ASSET_PREFIX}-{version}-{abi}.apk' for abi in ABIS)
+    required.update('numeric/' + name for name in metadata.get('graphSha256', {}))
+    required.update('numeric/' + name for name in metadata.get('deltaSha256', {}))
     required.update('numeric/' + name for name in metadata.get('sourceSha256', {}))
     files = []
     total = 0

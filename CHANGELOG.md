@@ -10,6 +10,27 @@ identificano modifiche nel repository, non garantiscono che ogni commit sia stat
 distribuito come APK.
 
 
+## 21 ottobre 2026 — 0.52.0.1: continuità degli aggiornamenti
+
+### Aggiornamenti
+
+- L’aggiornatore può pianificare un percorso di patch compatibili anche dopo aver saltato più versioni. Quando l’APK installato non è riconosciuto, parte da una base completa verificata e ricostruisce soltanto il pacchetto finale da installare.
+- I checkpoint completi restano raggiungibili dagli aggiornatori precedenti. Dopo l’installazione di un checkpoint, il controllo può cercare subito le versioni successive senza ereditare l’attesa della vecchia installazione.
+- Questa uscita mantiene tutti gli APK completi e le patch compatibili. La pubblicazione di sole patch resta bloccata fino alla verifica della transizione; nessun materiale necessario agli aggiornamenti viene eliminato.
+
+### Affidabilità
+
+- Hash esatti, identità Android, versione e firma sono verificati sulle copie ricostruite. Percorsi limitati, controllo dello spazio, cancellazione e recupero dei passaggi già verificati dopo un riavvio del processo.
+- Le alternative di download devono esistere nella dichiarazione della release: un errore non porta a cercare un APK completo inesistente.
+- I percorsi di installazione esterna continuano a richiedere un APK completo, mentre l’aggiornamento nell’app può usare il nuovo formato. Canale Consigliato, firma e dati esistenti restano conservati.
+- Un elenco GitHub temporaneamente incompleto può ancora offrire una versione più recente già individuata e compatibile. Se manca un candidato valido, l’errore non viene scambiato per assenza di aggiornamenti e non avvia l’attesa tra i controlli.
+
+### Sviluppo e distribuzione
+
+- Cache Gradle e compilazione Kotlin incrementale preservate durante sviluppo e verifica, con profilo separato per il controllo da zero. Test, limiti del runtime ordinario e verifiche finali rimangono obbligatori.
+- Il tempo della build segue la revisione dei sorgenti, evitando invalidazioni dovute al solo orologio. Log e profili distinguono le fasi effettivamente rieseguite.
+- Ogni pubblicazione continua a includere i sorgenti corrispondenti, i materiali nativi e le attribuzioni richieste, anche quando distribuisce soltanto patch.
+
 ## 20 ottobre 2026 — 0.52.0.0: manutenzione Telegram e schede aggiornate
 
 ### Novità

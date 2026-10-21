@@ -72,8 +72,13 @@ def release_storage(workspace, version, after_upload=False):
     safe_workspace_paths(root, targets + inputs)
     retained = verify_assets(root / 'dist/numeric', version)
     if after_upload:
-        published = verify_assets(root / 'dist/publication/numeric', version)
         metadata = json.loads((root / 'dist/publication/publication.json').read_text())
+        if metadata.get('delivery', 'full') == 'patches':
+            from distribution.scripts.publish_release import validate_bundle
+            validate_bundle(root / 'dist/publication')
+            published = metadata['sha256']
+        else:
+            published = verify_assets(root / 'dist/publication/numeric', version)
         if published != retained or metadata.get('versionName') != version or metadata.get('sha256') != retained:
             raise ValueError('Uploaded bundle must match all retained APKs')
     for relative in targets:

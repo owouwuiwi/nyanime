@@ -22,6 +22,8 @@ import eu.kanade.tachiyomi.network.ProgressListener
 import eu.kanade.tachiyomi.network.newCachelessCallWithProgress
 import eu.kanade.tachiyomi.util.storage.getUriCompat
 import eu.kanade.tachiyomi.util.system.workManager
+import it.lorelore.nyanime.update.ReleaseGraph
+import it.lorelore.nyanime.update.ReleaseGraphClient
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import logcat.LogPriority
@@ -72,6 +74,7 @@ class AppUpdateDownloadJob(private val context: Context, workerParams: WorkerPar
             Result.success(workDataOf(OUTPUT_APK_PATH to apkFile.absolutePath))
         } catch (e: CancellationException) {
             notifier.cancel()
+            ReleaseGraphClient.discard(File(context.cacheDir, "app-updates"), id.toString())
             throw e
         } catch (e: Exception) {
             notifier.cancel()
@@ -79,6 +82,7 @@ class AppUpdateDownloadJob(private val context: Context, workerParams: WorkerPar
             if (UpdateDownloadPolicy.shouldRetry(e, runAttemptCount)) {
                 Result.retry()
             } else {
+                ReleaseGraphClient.discard(File(context.cacheDir, "app-updates"), id.toString())
                 notifier.onDownloadError(url)
                 Result.failure()
             }
@@ -121,10 +125,18 @@ class AppUpdateDownloadJob(private val context: Context, workerParams: WorkerPar
         val apkFile = File(directory, "update-$id.apk")
         val rebuilt = File(directory, "update-$id.rebuilt")
         try {
-            val delta = DeltaUpdateClient(
-                context,
-                network.client,
-            ).prepare(url, directory, id.toString(), ::stage, ::reportProgress)
+            val delta = if (ReleaseGraph.descriptorVersion(url, GITHUB_REPO) != null) {
+                // A patch-only release has no same-version APK URL to invent as a fallback.
+                ReleaseGraphClient(
+                    context,
+                    network.client,
+                ).prepare(url, directory, id.toString(), ::stage, ::reportProgress)
+            } else {
+                DeltaUpdateClient(
+                    context,
+                    network.client,
+                ).prepare(url, directory, id.toString(), ::stage, ::reportProgress)
+            }
             if (delta != null) {
                 if (!delta.renameTo(temporary)) throw IOException("Unable to finalize reconstructed APK")
             } else {
