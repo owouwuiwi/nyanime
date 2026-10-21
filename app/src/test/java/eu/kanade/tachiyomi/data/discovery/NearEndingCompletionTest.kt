@@ -3,7 +3,6 @@ package eu.kanade.tachiyomi.data.discovery
 import android.app.Application
 import eu.kanade.domain.source.anime.interactor.GetAnimeIncognitoState
 import eu.kanade.domain.track.anime.interactor.TrackEpisode
-import eu.kanade.domain.track.anime.store.DelayedAnimeTrackingStore
 import eu.kanade.domain.track.service.TrackPreferences
 import eu.kanade.tachiyomi.data.track.TrackerManager
 import io.mockk.Runs
@@ -35,12 +34,17 @@ class NearEndingCompletionTest {
     private val tracks = mockk<GetAnimeTracks>()
     private val trackerManager = mockk<TrackerManager>()
     private val trackPreferences = mockk<TrackPreferences>()
-    private val trackingQueue = mockk<DelayedAnimeTrackingStore>()
     private val trackEpisode = mockk<TrackEpisode>()
     private val app = mockk<Application>()
     private val completion = NearEndingCompletion(
-        getAnime, incognito, episodes, tracks, trackerManager,
-        trackPreferences, trackingQueue, trackEpisode, app,
+        getAnime,
+        incognito,
+        episodes,
+        tracks,
+        trackerManager,
+        trackPreferences,
+        trackEpisode,
+        app,
     )
 
     private fun prepare() {

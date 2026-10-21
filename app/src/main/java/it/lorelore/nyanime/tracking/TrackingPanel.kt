@@ -105,6 +105,7 @@ fun TrackingPanel(
     sourceId: Long,
     onManageServices: () -> Unit,
     onConnect: () -> Unit,
+    onOpenQueue: () -> Unit,
 ) {
     val state by model.state.collectAsState()
     val locale = LocalConfiguration.current.locales[0]
@@ -497,6 +498,12 @@ fun TrackingPanel(
                         Spacer(Modifier.width(4.dp))
                         Text(stringResource(R.string.tracking_undo))
                     }
+                }
+            }
+            if (target != null || state.pending != null) {
+                TextButton(onClick = onOpenQueue, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Outlined.Sync, null, Modifier.size(17.dp))
+                    Text(stringResource(R.string.tracking_queue_title), Modifier.padding(start = 7.dp))
                 }
             }
             if (state.error || state.pending?.failed == true || state.accountChanged) {

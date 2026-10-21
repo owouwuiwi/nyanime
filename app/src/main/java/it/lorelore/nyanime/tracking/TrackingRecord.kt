@@ -128,6 +128,23 @@ data class PendingTrackingEdit(
     val patch: TrackingPatch,
     val revision: Long,
     val failed: Boolean = false,
+    val origin: TrackingEditOrigin = TrackingEditOrigin.MANUAL,
+    val delivery: TrackingDelivery = TrackingDelivery.WAITING,
+    val problem: TrackingQueueProblem = TrackingQueueProblem.NONE,
+    val attempts: Int = 0,
+    val createdAt: Long = 0,
+    val attemptedAt: Long = 0,
+    val notBefore: Long = 0,
+    val accountEpoch: String = "",
+    val base: TrackingValues? = null,
+    val receiptId: String = "",
+    val expectedRemote: TrackingValues? = null,
+    val expectedFields: Set<TrackingField> = emptySet(),
+    val automaticProgress: Boolean = false,
+    val attemptBase: TrackingValues? = null,
+    val alternativeExpectedRemote: TrackingValues? = null,
+    val titleHint: String = "",
+    val remoteUrl: String = "",
 ) {
     val key: String get() = "${subject.medium}:$trackId"
     fun valid() = subject.valid() &&
@@ -138,7 +155,48 @@ data class PendingTrackingEdit(
         patch.values.valid() &&
         patch.fields.isNotEmpty() &&
         patch.fields.all { it in TrackingPatch.REMOTE_FIELDS } &&
-        revision > 0
+        revision > 0 &&
+        attempts in 0..100 &&
+        createdAt >= 0 &&
+        attemptedAt >= 0 &&
+        notBefore >= 0 &&
+        accountEpoch.length <= 128 &&
+        receiptId.length <= 128 &&
+        titleHint.length <= 2048 &&
+        remoteUrl.length <= 16_384 &&
+        (base?.valid() != false) &&
+        (expectedRemote?.valid() != false) &&
+        (attemptBase?.valid() != false) &&
+        (alternativeExpectedRemote?.valid() != false) &&
+        expectedFields.all { it in patch.fields }
+
+    /** Accept only a normalized value or implicit effect verified as part of our own preceding request. */
+    fun rebaseAfterConfirmation(
+        confirmed: PendingTrackingEdit,
+        confirmation: TrackingConfirmation,
+    ): PendingTrackingEdit {
+        if (!sameIdentity(confirmed)) return this
+        val verified = expectedFields.filterTo(mutableSetOf()) { field ->
+            if (field in confirmed.patch.fields) {
+                alternativeExpectedRemote?.let {
+                    TrackingQueuePolicy.sameField(it, confirmed.patch.values, field)
+                } == true
+            } else {
+                confirmed.automaticProgress &&
+                    !TrackingQueuePolicy.sameField(confirmation.before, confirmation.after, field) &&
+                    expectedRemote?.let {
+                        TrackingQueuePolicy.sameField(it, confirmation.before, field)
+                    } == true
+            }
+        }
+        val alternative = if (verified.isEmpty()) {
+            alternativeExpectedRemote
+        } else {
+            TrackingPatch(confirmation.after, verified)
+                .applyTo(alternativeExpectedRemote ?: expectedRemote ?: confirmation.before)
+        }
+        return copy(base = confirmation.after, alternativeExpectedRemote = alternative)
+    }
 
     fun acknowledge(confirmed: PendingTrackingEdit): PendingTrackingEdit? {
         if (key != confirmed.key || account != confirmed.account || remoteId != confirmed.remoteId) return this
@@ -146,6 +204,14 @@ data class PendingTrackingEdit(
             field !in confirmed.patch.fields ||
                 TrackingPatch(confirmed.patch.values, setOf(field)).applyTo(patch.values) != patch.values
         }
-        return if (remaining.isEmpty()) null else copy(patch = patch.copy(fields = remaining))
+        return if (remaining.isEmpty()) {
+            null
+        } else {
+            copy(
+                patch = patch.copy(fields = remaining),
+                expectedFields = expectedFields.intersect(remaining),
+                automaticProgress = automaticProgress && TrackingField.PROGRESS in remaining,
+            )
+        }
     }
 }

@@ -1,21 +1,21 @@
 package eu.kanade.domain.track.manga.interactor
 
-import eu.kanade.domain.track.manga.model.toDbTrack
+import android.app.Application
 import eu.kanade.tachiyomi.data.track.EnhancedMangaTracker
 import eu.kanade.tachiyomi.data.track.MangaTracker
+import it.lorelore.nyanime.tracking.TrackingAutomaticProgress
 import logcat.LogPriority
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.items.chapter.interactor.GetChaptersByMangaId
 import tachiyomi.domain.items.chapter.interactor.UpdateChapter
 import tachiyomi.domain.items.chapter.model.toChapterUpdate
-import tachiyomi.domain.track.manga.interactor.InsertMangaTrack
 import tachiyomi.domain.track.manga.model.MangaTrack
 import kotlin.math.max
 
 class SyncChapterProgressWithTrack(
     private val updateChapter: UpdateChapter,
-    private val insertTrack: InsertMangaTrack,
     private val getChaptersByMangaId: GetChaptersByMangaId,
+    private val app: Application,
 ) {
 
     suspend fun await(
@@ -38,13 +38,19 @@ class SyncChapterProgressWithTrack(
         // only take into account continuous reading
         val localLastRead = sortedChapters.takeWhile { it.read }.lastOrNull()?.chapterNumber ?: 0F
         val lastRead = max(remoteTrack.lastChapterRead, localLastRead.toDouble())
-        val updatedTrack = remoteTrack.copy(lastChapterRead = lastRead)
 
         try {
-            tracker.update(updatedTrack.toDbTrack())
             updateChapter.awaitAll(chapterUpdates)
-            insertTrack.await(updatedTrack)
-        } catch (e: Throwable) {
+            TrackingAutomaticProgress.enqueue(
+                app,
+                true,
+                mangaId,
+                lastRead,
+                trackerId = (tracker as eu.kanade.tachiyomi.data.track.Tracker).id,
+            )
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (e: Exception) {
             logcat(LogPriority.WARN, e)
         }
     }

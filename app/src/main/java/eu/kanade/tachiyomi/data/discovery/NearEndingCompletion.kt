@@ -3,8 +3,6 @@ package eu.kanade.tachiyomi.data.discovery
 import android.app.Application
 import eu.kanade.domain.source.anime.interactor.GetAnimeIncognitoState
 import eu.kanade.domain.track.anime.interactor.TrackEpisode
-import eu.kanade.domain.track.anime.service.DelayedAnimeTrackingUpdateJob
-import eu.kanade.domain.track.anime.store.DelayedAnimeTrackingStore
 import eu.kanade.domain.track.service.TrackPreferences
 import eu.kanade.tachiyomi.data.track.TrackerManager
 import kotlinx.coroutines.CancellationException
@@ -21,7 +19,6 @@ import tachiyomi.domain.items.episode.model.Episode
 import tachiyomi.domain.items.episode.model.EpisodeUpdate
 import tachiyomi.domain.items.episode.repository.EpisodeRepository
 import tachiyomi.domain.track.anime.interactor.GetAnimeTracks
-import kotlin.time.Duration.Companion.minutes
 
 /** Completes a recognized ending outside playback, so the player keeps its existing behavior. */
 class NearEndingCompletion(
@@ -31,7 +28,6 @@ class NearEndingCompletion(
     private val tracks: GetAnimeTracks,
     private val trackerManager: TrackerManager,
     private val trackPreferences: TrackPreferences,
-    private val trackingQueue: DelayedAnimeTrackingStore,
     private val trackEpisode: TrackEpisode,
     private val app: Application,
 ) {
@@ -73,8 +69,6 @@ class NearEndingCompletion(
                 }
                 episodes.updateEpisode(EpisodeUpdate(id = latest.id, seen = true))
                 if (pending.isEmpty()) return@withLock
-                pending.forEach { trackingQueue.addAnime(it.id, latest.episodeNumber) }
-                DelayedAnimeTrackingUpdateJob.setupTask(app, initialDelay = 1.minutes)
                 scope.launch {
                     try {
                         trackEpisode.await(app, animeId, latest.episodeNumber)

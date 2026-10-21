@@ -26,17 +26,38 @@ class CloudSyncDeviceProbe : Instrumentation() {
     private var cleanupOnly = false
     private var remoteMaintenance = false
     private var localCompaction = false
+    private var trackingQueue = false
     override fun onCreate(arguments: Bundle?) {
         localState = arguments?.getString("localState") == "true"
         cleanupOnly = arguments?.getString("cleanupOnly") == "true"
         remoteMaintenance = arguments?.getString("remoteMaintenance") == "true"
         localCompaction = arguments?.getString("localCompaction") == "true"
+        trackingQueue = arguments?.getString("trackingQueue") == "true"
         super.onCreate(arguments)
         start()
     }
 
     override fun onStart() {
         val report = Bundle()
+        if (trackingQueue) {
+            try {
+                report.putString("stream", org.json.JSONObject(TrackingQueueDeviceProbe.run(targetContext)).toString())
+                finish(Activity.RESULT_OK, report)
+            } catch (error: Throwable) {
+                report.putString(
+                    "stream",
+                    TrackingQueueDeviceProbe.stage +
+                        ": " +
+                        error.javaClass.simpleName +
+                        ": " +
+                        error.message.orEmpty().take(200) +
+                        " at " +
+                        error.stackTrace.take(5).joinToString(),
+                )
+                finish(Activity.RESULT_CANCELED, report)
+            }
+            return
+        }
         if (localCompaction) {
             val probe = CloudCompactionDeviceProbe(targetContext)
             try {

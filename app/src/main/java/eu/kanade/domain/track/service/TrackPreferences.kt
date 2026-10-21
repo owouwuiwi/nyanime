@@ -34,6 +34,11 @@ class TrackPreferences(
 
     fun trackToken(tracker: Tracker) = preferenceStore.getString(Preference.privateKey("track_token_${tracker.id}"), "")
 
+    fun trackingAccountEpoch(tracker: Tracker) = preferenceStore.getString(
+        Preference.privateKey("tracking_account_epoch_${tracker.id}"),
+        "",
+    )
+
     fun trackDisplayName(tracker: Tracker) = preferenceStore.getString(
         Preference.privateKey("tracker_display_name_${tracker.id}"),
         "",

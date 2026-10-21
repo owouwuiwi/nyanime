@@ -12,3 +12,11 @@
 -keep class nyanime.telegram.** { *; }
 # Called from the separate probe APK after app R8 has inlined its own array helpers.
 -keep class kotlin.collections.ArraysKt* { *; }
+
+# Tracking fixture shares production SQLite/WorkManager code from a separate instrumentation APK.
+-keep class it.lorelore.nyanime.tracking.** { *; }
+-keep class kotlin.collections.CollectionsKt* { *; }
+-keep class kotlin.collections.MapsKt* { *; }
+-keep class kotlin.collections.SetsKt* { *; }
+
+-keep class kotlin.io.FilesKt* { *; }

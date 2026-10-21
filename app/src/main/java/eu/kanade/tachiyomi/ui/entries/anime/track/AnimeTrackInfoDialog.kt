@@ -108,6 +108,7 @@ data class AnimeTrackInfoDialogHomeScreen(
                 title = animeTitle,
                 sourceId = sourceId,
                 onManageServices = { navigator.push(copy(servicesOnly = true)) },
+                onOpenQueue = { navigator.push(it.lorelore.nyanime.tracking.TrackingQueueScreen()) },
                 onConnect = {
                     navigator.push(
                         eu.kanade.tachiyomi.ui.setting.SettingsScreen(

@@ -10,6 +10,16 @@ identificano modifiche nel repository, non garantiscono che ogni commit sia stat
 distribuito come APK.
 
 
+## 21 ottobre 2026 — 0.54.0.0: invii ai tracker sotto controllo
+
+- Nuova coda in Impostazioni → Tracking e nel pannello delle schede: invii in attesa, attività recente, ricerca, filtri, Riprova, rimozione esplicita e Annulla. Stato e destinazione di ogni modifica sono visibili in italiano e inglese.
+- Tracking automatico e correzioni manuali usano lo stesso archivio persistente. La coda distingue anime e manga, servizio, account e collegamento esatto; conserva gli invii dopo interruzioni e non trasferisce operazioni pendenti tramite backup o sync.
+- Le correzioni manuali possono arretrare il progresso. Annulla agisce soltanto sui campi ancora appartenenti alla modifica scelta, anche dopo l’invio; una risposta tardiva non elimina scelte più recenti.
+- Prima di riprovare viene verificato lo stato remoto. Gli aggiornamenti già applicati non vengono riscritti; modifiche incompatibili sul servizio richiedono una verifica e mantengono gli altri campi.
+- Tentativi limitati per singolo invio, attesa crescente, rispetto dei limiti dei servizi e sospensione per accesso scaduto, account cambiato o collegamento non più valido. I tocchi rapidi non creano un lavoro per ogni modifica.
+- I vecchi invii automatici senza identità completa richiedono una scelta esplicita con anteprima. La migrazione è riprendibile e non indovina l’account o il tipo di contenuto.
+- Interfaccia nativa con copertine, stati compatti e animazioni ridotte rispettate. Nessuna nuova dipendenza, componente Karasu o regola specifica delle fonti.
+
 ## 21 ottobre 2026 — 0.53.0.0: recupero compatto su Telegram
 
 - Le copie di recupero possono riunire fino a 128 blocchi cifrati in un documento indicizzato, letto a blocchi e senza caricare l’intera libreria in memoria. Firme, cifratura e verifica del contenuto restano obbligatorie.

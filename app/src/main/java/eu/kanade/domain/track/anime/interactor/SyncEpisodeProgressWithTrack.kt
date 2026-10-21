@@ -1,21 +1,21 @@
 package eu.kanade.domain.track.anime.interactor
 
-import eu.kanade.domain.track.anime.model.toDbTrack
+import android.app.Application
 import eu.kanade.tachiyomi.data.track.AnimeTracker
 import eu.kanade.tachiyomi.data.track.EnhancedAnimeTracker
+import it.lorelore.nyanime.tracking.TrackingAutomaticProgress
 import logcat.LogPriority
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.items.episode.interactor.GetEpisodesByAnimeId
 import tachiyomi.domain.items.episode.interactor.UpdateEpisode
 import tachiyomi.domain.items.episode.model.toEpisodeUpdate
-import tachiyomi.domain.track.anime.interactor.InsertAnimeTrack
 import tachiyomi.domain.track.anime.model.AnimeTrack
 import kotlin.math.max
 
 class SyncEpisodeProgressWithTrack(
     private val updateEpisode: UpdateEpisode,
-    private val insertTrack: InsertAnimeTrack,
     private val getEpisodesByAnimeId: GetEpisodesByAnimeId,
+    private val app: Application,
 ) {
 
     suspend fun await(
@@ -38,13 +38,19 @@ class SyncEpisodeProgressWithTrack(
         // only take into account continuous watching
         val localLastSeen = sortedEpisodes.takeWhile { it.seen }.lastOrNull()?.episodeNumber ?: 0F
         val lastSeen = max(remoteTrack.lastEpisodeSeen, localLastSeen.toDouble())
-        val updatedTrack = remoteTrack.copy(lastEpisodeSeen = lastSeen)
 
         try {
-            service.update(updatedTrack.toDbTrack())
             updateEpisode.awaitAll(episodeUpdates)
-            insertTrack.await(updatedTrack)
-        } catch (e: Throwable) {
+            TrackingAutomaticProgress.enqueue(
+                app,
+                false,
+                animeId,
+                lastSeen,
+                trackerId = (service as eu.kanade.tachiyomi.data.track.Tracker).id,
+            )
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (e: Exception) {
             logcat(LogPriority.WARN, e)
         }
     }

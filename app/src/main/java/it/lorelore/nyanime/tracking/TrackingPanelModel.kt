@@ -75,6 +75,7 @@ data class TrackingUndo(
     val before: TrackingValues,
     val patch: TrackingPatch,
     val personal: Boolean = false,
+    val accepted: kotlinx.coroutines.CompletableDeferred<String?> = kotlinx.coroutines.CompletableDeferred(),
 )
 
 /** The actor outlives sheets, so dismissing after a tap cannot cancel an accepted local write. */
@@ -101,6 +102,7 @@ class TrackingPanelModel(
     private lateinit var subject: TrackingSubject
     private lateinit var initial: PersonalTrackingRecord
     private var localTotal = 0L
+    private var titleHint = ""
     private var identity: WorkIdentity? = null
     private var reference: WorkReference? = null
     private var choosingInitial = true
@@ -123,6 +125,7 @@ class TrackingPanelModel(
                 val observed: Double
                 if (manga) {
                     val entry = Injekt.get<GetManga>().await(entryId) ?: error("Title unavailable")
+                    titleHint = entry.title.take(2048)
                     subject = TrackingSubject(TrackingMedium.MANGA, entry.source, entry.url)
                     identity = SourceWorkIdentity.fromManga(entry.source, entry.toSManga())
                     val chapters = Injekt.get<GetChaptersByMangaId>().await(entryId)
@@ -133,6 +136,7 @@ class TrackingPanelModel(
                     }
                 } else {
                     val entry = Injekt.get<GetAnime>().await(entryId) ?: error("Title unavailable")
+                    titleHint = entry.title.take(2048)
                     subject = TrackingSubject(TrackingMedium.ANIME, entry.source, entry.url)
                     val hints = SourceTrackingHints.from(entry)
                     identity = SourceWorkIdentity.apply(
@@ -185,7 +189,11 @@ class TrackingPanelModel(
         val selected = state.value.selected?.takeIf { id -> targets.any { it.tracker.id == id } }
         val target = targets.find { it.tracker.id == selected }
         val pending = target?.let { store.pending(it.key) }
-        val activePending = pending?.takeIf { it.account == target.account && it.remoteId == target.remoteId }
+        val activePending = pending?.takeIf {
+            it.account == target.account &&
+                it.remoteId == target.remoteId &&
+                (it.accountEpoch.isBlank() || it.accountEpoch == target.accountEpoch)
+        }
         val values = target?.values?.let { activePending?.patch?.applyTo(it) ?: it } ?: local.values
         val preferences = Injekt.get<WorkInfoPreferences>()
         val binding = identity?.let(preferences::binding)
@@ -277,6 +285,11 @@ class TrackingPanelModel(
                         TrackingScoreChoice(value, label, tracker.get10PointScore(track.copy(score = value)))
                     },
                     tracker.displayScore(track),
+                    accountEpoch = runCatching {
+                        TrackingAccountBinding.current(service, subject)
+                    }.getOrDefault("unavailable"),
+                    titleHint = titleHint,
+                    remoteUrl = track.remoteUrl,
                 )
             }
         } else {
@@ -298,6 +311,11 @@ class TrackingPanelModel(
                         TrackingScoreChoice(value, label, tracker.get10PointScore(track.copy(score = value)))
                     },
                     tracker.displayScore(track),
+                    accountEpoch = runCatching {
+                        TrackingAccountBinding.current(service, subject)
+                    }.getOrDefault("unavailable"),
+                    titleHint = titleHint,
+                    remoteUrl = track.remoteUrl,
                 )
             }
         }
@@ -368,13 +386,23 @@ class TrackingPanelModel(
         val existing = state.value.pending
         if (target != null &&
             existing != null &&
-            (existing.account != target.account || existing.remoteId != target.remoteId)
+            (
+                existing.account != target.account ||
+                    existing.remoteId != target.remoteId ||
+                    existing.accountEpoch != target.accountEpoch ||
+                    existing.remoteUrl != target.remoteUrl ||
+                    existing.subject != target.subject ||
+                    existing.entryId != target.entryId ||
+                    existing.trackId != target.trackId ||
+                    existing.trackerId != target.tracker.id
+                )
         ) {
             mutableState.update { it.copy(error = true) }
             return
         }
         val selected = state.value.selected
         localRetry = null
+        val undo = if (rememberUndo) TrackingUndo(selected, before, patch) else null
         acceptedWrites.incrementAndGet()
         mutableState.update {
             it.copy(
@@ -382,7 +410,7 @@ class TrackingPanelModel(
                 local = if (target == null) (it.local ?: initial).copy(values = after) else it.local,
                 saving = true,
                 error = false,
-                undo = if (rememberUndo) TrackingUndo(selected, before, patch) else null,
+                undo = undo,
             )
         }
         TrackingPanelWrites.submit {
@@ -395,31 +423,30 @@ class TrackingPanelModel(
                     }
                 } else {
                     val gate = TrackingEditGate.entry(target.key)
-                    gate.generation.incrementAndGet()
-                    store.enqueue(
-                        PendingTrackingEdit(
-                            subject,
-                            entryId,
-                            target.trackId,
-                            target.tracker.id,
-                            target.remoteId,
-                            target.account,
-                            patch,
-                            System.currentTimeMillis(),
-                        ),
-                    )
-                    if (patch.fields.any { it == TrackingField.PROGRESS || it == TrackingField.STATUS }) {
-                        gate.progressGeneration.incrementAndGet()
-                        if (manga) {
-                            Injekt.get<eu.kanade.domain.track.manga.store.DelayedMangaTrackingStore>().removeMangaItem(
-                                target.trackId,
-                            )
-                        } else {
-                            Injekt.get<eu.kanade.domain.track.anime.store.DelayedAnimeTrackingStore>().removeAnimeItem(
-                                target.trackId,
-                            )
+                    val accepted = synchronized(gate.mutations) {
+                        gate.generation.incrementAndGet()
+                        if (patch.fields.any { it == TrackingField.PROGRESS || it == TrackingField.STATUS }) {
+                            gate.progressGeneration.incrementAndGet()
                         }
+                        store.enqueue(
+                            PendingTrackingEdit(
+                                subject,
+                                entryId,
+                                target.trackId,
+                                target.tracker.id,
+                                target.remoteId,
+                                target.account,
+                                patch,
+                                System.currentTimeMillis(),
+                                accountEpoch = target.accountEpoch,
+                                base = target.values,
+                                titleHint = target.titleHint,
+                                remoteUrl = target.remoteUrl,
+                            ),
+                            before,
+                        )
                     }
+                    undo?.accepted?.complete(accepted.receiptId)
                     TrackingEditWorker.schedule(context)
                 }
             } catch (_: Exception) {
@@ -438,6 +465,7 @@ class TrackingPanelModel(
                     )
                 }
             } finally {
+                undo?.accepted?.complete(null)
                 val remaining = acceptedWrites.decrementAndGet()
                 mutableState.update { it.copy(saving = remaining > 0) }
                 if (remaining == 0) reload()
@@ -487,7 +515,25 @@ class TrackingPanelModel(
     fun undo() {
         val undo = state.value.undo ?: return
         if (undo.target != state.value.selected) return
-        if (undo.personal) {
+        if (undo.target != null && !undo.personal) {
+            mutableState.update { it.copy(undo = null, saving = true) }
+            TrackingPanelWrites.submit {
+                try {
+                    val id = undo.accepted.await() ?: return@submit
+                    val receipt = store.receipt(id) ?: return@submit
+                    val gate = TrackingEditGate.entry(receipt.edit.key)
+                    synchronized(gate.mutations) {
+                        gate.generation.incrementAndGet()
+                        gate.progressGeneration.incrementAndGet()
+                        store.undo(id, System.currentTimeMillis())
+                    }
+                    TrackingEditWorker.schedule(context)
+                } finally {
+                    mutableState.update { it.copy(saving = false) }
+                    reload()
+                }
+            }
+        } else if (undo.personal) {
             editPersonal(
                 undo.patch.inverse(undo.before, state.value.local?.values ?: initial.values),
                 rememberUndo = false,
@@ -505,8 +551,10 @@ class TrackingPanelModel(
             return
         }
         if (state.value.pending != null) {
+            val pending = state.value.pending!!
             screenModelScope.launch(Dispatchers.IO) {
                 try {
+                    store.retry(pending.key, pending.revision)
                     TrackingEditWorker.schedule(context, immediately = true)
                 } catch (_: Exception) {
                     mutableState.update { it.copy(error = true) }
@@ -570,7 +618,7 @@ class TrackingPanelModel(
             val gate = TrackingEditGate.entry(pending.key)
             gate.mutex.withLock {
                 gate.generation.incrementAndGet()
-                store.complete(pending)
+                store.discard(pending)
             }
         }
     }

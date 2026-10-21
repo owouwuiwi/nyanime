@@ -26,7 +26,7 @@ class Jellyfin(id: Long) : BaseTracker(id, "Jellyfin"), EnhancedAnimeTracker, An
     }
 
     override val client by lazy {
-        networkService.client.newBuilder()
+        it.lorelore.nyanime.tracking.TrackingRequestGuard.client(networkService.client, id).newBuilder()
             .addInterceptor(JellyfinInterceptor())
             .dns(Dns.SYSTEM) // don't use DNS over HTTPS as it breaks IP addressing
             .build()

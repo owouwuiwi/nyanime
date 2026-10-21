@@ -78,3 +78,10 @@ Il riferimento di prodotto è il pannello mostrato da
 distribuzione dei voti e Annulla. Questa implementazione è scritta per la
 presentazione nativa di Nyanime: non importa codice, componenti web o asset di
 Karasu. Le licenze dei componenti già presenti nell'app restano invariate.
+
+## Coda e tentativi
+
+**Invii ai tracker** apre la [coda ispezionabile](tracking-outbox.md), con attività
+recente, stati precisi, verifica dei vecchi invii e Annulla prima o dopo la
+conferma del servizio. Tracking automatico e modifiche manuali usano lo stesso
+archivio e lo stesso gateway.

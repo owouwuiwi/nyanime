@@ -44,6 +44,28 @@ class MangaTrackRepositoryImpl(
         insertValues(track)
     }
 
+    override suspend fun updateIfUnchanged(expected: MangaTrack, updated: MangaTrack): Boolean = handler.await(
+        inTransaction = true,
+    ) {
+        val current = manga_syncQueries.getTrackById(expected.id, MangaTrackMapper::mapTrack).executeAsOneOrNull()
+        if (current != expected ||
+            updated.id != expected.id ||
+            updated.remoteId != expected.remoteId ||
+            updated.mangaId != expected.mangaId ||
+            updated.trackerId != expected.trackerId
+        ) {
+            return@await false
+        }
+        manga_syncQueries.insert(
+            mangaId = updated.mangaId, syncId = updated.trackerId, remoteId = updated.remoteId,
+            libraryId = updated.libraryId, title = updated.title, lastChapterRead = updated.lastChapterRead,
+            totalChapters = updated.totalChapters, status = updated.status, score = updated.score,
+            remoteUrl = updated.remoteUrl, startDate = updated.startDate, finishDate = updated.finishDate,
+            private = updated.private,
+        )
+        true
+    }
+
     override suspend fun insertAllManga(tracks: List<MangaTrack>) {
         insertValues(*tracks.toTypedArray())
     }

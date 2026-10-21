@@ -17,5 +17,7 @@ interface MangaTrackRepository {
 
     suspend fun insertManga(track: MangaTrack)
 
+    suspend fun updateIfUnchanged(expected: MangaTrack, updated: MangaTrack): Boolean
+
     suspend fun insertAllManga(tracks: List<MangaTrack>)
 }

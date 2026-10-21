@@ -26,7 +26,7 @@ class Komga(id: Long) : BaseTracker(id, "Komga"), EnhancedMangaTracker, MangaTra
     }
 
     override val client: OkHttpClient =
-        networkService.client.newBuilder()
+        it.lorelore.nyanime.tracking.TrackingRequestGuard.client(networkService.client, id).newBuilder()
             .dns(Dns.SYSTEM) // don't use DNS over HTTPS as it breaks IP addressing
             .build()
 

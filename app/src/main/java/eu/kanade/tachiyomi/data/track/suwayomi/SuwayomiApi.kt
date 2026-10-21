@@ -28,7 +28,7 @@ class SuwayomiApi(private val trackId: Long) {
     private val json: Json by injectLazy()
 
     private val client: OkHttpClient =
-        network.client.newBuilder()
+        it.lorelore.nyanime.tracking.TrackingRequestGuard.client(network.client, trackId).newBuilder()
             .dns(Dns.SYSTEM) // don't use DNS over HTTPS as it breaks IP addressing
             .build()
 

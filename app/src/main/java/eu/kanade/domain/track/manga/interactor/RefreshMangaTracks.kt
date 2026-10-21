@@ -11,14 +11,12 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.sync.withLock
 import tachiyomi.domain.track.manga.interactor.GetMangaTracks
-import tachiyomi.domain.track.manga.interactor.InsertMangaTrack
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
 class RefreshMangaTracks(
     private val getTracks: GetMangaTracks,
     private val trackerManager: TrackerManager,
-    private val insertTrack: InsertMangaTrack,
     private val syncChapterProgressWithTrack: SyncChapterProgressWithTrack,
 ) {
 
@@ -29,6 +27,13 @@ class RefreshMangaTracks(
      */
     suspend fun await(mangaId: Long): List<Pair<Tracker?, Throwable>> {
         return supervisorScope {
+            val entry = Injekt.get<tachiyomi.domain.entries.manga.interactor.GetManga>().await(mangaId)
+                ?: return@supervisorScope emptyList()
+            val subject = it.lorelore.nyanime.tracking.TrackingSubject(
+                it.lorelore.nyanime.tracking.TrackingMedium.MANGA,
+                entry.source,
+                entry.url,
+            )
             return@supervisorScope getTracks.await(mangaId)
                 .map { it to trackerManager.get(it.trackerId) }
                 .filter { (_, service) -> service?.isLoggedIn == true }
@@ -46,16 +51,26 @@ class RefreshMangaTracks(
                                 return@withLock null
                             }
                             try {
+                                val epoch = it.lorelore.nyanime.tracking.TrackingAccountBinding.current(
+                                    service,
+                                    subject,
+                                )
                                 val updatedTrack = service!!.mangaService.refresh(track.toDbTrack()).toDomainTrack()!!
                                 if (generation != gate.generation.get() ||
                                     service.getUsername() != account ||
+                                    it.lorelore.nyanime.tracking.TrackingAccountBinding.current(service, subject) !=
+                                    epoch ||
                                     PersonalTrackingStore.get(Injekt.get<android.app.Application>()).pending(gateKey) !=
                                     null ||
                                     getTracks.awaitOne(track.id)?.remoteId != track.remoteId
                                 ) {
                                     return@withLock null
                                 }
-                                insertTrack.await(updatedTrack)
+                                if (!Injekt.get<tachiyomi.domain.track.manga.repository.MangaTrackRepository>()
+                                        .updateIfUnchanged(track, updatedTrack)
+                                ) {
+                                    return@withLock null
+                                }
                                 syncChapterProgressWithTrack.await(mangaId, updatedTrack, service.mangaService)
                                 null
                             } catch (cancelled: kotlinx.coroutines.CancellationException) {

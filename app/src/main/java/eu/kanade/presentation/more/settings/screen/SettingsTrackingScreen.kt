@@ -41,6 +41,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import cafe.adriel.voyager.navigator.currentOrThrow
 import dev.icerock.moko.resources.StringResource
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.domain.track.model.AutoTrackState
@@ -97,6 +98,7 @@ object SettingsTrackingScreen : SearchableSettings {
     @Composable
     override fun getPreferences(): List<Preference> {
         val context = LocalContext.current
+        val navigator = cafe.adriel.voyager.navigator.LocalNavigator.currentOrThrow
         val trackPreferences = remember { Injekt.get<TrackPreferences>() }
         val basePreferences = remember { Injekt.get<BasePreferences>() }
         val trackerManager = remember { Injekt.get<TrackerManager>() }
@@ -157,6 +159,11 @@ object SettingsTrackingScreen : SearchableSettings {
         }
 
         return listOf(
+            Preference.PreferenceItem.TextPreference(
+                title = context.getString(eu.kanade.tachiyomi.R.string.tracking_queue_title),
+                subtitle = context.getString(eu.kanade.tachiyomi.R.string.tracking_queue_settings_hint),
+                onClick = { navigator.push(it.lorelore.nyanime.tracking.TrackingQueueScreen()) },
+            ),
             Preference.PreferenceItem.SwitchPreference(
                 preference = trackPreferences.autoUpdateTrack(),
                 title = stringResource(AYMR.strings.pref_auto_update_manga_sync),

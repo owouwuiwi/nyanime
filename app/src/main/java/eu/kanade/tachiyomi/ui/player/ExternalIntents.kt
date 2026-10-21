@@ -13,7 +13,6 @@ import androidx.core.net.toUri
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.domain.track.anime.model.toDbTrack
 import eu.kanade.domain.track.anime.service.DelayedAnimeTrackingUpdateJob
-import eu.kanade.domain.track.anime.store.DelayedAnimeTrackingStore
 import eu.kanade.domain.track.service.TrackPreferences
 import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.animesource.model.Video
@@ -427,7 +426,6 @@ class ExternalIntents {
     private val getTracks: GetAnimeTracks = Injekt.get()
     private val insertTrack: InsertAnimeTrack = Injekt.get()
     private val downloadManager: AnimeDownloadManager by injectLazy()
-    private val delayedTrackingStore: DelayedAnimeTrackingStore = Injekt.get()
     private val playerPreferences: PlayerPreferences = Injekt.get()
     private val downloadPreferences: DownloadPreferences = Injekt.get()
     private val trackPreferences: TrackPreferences = Injekt.get()
@@ -524,41 +522,12 @@ class ExternalIntents {
     private suspend fun updateTrackEpisodeSeen(episodeNumber: Double, anime: Anime) {
         if (!trackPreferences.autoUpdateTrack().get()) return
 
-        val trackerManager = Injekt.get<TrackerManager>()
-        val context = Injekt.get<Application>()
-
-        withIOContext {
-            getTracks.await(anime.id)
-                .mapNotNull { track ->
-                    val tracker = trackerManager.get(track.trackerId)
-                    if (tracker != null &&
-                        tracker.isLoggedIn &&
-                        tracker is AnimeTracker &&
-                        episodeNumber > track.lastEpisodeSeen
-                    ) {
-                        val updatedTrack = track.copy(lastEpisodeSeen = episodeNumber)
-
-                        // We want these to execute even if the presenter is destroyed and leaks
-                        // for a while. The view can still be garbage collected.
-                        async {
-                            runCatching {
-                                if (context.isOnline()) {
-                                    tracker.animeService.update(updatedTrack.toDbTrack(), true)
-                                    insertTrack.await(updatedTrack)
-                                } else {
-                                    delayedTrackingStore.addAnime(track.animeId, lastEpisodeSeen = episodeNumber)
-                                    DelayedAnimeTrackingUpdateJob.setupTask(context)
-                                }
-                            }
-                        }
-                    } else {
-                        null
-                    }
-                }
-                .awaitAll()
-                .mapNotNull { it.exceptionOrNull() }
-                .forEach { logcat(LogPriority.INFO, it) }
-        }
+        it.lorelore.nyanime.tracking.TrackingAutomaticProgress.enqueue(
+            Injekt.get<Application>(),
+            false,
+            anime.id,
+            episodeNumber,
+        )
     }
 
     /**

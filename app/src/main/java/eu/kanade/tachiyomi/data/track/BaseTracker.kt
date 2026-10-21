@@ -6,6 +6,7 @@ import eu.kanade.tachiyomi.network.NetworkHelper
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import okhttp3.OkHttpClient
+import uy.kohesive.injekt.api.get
 import uy.kohesive.injekt.injectLazy
 
 abstract class BaseTracker(
@@ -16,8 +17,24 @@ abstract class BaseTracker(
     val trackPreferences: TrackPreferences by injectLazy()
     val networkService: NetworkHelper by injectLazy()
 
-    override val client: OkHttpClient
-        get() = networkService.client
+    override val client: OkHttpClient by lazy {
+        it.lorelore.nyanime.tracking.TrackingRequestGuard.client(networkService.client, id)
+    }
+
+    fun queueAccountEpoch(): String {
+        val preference = trackPreferences.trackingAccountEpoch(this)
+        synchronized(this) {
+            if (preference.get().isBlank()) preference.set(java.util.UUID.randomUUID().toString())
+            return preference.get()
+        }
+    }
+
+    fun queueCredentialFingerprint() = it.lorelore.nyanime.tracking.TrackingRequestGuard.fingerprint(
+        getUsername(),
+        getPassword(),
+        trackPreferences.trackToken(this).get(),
+        queueAccountEpoch(),
+    )
 
     // Application and remote support for reading dates
     override val supportsReadingDates: Boolean = false
@@ -42,6 +59,7 @@ abstract class BaseTracker(
 
     @CallSuper
     override fun logout() {
+        trackPreferences.trackingAccountEpoch(this).set(java.util.UUID.randomUUID().toString())
         accountRefresh.invalidate {
             trackPreferences.setCredentials(this, "", "")
             trackPreferences.trackDisplayName(this).delete()
@@ -66,11 +84,17 @@ abstract class BaseTracker(
     override fun getPassword() = trackPreferences.trackPassword(this).get()
 
     override fun saveCredentials(username: String, password: String) {
+        if (getUsername() != username || getPassword().isBlank()) {
+            trackPreferences.trackingAccountEpoch(this).set(java.util.UUID.randomUUID().toString())
+        }
         if (getUsername() != username) trackPreferences.trackDisplayName(this).delete()
         trackPreferences.setCredentials(this, username, password)
         if (username.isNotBlank() && password.isNotBlank()) {
             RetroactiveTracking.onTrackerLogin()
             LibraryAutoTracking.onForeground()
+            it.lorelore.nyanime.tracking.TrackingEditWorker.resumePending(
+                uy.kohesive.injekt.Injekt.get<android.app.Application>(),
+            )
         }
     }
 }

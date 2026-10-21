@@ -353,9 +353,11 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
                 logcat(LogPriority.WARN, error) { "Unable to schedule release reminders" }
             }
         }
-        RetroactiveTracking.onForeground()
-        it.lorelore.nyanime.tracking.TrackingEditWorker.resumePending(this)
-        LibraryAutoTracking.onForeground()
+        if (!BuildConfig.ISOLATED_CLOUD_PROBE) {
+            RetroactiveTracking.onForeground()
+            it.lorelore.nyanime.tracking.TrackingEditWorker.resumePending(this)
+            LibraryAutoTracking.onForeground()
+        }
     }
 
     override fun onStop(owner: LifecycleOwner) {

@@ -291,9 +291,9 @@ class DomainModule : InjektModule {
         addFactory { GetApplicationRelease(get(), get()) }
 
         addSingletonFactory<AnimeTrackRepository> { AnimeTrackRepositoryImpl(get()) }
-        addFactory { TrackEpisode(get(), get(), get(), get()) }
+        addFactory { TrackEpisode() }
         addFactory { AddAnimeTracks(get(), get(), get(), get()) }
-        addFactory { RefreshAnimeTracks(get(), get(), get(), get()) }
+        addFactory { RefreshAnimeTracks(get(), get(), get()) }
         addFactory { DeleteAnimeTrack(get()) }
         addFactory { GetTracksPerAnime(get()) }
         addFactory { GetAnimeTracks(get()) }
@@ -301,9 +301,9 @@ class DomainModule : InjektModule {
         addFactory { SyncEpisodeProgressWithTrack(get(), get(), get()) }
 
         addSingletonFactory<MangaTrackRepository> { MangaTrackRepositoryImpl(get()) }
-        addFactory { TrackChapter(get(), get(), get(), get()) }
+        addFactory { TrackChapter() }
         addFactory { AddMangaTracks(get(), get(), get(), get()) }
-        addFactory { RefreshMangaTracks(get(), get(), get(), get()) }
+        addFactory { RefreshMangaTracks(get(), get(), get()) }
         addFactory { DeleteMangaTrack(get()) }
         addFactory { GetTracksPerManga(get()) }
         addFactory { GetMangaTracks(get()) }

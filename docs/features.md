@@ -377,6 +377,9 @@ disponibilità e compatibilità dipendono dal servizio scelto.
 
 ## Tracker, backup e privacy
 
+La [coda degli invii](tracking-outbox.md) rende visibili modifiche automatiche e
+manuali in attesa, recupero dopo interruzioni, conferme degli account e conflitti.
+
 Il [pannello di tracking](tracking-panel.md) unifica stati, progresso, voto e
 opzioni personali per anime e manga. Funziona anche senza account; i servizi
 collegati restano distinti e rispettano le proprie scale e capacità. Il salvataggio

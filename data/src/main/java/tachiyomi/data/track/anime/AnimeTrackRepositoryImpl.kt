@@ -44,6 +44,28 @@ class AnimeTrackRepositoryImpl(
         insertValues(track)
     }
 
+    override suspend fun updateIfUnchanged(expected: AnimeTrack, updated: AnimeTrack): Boolean = handler.await(
+        inTransaction = true,
+    ) {
+        val current = anime_syncQueries.getTrackByAnimeId(expected.id, AnimeTrackMapper::mapTrack).executeAsOneOrNull()
+        if (current != expected ||
+            updated.id != expected.id ||
+            updated.remoteId != expected.remoteId ||
+            updated.animeId != expected.animeId ||
+            updated.trackerId != expected.trackerId
+        ) {
+            return@await false
+        }
+        anime_syncQueries.insert(
+            animeId = updated.animeId, syncId = updated.trackerId, remoteId = updated.remoteId,
+            libraryId = updated.libraryId, title = updated.title, lastEpisodeSeen = updated.lastEpisodeSeen,
+            totalEpisodes = updated.totalEpisodes, status = updated.status, score = updated.score,
+            remoteUrl = updated.remoteUrl, startDate = updated.startDate, finishDate = updated.finishDate,
+            private = updated.private,
+        )
+        true
+    }
+
     override suspend fun insertAllAnime(tracks: List<AnimeTrack>) {
         insertValues(*tracks.toTypedArray())
     }

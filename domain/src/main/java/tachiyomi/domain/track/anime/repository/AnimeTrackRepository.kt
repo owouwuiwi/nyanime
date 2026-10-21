@@ -17,5 +17,7 @@ interface AnimeTrackRepository {
 
     suspend fun insertAnime(track: AnimeTrack)
 
+    suspend fun updateIfUnchanged(expected: AnimeTrack, updated: AnimeTrack): Boolean
+
     suspend fun insertAllAnime(tracks: List<AnimeTrack>)
 }

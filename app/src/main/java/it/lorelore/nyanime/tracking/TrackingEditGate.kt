@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicLong
 object TrackingEditGate {
     class Entry {
         val mutex = Mutex()
+        val mutations = Any()
         val generation = AtomicLong()
         val progressGeneration = AtomicLong()
     }

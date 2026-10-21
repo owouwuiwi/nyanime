@@ -35,6 +35,7 @@ con download completo di ripiego e compatibilità con gli aggiornatori precedent
 | Guida | Contenuto |
 | --- | --- |
 | [Pannello di tracking](tracking-panel.md) | Stati, progresso, voti reali, dati personali senza account, salvataggio e Annulla. |
+| [Invii ai tracker](tracking-outbox.md) | Coda persistente, limiti dei servizi, conflitti e Annulla per campo. |
 | [Notifiche per titolo](release-alert-controls.md) | Silenziare singoli titoli, filtro Segui e controlli Android. |
 | [Condivisione in Nyanime](content-sharing.md) | Schede, episodi con minutaggio e capitoli con pagina, senza logica specifica delle fonti. |
 | [Primi passi e FAQ](getting-started.md) | Installazione, aggiornamenti, estensioni, preferenze e problemi comuni. |
