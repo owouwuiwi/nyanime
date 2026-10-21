@@ -1,6 +1,9 @@
 package eu.kanade.tachiyomi.data.cloud.sync
 
 import it.lorelore.nyanime.cloud.sync.SyncMaintenancePolicy
+import it.lorelore.nyanime.cloud.sync.SyncWorkProgress
+import it.lorelore.nyanime.cloud.sync.SyncWorkStage
+import it.lorelore.nyanime.cloud.sync.SyncWorkUnit
 import kotlinx.serialization.Serializable
 import nyanime.telegram.sync.SyncCheckpointChunk
 import nyanime.telegram.sync.SyncCheckpointCommit
@@ -22,6 +25,8 @@ internal class CloudSyncCheckpoints(
     private val transport: TelegramSyncTransport,
     private val device: SyncDeviceSecret,
 ) {
+    var onProgress: (SyncWorkProgress) -> Unit = {}
+
     fun prepare(keys: CloudSyncKeys): Prepared {
         store.state("checkpoint-pending")?.takeIf { it.isNotEmpty() }?.let {
             val previous = syncJson.decodeFromString<Prepared>(it)
@@ -37,6 +42,8 @@ internal class CloudSyncCheckpoints(
         val id = UUID.randomUUID().toString()
         val parts = mutableListOf<SyncCheckpointPart>()
         val key = keys.key()
+        var prepared = 0L
+        onProgress(SyncWorkProgress(SyncWorkStage.PREPARING, unit = SyncWorkUnit.PARTS))
         val sequence = try {
             store.snapshot { changes ->
                 val chunk = SyncCheckpointChunk(checkpoint = id, changes = changes).also { it.validate() }
@@ -51,6 +58,15 @@ internal class CloudSyncCheckpoints(
                 val data = syncJson.encodeToString(envelope)
                 files.prepare(SyncPacket(kind = "checkpoint", id = envelope.id, space = keys.space, payload = data))
                 parts += SyncCheckpointPart(envelope.id, SyncCheckpoints.hash(data), 0)
+                prepared++
+                onProgress(
+                    SyncWorkProgress(
+                        SyncWorkStage.PREPARING,
+                        prepared,
+                        unit = SyncWorkUnit.PARTS,
+                        lastActivity = System.currentTimeMillis() / 1000,
+                    ),
+                )
             }
         } finally {
             key.fill(0)
@@ -68,6 +84,16 @@ internal class CloudSyncCheckpoints(
     suspend fun publish(keys: CloudSyncKeys): SyncDelivery {
         check(keys.contains(device.public))
         var plan = prepare(keys)
+        fun report() = onProgress(
+            SyncWorkProgress(
+                SyncWorkStage.CHECKPOINT,
+                plan.parts.count { it.messageId > 0 }.toLong(),
+                plan.parts.size.toLong(),
+                SyncWorkUnit.PARTS,
+                lastActivity = System.currentTimeMillis() / 1000,
+            ),
+        )
+        report()
         plan.parts.forEachIndexed { index, part ->
             if (part.messageId == 0L) {
                 val receipt = send(files.prepared(part.id))
@@ -77,6 +103,7 @@ internal class CloudSyncCheckpoints(
                     },
                 )
                 save(plan)
+                report()
             }
         }
         if (!plan.commitPrepared) {
@@ -156,7 +183,14 @@ internal class CloudSyncCheckpoints(
         val key = keys.key(envelope.epoch)
         try {
             val commit = verifiedCommit(delivery, keys) ?: return 0
-            commit.parts.forEach { part ->
+            onProgress(
+                SyncWorkProgress(
+                    SyncWorkStage.RESTORING,
+                    total = commit.parts.size.toLong(),
+                    unit = SyncWorkUnit.PARTS,
+                ),
+            )
+            commit.parts.forEachIndexed { index, part ->
                 require(part.messageId < delivery.receipt.messageId)
                 val found = store.messageFor(part.id)
                 if (found == null) {
@@ -166,6 +200,15 @@ internal class CloudSyncCheckpoints(
                     store.staged(received)
                 }
                 chunk(part, commit, keys, key) // Validate the complete set before any database projection.
+                onProgress(
+                    SyncWorkProgress(
+                        SyncWorkStage.RESTORING,
+                        (index + 1).toLong(),
+                        commit.parts.size.toLong(),
+                        SyncWorkUnit.PARTS,
+                        lastActivity = System.currentTimeMillis() / 1000,
+                    ),
+                )
             }
             store.restoreSnapshot(
                 commit.id,
@@ -173,6 +216,13 @@ internal class CloudSyncCheckpoints(
                 commit.parts.asSequence().map { chunk(it, commit, keys, key).changes },
             )
             store.state("checkpoint-message", delivery.receipt.messageId.toString())
+            store.state(
+                "archive-last-checkpoint",
+                maxOf(
+                    store.state("archive-last-checkpoint")?.toLongOrNull() ?: 0,
+                    delivery.receipt.serverDate,
+                ).toString(),
+            )
             store.state("compact-through", commit.throughMessage.toString())
             return commit.throughMessage
         } finally {

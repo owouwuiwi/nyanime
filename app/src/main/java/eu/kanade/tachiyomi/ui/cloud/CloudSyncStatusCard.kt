@@ -34,7 +34,6 @@ import androidx.compose.ui.unit.dp
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.cloud.sync.CloudSyncManager
 import eu.kanade.tachiyomi.data.cloud.sync.CloudSyncPhase
-import it.lorelore.nyanime.cloud.sync.SyncMaintenancePhase
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import java.text.DateFormat
@@ -158,29 +157,10 @@ internal fun CloudSyncStatusCard(
                             color = colors.onSurfaceVariant,
                         )
                     }
-                    Text(
-                        stringResource(
-                            when (status.maintenance.phase) {
-                                SyncMaintenancePhase.WAITING -> R.string.cloud_sync_maintenance_waiting
-                                SyncMaintenancePhase.VERIFYING -> R.string.cloud_sync_maintenance_verifying
-                                SyncMaintenancePhase.CLEANING -> R.string.cloud_sync_maintenance_cleaning
-                                SyncMaintenancePhase.CURRENT -> R.string.cloud_sync_maintenance_current
-                                SyncMaintenancePhase.COMPATIBILITY -> R.string.cloud_sync_maintenance_compatibility
-                                SyncMaintenancePhase.RETRY -> R.string.cloud_sync_maintenance_retry
-                            },
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.onSurfaceVariant,
-                    )
-                    if (status.maintenance.removed > 0) {
-                        Text(
-                            stringResource(R.string.cloud_sync_maintenance_removed, status.maintenance.removed),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = colors.onSurfaceVariant,
-                        )
-                    }
                 }
             }
+            status.progress?.let { CloudWorkProgress(it) }
+            CloudMaintenanceProgress(status.maintenance)
             if (status.retryAt > 0 &&
                 status.phase in setOf(
                     CloudSyncPhase.NETWORK,

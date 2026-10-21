@@ -208,6 +208,33 @@ internal class CloudMaintenanceServerProbe(private val context: Context) {
             ) {}
             stage = "server-step-20"
             val server = client.request(tdRequest("getOption", "name" to JsonPrimitive("unix_time"))).number("value")
+            suspend fun archiveInventory(): Map<Long, Long> {
+                val ids = mutableMapOf<Long, Long>()
+                var before = 0L
+                repeat(30) {
+                    val page = client.request(
+                        tdRequest(
+                            "getChatHistory",
+                            "chat_id" to JsonPrimitive(createdChat),
+                            "from_message_id" to JsonPrimitive(before),
+                            "offset" to JsonPrimitive(0),
+                            "limit" to JsonPrimitive(100),
+                            "only_local" to JsonPrimitive(false),
+                        ),
+                    )
+                    val values = (page["messages"] as? kotlinx.serialization.json.JsonArray).orEmpty()
+                        .filterIsInstance<kotlinx.serialization.json.JsonObject>()
+                    val next = values.minOfOrNull { it.number("id") } ?: 0L
+                    if (next == 0L || next == before) return ids
+                    values.forEach { value ->
+                        ids[value.number("id")] = value.objectOrNull("content")?.objectOrNull("document")
+                            ?.objectOrNull("document")?.number("size") ?: 0
+                    }
+                    before = next
+                }
+                error("Probe archive unexpectedly large")
+            }
+            val beforeCleanup = archiveInventory()
             // Accelerate the grace period ONLY in this test engine, never the phone/server clock.
             val startedAt = android.os.SystemClock.elapsedRealtime()
             val cleaner = CloudSyncMaintenance(first, first.maintenanceIndex, {
@@ -222,7 +249,16 @@ internal class CloudMaintenanceServerProbe(private val context: Context) {
                 delay(3_000)
             }
             check(first.maintenanceIndex.plan()?.complete == true)
-            check((first.maintenanceIndex.value("removed")?.toLongOrNull() ?: 0) >= 3)
+            val afterCleanup = archiveInventory()
+            val removedIds = beforeCleanup.keys - afterCleanup.keys
+            val actualRemoved = removedIds.size.toLong()
+            val documentBytesRemoved = removedIds.sumOf { beforeCleanup.getValue(it) }
+            check(documentBytesRemoved > 0)
+            check(actualRemoved >= 3)
+            check(first.maintenanceIndex.value("removed")?.toLongOrNull() == actualRemoved)
+            check(cleaner.status.removed == actualRemoved)
+            check(cleaner.status.verifiedParts == cleaner.status.totalParts)
+            check(cleaner.status.examined > 0)
             stage = "verify-redundant-data-removed"
             check(transport.maintenanceMessage(redundantData) == null)
             stage = "verify-obsolete-checkpoint-removed"
@@ -272,7 +308,10 @@ internal class CloudMaintenanceServerProbe(private val context: Context) {
             check(!second.keys.contains(deviceB.public))
             check(second.store.pendingCount() > 0)
             stage = "completed"
-            "PASS: real private test archive; document transport, two checkpoint coverage, pinned and unrelated " +
+            "PASS: actualRemoved=$actualRemoved; documentBytesRemoved=$documentBytesRemoved; " +
+                "examined=${cleaner.status.examined}; " +
+                "verifiedParts=${cleaner.status.verifiedParts}/${cleaner.status.totalParts}; " +
+                "real private test archive; document transport, two checkpoint coverage, pinned and unrelated " +
                 "posts, orphan part, legacy fence, stale staged commit, new device recovery with offline edits, " +
                 "revocation and retained unsent edits. No user sync archive or library mutated."
         } finally {

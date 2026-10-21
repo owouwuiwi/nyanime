@@ -35,7 +35,14 @@ import kotlin.math.ceil
 internal class CloudSyncTransferDeferred : IllegalStateException("Bulk synchronization waits for idle playback")
 
 internal data class SyncMaintenanceMessage(val delivery: SyncDelivery, val pinned: Boolean)
-internal data class SyncMaintenancePage(val ids: List<Long>, val next: Long, val complete: Boolean)
+internal data class SyncMaintenancePage(
+    val ids: List<Long>,
+    val next: Long,
+    val complete: Boolean,
+    val examined: Int = ids.size,
+    val protected: Int = 0,
+    val young: Int = 0,
+)
 
 /** Reuses the existing account; it neither owns nor closes the shared TDLib session. */
 internal class TelegramSyncTransport(
@@ -329,7 +336,15 @@ internal class TelegramSyncTransport(
                 (text.startsWith(SyncEnvelope.MARKER) || caption.startsWith(SyncEnvelope.MARKER))
         }.map { it.number("id") }.sortedDescending()
         val next = messages.minOfOrNull { it.number("id") } ?: 0
-        return SyncMaintenancePage(ids, next, messages.isEmpty() || next == before)
+        val considered = messages.filter { before == 0L || it.number("id") < before }
+        return SyncMaintenancePage(
+            ids,
+            next,
+            messages.isEmpty() || next == before,
+            examined = considered.size,
+            protected = considered.count { it.number("id") !in ids && it.number("date") <= cutoffDate },
+            young = considered.count { it.number("date") > cutoffDate },
+        )
     }
 
     /** Bypass retained journal bytes: verify the actual Telegram payload before destructive maintenance. */
@@ -389,6 +404,18 @@ internal class TelegramSyncTransport(
                 "revoke" to JsonPrimitive(true),
             ),
         )
+        // Count confirmed absence, not just an accepted delete request. A failed read leaves
+        // the durable candidate in place; an uncertain deletion is never reported as success.
+        for (id in ids) {
+            var absent = false
+            repeat(4) { attempt ->
+                if (!absent) {
+                    absent = maintenanceMessage(id) == null
+                    if (!absent && attempt < 3) delay(150)
+                }
+            }
+            check(absent) { "Maintenance deletion is not confirmed" }
+        }
         return ids.size
     }
 

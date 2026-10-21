@@ -4,6 +4,9 @@ import android.content.Context
 import eu.kanade.tachiyomi.data.telegram.TelegramClient
 import it.lorelore.nyanime.cloud.sync.SyncMaintenanceIndex
 import it.lorelore.nyanime.cloud.sync.SyncMaintenancePolicy
+import it.lorelore.nyanime.cloud.sync.SyncWorkProgress
+import it.lorelore.nyanime.cloud.sync.SyncWorkStage
+import it.lorelore.nyanime.cloud.sync.SyncWorkUnit
 import kotlinx.coroutines.yield
 import nyanime.telegram.TelegramException
 import nyanime.telegram.sync.SyncArchiveBootstrap
@@ -46,16 +49,32 @@ internal class CloudSyncSession(
     val checkpoints = CloudSyncCheckpoints(store, files, transport, device)
     val maintenanceIndex = SyncMaintenanceIndex(context, keys.account, keys.space, keys.chat)
 
+    var onProgress: (SyncWorkProgress) -> Unit = {}
+
     /** Persist a page at a time, then consume in server order; interruption never skips a gap. */
     suspend fun pull(maxPages: Int = 4): Boolean {
         require(maxPages in 1..100)
         var before = store.state("pull-before")?.toLongOrNull() ?: 0
         val after = store.state("received")?.toLongOrNull() ?: 0
         var newest = store.state("pull-top")?.toLongOrNull() ?: after
+        var pages = if (before == 0L) 0L else store.state("progress-receive-pages")?.toLongOrNull() ?: 0
+        if (before > 0) onProgress(SyncWorkProgress(SyncWorkStage.RECEIVING, pages, unit = SyncWorkUnit.PAGES))
         repeat(maxPages) {
             val page = transport.page(before, after) { delivery ->
                 files.stage(delivery)
                 store.staged(delivery)
+            }
+            pages++
+            store.state("progress-receive-pages", pages.toString())
+            if (pages > 1 || page.newest > after || !page.complete) {
+                onProgress(
+                    SyncWorkProgress(
+                        SyncWorkStage.RECEIVING,
+                        pages,
+                        unit = SyncWorkUnit.PAGES,
+                        lastActivity = System.currentTimeMillis() / 1000,
+                    ),
+                )
             }
             newest = maxOf(newest, page.newest)
             if (page.complete) {
@@ -110,6 +129,7 @@ internal class CloudSyncSession(
                 val commit = checkpoints.verifiedCommit(delivery, keys)
                 if (commit?.epoch == keys.epoch && commit.maintenanceVersion >= SyncMaintenancePolicy.VERSION) {
                     store.state("maintenance-capability/${keys.epoch}/${commit.author}", next.toString())
+                    if (maintenanceIndex.plan() == null) maintenanceIndex.put("next", "0")
                 }
             }
             try {
@@ -223,6 +243,15 @@ internal class CloudSyncSession(
             }
         }
         store.confirm(packet.id, receipt.messageId, receipt.serverDate)
+        onProgress(
+            SyncWorkProgress(
+                SyncWorkStage.SENDING,
+                1,
+                1,
+                SyncWorkUnit.PACKETS,
+                lastActivity = receipt.serverDate,
+            ),
+        )
         return true
     }
 

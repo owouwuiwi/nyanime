@@ -12,6 +12,11 @@ state, outside portable backup preferences. No new dependency, image model or se
 
 ### Remote history maintenance (0.52)
 
+The 0.52.1 progress and snapshot-growth fixes are documented in
+[maintenance and progress](telegram-sync-maintenance.md). Verified parts and pending
+page candidates persist independently of the live activity indicator. New signed
+capabilities bypass the ordinary scan delay, never a Telegram error backoff.
+
 - Two distinct signed commits and every encrypted part are read through the Telegram transport
   and authenticated before a deletion plan can run. Parts are indexed transactionally, one
   per bounded pass. A checkpoint/field index proves coverage using exact causal registers,
@@ -28,7 +33,7 @@ state, outside portable backup preferences. No new dependency, image model or se
   removed parts. Updated clients restore the newest complete verified checkpoint first, even
   if an older commit had already been staged before cleanup. Downgrading a linked device
   after this transition requires upgrading it again; the library remains local and intact.
-- One candidate or part is processed per pass, at most once every 30 seconds while idle.
+- One candidate or part is processed per pass, at most once every three seconds while idle.
   The existing periodic worker can advance up to twenty cooperative passes in sixty seconds
   to drain a backlog; it never waits behind an interactive operation or bypasses error backoff.
   The sync coordinator bounds each pass to twelve seconds and retains ownership of its normal

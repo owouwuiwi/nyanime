@@ -37,6 +37,17 @@ internal data class MaintenancePlan(
     val candidate: MaintenanceCandidate? = null,
     val complete: Boolean = false,
     val verifiedAt: Long = 0,
+    val capabilities: Map<String, Long> = emptyMap(),
+    val pendingIds: List<Long> = emptyList(),
+    val pageNext: Long = 0,
+    val pageComplete: Boolean = false,
+    val examined: Long = 0,
+    val protected: Long = 0,
+    val young: Long = 0,
+    val uncovered: Long = 0,
+    val removedInPass: Long = 0,
+    val indexedChanges: Long = 0,
+    val lastActivity: Long = 0,
 )
 
 /** Rebuildable local index. Reference identities are hashed, causal registers are never approximated. */
@@ -124,7 +135,7 @@ internal class SyncMaintenanceIndex(context: Context, account: Long, space: Stri
     fun advance(plan: MaintenancePlan, count: Int) = transaction {
         require(count >= 0)
         removed(count)
-        save(plan)
+        save(plan.copy(removedInPass = Math.addExact(plan.removedInPass, count.toLong())))
     }
 
     private fun register(checkpoint: String, ref: String, field: String): SyncRegister? =

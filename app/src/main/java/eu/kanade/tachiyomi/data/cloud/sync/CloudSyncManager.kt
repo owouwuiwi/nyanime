@@ -13,6 +13,12 @@ import eu.kanade.tachiyomi.data.rin.RinSessions
 import eu.kanade.tachiyomi.extension.anime.AnimeExtensionManager
 import eu.kanade.tachiyomi.extension.manga.MangaExtensionManager
 import it.lorelore.nyanime.cloud.sync.CloudSyncMaintenance
+import it.lorelore.nyanime.cloud.sync.SyncCheckpointSchedule
+import it.lorelore.nyanime.cloud.sync.SyncMaintenanceWait
+import it.lorelore.nyanime.cloud.sync.SyncProjectionPass
+import it.lorelore.nyanime.cloud.sync.SyncWorkProgress
+import it.lorelore.nyanime.cloud.sync.SyncWorkStage
+import it.lorelore.nyanime.cloud.sync.SyncWorkUnit
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -69,12 +75,21 @@ internal class CloudSyncManager private constructor(private val context: Context
     private var lastSend = 0L
     private val clock = CloudSyncClock()
     private var retryAtElapsed = 0L
-    private var projectionCursor = ""
+    private var projectionPass = SyncProjectionPass()
+    private val projectionInputsDirty = AtomicBoolean(true)
     private var lastUnexpectedFailure: String? = null
     private var historyRecovery: CloudSyncHistoryRecovery? = null
     private var maintenance: CloudSyncMaintenance? = null
+    private var latestWorkProgress: SyncWorkProgress? = null
+    private var lastProgressElapsed = 0L
 
     init {
+        scope.launch {
+            combine(
+                Injekt.get<AnimeExtensionManager>().installedExtensionsFlow,
+                Injekt.get<MangaExtensionManager>().installedExtensionsFlow,
+            ) { _, _ -> Unit }.collect { projectionInputsDirty.set(true) }
+        }
         scope.launch(Dispatchers.Main.immediate) {
             ProcessLifecycleOwner.get().lifecycle.addObserver(this@CloudSyncManager)
         }
@@ -132,6 +147,7 @@ internal class CloudSyncManager private constructor(private val context: Context
         foreground = true
         active.value = true
         networkDirty.set(true)
+        projectionInputsDirty.set(true)
         if (preferences.enabled().get() && lease == null) lease = client.retain()
     }
 
@@ -244,17 +260,26 @@ internal class CloudSyncManager private constructor(private val context: Context
                     deviceRemoved()
                     return@withContext false
                 }
-                val applied = if (!RinSessions.busy.value) applyAvailable() else false
+                val applied = if (!RinSessions.busy.value) {
+                    applyAvailable(force = showActivity || projectionInputsDirty.getAndSet(false))
+                } else {
+                    false
+                }
                 val pending = current.store.pendingCount()
                 if (uncaptured > 0) {
                     publish(CloudSyncPhase.PREPARING)
                     return@withContext false
                 }
                 val checkpointDue = !RinSessions.busy.value &&
-                    pending > 0 &&
-                    clock.now() / 1000 - (current.store.state("lastCheckpoint")?.toLongOrNull() ?: 0) >= 86_400
-                if (pending > 256 ||
-                    checkpointDue ||
+                    SyncCheckpointSchedule.due(
+                        clock.now() / 1000,
+                        maxOf(
+                            current.store.state("lastCheckpoint")?.toLongOrNull() ?: 0,
+                            current.store.state("archive-last-checkpoint")?.toLongOrNull() ?: 0,
+                        ),
+                        pending,
+                    )
+                if (checkpointDue ||
                     current.store.state("initial-checkpoint") == "true" ||
                     current.store.state("maintenance-announced") != current.keys.membership.control ||
                     !current.store.state("checkpoint-pending").isNullOrEmpty()
@@ -286,14 +311,6 @@ internal class CloudSyncManager private constructor(private val context: Context
                     )
                     if (through > 0) current.store.compactAcknowledged(through).forEach(current.files::removeDelivery)
                 }
-                if (shouldPull &&
-                    pending == 0L &&
-                    uncaptured == 0L &&
-                    !RinSessions.busy.value &&
-                    current.store.state("pull-before").orEmpty() in setOf("", "0")
-                ) {
-                    kotlinx.coroutines.withTimeoutOrNull(12_000) { maintenance?.step() }
-                }
                 // Cached authorization/history is not proof of a working Telegram connection.
                 if (!client.state.value.online) throw TelegramException(TelegramFailure.DISCONNECTED)
                 if (shouldPull) current.store.state("lastVerified", (clock.now() / 1000).toString())
@@ -314,6 +331,16 @@ internal class CloudSyncManager private constructor(private val context: Context
                         CloudSyncPhase.CURRENT
                     },
                 )
+                // Publish successful data sync before optional history work. Idle foreground passes
+                // make bounded progress without forcing another history pull or creating a checkpoint.
+                if (current.store.pendingCount() == 0L &&
+                    uncaptured == 0L &&
+                    !RinSessions.busy.value &&
+                    current.store.state("pull-before").orEmpty() in setOf("", "0")
+                ) {
+                    kotlinx.coroutines.withTimeoutOrNull(12_000) { maintenance?.step() }
+                    publish(mutableState.value.phase)
+                }
                 true
             } catch (cancel: CancellationException) {
                 throw cancel
@@ -408,7 +435,10 @@ internal class CloudSyncManager private constructor(private val context: Context
         }
         val keys = requireNotNull(CloudSyncKeys.load(vault, preferences.space().get()))
         require(keys.account == account)
-        session = CloudSyncSession(context, client, keys, device, vault)
+        session = CloudSyncSession(context, client, keys, device, vault).also { current ->
+            current.onProgress = ::workProgress
+            current.checkpoints.onProgress = ::workProgress
+        }
         val maintained = requireNotNull(session)
         maintenance = CloudSyncMaintenance(maintained, maintained.maintenanceIndex, { clock.now() / 1000 }) {
             preferences.enabled().get() &&
@@ -419,6 +449,7 @@ internal class CloudSyncManager private constructor(private val context: Context
                 client.state.value.account?.id == maintained.keys.account &&
                 !eu.kanade.tachiyomi.data.backup.restore.BackupRestoreJob.isRunning(context)
         }
+        maintenance?.onChanged = { publish(mutableState.value.phase) }
         val store = requireNotNull(session).store
         val previousChat = store.state("transport-chat")
         if (previousChat != null && previousChat != keys.chat.toString()) {
@@ -531,33 +562,64 @@ internal class CloudSyncManager private constructor(private val context: Context
         journalConfiguration = configuration
     }
 
-    private suspend fun applyAvailable(): Boolean {
+    private suspend fun applyAvailable(force: Boolean): Boolean {
         val store = session?.store ?: return false
+        val generation = store.state("projection-generation").orEmpty() + ":" + store.state("exclusions").orEmpty()
+        if (!projectionPass.begin(
+                generation,
+                store.projectionCount(),
+                SystemClock.elapsedRealtime(),
+                force,
+            )
+        ) {
+            return false
+        }
         historyRecovery?.beginPass()
-        val values = store.projections(after = projectionCursor)
+        val values = store.projections(after = projectionPass.cursor)
         if (values.isEmpty()) {
-            projectionCursor = ""
+            projectionPass.finish(SystemClock.elapsedRealtime(), clock.now() / 1000)?.let(::workProgress)
             return false
         }
         var anyApplied = false
+        var visited = 0
         for (projection in values) {
             if (RinSessions.busy.value) break
             val kind = projection.record.ref.kind
+            var applied = false
             if (kind == "device") {
                 store.applied(projection, projection.record.fields.mapValues { it.value.resolved()?.value })
-                anyApplied = true
+                applied = true
             } else {
                 for (port in ports) {
                     if (port.apply(projection)) {
-                        anyApplied = true
+                        applied = true
                         break
                     }
                 }
             }
-            projectionCursor = projection.key
+            anyApplied = anyApplied || applied
+            visited++
+            projectionPass.checked(projection.key, clock.now() / 1000, applied)?.let(::workProgress)
+        }
+        if (visited == values.size && values.size < 50) {
+            projectionPass.finish(SystemClock.elapsedRealtime(), clock.now() / 1000)?.let(::workProgress)
         }
         if (anyApplied) mutableContentRevision.value++
         return anyApplied
+    }
+
+    private fun workProgress(progress: SyncWorkProgress) {
+        val previous = latestWorkProgress
+        latestWorkProgress = progress
+        val elapsed = SystemClock.elapsedRealtime()
+        if (previous?.stage != progress.stage ||
+            !progress.active ||
+            progress.completed == progress.total ||
+            elapsed - lastProgressElapsed >= 250
+        ) {
+            lastProgressElapsed = elapsed
+            mutableState.value = mutableState.value.copy(progress = progress)
+        }
     }
 
     private fun publish(phase: CloudSyncPhase) {
@@ -573,12 +635,39 @@ internal class CloudSyncManager private constructor(private val context: Context
         }
         mutableState.value = mutableState.value.copy(
             phase = phase,
+            progress = latestWorkProgress?.let {
+                it.copy(
+                    active = it.active &&
+                        phase in setOf(
+                            CloudSyncPhase.PREPARING,
+                            CloudSyncPhase.RECEIVING,
+                            CloudSyncPhase.SENDING,
+                            CloudSyncPhase.APPLYING,
+                        ),
+                )
+            },
             pending = current?.store?.pendingCount() ?: 0,
             projections = current?.store?.projectionCount() ?: 0,
             lastConfirmed = current?.store?.state("lastSent")?.toLongOrNull() ?: 0,
             lastVerified = current?.store?.state("lastVerified")?.toLongOrNull() ?: 0,
             devices = devices,
-            maintenance = maintenance?.status ?: it.lorelore.nyanime.cloud.sync.SyncMaintenanceStatus(),
+            maintenance = (maintenance?.status ?: it.lorelore.nyanime.cloud.sync.SyncMaintenanceStatus()).let {
+                when (phase) {
+                    CloudSyncPhase.OFF, CloudSyncPhase.PAUSED, CloudSyncPhase.WAITING_IDLE ->
+                        it.copy(active = false, wait = SyncMaintenanceWait.PAUSED)
+                    CloudSyncPhase.NETWORK -> it.copy(
+                        active = false,
+                        wait = SyncMaintenanceWait.NETWORK,
+                        retryAt = mutableState.value.retryAt / 1000,
+                    )
+                    CloudSyncPhase.RATE_LIMIT -> it.copy(
+                        active = false,
+                        wait = SyncMaintenanceWait.RATE_LIMIT,
+                        retryAt = mutableState.value.retryAt / 1000,
+                    )
+                    else -> it
+                }
+            },
         )
     }
 
@@ -686,6 +775,9 @@ internal class CloudSyncManager private constructor(private val context: Context
     }
 
     private fun closeSession() {
+        latestWorkProgress = null
+        projectionPass = SyncProjectionPass()
+        projectionInputsDirty.set(true)
         maintenance = null
         session?.close()
         session = null

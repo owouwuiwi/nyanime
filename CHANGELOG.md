@@ -10,6 +10,25 @@ identificano modifiche nel repository, non garantiscono che ogni commit sia stat
 distribuito come APK.
 
 
+## 21 ottobre 2026 — 0.52.1.0: sincronizzazione più chiara
+
+### Correzioni
+
+- Il controllo locale conta tutte le pagine dello stesso passaggio: i contenuti ancora da collegare non fanno oscillare la schermata tra conteggi parziali.
+- Un arretrato di modifiche viene inviato tramite i normali pacchetti, senza ricreare una copia completa della libreria ogni volta che supera 256 voci. Le copie periodiche considerano anche quelle complete già verificate dagli altri dispositivi.
+- La pulizia conserva la pagina e i candidati già esaminati; un nuovo dispositivo compatibile aggiorna il piano senza azzerare le parti verificate. Il lavoro avanza in piccoli passi quando il dispositivo è libero.
+- Le rimozioni sono contate dopo la conferma dell’assenza dei messaggi. Restano protetti due recuperi completi, firme, copertura delle modifiche, messaggi fissati, dati esclusi e storico con meno di sette giorni.
+
+### Interfaccia
+
+- La schermata distingue il normale sync dalla cura dello storico. Mostra parti verificate, prove dei dispositivi, messaggi esaminati e rimozioni del passaggio, oltre al totale delle rimozioni confermate.
+- Ricezione, invio, preparazione e recupero mostrano il lavoro completato. Un totale sconosciuto rimane tale; attese di rete, limiti Telegram e rinvii non simulano attività continua.
+- Progressi e cursori persistono tra le aperture; testi italiani e inglesi, animazioni ridotte e aggiornamenti della UI limitati alla frequenza utile.
+
+### Distribuzione
+
+- Prima uscita distribuita tramite patch dopo il checkpoint completo 0.52.0.1. I client precedenti conservano il percorso attraverso l’APK completo; i nuovi verificano la catena prima di installare il risultato firmato.
+
 ## 21 ottobre 2026 — 0.52.0.1: continuità degli aggiornamenti
 
 ### Aggiornamenti

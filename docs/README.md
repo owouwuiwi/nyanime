@@ -6,6 +6,9 @@ I documenti tecnici in inglese conservano i nomi delle API e dei componenti.
 
 ## Novità recenti
 
+La versione 0.52.1.0 rende visibile il [lavoro del sync e della pulizia Telegram](telegram-sync-maintenance.md),
+con progressi persistenti e meno copie complete ridondanti.
+
 La transizione 0.52.0.1 prepara i [checkpoint e le catene di patch](ota-release-graph.md),
 preservando l’accesso agli APK completi per i vecchi aggiornatori. Le misure e i
 profili locali sono descritti nella [guida alle build](local-build-performance.md).
@@ -36,6 +39,7 @@ con download completo di ripiego e compatibilità con gli aggiornatori precedent
 | [Versioni e aggiornamenti](versioning.md) | Numerazione a quattro componenti, scelta dei canali e compatibilità OTA. |
 | [Aggiornamenti e storico](update-history.md) | Versioni intermedie, note suddivise per categoria e cronologia completa anche offline. |
 | [Nyanime Cloud](telegram-cloud.md) | Account Telegram condiviso, backup privati, ripristino e configurazione di sviluppo. |
+| [Avanzamento e pulizia del sync](telegram-sync-maintenance.md) | Contatori verificati, attese, ripresa e conservazione dello storico. |
 | [Sincronizzazione personale](cloud-sync-protocol.md) | Associazione dei dispositivi, dati portabili, cifratura, conflitti e verifiche. |
 | [Trasferimento del repository](repository-migration.md) | Nuovo proprietario, continuità degli aggiornamenti e dei collegamenti. |
 | [Aiuto](support.md) | Archiviazione, migrazione, tracker e risoluzione dei problemi. |

@@ -99,6 +99,42 @@ class CloudSyncTransportTest {
         coVerify(exactly = 0) { client.request(match { it.type() == "deleteMessages" }) }
     }
 
+    @Test fun acceptedDeleteIsCountedOnlyAfterConfirmedRemoteAbsence() = runTest {
+        for (absent in listOf(false, true)) {
+            val (client, transport, _) = retryFixture(0.0)
+            val packet = SyncPacket(kind = "data", id = id, space = space, payload = "encrypted")
+            val delivery = SyncDelivery(packet, nyanime.telegram.sync.SyncReceipt(100, 1))
+            val message = tdRequest(
+                "message",
+                "id" to JsonPrimitive(100),
+                "date" to JsonPrimitive(1),
+                "chat_id" to JsonPrimitive(-100),
+                "sender_id" to tdRequest("messageSenderUser", "user_id" to JsonPrimitive(1)),
+                "content" to tdRequest(
+                    "messageText",
+                    "text" to tdRequest(
+                        "formattedText",
+                        "text" to JsonPrimitive(SyncEnvelope.MARKER + syncJson.encodeToString(packet)),
+                    ),
+                ),
+            )
+            var accepted = false
+            coEvery { client.request(match { it.type() == "getMessage" }) } coAnswers {
+                if (accepted && absent) throw TelegramException(TelegramFailure.REQUEST, code = 404)
+                message
+            }
+            coEvery { client.request(match { it.type() == "getMessageProperties" }) } returns
+                tdRequest("messageProperties", "can_be_deleted_for_all_users" to JsonPrimitive(true))
+            coEvery { client.request(match { it.type() == "deleteMessages" }) } coAnswers {
+                accepted = true
+                tdRequest("ok")
+            }
+            val result = runCatching { transport.maintenanceDelete(listOf(delivery)) }
+            if (absent) assertEquals(1, result.getOrThrow()) else assertTrue(result.isFailure)
+            coVerify(exactly = 1) { client.request(match { it.type() == "deleteMessages" }) }
+        }
+    }
+
     @Test fun maintenanceMetadataScanLeavesForeignUnknownControlAndPinnedPostsUntouched() = runTest {
         val (client, transport, _) = retryFixture(0.0)
         fun message(number: Long, kind: String, owner: Long = 1, pin: Boolean = false): JsonObject {

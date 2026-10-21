@@ -21,6 +21,7 @@ internal enum class CloudSyncPhase {
 
 internal data class CloudSyncStatus(
     val phase: CloudSyncPhase = CloudSyncPhase.OFF,
+    val progress: it.lorelore.nyanime.cloud.sync.SyncWorkProgress? = null,
     val pending: Long = 0,
     val projections: Long = 0,
     val lastConfirmed: Long = 0,

@@ -136,9 +136,9 @@ class CloudSyncMaintenanceTest {
         val f = Fixture()
         f.engine.step()
         coVerify(exactly = 1) { f.transport.maintenanceDelete(listOf(f.data)) }
-        assertEquals(50L, f.plan.before)
+        assertEquals(30L, f.plan.before)
         assertEquals("1", f.state["removed"])
-        assertEquals(f.now + 30, f.state["next"]!!.toLong())
+        assertEquals(f.now + 3, f.state["next"]!!.toLong())
     }
 
     @Test fun aConcurrentChangeMissingFromEitherCheckpointProtectsThePacket() = runTest {
@@ -146,7 +146,7 @@ class CloudSyncMaintenanceTest {
         every { f.index.covers(any(), any()) } returns false
         f.engine.step()
         coVerify(exactly = 0) { f.transport.maintenanceDelete(any()) }
-        assertEquals(50L, f.plan.before)
+        assertEquals(30L, f.plan.before)
     }
 
     @Test fun playbackAndIncognitoGateEveryMaintenanceRequest() = runTest {
@@ -179,7 +179,7 @@ class CloudSyncMaintenanceTest {
         f.now += 31
         coEvery { f.transport.maintenanceMessage(50) } returns null
         f.engine.step()
-        assertEquals(50L, f.plan.before)
+        assertEquals(30L, f.plan.before)
         assertNull(f.state["removed"])
     }
 
@@ -229,6 +229,71 @@ class CloudSyncMaintenanceTest {
         engine.step()
         assertEquals(SyncMaintenancePhase.RETRY, engine.status.phase)
         coVerify(exactly = 0) { f.transport.maintenancePage(any(), any(), any()) }
+        coVerify(exactly = 0) { f.transport.maintenanceDelete(any()) }
+    }
+
+    @Test fun aVerifiedPageQueueSurvivesRecreationAndIsNotDownloadedPerCandidate() = runTest {
+        val f = Fixture()
+        f.plan = f.plan.copy(pendingIds = listOf(50, 40), pageNext = 30, pageComplete = true, examined = 20)
+        f.engine.step()
+        assertEquals(listOf(40L), f.plan.pendingIds)
+        assertEquals(100L, f.plan.before)
+        f.now += 4
+        coEvery { f.transport.maintenanceMessage(40) } returns null
+        f.engine.step()
+        assertTrue(f.plan.complete)
+        assertEquals(30L, f.plan.before)
+        assertEquals(20L, f.plan.examined)
+        coVerify(exactly = 0) { f.transport.maintenancePage(any(), any(), any()) }
+        coVerify(exactly = 1) { f.transport.maintenanceDelete(any()) }
+    }
+
+    @Test fun restoredVerificationCountersDoNotPretendToBeActiveDuringBackoff() = runTest {
+        val f = Fixture()
+        val part = SyncCheckpointPart(UUID.randomUUID().toString(), "0".repeat(64), 90)
+        f.plan =
+            f.plan.copy(
+                proofs = f.plan.proofs.map {
+                    it.copy(commit = it.commit.copy(parts = listOf(part, part)), part = 1)
+                },
+                indexedChanges = 2048,
+                lastActivity = f.now - 100,
+            )
+        f.state["next"] = (f.now + 20).toString()
+        val engine = f.engine
+        engine.step()
+        assertEquals(2, engine.status.verifiedParts)
+        assertEquals(4, engine.status.totalParts)
+        assertEquals(2048L, engine.status.indexedChanges)
+        assertEquals(f.now - 100, engine.status.lastActivity)
+        assertEquals(SyncMaintenanceWait.INTERVAL, engine.status.wait)
+        assertTrue(!engine.status.active)
+        coVerify(exactly = 0) { f.transport.maintenanceMessage(any()) }
+    }
+
+    @Test fun aNewSignedCapabilityReusesVerifiedChunksInsteadOfResettingThem() = runTest {
+        val f = Fixture()
+        val cap = f.proof(150)
+        every { f.session.store.state("maintenance-capability/1/${f.device.public.id}") } returns "150"
+        coEvery { f.transport.maintenanceMessage(150) } returns SyncMaintenanceMessage(cap.delivery, false)
+        every { f.session.checkpoints.verifiedCommit(cap.delivery, f.keys) } returns
+            cap.commit.copy(maintenanceVersion = 1)
+        val part = SyncCheckpointPart(UUID.randomUUID().toString(), "0".repeat(64), 90)
+        f.plan =
+            f.plan.copy(
+                proofs = f.plan.proofs.map { it.copy(commit = it.commit.copy(parts = listOf(part)), part = 1) },
+                indexedChanges = 2000,
+                complete = true,
+            )
+        f.state["next"] = (f.now + 80_000).toString()
+        val engine = f.engine
+        engine.step()
+        assertTrue(f.plan.removeCheckpoints)
+        assertEquals(2000L, f.plan.indexedChanges)
+        assertTrue(f.plan.proofs.all { it.part == 1 })
+        assertEquals(1, f.plan.checkedAnchors)
+        assertEquals(1, engine.status.compatibleDevices)
+        io.mockk.verify(exactly = 0) { f.index.reset(any()) }
         coVerify(exactly = 0) { f.transport.maintenanceDelete(any()) }
     }
 }

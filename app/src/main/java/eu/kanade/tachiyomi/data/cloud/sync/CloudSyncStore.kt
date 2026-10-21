@@ -191,7 +191,8 @@ internal class CloudSyncStore(context: Context, account: Long, private val space
         db.delete("state", "key LIKE 'maintenance-%'", null)
         listOf(
             "received", "processed", "pull-before", "pull-top", "compact-through", "compacted-through",
-            "checkpoint", "checkpoint-pending", "lastCheckpoint", "lastSent", "lastVerified", "membership-pending",
+            "checkpoint", "checkpoint-pending", "lastCheckpoint", "archive-last-checkpoint", "progress-receive-pages",
+            "lastSent", "lastVerified", "membership-pending",
             "maintenance-announced", "maintenance-floor", "maintenance-plan", "maintenance-capabilities",
         ).forEach {
             db.delete("state", "key=?", arrayOf(it))
@@ -256,6 +257,15 @@ internal class CloudSyncStore(context: Context, account: Long, private val space
         replace(db, "state", "key" to "checkpoint", "value" to id)
         replace(db, "state", "key" to "lastSent", "value" to serverDate.toString())
         replace(db, "state", "key" to "lastCheckpoint", "value" to serverDate.toString())
+        replace(
+            db,
+            "state",
+            "key" to "archive-last-checkpoint",
+            "value" to maxOf(
+                state("archive-last-checkpoint")?.toLongOrNull() ?: 0,
+                serverDate,
+            ).toString(),
+        )
     }
 
     /** Retain causal state/tombstones and compact revision proofs after a complete checkpoint. */
@@ -332,6 +342,7 @@ internal class CloudSyncStore(context: Context, account: Long, private val space
             val revision = value(db, "projection", "revision", "key=?", arrayOf(key))?.toLong()
             if (revision != null) {
                 replace(db, "projection", "key" to key, "revision" to Math.addExact(revision, 1).toString())
+                advanceProjectionGeneration(db)
             }
         }
         count
@@ -378,6 +389,7 @@ internal class CloudSyncStore(context: Context, account: Long, private val space
                 replace(db, "records", "key" to key, "data" to syncJson.encodeToString(record))
                 val revision = value(db, "projection", "revision", "key=?", arrayOf(key))?.toLong() ?: 0
                 replace(db, "projection", "key" to key, "revision" to Math.addExact(revision, 1).toString())
+                advanceProjectionGeneration(db)
             }
         }
         saveVector(db, vector)
@@ -462,6 +474,11 @@ internal class CloudSyncStore(context: Context, account: Long, private val space
                 add(Projection(cursor.getString(0), cursor.getLong(1), syncJson.decodeFromString(cursor.getString(2))))
             }
         }
+    }
+
+    private fun advanceProjectionGeneration(db: SQLiteDatabase) {
+        val previous = value(db, "state", "value", "key=?", arrayOf("projection-generation"))?.toLong() ?: 0
+        replace(db, "state", "key" to "projection-generation", "value" to Math.addExact(previous, 1).toString())
     }
 
     @Synchronized
