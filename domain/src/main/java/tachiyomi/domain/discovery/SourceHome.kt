@@ -171,6 +171,9 @@ data class SourceHomePage(val items: List<Anime>, val hasNextPage: Boolean, val 
 interface SourceHomeGateway {
     fun observeAccess(): Flow<SourceHomeAccess>
     fun currentAccess(): SourceHomeAccess
+
+    /** Local metadata projection, also applied to cached pages; must not perform network requests. */
+    fun preparePresentation(page: SourceHomePage): SourceHomePage = page
     suspend fun fetch(access: SourceHomeAccess, request: SourceHomeRequest): SourceHomePage
 }
 

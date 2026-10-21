@@ -54,18 +54,18 @@ object SettingsBrowseScreen : SearchableSettings {
                 title = context.getString(R.string.search_smart_settings),
                 preferenceItems = persistentListOf(
                     Preference.PreferenceItem.SwitchPreference(
-                        preference = sourcePreferences.rememberAtlasSearch(),
-                        title = context.getString(R.string.atlas_remember),
-                        subtitle = context.getString(R.string.atlas_remember_summary),
+                        preference = sourcePreferences.rememberUnifiedSearch(),
+                        title = context.getString(R.string.unified_search_remember),
+                        subtitle = context.getString(R.string.unified_search_remember_summary),
                     ),
                     Preference.PreferenceItem.SwitchPreference(
-                        preference = sourcePreferences.atlasKeyboardOnOpen(),
-                        title = context.getString(R.string.atlas_keyboard),
+                        preference = sourcePreferences.unifiedSearchKeyboardOnOpen(),
+                        title = context.getString(R.string.unified_search_keyboard),
                     ),
                     Preference.PreferenceItem.SwitchPreference(
-                        preference = sourcePreferences.liveAtlasSearch(),
-                        title = context.getString(R.string.atlas_live),
-                        subtitle = context.getString(R.string.atlas_live_summary),
+                        preference = sourcePreferences.liveUnifiedSearch(),
+                        title = context.getString(R.string.unified_search_live),
+                        subtitle = context.getString(R.string.unified_search_live_summary),
                     ),
                     Preference.PreferenceItem.SwitchPreference(
                         preference = sourcePreferences.tolerantSearch(),

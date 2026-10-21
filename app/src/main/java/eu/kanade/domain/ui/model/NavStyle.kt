@@ -64,7 +64,7 @@ enum class NavStyle(
                 return listOf(
                     eu.kanade.tachiyomi.ui.discovery.DiscoveryTab,
                     LibrariesTab,
-                    eu.kanade.tachiyomi.ui.search.AtlasSearchTab,
+                    eu.kanade.tachiyomi.ui.search.UnifiedSearchTab,
                     eu.kanade.tachiyomi.ui.releases.ReleasesTab,
                     MoreTab,
                 )

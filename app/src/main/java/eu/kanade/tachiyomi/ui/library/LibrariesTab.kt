@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CollectionsBookmark
@@ -24,6 +25,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -31,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.navigator.tab.TabOptions
@@ -42,11 +45,12 @@ import eu.kanade.tachiyomi.ui.library.manga.MangaLibraryTab
 import kotlinx.coroutines.flow.MutableStateFlow
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.i18n.stringResource
+import uy.kohesive.injekt.api.get
 import eu.kanade.presentation.util.Tab as AppTab
 
 /** One personal collection destination; discovery belongs to Home. */
 data object LibrariesTab : AppTab {
-    private val selectedMedium = MutableStateFlow(LibraryMedium.Anime)
+    private val selectedMedium = MutableStateFlow(LibraryMedium.All)
 
     fun showAll() {
         selectedMedium.value = LibraryMedium.All
@@ -71,6 +75,13 @@ data object LibrariesTab : AppTab {
     override fun Content() {
         val medium by selectedMedium.collectAsState()
         val modern = LocalNyanimeStyle.current
+        LaunchedEffect(modern) {
+            if (modern) {
+                it.lorelore.nyanime.presentation.library.initializeLibraryLayout(
+                    uy.kohesive.injekt.Injekt.get<tachiyomi.domain.library.service.LibraryPreferences>(),
+                )
+            }
+        }
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Column(Modifier.fillMaxSize().statusBarsPadding()) {
                 if (modern) {
@@ -107,41 +118,38 @@ private fun ModernLibraryHeader(
     onAnime: () -> Unit,
     onManga: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 14.dp, top = 8.dp, bottom = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp)) {
         Text(
-            text = stringResource(MR.strings.label_library),
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.headlineSmall,
+            androidx.compose.ui.res.stringResource(eu.kanade.tachiyomi.R.string.library_your_space),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            stringResource(MR.strings.label_library),
+            Modifier.padding(top = 5.dp, bottom = 20.dp),
+            style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.ExtraBold,
         )
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            tonalElevation = 1.dp,
-        ) {
-            Row(
-                modifier = Modifier.padding(3.dp),
-            ) {
+        Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+            Row(Modifier.fillMaxWidth().padding(4.dp)) {
                 LibraryMediumButton(
-                    label = androidx.compose.ui.res.stringResource(eu.kanade.tachiyomi.R.string.library_medium_all),
-                    selected = medium == LibraryMedium.All,
-                    accent = Color(0xFFB48CFF),
-                    onClick = onAll,
+                    androidx.compose.ui.res.stringResource(eu.kanade.tachiyomi.R.string.library_medium_all),
+                    medium == LibraryMedium.All,
+                    onAll,
+                    Modifier.weight(1f),
                 )
                 LibraryMediumButton(
-                    label = "Anime",
-                    selected = medium == LibraryMedium.Anime,
-                    accent = Color(0xFFFF9A5A),
-                    onClick = onAnime,
+                    "Anime",
+                    medium == LibraryMedium.Anime,
+                    onAnime,
+                    Modifier.weight(1f),
                 )
                 LibraryMediumButton(
-                    label = "Manga",
-                    selected = medium == LibraryMedium.Manga,
-                    accent = Color(0xFF63BFE8),
-                    onClick = onManga,
+                    "Manga",
+                    medium == LibraryMedium.Manga,
+                    onManga,
+                    Modifier.weight(1f),
                 )
             }
         }
@@ -152,22 +160,26 @@ private fun ModernLibraryHeader(
 private fun LibraryMediumButton(
     label: String,
     selected: Boolean,
-    accent: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(13.dp)
     Surface(
-        modifier = modifier.clip(shape).clickable(onClick = onClick),
+        modifier = modifier.clip(shape).selectable(selected = selected, role = Role.Tab, onClick = onClick),
         shape = shape,
-        color = if (selected) accent.copy(alpha = .20f) else Color.Transparent,
-        contentColor = if (selected) accent else MaterialTheme.colorScheme.onSurfaceVariant,
-        border = if (selected) BorderStroke(1.dp, accent.copy(alpha = .55f)) else null,
+        color = if (selected) MaterialTheme.colorScheme.surfaceContainerLowest else Color.Transparent,
+        contentColor = if (selected) {
+            MaterialTheme.colorScheme.onSurface
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        border = null,
         tonalElevation = if (selected) 2.dp else 0.dp,
     ) {
         Text(
             text = label,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
         )

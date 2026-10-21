@@ -20,3 +20,6 @@
 -keep class kotlin.collections.SetsKt* { *; }
 
 -keep class kotlin.io.FilesKt* { *; }
+
+# Optional image-worker probe; these rules never apply to ordinary builds.
+-keep class it.lorelore.nyanime.reader.quality.** { *; }

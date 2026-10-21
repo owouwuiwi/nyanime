@@ -74,7 +74,7 @@ internal fun SkeletonBlock(modifier: Modifier) {
 
 @Composable
 fun HomeHeroSkeleton(withBrowseAction: Boolean = true, withSourceAction: Boolean = false) {
-    if (eu.kanade.presentation.theme.LocalNyanimeStyle.current) return PanoramaHeroSkeleton()
+    if (eu.kanade.presentation.theme.LocalNyanimeStyle.current) return FeaturedCoverSkeleton()
     HomeSkeleton {
         Column {
             BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -186,7 +186,7 @@ fun HomeLoadingSkeleton(withSourceAction: Boolean = false, manga: Boolean = fals
         userScrollEnabled = false,
     ) {
         item { HomeHeroSkeleton(withSourceAction = withSourceAction) }
-        item { if (manga) PanoramaResumeSkeleton() else PanoramaWatchResumeSkeleton() }
+        item { if (manga) HomeResumeSkeleton() else WatchResumeSkeleton() }
         items(1) {
             HomeSkeleton(Modifier.padding(horizontal = 16.dp)) {
                 SkeletonBlock(Modifier.width(160.dp).height(20.dp))

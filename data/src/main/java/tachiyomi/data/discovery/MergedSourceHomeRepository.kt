@@ -107,7 +107,7 @@ class MergedSourceHomeRepository(
             val lists = pages.map { it.items }
             val items = (0 until (lists.maxOfOrNull { it.size } ?: 0)).flatMap { row ->
                 lists.mapNotNull { it.getOrNull(row) }
-            }.let(::mergeHomeCards)
+            }.let { mergeHomeCards(it, preserveTitleVariants = true) }
             SectionState(
                 data = if (pages.isEmpty()) {
                     null

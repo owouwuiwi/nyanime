@@ -904,6 +904,7 @@ fun ReadingReaderOverlay(
     menuVisible: Boolean,
     onOpenRoom: () -> Unit,
     reservedBottomSpace: Dp = 0.dp,
+    reservedTopSpace: Dp = 0.dp,
 ) {
     val text = rememberRoomText()
     val room by manager.controller.state.collectAsState()
@@ -934,7 +935,7 @@ fun ReadingReaderOverlay(
     }
     Box(
         Modifier.fillMaxSize().statusBarsPadding().padding(
-            top = if (menuVisible) 68.dp else 8.dp,
+            top = maxOf(if (menuVisible) 68.dp else 8.dp, reservedTopSpace + 8.dp),
             start = 12.dp,
             end = 12.dp,
         ),

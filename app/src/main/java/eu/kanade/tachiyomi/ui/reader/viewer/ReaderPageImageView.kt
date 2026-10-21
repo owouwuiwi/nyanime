@@ -73,6 +73,8 @@ open class ReaderPageImageView @JvmOverloads constructor(
 
     private var pageView: View? = null
     private val readingInk = ReadingInkLayer(this) { pageView }
+    private val readerQuality = ReaderQualityLayer(this) { pageView }
+    private var qualityPageStream: (() -> java.io.InputStream)? = null
     var readingLayout: ReadingPageLayout
         get() = readingInk.layout
         set(value) {
@@ -81,20 +83,27 @@ open class ReaderPageImageView @JvmOverloads constructor(
 
     fun bindReadingPage(page: ReaderPage?, manga: Manga?) {
         readingInk.bind(page, manga)
+        readerQuality.bind(page, manga)
+        qualityPageStream = page?.let { bound ->
+            { requireNotNull(bound.stream) { "Page stream unavailable" }.invoke() }
+        }
     }
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         readingInk.attach()
+        readerQuality.attach()
     }
 
     override fun onDetachedFromWindow() {
+        readerQuality.detach()
         readingInk.detach()
         super.onDetachedFromWindow()
     }
 
     override fun dispatchDraw(canvas: android.graphics.Canvas) {
         super.dispatchDraw(canvas)
+        readerQuality.draw(canvas)
         readingInk.draw(canvas)
     }
 
@@ -460,6 +469,8 @@ open class ReaderPageImageView @JvmOverloads constructor(
     }
 
     fun recycle() = pageView?.let {
+        readerQuality.bind(null, null)
+        qualityPageStream = null
         guidedTarget = null
         guidedFocus = null
         guidedResizeLocation = null
@@ -595,6 +606,16 @@ open class ReaderPageImageView @JvmOverloads constructor(
                     setupZoom(config)
                     if (isVisibleOnScreen()) landscapeZoom(true)
                     this@ReaderPageImageView.onImageLoaded()
+                    readerQuality.ready(
+                        when (data) {
+                            is java.io.File -> ({ data.inputStream() })
+                            is BufferedSource -> qualityPageStream.takeIf {
+                                readingLayout == ReadingPageLayout.Full
+                            }
+                            else -> null
+                        },
+                        config.cropBorders,
+                    )
                 }
 
                 override fun onImageLoadError(e: Exception) {

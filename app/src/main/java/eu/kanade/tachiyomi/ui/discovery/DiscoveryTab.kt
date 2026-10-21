@@ -349,7 +349,7 @@ data object DiscoveryTab : Tab {
                             FeaturedCarousel(
                                 featured.data?.items.orEmpty(),
                                 openCatalog,
-                                eu.kanade.presentation.discovery.panoramaAutoplay(listState, "hero", active),
+                                eu.kanade.presentation.discovery.featuredCarouselAutoplay(listState, "hero", active),
                             )
                         }
                     }

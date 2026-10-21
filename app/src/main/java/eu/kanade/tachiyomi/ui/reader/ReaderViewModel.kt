@@ -754,6 +754,30 @@ class ReaderViewModel @JvmOverloads constructor(
         loadAdjacent(prevChapter)
     }
 
+    /** Uses the same filtered/download-aware sequence as next/previous; no detail fetches. */
+    fun openChaptersDialog() {
+        if (manga == null || state.value.isLoadingAdjacentChapter) return
+        viewModelScope.launchIO {
+            val items = chapterList.map { entry ->
+                ChapterMenuItem(
+                    entry.chapter.id!!,
+                    entry.chapter.name,
+                    entry.chapter.scanlator,
+                    entry.chapter.read,
+                    entry.chapter.bookmark,
+                )
+            }
+            mutableState.update { it.copy(dialog = Dialog.Chapters(items)) }
+        }
+    }
+
+    suspend fun selectChapter(id: Long): Boolean {
+        if (state.value.isLoadingAdjacentChapter || state.value.currentChapter?.chapter?.id == id) return false
+        val target = withIOContext { chapterList.firstOrNull { it.chapter.id == id } } ?: return false
+        loadAdjacent(target)
+        return state.value.currentChapter?.chapter?.id == id
+    }
+
     /**
      * Returns the currently active chapter.
      */
@@ -963,6 +987,18 @@ class ReaderViewModel @JvmOverloads constructor(
         mutableState.update { it.copy(dialog = Dialog.Settings) }
     }
 
+    fun openReaderModePanel() {
+        mutableState.update { it.copy(dialog = Dialog.ModePanel) }
+    }
+
+    fun openReaderQualityPanel() {
+        mutableState.update { it.copy(dialog = Dialog.QualityPanel) }
+    }
+
+    fun openReaderMorePanel() {
+        mutableState.update { it.copy(dialog = Dialog.MorePanel) }
+    }
+
     fun closeDialog() {
         mutableState.update { it.copy(dialog = null) }
     }
@@ -1155,8 +1191,21 @@ class ReaderViewModel @JvmOverloads constructor(
         data object Settings : Dialog
         data object ReadingModeSelect : Dialog
         data object OrientationModeSelect : Dialog
+        data object ModePanel : Dialog
+        data object QualityPanel : Dialog
+        data object MorePanel : Dialog
         data class PageActions(val page: ReaderPage) : Dialog
+        data class Chapters(val entries: List<ChapterMenuItem>) : Dialog
     }
+
+    @Immutable
+    data class ChapterMenuItem(
+        val id: Long,
+        val title: String,
+        val scanlator: String?,
+        val read: Boolean,
+        val bookmarked: Boolean,
+    )
 
     sealed interface Event {
         data object ReloadViewerChapters : Event

@@ -99,7 +99,7 @@ internal fun AnimeLibraryShelf(
             }
         }
         newsItems.forEachIndexed { index, item ->
-            item(key = "anime_news_${item.libraryAnime.id}", contentType = "anime_library_shelf_item") {
+            item(key = "anime_entry_${item.libraryAnime.id}", contentType = "anime_library_shelf_item") {
                 AnimeShelfRow(
                     modifier = Modifier.then(if (motion) Modifier.animateItemFastScroll() else Modifier),
                     item = item,
@@ -131,7 +131,7 @@ internal fun AnimeLibraryShelf(
             }
         }
         shelfItems.forEachIndexed { index, item ->
-            item(key = "anime_shelf_${item.libraryAnime.id}", contentType = "anime_library_shelf_item") {
+            item(key = "anime_entry_${item.libraryAnime.id}", contentType = "anime_library_shelf_item") {
                 AnimeShelfRow(
                     modifier = Modifier.then(if (motion) Modifier.animateItemFastScroll() else Modifier),
                     item = item,
@@ -227,6 +227,7 @@ private fun AnimeShelfRow(
             libraryAnime.seenCount,
             libraryAnime.totalCount,
         ),
+        progressFraction = libraryAnime.totalCount.takeIf { it > 0 }?.let { libraryAnime.seenCount.toFloat() / it },
         unviewedCount = libraryAnime.unseenCount,
         downloadCount = item.downloadCount,
         isAnime = true,

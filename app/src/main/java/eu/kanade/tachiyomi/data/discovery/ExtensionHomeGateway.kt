@@ -1,6 +1,8 @@
 package eu.kanade.tachiyomi.data.discovery
 
 import eu.kanade.domain.entries.anime.model.toDomainAnime
+import eu.kanade.domain.entries.anime.model.toSAnime
+import eu.kanade.tachiyomi.animesource.online.AnimeHttpSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.sync.Semaphore
@@ -29,6 +31,14 @@ class ExtensionHomeGateway(
     override fun observeAccess() = registry.observeAccess(homeKey)
     override fun currentAccess() = registry.access(homeKey)
 
+    override fun preparePresentation(page: SourceHomePage): SourceHomePage = page.copy(
+        items = page.items.map { card ->
+            val source = manager.get(card.source) as? AnimeHttpSource
+            val url = runCatching { source?.getAnimeUrl(card.toSAnime()) }.getOrNull()
+            SourceHomeMetadata.withWorkUrl(card, url)
+        },
+    )
+
     override suspend fun fetch(access: SourceHomeAccess, request: SourceHomeRequest) = withContext(Dispatchers.IO) {
         requests.withPermit {
             check(!access.offline && access == currentAccess()) { "Fonte non disponibile" }
@@ -56,7 +66,6 @@ class ExtensionHomeGateway(
                     check(access == currentAccess()) { "La fonte è stata disabilitata" }
                     SourceHomePage(
                         page.animes.map { remote ->
-                            val presentation = SourceHomePresentation.from(remote.memo)
                             val incoming = remote.toDomainAnime(source.id)
                             val local = toLocal.await(
                                 incoming.copy(memo = SourceHomePresentation.without(incoming.memo)),
@@ -69,7 +78,7 @@ class ExtensionHomeGateway(
                                 ) ?: local.backgroundUrl,
                                 description = remote.description ?: local.description,
                                 memo = withSearchAliases(
-                                    presentation?.attachTo(local.memo) ?: SourceHomePresentation.without(local.memo),
+                                    SourceHomeMetadata.attach(remote, local.memo),
                                     searchAliases(incoming.memo),
                                 ),
                             )

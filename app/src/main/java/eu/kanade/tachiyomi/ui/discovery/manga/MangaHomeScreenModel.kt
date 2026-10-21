@@ -116,9 +116,9 @@ class MangaHomeScreenModel(
                         val privateSources = items.mapTo(mutableSetOf()) { it.manga.source }
                             .filterTo(mutableSetOf()) { incognito.await(it) }
                         currentCoroutineContext().ensureActive()
-                        eu.kanade.tachiyomi.ui.search.AtlasExploreCache.offer(
+                        eu.kanade.tachiyomi.ui.search.UnifiedSearchExploreCache.offer(
                             items.filterNot { it.manga.source in privateSources }.map {
-                                eu.kanade.tachiyomi.ui.search.AtlasEntry.manga(
+                                eu.kanade.tachiyomi.ui.search.UnifiedSearchEntry.manga(
                                     it,
                                     MangaHomeCategories.key(homeId),
                                     title,

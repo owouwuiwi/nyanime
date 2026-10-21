@@ -116,14 +116,14 @@ import eu.kanade.tachiyomi.ui.library.anime.AnimeLibraryTab
 import eu.kanade.tachiyomi.ui.library.manga.MangaLibraryTab
 import eu.kanade.tachiyomi.ui.more.MoreTab
 import eu.kanade.tachiyomi.ui.more.ReadyAppUpdateSurface
-import eu.kanade.tachiyomi.ui.search.AtlasGenreBar
-import eu.kanade.tachiyomi.ui.search.AtlasPanel
-import eu.kanade.tachiyomi.ui.search.AtlasSearchBar
-import eu.kanade.tachiyomi.ui.search.AtlasSearchScreenModel
-import eu.kanade.tachiyomi.ui.search.AtlasSearchTab
-import eu.kanade.tachiyomi.ui.search.AtlasUpgradeDialog
-import eu.kanade.tachiyomi.ui.search.AtlasUpgradeNotice
-import eu.kanade.tachiyomi.ui.search.LocalAtlasSearch
+import eu.kanade.tachiyomi.ui.search.LocalUnifiedSearch
+import eu.kanade.tachiyomi.ui.search.UnifiedSearchBar
+import eu.kanade.tachiyomi.ui.search.UnifiedSearchGenreBar
+import eu.kanade.tachiyomi.ui.search.UnifiedSearchPanel
+import eu.kanade.tachiyomi.ui.search.UnifiedSearchScreenModel
+import eu.kanade.tachiyomi.ui.search.UnifiedSearchTab
+import eu.kanade.tachiyomi.ui.search.UnifiedSearchUpgradeDialog
+import eu.kanade.tachiyomi.ui.search.UnifiedSearchUpgradeNotice
 import eu.kanade.tachiyomi.ui.updates.UpdatesTab
 import it.lorelore.nyanime.notifications.LocalNotificationAccess
 import it.lorelore.nyanime.notifications.NotificationAccessEdgeGlow
@@ -150,7 +150,7 @@ import uy.kohesive.injekt.injectLazy
 val LocalFloatingNavigationInset = compositionLocalOf { 0.dp }
 
 internal val LocalSelectHomeTab = compositionLocalOf<(eu.kanade.presentation.util.Tab) -> Unit> { {} }
-private val LocalCloseAtlas = compositionLocalOf<() -> Unit> { {} }
+private val LocalCloseUnifiedSearch = compositionLocalOf<() -> Unit> { {} }
 
 object HomeScreen : Screen() {
 
@@ -177,10 +177,10 @@ object HomeScreen : Screen() {
         // A retained Home can still be composed behind the next destination during navigation.
         // Only the active Home route may own the room/Cast controllers; MainActivity owns other routes.
         val ownsMiniControllers = navigator.lastItem is HomeScreen && navigator.lastItem.key == key
-        val atlas = rememberScreenModel { AtlasSearchScreenModel() }
+        val unifiedSearch = rememberScreenModel { UnifiedSearchScreenModel() }
         val news = rememberScreenModel { eu.kanade.tachiyomi.ui.news.NewsScreenModel() }
         var newsSearch by rememberSaveable { mutableStateOf(false) }
-        val upgradeNotice = remember { AtlasUpgradeNotice(Injekt.get()) }
+        val upgradeNotice = remember { UnifiedSearchUpgradeNotice(Injekt.get()) }
         val upgradeNoticeState by upgradeNotice.state.collectAsState()
         val headerHost = remember { DiscoveryHeaderHost() }
         val continuity = remember { HomeContinuityState() }
@@ -189,40 +189,40 @@ object HomeScreen : Screen() {
             key = TAB_NAVIGATOR_KEY,
         ) { tabNavigator ->
             var originTag by rememberSaveable { mutableStateOf(navigationTag(defaultTab)) }
-            val closeAtlas: () -> Unit = {
-                if (newsSearch) news.closeSearch() else atlas.close()
+            val closeUnifiedSearch: () -> Unit = {
+                if (newsSearch) news.closeSearch() else unifiedSearch.close()
                 tabNavigator.current = (navStyle.visibleTabs + navStyle.overflowTabs)
                     .firstOrNull { navigationTag(it) == originTag } ?: defaultTab
             }
             val selectTab: (eu.kanade.presentation.util.Tab) -> Unit = { tab ->
-                if (tab == AtlasSearchTab) {
-                    if (tabNavigator.current != AtlasSearchTab) {
+                if (tab == UnifiedSearchTab) {
+                    if (tabNavigator.current != UnifiedSearchTab) {
                         originTag = navigationTag(tabNavigator.current)
                         newsSearch = tabNavigator.current == DiscoveryTab && DiscoveryTab.newsSelected.value
-                        if (newsSearch) news.openSearch() else atlas.open()
+                        if (newsSearch) news.openSearch() else unifiedSearch.open()
                     }
-                } else if (tabNavigator.current == AtlasSearchTab) {
-                    if (newsSearch) news.closeSearch() else atlas.close()
+                } else if (tabNavigator.current == UnifiedSearchTab) {
+                    if (newsSearch) news.closeSearch() else unifiedSearch.close()
                 }
                 tabNavigator.current = tab
             }
-            val searching = tabNavigator.current == AtlasSearchTab
+            val searching = tabNavigator.current == UnifiedSearchTab
             val notificationAccess by rememberNotificationAccess(
                 ownsMiniControllers && (tabNavigator.current == DiscoveryTab || searching),
             )
             LaunchedEffect(searching) {
                 if (searching && newsSearch && !news.state.value.searching) news.openSearch()
-                if (searching && !newsSearch && !atlas.state.value.open) atlas.open()
-                if (!searching && atlas.state.value.open) atlas.close()
+                if (searching && !newsSearch && !unifiedSearch.state.value.open) unifiedSearch.open()
+                if (!searching && unifiedSearch.state.value.open) unifiedSearch.close()
             }
             val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
-            BackHandler(enabled = searching && !imeVisible, onBack = closeAtlas)
-            if (upgradeNoticeState == AtlasUpgradeNotice.PENDING && navigator.lastItem == HomeScreen) {
-                AtlasUpgradeDialog(
+            BackHandler(enabled = searching && !imeVisible, onBack = closeUnifiedSearch)
+            if (upgradeNoticeState == UnifiedSearchUpgradeNotice.PENDING && navigator.lastItem == HomeScreen) {
+                UnifiedSearchUpgradeDialog(
                     onDismiss = upgradeNotice::acknowledge,
                     onSearch = {
                         upgradeNotice.acknowledge()
-                        selectTab(AtlasSearchTab)
+                        selectTab(UnifiedSearchTab)
                     },
                 )
             }
@@ -232,12 +232,12 @@ object HomeScreen : Screen() {
                 // Provide usable navigator to content screen
                 CompositionLocalProvider(
                     LocalNavigator provides navigator,
-                    LocalAtlasSearch provides atlas,
+                    LocalUnifiedSearch provides unifiedSearch,
                     eu.kanade.tachiyomi.ui.news.LocalNewsModel provides news,
                     eu.kanade.tachiyomi.ui.news.LocalNewsSearch provides newsSearch,
                     LocalDiscoveryHeaderHost provides if (modern) headerHost else null,
                     LocalSelectHomeTab provides selectTab,
-                    LocalCloseAtlas provides closeAtlas,
+                    LocalCloseUnifiedSearch provides closeUnifiedSearch,
                     LocalNotificationAccess provides notificationAccess,
                 ) {
                     val bottomNavVisible by produceState(initialValue = true) {
@@ -320,7 +320,7 @@ object HomeScreen : Screen() {
                                             LocalHomeLogoInset provides
                                                 if (modern && it == DiscoveryTab) headerInset else 0.dp,
                                         ) {
-                                            val pinned = modern && it == AtlasSearchTab
+                                            val pinned = modern && it == UnifiedSearchTab
                                             Box(
                                                 Modifier.fillMaxSize()
                                                     .padding(top = if (pinned) headerInset else 0.dp)
@@ -339,7 +339,7 @@ object HomeScreen : Screen() {
                                 ) {
                                     PersistentDiscoveryHeader(
                                         headerHost,
-                                        atlas,
+                                        unifiedSearch,
                                         searching,
                                         motion,
                                         Modifier.onSizeChanged { measuredHeader = with(density) { it.height.toDp() } },
@@ -375,7 +375,7 @@ object HomeScreen : Screen() {
                 tabNavigator.current = defaultTab
             }
             BackHandler(
-                enabled = tabNavigator.current != defaultTab && tabNavigator.current != AtlasSearchTab,
+                enabled = tabNavigator.current != defaultTab && tabNavigator.current != UnifiedSearchTab,
                 onBack = goToStartScreen,
             )
 
@@ -432,7 +432,7 @@ object HomeScreen : Screen() {
     @Composable
     private fun PersistentDiscoveryHeader(
         host: DiscoveryHeaderHost,
-        atlas: AtlasSearchScreenModel,
+        unifiedSearch: UnifiedSearchScreenModel,
         searching: Boolean,
         motion: Boolean,
         modifier: Modifier = Modifier,
@@ -467,12 +467,12 @@ object HomeScreen : Screen() {
                                 eu.kanade.tachiyomi.ui.news.NewsSourcesScreen(),
                             )
                         } else {
-                            atlas.showPanel(AtlasPanel.SETTINGS)
+                            unifiedSearch.showPanel(UnifiedSearchPanel.SETTINGS)
                         }
                     }) {
                         Icon(
                             Icons.Outlined.Tune,
-                            stringResource(if (newsMode) R.string.news_manage else R.string.atlas_settings),
+                            stringResource(if (newsMode) R.string.news_manage else R.string.unified_search_settings),
                         )
                     }
                 } else {
@@ -501,8 +501,8 @@ object HomeScreen : Screen() {
         ownsMiniControllers: Boolean,
         modifier: Modifier = Modifier,
     ) {
-        val searching = currentTab == AtlasSearchTab
-        val atlas = LocalAtlasSearch.current
+        val searching = currentTab == UnifiedSearchTab
+        val unifiedSearch = LocalUnifiedSearch.current
         Column(modifier.posterForeground(zIndex = 3f).then(if (searching) Modifier.imePadding() else Modifier)) {
             if (currentTab != MoreTab) ReadyAppUpdateSurface(allowDismiss = true)
             if (ownsMiniControllers) {
@@ -549,8 +549,8 @@ object HomeScreen : Screen() {
                                     eu.kanade.tachiyomi.ui.news.NewsFilterBar(
                                         requireNotNull(eu.kanade.tachiyomi.ui.news.LocalNewsModel.current),
                                     )
-                                } else if (atlas != null) {
-                                    AtlasGenreBar(atlas)
+                                } else if (unifiedSearch != null) {
+                                    UnifiedSearchGenreBar(unifiedSearch)
                                 }
                             }
                         }
@@ -595,28 +595,28 @@ object HomeScreen : Screen() {
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         AnimatedContent(
-                            targetState = LocalTabNavigator.current.current == AtlasSearchTab,
+                            targetState = LocalTabNavigator.current.current == UnifiedSearchTab,
                             transitionSpec = { ModernMotion.transform(motion).using(null) },
-                            label = "atlasNavigationMorph",
+                            label = "unifiedSearchNavigationMorph",
                         ) { searching ->
                             if (searching) {
                                 if (eu.kanade.tachiyomi.ui.news.LocalNewsSearch.current) {
                                     val newsModel = requireNotNull(eu.kanade.tachiyomi.ui.news.LocalNewsModel.current)
                                     val newsState by newsModel.state.collectAsState()
-                                    eu.kanade.tachiyomi.ui.search.AtlasQueryBar(
+                                    eu.kanade.tachiyomi.ui.search.UnifiedSearchQueryBar(
                                         newsState.query,
                                         newsModel::edit,
                                         newsModel::submit,
                                         compact,
-                                        LocalCloseAtlas.current,
+                                        LocalCloseUnifiedSearch.current,
                                         { selectTab(BrowseTab) },
                                         stringResource(R.string.news_search_hint),
                                     )
                                 } else {
-                                    AtlasSearchBar(
-                                        requireNotNull(LocalAtlasSearch.current),
+                                    UnifiedSearchBar(
+                                        requireNotNull(LocalUnifiedSearch.current),
                                         compact,
-                                        LocalCloseAtlas.current,
+                                        LocalCloseUnifiedSearch.current,
                                         onBrowse = { selectTab(BrowseTab) },
                                     )
                                 }
@@ -662,8 +662,8 @@ object HomeScreen : Screen() {
             Modifier.weight(1f).heightIn(min = if (compact) 60.dp else 68.dp)
                 .clip(RoundedCornerShape(27.dp))
                 .combinedClickable(
-                    onLongClick = if (tab == AtlasSearchTab) ({ selectTab(BrowseTab) }) else null,
-                    onLongClickLabel = browseTitle.takeIf { tab == AtlasSearchTab },
+                    onLongClick = if (tab == UnifiedSearchTab) ({ selectTab(BrowseTab) }) else null,
+                    onLongClickLabel = browseTitle.takeIf { tab == UnifiedSearchTab },
                     onClick = {
                         if (!currentSelected) {
                             selectTab(tab)
@@ -864,7 +864,7 @@ object HomeScreen : Screen() {
         LibrariesTab -> "libraries"
         AnimeLibraryTab -> "library_anime"
         MangaLibraryTab -> "library_manga"
-        AtlasSearchTab -> "search"
+        UnifiedSearchTab -> "search"
         BrowseTab -> "browse"
         MoreTab -> "more"
         eu.kanade.tachiyomi.ui.discovery.DiscoveryTab -> "discovery"

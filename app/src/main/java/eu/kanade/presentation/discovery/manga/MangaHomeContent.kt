@@ -70,19 +70,19 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import eu.kanade.presentation.discovery.FadingAsyncImage
+import eu.kanade.presentation.discovery.FeaturedCoverCarousel
+import eu.kanade.presentation.discovery.FeaturedCoverSkeleton
 import eu.kanade.presentation.discovery.HomeExploreAction
 import eu.kanade.presentation.discovery.HomeGenreChip
 import eu.kanade.presentation.discovery.HomeLoadingTransition
 import eu.kanade.presentation.discovery.HomeMotion
 import eu.kanade.presentation.discovery.HomePosterRowSkeleton
+import eu.kanade.presentation.discovery.HomeResumeCard
 import eu.kanade.presentation.discovery.HomeSelectionChip
 import eu.kanade.presentation.discovery.HomeSkeleton
-import eu.kanade.presentation.discovery.PanoramaCarousel
-import eu.kanade.presentation.discovery.PanoramaHeroSkeleton
-import eu.kanade.presentation.discovery.PanoramaResumeCard
-import eu.kanade.presentation.discovery.PanoramaUpdateCard
+import eu.kanade.presentation.discovery.HomeUpdateCard
 import eu.kanade.presentation.discovery.SectionHeader
-import eu.kanade.presentation.discovery.panoramaAutoplay
+import eu.kanade.presentation.discovery.featuredCarouselAutoplay
 import eu.kanade.presentation.motion.PosterSource
 import eu.kanade.presentation.motion.appMotionEnabled
 import eu.kanade.presentation.motion.posterSource
@@ -142,7 +142,7 @@ fun MangaHomeContent(
     val featuredItems = featured.items
     var sourceSheetOpen by remember { mutableStateOf(false) }
     val rotateFeatured =
-        panoramaAutoplay(listState, "hero") && !sourceSheetOpen && state.rows.values.none { it.loading }
+        featuredCarouselAutoplay(listState, "hero") && !sourceSheetOpen && state.rows.values.none { it.loading }
     val awaitingFeatured = featured.loading
     val personalUpdates = state.updates
     var displayedSourceKey by rememberSaveable { mutableStateOf(home?.key) }
@@ -182,9 +182,9 @@ fun MangaHomeContent(
                     item("hero") {
                         HomeLoadingTransition(
                             loading = awaitingFeatured,
-                            placeholder = { PanoramaHeroSkeleton() },
+                            placeholder = { FeaturedCoverSkeleton() },
                         ) {
-                            PanoramaCarousel(
+                            FeaturedCoverCarousel(
                                 items = featuredItems,
                                 itemKey = { it.key },
                                 title = { it.manga.title },
@@ -257,14 +257,14 @@ fun MangaHomeContent(
                                                     history.chapterId,
                                                 )
                                                 val resumeContext = androidx.compose.ui.platform.LocalContext.current
-                                                PanoramaResumeCard(
+                                                HomeResumeCard(
                                                     title = history.title,
                                                     subtitle = (
                                                         if (history.chapterNumber >=
                                                             0
                                                         ) {
                                                             androidStringResource(
-                                                                R.string.home_panorama_read_chapter,
+                                                                R.string.home_content_read_chapter,
                                                                 formatChapterNumber(history.chapterNumber),
                                                             )
                                                         } else {
@@ -322,7 +322,7 @@ fun MangaHomeContent(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
                                 items(personalUpdates, key = { it.chapterId }) { update ->
-                                    PanoramaUpdateCard(
+                                    HomeUpdateCard(
                                         title = update.mangaTitle,
                                         subtitle = update.chapterName,
                                         onOpen = { onUpdate(update) },

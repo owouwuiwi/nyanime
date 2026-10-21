@@ -101,6 +101,7 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
         if (recoveryProcess?.startsWith("$packageName:recovery") == true) return
         if (recoveryProcess?.startsWith("$packageName:migration") == true) return
         if (recoveryProcess == "$packageName:source_exchange") return
+        if (recoveryProcess == "$packageName:reader_quality") return
         if (eu.kanade.tachiyomi.data.migration.MigrationState.frozen(this)) {
             migrationStartupDeferred = true
             return
@@ -294,7 +295,7 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
                 File(filesDir, "extension-store/prepared.part").delete()
             }
         }
-        eu.kanade.tachiyomi.ui.search.AtlasUpgradeNotice(preferenceStore).initialize(preference.get())
+        eu.kanade.tachiyomi.ui.search.UnifiedSearchUpgradeNotice(preferenceStore).initialize(preference.get())
         logcat { "Migration from ${preference.get()} to ${BuildConfig.VERSION_CODE}" }
         Migrator.initialize(
             old = preference.get(),

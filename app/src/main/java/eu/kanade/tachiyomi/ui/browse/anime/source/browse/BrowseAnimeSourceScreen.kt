@@ -125,7 +125,9 @@ data class BrowseAnimeSourceScreen(
 
         if (state.initialFilterError) {
             tachiyomi.presentation.core.screens.EmptyScreen(
-                message = androidx.compose.ui.res.stringResource(eu.kanade.tachiyomi.R.string.atlas_stale_filters),
+                message = androidx.compose.ui.res.stringResource(
+                    eu.kanade.tachiyomi.R.string.unified_search_stale_filters,
+                ),
                 actions = kotlinx.collections.immutable.persistentListOf(
                     tachiyomi.presentation.core.screens.EmptyScreenAction(
                         MR.strings.action_close,

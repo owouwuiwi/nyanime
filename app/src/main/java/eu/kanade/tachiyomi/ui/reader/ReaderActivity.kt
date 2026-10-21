@@ -94,6 +94,10 @@ import eu.kanade.tachiyomi.util.system.openInBrowser
 import eu.kanade.tachiyomi.util.system.toShareIntent
 import eu.kanade.tachiyomi.util.system.toast
 import eu.kanade.tachiyomi.util.view.setComposeContent
+import it.lorelore.nyanime.reader.ReaderActionsPanel
+import it.lorelore.nyanime.reader.ReaderChaptersPanel
+import it.lorelore.nyanime.reader.ReaderPanelAction
+import it.lorelore.nyanime.reader.quality.QualityReaderState
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterNotNull
@@ -329,6 +333,9 @@ class ReaderActivity : BaseActivity() {
      */
     override fun onDestroy() {
         super.onDestroy()
+        if (!isChangingConfigurations) {
+            viewModel.state.value.manga?.id?.let { QualityReaderState.showOriginal(it, false) }
+        }
         viewModel.state.value.viewer?.destroy()
         config = null
         menuToggleToast?.cancel()
@@ -475,10 +482,16 @@ class ReaderActivity : BaseActivity() {
                 colorBlendMode = colorOverlayBlendMode,
             )
 
+            var chromeTop by remember { androidx.compose.runtime.mutableStateOf(68.dp) }
+            var chromeBottom by remember { androidx.compose.runtime.mutableStateOf(140.dp) }
+            val originalPages by QualityReaderState.original.collectAsState()
+            val qualityComparison = state.manga?.id in originalPages
+
             ReaderAppBars(
                 visible = state.menuVisible,
                 fullscreen = isFullscreen,
                 verticalNavigator = verticalNavigator,
+                qualityComparison = qualityComparison,
 
                 mangaTitle = state.manga?.title,
                 chapterTitle = state.currentChapter?.chapter?.name,
@@ -486,16 +499,13 @@ class ReaderActivity : BaseActivity() {
                 onClickTopAppBar = ::openMangaScreen,
                 bookmarked = state.bookmarked,
                 onToggleBookmarked = viewModel::toggleChapterBookmark,
-                onOpenInWebView = ::openChapterInWebView.takeIf { isHttpSource },
-                onOpenInBrowser = ::openChapterInBrowser.takeIf { isHttpSource },
-                onShare = ::shareChapter.takeIf { isHttpSource },
 
                 viewer = state.viewer,
 
                 onNextChapter = ::loadNextChapter,
-                enabledNext = state.viewerChapters?.nextChapter != null,
+                enabledNext = state.viewerChapters?.nextChapter != null && !state.isLoadingAdjacentChapter,
                 onPreviousChapter = ::loadPreviousChapter,
-                enabledPrevious = state.viewerChapters?.prevChapter != null,
+                enabledPrevious = state.viewerChapters?.prevChapter != null && !state.isLoadingAdjacentChapter,
                 currentPage = state.currentPage,
                 totalPages = state.totalPages,
                 onPageIndexChange = {
@@ -503,43 +513,31 @@ class ReaderActivity : BaseActivity() {
                     moveToPageIndex(it)
                 },
 
-                readingMode = ReadingMode.fromPreference(
-                    viewModel.getMangaReadingMode(resolveDefault = false),
-                ),
-                onClickReadingMode = viewModel::openReadingModeSelectDialog,
-                orientation = ReaderOrientation.fromPreference(
-                    viewModel.getMangaOrientation(resolveDefault = false),
-                ),
-                onClickOrientation = viewModel::openOrientationModeSelectDialog,
-                cropEnabled = cropEnabled,
-                onClickCropBorder = {
-                    val enabled = viewModel.toggleCropBorders()
-                    menuToggleToast?.cancel()
-                    menuToggleToast = toast(if (enabled) MR.strings.on else MR.strings.off)
-                },
-                onClickSettings = viewModel::openSettingsDialog,
-                guidedEnabled = state.viewer is eu.kanade.tachiyomi.ui.reader.viewer.guided.GuidedViewer,
-                onClickGuided = {
-                    val preferences = getSharedPreferences("guided-reader", MODE_PRIVATE)
-                    if (!preferences.getBoolean("introduced", false)) {
-                        androidx.appcompat.app.AlertDialog.Builder(this)
-                            .setTitle(R.string.guided_reading)
-                            .setMessage(R.string.guided_introduction)
-                            .setPositiveButton(R.string.guided_start) { _, _ ->
-                                preferences.edit().putBoolean("introduced", true).apply()
-                                viewModel.toggleGuidedReading()
-                            }.setNegativeButton(android.R.string.cancel, null).show()
+                onChapters = viewModel::openChaptersDialog,
+                onMode = viewModel::openReaderModePanel,
+                onQuality = {
+                    val mangaId = state.manga?.id
+                    if (qualityComparison && mangaId != null) {
+                        QualityReaderState.showOriginal(mangaId, false)
                     } else {
-                        viewModel.toggleGuidedReading()
+                        viewModel.openReaderQualityPanel()
                     }
                 },
-                onReadingTogether = { readingRoomVisible = true },
+                onMore = viewModel::openReaderMorePanel,
+                onChromeSize = { top, bottom ->
+                    chromeTop = top
+                    chromeBottom = bottom
+                },
             )
 
             ReadingReaderOverlay(
                 manager = readingTogether,
                 menuVisible = state.menuVisible,
-                reservedBottomSpace = (state.viewer as? GuidedViewer)?.controlsBottomInset ?: 0.dp,
+                reservedBottomSpace = maxOf(
+                    (state.viewer as? GuidedViewer)?.controlsBottomInset ?: 0.dp,
+                    if (state.menuVisible) chromeBottom else 0.dp,
+                ),
+                reservedTopSpace = if (state.menuVisible) chromeTop else 0.dp,
                 onOpenRoom = { readingRoomVisible = true },
             )
             if (readingRoomVisible) {
@@ -569,11 +567,96 @@ class ReaderActivity : BaseActivity() {
                 this@ReaderActivity,
                 reader = true,
                 reservedBottomDp = ((state.viewer as? GuidedViewer)?.controlsBottomInset?.value ?: 0f) +
-                    if (state.menuVisible) 120f else 64f,
+                    if (state.menuVisible) chromeBottom.value else 64f,
             )
 
             val onDismissRequest = viewModel::closeDialog
             when (val dialog = state.dialog) {
+                is ReaderViewModel.Dialog.Chapters -> {
+                    ReaderChaptersPanel(
+                        chapters = dialog.entries,
+                        currentId = state.currentChapter?.chapter?.id,
+                        onSelect = { id ->
+                            viewModel.closeDialog()
+                            lifecycleScope.launch {
+                                if (viewModel.selectChapter(id)) moveToPageIndex(0)
+                            }
+                        },
+                        onDismiss = onDismissRequest,
+                    )
+                }
+                ReaderViewModel.Dialog.ModePanel -> {
+                    ReaderActionsPanel(getString(R.string.reader_mode), onDismissRequest) {
+                        ReaderPanelAction(
+                            stringResource(MR.strings.viewer),
+                            stringResource(ReadingMode.fromPreference(viewModel.getMangaReadingMode()).stringRes),
+                            onClick = viewModel::openReadingModeSelectDialog,
+                        )
+                        ReaderPanelAction(
+                            getString(R.string.guided_reading),
+                            active = state.viewer is GuidedViewer,
+                        ) {
+                            viewModel.closeDialog()
+                            val preferences = getSharedPreferences("guided-reader", MODE_PRIVATE)
+                            if (!preferences.getBoolean("introduced", false)) {
+                                androidx.appcompat.app.AlertDialog.Builder(this@ReaderActivity)
+                                    .setTitle(R.string.guided_reading)
+                                    .setMessage(R.string.guided_introduction)
+                                    .setPositiveButton(R.string.guided_start) { _, _ ->
+                                        preferences.edit().putBoolean("introduced", true).apply()
+                                        viewModel.toggleGuidedReading()
+                                    }.setNegativeButton(android.R.string.cancel, null).show()
+                            } else {
+                                viewModel.toggleGuidedReading()
+                            }
+                        }
+                        ReaderPanelAction(
+                            stringResource(MR.strings.rotation_type),
+                            stringResource(ReaderOrientation.fromPreference(viewModel.getMangaOrientation()).stringRes),
+                            onClick = viewModel::openOrientationModeSelectDialog,
+                        )
+                        ReaderPanelAction(stringResource(MR.strings.pref_crop_borders), active = cropEnabled) {
+                            viewModel.toggleCropBorders()
+                        }
+                        ReaderPanelAction(
+                            stringResource(MR.strings.action_settings),
+                            onClick = viewModel::openSettingsDialog,
+                        )
+                    }
+                }
+                ReaderViewModel.Dialog.QualityPanel -> {
+                    it.lorelore.nyanime.reader.ReaderQualityPanel(
+                        manga = state.manga,
+                        onDismiss = onDismissRequest,
+                        onColorSettings = viewModel::openSettingsDialog,
+                    )
+                }
+                ReaderViewModel.Dialog.MorePanel -> {
+                    ReaderActionsPanel(getString(R.string.reader_more), onDismissRequest) {
+                        ReaderPanelAction(getString(R.string.room_read)) {
+                            viewModel.closeDialog()
+                            readingRoomVisible = true
+                        }
+                        if (isHttpSource) {
+                            ReaderPanelAction(stringResource(MR.strings.action_share)) {
+                                viewModel.closeDialog()
+                                shareChapter()
+                            }
+                            ReaderPanelAction(stringResource(MR.strings.action_open_in_web_view)) {
+                                viewModel.closeDialog()
+                                openChapterInWebView()
+                            }
+                            ReaderPanelAction(stringResource(MR.strings.action_open_in_browser)) {
+                                viewModel.closeDialog()
+                                openChapterInBrowser()
+                            }
+                        }
+                        ReaderPanelAction(
+                            stringResource(MR.strings.action_settings),
+                            onClick = viewModel::openSettingsDialog,
+                        )
+                    }
+                }
                 is ReaderViewModel.Dialog.Loading -> {
                     AlertDialog(
                         onDismissRequest = {},

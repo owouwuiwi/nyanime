@@ -13,12 +13,17 @@ class SourcePreferences(
 
     fun tolerantSearch() = preferenceStore.getBoolean("tolerant_title_search", true)
     fun onlineSearchAssistance() = preferenceStore.getBoolean("online_title_search_assistance", true)
-    fun rememberAtlasSearch() = preferenceStore.getBoolean("remember_atlas_search", false)
-    fun atlasKeyboardOnOpen() = preferenceStore.getBoolean("atlas_keyboard_on_open", false)
-    fun liveAtlasSearch() = preferenceStore.getBoolean("live_atlas_search", true)
-    fun lastAtlasQuery() = preferenceStore.getString(Preference.appStateKey("last_atlas_query"), "")
-    fun lastAtlasCategory() = preferenceStore.getString(Preference.appStateKey("last_atlas_category"), "")
-    fun lastAtlasGenres() = preferenceStore.getStringSet(Preference.appStateKey("last_atlas_genres"), emptySet())
+
+    // Published preference keys remain stable across implementation renames.
+    fun rememberUnifiedSearch() = preferenceStore.getBoolean("remember_atlas_search", false)
+    fun unifiedSearchKeyboardOnOpen() = preferenceStore.getBoolean("atlas_keyboard_on_open", false)
+    fun liveUnifiedSearch() = preferenceStore.getBoolean("live_atlas_search", true)
+    fun lastUnifiedSearchQuery() = preferenceStore.getString(Preference.appStateKey("last_atlas_query"), "")
+    fun lastUnifiedSearchCategory() = preferenceStore.getString(Preference.appStateKey("last_atlas_category"), "")
+    fun lastUnifiedSearchGenres() = preferenceStore.getStringSet(
+        Preference.appStateKey("last_atlas_genres"),
+        emptySet(),
+    )
 
     // Common options
 

@@ -6,6 +6,11 @@ I documenti tecnici in inglese conservano i nomi delle API e dei componenti.
 
 ## Novità recenti
 
+La versione 0.55 rinnova [Libreria e schede anime/manga](library-and-details.md),
+con ripresa, tracking personale, categorie e indice dei contenuti, e il
+[lettore manga](reader-renewal.md), con controlli compatti e miglioramento
+facoltativo delle tavole. EPUB/TXT e Legado appartengono alla consegna successiva.
+
 La versione 0.53 aggiunge il [recupero compatto su Telegram](telegram-sync-packing.md):
 contenitori cifrati, accordo fra i dispositivi e accorpamento delle modifiche già sostituite.
 
@@ -73,10 +78,10 @@ Il progetto segue il modello [bring your own content](responsible-use.md).
 | [Primo piano](title-details.md) | Schede anime e manga, ripresa, gestione di episodi e capitoli e transizioni. |
 | [Aggiornamento delle schede](detail-freshness.md) | Verifiche mirate, revisioni delle fonti, cache e protezione dalle risposte obsolete. |
 | [Informazioni sulle opere](work-information.md) | Approfondimenti facoltativi senza account, cataloghi, persone e associazioni. |
-| [Atlante](atlas-search.md) | Ricerca unificata, categorie, filtri, navigazione e limiti condivisi. |
+| [Atlante](unified-search.md) | Ricerca unificata, categorie, filtri, navigazione e limiti condivisi. |
 | [Ricerca intelligente](smart-title-search.md) | Motore comune, suggerimenti, limiti, privacy e licenza SymSpellKt. |
 | [Home e scoperta](discovery-home.md) | Cataloghi, associazione alle fonti, calendario, cache e ripresa. |
-| [Home Panorama](home-panorama.md) | Carosello circolare, ripresa compatta, caricamento e interazioni. |
+| [Home Panorama](home-discovery.md) | Carosello circolare, ripresa compatta, caricamento e interazioni. |
 | [Fluidità](ui-fluidity.md) | Rendering, immagini, aggiornamenti locali e prove di scorrimento su dispositivo. |
 | [Store](extension-store.md) | Inventario, Installa o Importa, fiducia e aggiornamenti delle estensioni. |
 | [Importazione manuale](rin-manual-import.md) | APK e vecchi archivi, senza catalogo obbligatorio. |

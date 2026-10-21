@@ -27,18 +27,35 @@ class CloudSyncDeviceProbe : Instrumentation() {
     private var remoteMaintenance = false
     private var localCompaction = false
     private var trackingQueue = false
+    private var readerQuality = false
     override fun onCreate(arguments: Bundle?) {
         localState = arguments?.getString("localState") == "true"
         cleanupOnly = arguments?.getString("cleanupOnly") == "true"
         remoteMaintenance = arguments?.getString("remoteMaintenance") == "true"
         localCompaction = arguments?.getString("localCompaction") == "true"
         trackingQueue = arguments?.getString("trackingQueue") == "true"
+        readerQuality = arguments?.getString("readerQuality") == "true"
         super.onCreate(arguments)
         start()
     }
 
     override fun onStart() {
         val report = Bundle()
+        if (readerQuality) {
+            try {
+                report.putString(
+                    "stream",
+                    kotlinx.coroutines.runBlocking {
+                        ReaderQualityDeviceProbe.run(targetContext)
+                    },
+                )
+                finish(Activity.RESULT_OK, report)
+            } catch (error: Throwable) {
+                report.putString("stream", "reader-quality: ${error.javaClass.simpleName}: ${error.message}")
+                finish(Activity.RESULT_CANCELED, report)
+            }
+            return
+        }
         if (trackingQueue) {
             try {
                 report.putString("stream", org.json.JSONObject(TrackingQueueDeviceProbe.run(targetContext)).toString())

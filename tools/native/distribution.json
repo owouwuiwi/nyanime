@@ -22,6 +22,10 @@
       "sha256": "6c84f9c3cf5aa6e0f2ce434404f04520d51f606dfe1075fadb66b87cb195d3da",
       "url": "https://github.com/owouwuiwi/nyanime/releases/download/v0.49.0.0/Nyanime-Native-0.49.0.0-camera-inference.tar.gz",
       "privateMirrorRelease": "native-materials-0.49.0.0"
+    },
+    "Nyanime-Native-0.55.0.0-reader-quality.tar.gz": {
+      "sha256": "88364dbb888846bd238f44a210e14695421af77b0c5338fba2f4abdd486919bc",
+      "url": "https://github.com/owouwuiwi/nyanime/releases/download/v0.55.0.0/Nyanime-Native-0.55.0.0-reader-quality.tar.gz"
     }
   },
   "components": {
@@ -358,6 +362,24 @@
       "requiredJavaClasses": [
         "org.rustls.platformverifier.CertificateVerifier"
       ]
+    },
+    "reader-quality": {
+      "license": "Original JNI adapter under the root license; NCNN BSD-3-Clause and embedded zlib/BSD terms, ruapu MIT, Android NDK runtime terms retained",
+      "sourceIdentity": "NCNN56775de50990ab7f16627efdcf5529b49541206f; tools/native/reader-quality/artifact.json and four per-ABI provenance records; complete source hashes in source archive",
+      "buildRecipe": "scripts/build_reader_quality_native.py and tools/native/reader-quality/build.sh; NDK28.2.13676358, API26, CPU only, static C++ runtime, 16KiB alignment",
+      "sourcePackages": [
+        "Nyanime-Native-0.55.0.0-reader-quality.tar.gz"
+      ],
+      "libraries": {
+        "lib/arm64-v8a/libnyanime_reader_quality.so": "8bc98810fb180d431ab0b52d5f92e2c02d7ca6b9ae08de8b8d95ce2e3e011299",
+        "lib/armeabi-v7a/libnyanime_reader_quality.so": "288722618fbf0145e8dcff2633319bd17805a9834f5d550da800e5485a30f192",
+        "lib/x86/libnyanime_reader_quality.so": "5cd7c89a01f0e7a47c7aa39db6ea0b0b6135845693b671c6fa3be173083dff05",
+        "lib/x86_64/libnyanime_reader_quality.so": "7a1045c2ad0f09ec11adc658332ce9c794e0e9f461e50598a64556fd1dec6970"
+      },
+      "requiredJavaClasses": [
+        "it.lorelore.nyanime.reader.quality.NcnnNative"
+      ],
+      "sourceCoverage": "Complete pinned NCNN archive, original JNI source, CMake and Python verification/build recipes, toolchain and third-party notices, four ABI source and binary hashes. Optional model weights are excluded from the APK and source package; their pinned descriptors and terms remain in the complete Android source and APK notices."
     }
   }
 }

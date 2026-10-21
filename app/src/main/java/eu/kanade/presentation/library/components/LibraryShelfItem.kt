@@ -125,7 +125,22 @@ internal fun LibraryShelfItem(
     onDownload: (() -> Unit)?,
     contentLabels: List<String>?,
     modifier: Modifier = Modifier,
+    progressFraction: Float? = null,
 ) {
+    if (LocalNyanimeStyle.current) {
+        it.lorelore.nyanime.presentation.library.LibraryEntryRow(
+            title = title, cover = coverData, progress = progressText, fraction = progressFraction,
+            status = shelfStatusText(status, unviewedCount, isAnime, now), news = status.newReleaseCount > 0,
+            manga = !isAnime, downloads = downloadCount, downloading = downloading, selected = selected,
+            labels = contentLabels, onOpen = onClick, onLongClick = onLongClick,
+            onContinue = onContinue,
+            onDownload = onDownload.takeUnless {
+                isLocal || unviewedCount <= 0
+            },
+            modifier = modifier,
+        )
+        return
+    }
     val motion = appMotionEnabled()
     val poster = if (LocalNyanimeStyle.current) rememberPosterSource(coverData) else null
     val openDetails = if (poster != null) posterOpen(poster, title, onClick) else onClick

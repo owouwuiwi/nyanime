@@ -76,12 +76,10 @@ internal fun LibraryTabs(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(52.dp)
+                .height(56.dp)
                 .clip(shape),
             shape = shape,
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .72f)),
-            tonalElevation = 1.dp,
+            color = androidx.compose.ui.graphics.Color.Transparent,
         ) {
             Row(
                 modifier = Modifier.padding(start = 4.dp, end = 2.dp),

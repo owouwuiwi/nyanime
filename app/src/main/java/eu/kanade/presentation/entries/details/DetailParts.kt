@@ -15,6 +15,7 @@ internal data class DetailPart(
     val preview: String? = null,
     val summary: String? = null,
     val group: tachiyomi.domain.items.episode.model.EpisodeGroup? = null,
+    val sequence: Double? = null,
 )
 
 internal enum class DetailFilter { CONTINUE, NEW, INDEX, OFFLINE, BOOKMARKS }

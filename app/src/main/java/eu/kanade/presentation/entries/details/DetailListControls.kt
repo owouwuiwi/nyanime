@@ -63,6 +63,7 @@ internal fun DetailListControls(
     canResume: Boolean,
     onResume: () -> Unit,
     enabled: Boolean = true,
+    onManage: (() -> Unit)? = null,
 ) {
     val keyboard = LocalSoftwareKeyboardController.current
     val focus = remember { FocusRequester() }
@@ -85,6 +86,11 @@ internal fun DetailListControls(
         }
         if (!compact) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                onManage?.let {
+                    TextButton(onClick = it, enabled = enabled) {
+                        Text(stringResource(R.string.detail_manage), fontSize = 12.sp)
+                    }
+                }
                 if (hasFilters) {
                     TextButton(onClick = onFilter, enabled = enabled, modifier = Modifier.weight(1f)) {
                         Text(stringResource(R.string.detail_filtered, count, total), fontSize = 11.sp)

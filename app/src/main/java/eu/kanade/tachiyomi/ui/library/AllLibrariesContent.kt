@@ -41,6 +41,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,6 +58,7 @@ import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.domain.ui.UiPreferences
+import eu.kanade.presentation.category.visualName
 import eu.kanade.presentation.library.components.DownloadsBadge
 import eu.kanade.presentation.library.components.EntryComfortableGridItem
 import eu.kanade.presentation.library.components.EntryCompactGridItem
@@ -83,6 +85,8 @@ import eu.kanade.tachiyomi.ui.main.MainActivity
 import eu.kanade.tachiyomi.ui.player.settings.PlayerPreferences
 import eu.kanade.tachiyomi.ui.privacy.PrivacyArea
 import eu.kanade.tachiyomi.ui.reader.ReaderActivity
+import it.lorelore.nyanime.presentation.library.LibraryQuickFilter
+import it.lorelore.nyanime.presentation.library.LibraryQuickFilters
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -114,7 +118,15 @@ internal fun LibrariesTab.AllLibrariesContent() {
     val mangaState by mangaModel.state.collectAsState()
     val playerPreferences = remember { Injekt.get<PlayerPreferences>() }
     val snackbar = remember { SnackbarHostState() }
-    var query by remember { mutableStateOf<String?>(null) }
+    var query by rememberSaveable { mutableStateOf<String?>(null) }
+    var quickFilter by rememberSaveable { mutableStateOf(LibraryQuickFilter.ALL) }
+    var collection by rememberSaveable { mutableStateOf<String?>(null) }
+    val collections =
+        animeState.categories.map { "anime:${it.id}" to "Anime · ${it.visualName}" } +
+            mangaState.categories.map { "manga:${it.id}" to "Manga · ${it.visualName}" }
+    LaunchedEffect(collections.map { it.first }) {
+        if (collection != null && collections.none { it.first == collection }) collection = null
+    }
     val displayPreference = remember { Injekt.get<LibraryPreferences>().allDisplayMode() }
     val displayMode by displayPreference.collectAsState()
     val viewedNotices = remember { Injekt.get<UiPreferences>().viewedLibraryShelfNotices() }
@@ -135,16 +147,27 @@ internal fun LibrariesTab.AllLibrariesContent() {
         mangaState.library,
         query,
         aliasesReady,
+        collection,
     ) {
         value = withContext(Dispatchers.Default) {
-            val animeItems = animeState.library.values.flatten().distinctBy { it.libraryAnime.id }
+            val animeItems = animeState.library.filterKeys {
+                collection == null || collection == "anime:${it.id}"
+            }.values.flatten().distinctBy { it.libraryAnime.id }
                 .filter { query.isNullOrBlank() || it.matches(query.orEmpty()) }.map(UnifiedLibraryEntry::Anime)
-            val mangaItems = mangaState.library.values.flatten().distinctBy { it.libraryManga.id }
+            val mangaItems = mangaState.library.filterKeys {
+                collection == null || collection == "manga:${it.id}"
+            }.values.flatten().distinctBy { it.libraryManga.id }
                 .filter { query.isNullOrBlank() || it.matches(query.orEmpty()) }.map(UnifiedLibraryEntry::Manga)
             (animeItems + mangaItems).sortedBy { it.title.lowercase() }
         }
     }
     val entries = preparedEntries.orEmpty()
+    val filteredEntries =
+        remember(entries, quickFilter) {
+            entries.filter {
+                quickFilter.includes(it.unviewedCount, it.completedCount, it.lastAccess, it.status.newReleaseCount)
+            }
+        }
 
     fun refreshAll() {
         val animeStarted = AnimeLibraryUpdateJob.startNow(context, null)
@@ -172,7 +195,7 @@ internal fun LibrariesTab.AllLibrariesContent() {
                     CircularProgressIndicator()
                 }
             }
-            entries.isEmpty() && query == null -> {
+            entries.isEmpty() && query == null && collection == null -> {
                 Column(
                     Modifier.fillMaxSize().padding(contentPadding).padding(horizontal = 32.dp),
                     verticalArrangement = Arrangement.Center,
@@ -207,9 +230,18 @@ internal fun LibrariesTab.AllLibrariesContent() {
                         onDisplayMode = displayPreference::set,
                         onQueryChange = { query = it },
                         onRefresh = ::refreshAll,
+                        collections = collections, collection = collection, onCollection = { collection = it },
                     )
+                    LibraryQuickFilters(quickFilter) { quickFilter = it }
+                    if (filteredEntries.isEmpty()) {
+                        Text(
+                            stringResource(R.string.library_quick_filter_empty),
+                            Modifier.padding(24.dp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     AllLibraryShelf(
-                        entries = entries,
+                        entries = filteredEntries,
                         displayMode = displayMode,
                         contentPadding = PaddingValues(
                             bottom =
@@ -284,16 +316,18 @@ private fun AllLibraryControls(
     onDisplayMode: (LibraryDisplayMode) -> Unit,
     onQueryChange: (String?) -> Unit,
     onRefresh: () -> Unit,
+    collections: List<Pair<String, String>>,
+    collection: String?,
+    onCollection: (String?) -> Unit,
 ) {
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     var displayMenu by remember { mutableStateOf(false) }
+    var collectionMenu by remember { mutableStateOf(false) }
     Surface(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp),
         shape = RoundedCornerShape(15.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .72f)),
-        tonalElevation = 1.dp,
+        color = androidx.compose.ui.graphics.Color.Transparent,
     ) {
         if (query == null) {
             Row(
@@ -305,12 +339,32 @@ private fun AllLibraryControls(
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                 )
-                Text(
-                    text = stringResource(R.string.library_medium_all),
-                    modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                )
+                Box(Modifier.weight(1f)) {
+                    androidx.compose.material3.TextButton(onClick = { collectionMenu = true }) {
+                        Text(
+                            collections.find { it.first == collection }?.second
+                                ?: stringResource(R.string.library_filter_all_titles),
+                            maxLines = 2,
+                            style = MaterialTheme.typography.titleSmall,
+                        )
+                    }
+                    DropdownMenu(expanded = collectionMenu, onDismissRequest = { collectionMenu = false }) {
+                        DropdownMenuItem(text = {
+                            Text(stringResource(R.string.library_filter_all_titles))
+                        }, onClick = {
+                            onCollection(null)
+                            collectionMenu =
+                                false
+                        })
+                        collections.forEach { (key, label) ->
+                            DropdownMenuItem(text = { Text(label) }, onClick = {
+                                onCollection(key)
+                                collectionMenu =
+                                    false
+                            })
+                        }
+                    }
+                }
                 Text(
                     text = count.toString(),
                     style = MaterialTheme.typography.labelMedium,
@@ -427,7 +481,7 @@ private fun AllLibraryShelf(
                 }
             }
             news.forEachIndexed { index, entry ->
-                item(key = "all_news_${entry.key}", contentType = "all_library_shelf_item") {
+                item(key = "all_entry_${entry.key}", contentType = "all_library_shelf_item") {
                     UnifiedShelfRow(
                         modifier = Modifier.then(if (motion) Modifier.animateItemFastScroll() else Modifier),
                         entry = entry,
@@ -609,6 +663,7 @@ private fun UnifiedShelfRow(
         coverData = entry.cover,
         status = entry.status,
         progressText = entry.progressText(),
+        progressFraction = entry.totalCount.takeIf { it > 0 }?.let { entry.completedCount.toFloat() / it },
         unviewedCount = entry.unviewedCount,
         downloadCount = entry.downloadCount,
         isAnime = entry is UnifiedLibraryEntry.Anime,
@@ -644,6 +699,9 @@ private sealed interface UnifiedLibraryEntry {
     val key: String
     val title: String
     val status: LibraryShelfStatus
+    val totalCount: Long
+    val completedCount: Long
+    val lastAccess: Long
     val unviewedCount: Long
     val downloadCount: Long
     val isLocal: Boolean
@@ -654,6 +712,9 @@ private sealed interface UnifiedLibraryEntry {
         override val key = "anime_${item.libraryAnime.id}"
         override val title = item.libraryAnime.anime.title
         override val status = item.shelfStatus
+        override val totalCount = item.libraryAnime.totalCount
+        override val completedCount = item.libraryAnime.seenCount
+        override val lastAccess = item.libraryAnime.lastSeen
         override val unviewedCount = item.libraryAnime.unseenCount
         override val downloadCount = item.downloadCount
         override val isLocal = item.libraryAnime.anime.isLocal()
@@ -671,6 +732,9 @@ private sealed interface UnifiedLibraryEntry {
         override val key = "manga_${item.libraryManga.id}"
         override val title = item.libraryManga.manga.title
         override val status = item.shelfStatus
+        override val totalCount = item.libraryManga.totalChapters
+        override val completedCount = item.libraryManga.readCount
+        override val lastAccess = item.libraryManga.lastRead
         override val unviewedCount = item.libraryManga.unreadCount
         override val downloadCount = item.downloadCount
         override val isLocal = item.libraryManga.manga.isLocal()

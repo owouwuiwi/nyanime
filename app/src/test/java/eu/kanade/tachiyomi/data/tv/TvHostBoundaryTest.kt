@@ -9,8 +9,8 @@ import eu.kanade.tachiyomi.data.cast.CastProtocol
 import eu.kanade.tachiyomi.data.cast.CastState
 import eu.kanade.tachiyomi.data.cast.TvCastContent
 import eu.kanade.tachiyomi.data.cast.liveObservation
-import eu.kanade.tachiyomi.ui.search.AtlasCards
-import eu.kanade.tachiyomi.ui.search.AtlasEntry
+import eu.kanade.tachiyomi.ui.search.UnifiedSearchCards
+import eu.kanade.tachiyomi.ui.search.UnifiedSearchEntry
 import io.mockk.Called
 import io.mockk.every
 import io.mockk.mockk
@@ -60,10 +60,10 @@ class TvHostBoundaryTest {
     }
 
     @Test fun `TV and recorded video remain separate even if their opaque references coincide`() {
-        val tv = AtlasEntry.live(TvChannel(ref, "Channel"))
-        val video = AtlasEntry("video", SearchMedium.VIDEO, ref.sourceId, ref.id, "Channel", "video", "Video")
-        assertEquals(2, AtlasCards.merge(listOf(tv, video)).size)
-        assertEquals(1, AtlasCards.merge(listOf(tv, tv.copy(title = "Updated channel"))).size)
+        val tv = UnifiedSearchEntry.live(TvChannel(ref, "Channel"))
+        val video = UnifiedSearchEntry("video", SearchMedium.VIDEO, ref.sourceId, ref.id, "Channel", "video", "Video")
+        assertEquals(2, UnifiedSearchCards.merge(listOf(tv, video)).size)
+        assertEquals(1, UnifiedSearchCards.merge(listOf(tv, tv.copy(title = "Updated channel"))).size)
     }
 
     @Test fun `personal channel order and choices survive the ordinary settings restore`() {

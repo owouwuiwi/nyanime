@@ -256,6 +256,7 @@ internal fun AnimeDetailsScreen(
                     preview = episode.previewUrl.takeIf { state.showPreviews },
                     summary = episode.summary.takeIf { state.showSummaries },
                     group = episode.group,
+                    sequence = episode.episodeNumber.toDouble().takeIf { it.isFinite() && it >= 0 },
 
                 )
             }
@@ -481,6 +482,13 @@ internal fun AnimeDetailsScreen(
         }, onLibrary = onAddToLibraryClicked,
         onCover = onCoverClicked, onFilter = onFilterButtonClicked, onRefresh = onRefresh,
         onShare = onShareClicked, onEditCategories = onEditCategoryClicked,
+        onTracking = onTrackingClicked,
+        trackingSubject = it.lorelore.nyanime.tracking.TrackingSubject(
+            it.lorelore.nyanime.tracking.TrackingMedium.ANIME,
+            anime.source,
+            anime.url,
+        ),
+        onSource = onWebViewClicked,
         onOpenPart = { id ->
             episodeById[id]?.let { onEpisodeClicked(it.episode, false) }
         },

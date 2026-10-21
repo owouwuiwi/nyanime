@@ -41,6 +41,13 @@
     "asset": "anime4k/LICENSE"
   },
   {
+    "name": "Kototoro — adapted image shader compiler",
+    "website": "https://github.com/Kototoro-app/Kototoro/tree/21aee6a94f9c9367434d4922c6247b66d881c3b1",
+    "licenseName": "Apache-2.0",
+    "asset": "licenses/Kototoro-Image-LICENSE.txt",
+    "notice": "licenses/reader-quality-NOTICE.txt"
+  },
+  {
     "name": "Cinema — audio processing",
     "website": "https://github.com/owouwuiwi/nyanime",
     "licenseName": "License and credits included with the component",
@@ -196,5 +203,46 @@
     "licenseName": "Apache-2.0 and BSD notices",
     "asset": "licenses/CameraX-LICENSE.txt",
     "website": "https://developer.android.com/jetpack/androidx/releases/camera"
+  },
+  {
+    "name": "NCNN image inference",
+    "licenseName": "BSD-3-Clause and embedded notices",
+    "asset": "licenses/reader-quality/NCNN.txt",
+    "notice": "licenses/reader-quality-NOTICE.txt",
+    "website": "https://github.com/Tencent/ncnn/tree/56775de50990ab7f16627efdcf5529b49541206f"
+  },
+  {
+    "name": "RealCUGAN model",
+    "licenseName": "MIT",
+    "asset": "licenses/reader-quality/RealCUGAN-Model.txt",
+    "notice": "licenses/reader-quality-NOTICE.txt",
+    "website": "https://github.com/bilibili/ailab/tree/main/Real-CUGAN"
+  },
+  {
+    "name": "RealCUGAN NCNN conversion",
+    "licenseName": "MIT",
+    "asset": "licenses/reader-quality/RealCUGAN-Converter.txt",
+    "notice": "licenses/reader-quality-NOTICE.txt",
+    "website": "https://github.com/nihui/realcugan-ncnn-vulkan/tree/395302c5c70f1bff604c974e92e0a87e45c9f9ee"
+  },
+  {
+    "name": "Real-ESRGAN model",
+    "licenseName": "BSD-3-Clause",
+    "asset": "licenses/reader-quality/RealESRGAN-Model.txt",
+    "notice": "licenses/reader-quality-NOTICE.txt",
+    "website": "https://github.com/xinntao/Real-ESRGAN/tree/v0.2.5.0"
+  },
+  {
+    "name": "Real-ESRGAN NCNN conversion",
+    "licenseName": "MIT",
+    "asset": "licenses/reader-quality/RealESRGAN-Converter.txt",
+    "notice": "licenses/reader-quality-NOTICE.txt",
+    "website": "https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan/tree/37026f49824c5cf84062e7c6a5dd71445dcf610f"
+  },
+  {
+    "name": "ruapu CPU feature detection (NCNN image worker)",
+    "licenseName": "MIT",
+    "asset": "licenses/reader-quality/Ruapu.txt",
+    "website": "https://github.com/Tencent/ncnn/blob/56775de50990ab7f16627efdcf5529b49541206f/src/ruapu.h"
   }
 ]

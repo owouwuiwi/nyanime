@@ -177,9 +177,9 @@ internal class PortableSettings(store: PreferenceStore) {
             group(
                 SyncSettingsGroup.CATALOGUES, tolerantSearch(),
                 onlineSearchAssistance(),
-                rememberAtlasSearch(),
-                atlasKeyboardOnOpen(),
-                liveAtlasSearch(),
+                rememberUnifiedSearch(),
+                unifiedSearchKeyboardOnOpen(),
+                liveUnifiedSearch(),
                 sourceDisplayMode(),
                 enabledLanguages(),
                 showNsfwSource(),

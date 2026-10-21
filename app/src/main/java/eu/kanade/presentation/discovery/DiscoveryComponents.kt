@@ -318,8 +318,8 @@ fun CatalogRow(items: List<CatalogAnime>, onClick: (CatalogAnime) -> Unit, calen
 @Composable
 fun FeaturedCarousel(items: List<CatalogAnime>, onClick: (CatalogAnime) -> Unit, autoplay: Boolean = false) {
     if (!LocalNyanimeStyle.current) return eu.kanade.presentation.discovery.legacy.FeaturedCarousel(items, onClick)
-    PanoramaCarousel(
-        items = items.take(8),
+    FeaturedCoverCarousel(
+        items = items.distinctBy { it.id }.take(8),
         itemKey = { "${it.id.provider}:${it.id.value}" },
         title = { it.title },
         metadata = { anime ->
@@ -354,5 +354,5 @@ fun LocalAnimeRow(
     if (!LocalNyanimeStyle.current) {
         return eu.kanade.presentation.discovery.legacy.LocalAnimeRow(state, onOpen, emptyMessage, onHide, onPlay)
     }
-    PanoramaLocalAnimeRow(state, onOpen, emptyMessage, onHide, resume, onPlay)
+    HomeAnimeRow(state, onOpen, emptyMessage, onHide, resume, onPlay)
 }

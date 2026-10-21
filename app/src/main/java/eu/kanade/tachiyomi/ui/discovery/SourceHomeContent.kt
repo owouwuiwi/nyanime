@@ -32,13 +32,13 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.presentation.discovery.ContinueWatchingRow
+import eu.kanade.presentation.discovery.FeaturedCoverSkeleton
 import eu.kanade.presentation.discovery.HomeLoadingSkeleton
 import eu.kanade.presentation.discovery.HomeLoadingTransition
 import eu.kanade.presentation.discovery.HomePosterRowSkeleton
 import eu.kanade.presentation.discovery.HomeSelectionChip
 import eu.kanade.presentation.discovery.LoadNotice
 import eu.kanade.presentation.discovery.LocalAnimeRow
-import eu.kanade.presentation.discovery.PanoramaHeroSkeleton
 import eu.kanade.presentation.discovery.SectionHeader
 import eu.kanade.presentation.discovery.SourceFeaturedCarousel
 import eu.kanade.presentation.discovery.SourceFeaturedSection
@@ -47,7 +47,7 @@ import eu.kanade.presentation.discovery.SourceHomeDateSelector
 import eu.kanade.presentation.discovery.SourceHomePosterCard
 import eu.kanade.presentation.discovery.SourceHomeRankingCard
 import eu.kanade.presentation.discovery.awaitingContent
-import eu.kanade.presentation.discovery.panoramaAutoplay
+import eu.kanade.presentation.discovery.featuredCarouselAutoplay
 import eu.kanade.presentation.privacy.nsfwSourcePrivacy
 import eu.kanade.presentation.theme.LocalNyanimeStyle
 import eu.kanade.tachiyomi.data.discovery.SourceHomeSourceChoice
@@ -147,7 +147,7 @@ private fun DiscoveryTab.SourceHomeReadyContent(
     val chooseSource: (Anime, Boolean) -> Unit = { anime, play -> pendingChoice = anime to play }
     val artworkRefreshKey = state.artworkRefreshKey
     val rows = remember(source) { source.rows }
-    val rotateFeatured = panoramaAutoplay(listState, "hero:" + source.id, active) && pendingChoice == null
+    val rotateFeatured = featuredCarouselAutoplay(listState, "hero:" + source.id, active) && pendingChoice == null
     val modern = LocalNyanimeStyle.current
     val featuredRow = rows.firstOrNull { row ->
         row.sections.size == 1 && row.sections.first().layout == "featured" && !row.sections.first().supportsDate
@@ -334,7 +334,7 @@ private fun SourceHomeSectionRow(
                 loading = value.awaitingContent,
                 placeholder = {
                     if (section.layout == "featured") {
-                        PanoramaHeroSkeleton()
+                        FeaturedCoverSkeleton()
                     } else {
                         HomePosterRowSkeleton()
                     }

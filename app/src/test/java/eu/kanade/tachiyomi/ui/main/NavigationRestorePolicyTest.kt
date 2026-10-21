@@ -11,6 +11,11 @@ class NavigationRestorePolicyTest {
     }
 
     @Test
+    fun snapshotsFromBeforeTheSearchClassRenameAreNotRestored() {
+        assertFalse(NavigationRestorePolicy.canRestore(1))
+    }
+
+    @Test
     fun oldOrUnknownWorkspaceStacksDoNotEnterTheDeserializer() {
         assertFalse(NavigationRestorePolicy.canRestore(null))
         assertFalse(NavigationRestorePolicy.canRestore(0))

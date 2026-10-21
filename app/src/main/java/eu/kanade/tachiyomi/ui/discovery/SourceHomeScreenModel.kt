@@ -43,9 +43,15 @@ class SourceHomeScreenModel(
                         val privateSources = items.mapTo(mutableSetOf()) { it.source }
                             .filterTo(mutableSetOf()) { privacy.await(it) }
                         currentCoroutineContext().ensureActive()
-                        eu.kanade.tachiyomi.ui.search.AtlasExploreCache.offer(
+                        eu.kanade.tachiyomi.ui.search.UnifiedSearchExploreCache.offer(
                             items.filterNot { it.source in privateSources }
-                                .map { eu.kanade.tachiyomi.ui.search.AtlasEntry.video(it, group.id, group.title) },
+                                .map {
+                                    eu.kanade.tachiyomi.ui.search.UnifiedSearchEntry.video(
+                                        it,
+                                        group.id,
+                                        group.title,
+                                    )
+                                },
                         )
                     }
                 }

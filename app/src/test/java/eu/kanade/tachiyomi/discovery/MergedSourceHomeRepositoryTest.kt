@@ -126,7 +126,7 @@ class MergedSourceHomeRepositoryTest {
         assertFalse(result.loading)
     }
 
-    @Test fun matchingCatalogueIdsMergeDifferentTitlesAndKeepBothSources() = runBlocking {
+    @Test fun homePreservesCompleteTitleVariantsWhileWorkLevelMergingRemainsAvailable() = runBlocking {
         val a = item(11, 1).copy(title = "Name: Season 2")
         val b = item(21, 2).copy(title = "Name Season Two")
         val left = a.copy(memo = SourceHomePresentation(catalogIds = mapOf("catalog" to 42)).attachTo(a.memo))
@@ -135,8 +135,9 @@ class MergedSourceHomeRepositoryTest {
             provider { flowOf(page(if (source.id == 1L) left else right)) }
         }, { access })
         val cards = merged.observe(access, SourceHomeRequest("popular")).last().data!!.items
-        assertEquals(1, cards.size)
-        assertEquals(listOf(1L, 2L), cards.single().homePresentation!!.choices.map { it.sourceId })
+        assertEquals(2, cards.size)
+        val work = mergeHomeCards(listOf(left, right)).single()
+        assertEquals(listOf(1L, 2L), work.homePresentation!!.choices.map { it.sourceId })
     }
 
     @Test fun conflictingCatalogueIdsNeverMergeHomonymousSeasons() = runBlocking {

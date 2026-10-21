@@ -7,7 +7,7 @@ descrizioni o temi. Non richiede un aggiornamento delle estensioni.
 
 ## Uso e impostazioni
 
-[Atlante](atlas-search.md), Sfoglia e singole fonti condividono lo stesso motore. Sotto il campo di
+[Atlante](unified-search.md), Sfoglia e singole fonti condividono lo stesso motore. Sotto il campo di
 ricerca compaiono suggerimenti di titolo: toccarne uno avvia una nuova ricerca.
 Lo stesso testo compare una sola volta nei suggerimenti, anche quando è noto
 a più cataloghi o fonti; le identità dei candidati rimangono distinte nel motore.

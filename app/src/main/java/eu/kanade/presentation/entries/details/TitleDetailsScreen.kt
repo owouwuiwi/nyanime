@@ -2,11 +2,13 @@ package eu.kanade.presentation.entries.details
 
 import android.content.Intent
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,6 +41,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -74,6 +77,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -87,6 +92,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -114,6 +120,9 @@ import eu.kanade.presentation.theme.nyanimeBrandColors
 import eu.kanade.presentation.theme.nyanimePinnedBackdrop
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.ui.watch.WatchTogetherActivity
+import it.lorelore.nyanime.presentation.entries.PersonalTrackingSummary
+import it.lorelore.nyanime.presentation.entries.rememberPersonalTrackingSummaryState
+import it.lorelore.nyanime.tracking.TrackingSubject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -172,10 +181,15 @@ internal fun TitleDetailsScreen(
     nextRelease: String? = null,
     onShare: (() -> Unit)? = null,
     onEditCategories: (() -> Unit)? = null,
+    onTracking: (() -> Unit)? = null,
+    trackingSubject: TrackingSubject? = null,
+    onSource: (() -> Unit)? = null,
     snackbar: SnackbarHostState = remember { SnackbarHostState() },
 ) = TitleDetailsPage {
     val context = LocalContext.current
-    var detailsTab by rememberSaveable(entryId) { mutableStateOf(false) }
+    var selectedSection by rememberSaveable(entryId, manga) { mutableIntStateOf(0) }
+    val detailsTab = selectedSection != 0
+    val personal = rememberPersonalTrackingSummaryState(trackingSubject)
     var manager by rememberSaveable(entryId) { mutableStateOf(false) }
     var managerFilter by rememberSaveable(entryId) { mutableStateOf(DetailFilter.INDEX) }
     var managerQuery by rememberSaveable(entryId) { mutableStateOf("") }
@@ -183,8 +197,14 @@ internal fun TitleDetailsScreen(
     var menu by remember { mutableStateOf<List<DetailAction>?>(null) }
     val partsState = rememberLazyListState()
     val detailsState = rememberLazyListState()
-    val listState = if (detailsTab) detailsState else partsState
+    val personalState = rememberLazyListState()
+    val listState = when (selectedSection) {
+        1 -> detailsState
+        2 -> personalState
+        else -> partsState
+    }
     var visitedDetails by rememberSaveable(entryId) { mutableStateOf(false) }
+    var visitedPersonal by rememberSaveable(entryId) { mutableStateOf(false) }
     var searching by rememberSaveable(entryId) { mutableStateOf(false) }
     var requestSearchFocus by remember { mutableStateOf(false) }
     var query by rememberSaveable(entryId) { mutableStateOf("") }
@@ -192,7 +212,16 @@ internal fun TitleDetailsScreen(
     var highlightedId by remember { mutableStateOf<Long?>(null) }
     var tabsHeight by remember { mutableStateOf(0) }
     var extrasHeight by remember { mutableIntStateOf(0) }
-    val visibleParts = remember(parts, query) { DetailParts.search(parts, query) }
+    var fullCatalogue by rememberSaveable(entryId, manga) { mutableStateOf(false) }
+    val compactPreview = !searching && !hasFilters && !fullCatalogue && episodeSections.isEmpty() && seasonItem == null
+    val searchedParts = remember(parts, query) { DetailParts.search(parts, query) }
+    val visibleParts = remember(searchedParts, currentId, compactPreview) {
+        if (compactPreview) {
+            it.lorelore.nyanime.presentation.entries.EntryResumePreview.items(searchedParts, currentId)
+        } else {
+            searchedParts
+        }
+    }
     var expandedSections by rememberSaveable(entryId) { mutableStateOf(arrayListOf<String>()) }
     var collapsedSearchSections by rememberSaveable(entryId, query) { mutableStateOf(arrayListOf<String>()) }
     var sectionsInitialized by rememberSaveable(entryId) { mutableStateOf(false) }
@@ -265,14 +294,18 @@ internal fun TitleDetailsScreen(
     val plural = partLabel ?: stringResource(if (manga) R.string.detail_chapters else R.string.detail_episodes)
     val sectionModifier = Modifier.widthIn(max = 700.dp).fillMaxWidth().padding(horizontal = 20.dp)
         .graphicsLayer { alpha = sectionAlpha.value }
-    val changeTab: (Boolean) -> Unit = { target ->
-        if (target != detailsTab) {
+    val changeTab: (Int) -> Unit = { target ->
+        if (target != selectedSection) {
             tabJob?.cancel()
             tabJob = scope.launch {
                 focus.clearFocus()
                 keyboard?.hide()
                 if (motion) sectionAlpha.animateTo(0f, tween(90)) else sectionAlpha.snapTo(1f)
-                val targetState = if (target) detailsState else partsState
+                val targetState = when (target) {
+                    1 -> detailsState
+                    2 -> personalState
+                    else -> partsState
+                }
                 // The other tab may not have a layout yet. Schedule its position; waiting for
                 // scrollToItem here would prevent that tab from ever becoming active.
                 if (listState.firstVisibleItemIndex < DetailListLayout.TABS) {
@@ -280,11 +313,12 @@ internal fun TitleDetailsScreen(
                         listState.firstVisibleItemIndex,
                         listState.firstVisibleItemScrollOffset,
                     )
-                } else if (target && !visitedDetails) {
+                } else if (target == 1 && !visitedDetails || target == 2 && !visitedPersonal) {
                     targetState.requestScrollToItem(DetailListLayout.TABS)
                 }
-                if (target) visitedDetails = true
-                detailsTab = target
+                if (target == 1) visitedDetails = true
+                if (target == 2) visitedPersonal = true
+                selectedSection = target
                 if (motion) {
                     withFrameNanos { }
                     sectionAlpha.animateTo(1f, tween(ModernMotion.EXIT_MILLIS))
@@ -385,13 +419,45 @@ internal fun TitleDetailsScreen(
                     detailsPrefix { section ->
                         when (section) {
                             DetailListSection.HERO -> {
-                                DetailHero(title, kicker, subtitle, artwork, backgroundArtwork, onCover, loading)
+                                Column(Modifier.widthIn(max = 700.dp).fillMaxWidth()) {
+                                    DetailHero(title, kicker, subtitle, artwork, backgroundArtwork, onCover, loading)
+                                    Surface(
+                                        onClick = { onSource?.invoke() },
+                                        enabled = enabled && onSource != null,
+                                        color = Color.Transparent,
+                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                                    ) {
+                                        Row(
+                                            Modifier.padding(vertical = 12.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                        ) {
+                                            Icon(
+                                                TitleDetailsIcons.Globe,
+                                                null,
+                                                Modifier.size(18.dp),
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                            Text(
+                                                subtitle,
+                                                Modifier.weight(1f),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                            if (onSource != null) {
+                                                Icon(
+                                                    TitleDetailsIcons.Next,
+                                                    stringResource(R.string.title_details_source_open),
+                                                    Modifier.size(18.dp),
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                             }
                             DetailListSection.PROGRESS -> {
                                 Column(Modifier.widthIn(max = 700.dp).fillMaxWidth().padding(horizontal = 20.dp)) {
-                                    Spacer(Modifier.height(20.dp))
-                                    DetailProgress(manga, completedCount, totalCount, loading)
-                                    Spacer(Modifier.height(15.dp))
+                                    Spacer(Modifier.height(16.dp))
                                     DetailPrimary(
                                         primaryText,
                                         primaryInformation,
@@ -411,19 +477,28 @@ internal fun TitleDetailsScreen(
                                             active = favorite,
                                             enabled = enabled,
                                         )
+                                        onTracking?.let { track ->
+                                            DetailQuickAction(
+                                                stringResource(R.string.detail_tracking),
+                                                TitleDetailsIcons.Checks,
+                                                track,
+                                                enabled = enabled,
+                                            )
+                                        }
                                         follow()
-                                        DetailQuickAction(
-                                            stringResource(R.string.detail_together),
-                                            TitleDetailsIcons.Users,
-                                            {
-                                                context.startActivity(
-                                                    Intent(context, WatchTogetherActivity::class.java),
-                                                )
-                                            },
-                                            enabled = enabled,
-                                        )
                                     }
-                                    Spacer(Modifier.height(20.dp))
+                                    Spacer(Modifier.height(14.dp))
+                                    DetailProgress(manga, completedCount, totalCount, loading)
+                                    if (onTracking != null) {
+                                        Spacer(Modifier.height(12.dp))
+                                        DetailLoadingSlot(
+                                            loading,
+                                            placeholder = { Skeleton(Modifier.matchParentSize()) },
+                                        ) {
+                                            PersonalTrackingSummary(personal, manga, onTracking)
+                                        }
+                                    }
+                                    Spacer(Modifier.height(18.dp))
                                 }
                             }
                             DetailListSection.NOTICE -> {
@@ -488,19 +563,20 @@ internal fun TitleDetailsScreen(
                                         Modifier.fillMaxWidth().heightIn(min = 48.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
-                                        DetailTab(plural, !detailsTab) { changeTab(false) }
-                                        Spacer(Modifier.width(24.dp))
-                                        DetailTab(
-                                            stringResource(R.string.detail_details),
-                                            detailsTab,
-                                        ) { changeTab(true) }
-                                        Spacer(Modifier.weight(1f))
-                                        TextButton(onClick = {
-                                            managerFilter = DetailFilter.INDEX
-                                            managerQuery = query
-                                            manager = true
-                                        }, enabled = enabled) {
-                                            Text(stringResource(R.string.detail_manage), fontSize = 12.sp)
+                                        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                                            DetailTab(plural, selectedSection == 0) { changeTab(0) }
+                                        }
+                                        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                                            DetailTab(
+                                                stringResource(R.string.title_details_work),
+                                                selectedSection == 1,
+                                            ) { changeTab(1) }
+                                        }
+                                        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                                            DetailTab(
+                                                stringResource(R.string.title_details_for_you),
+                                                selectedSection == 2,
+                                            ) { changeTab(2) }
                                         }
                                     }
                                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -525,7 +601,7 @@ internal fun TitleDetailsScreen(
                                                             it is DetailEpisodeRow.Header
                                                         }
                                                     } else {
-                                                        visibleParts.size
+                                                        searchedParts.size
                                                     },
                                                     totalCount, hasFilters, query, searching,
                                                     requestFocus = requestSearchFocus,
@@ -545,11 +621,17 @@ internal fun TitleDetailsScreen(
                                                     onIndex = {
                                                         focus.clearFocus()
                                                         keyboard?.hide()
+                                                        fullCatalogue = true
                                                         indexOpen = true
                                                     },
                                                     canResume = canResume,
                                                     onResume = { currentId?.let(jumpTo) },
                                                     enabled = enabled,
+                                                    onManage = {
+                                                        managerFilter = DetailFilter.INDEX
+                                                        managerQuery = query
+                                                        manager = true
+                                                    },
                                                 )
                                             }
                                         }
@@ -576,7 +658,55 @@ internal fun TitleDetailsScreen(
                             }
                         }
                     } else if (detailsTab) {
-                        item("details") { Box(sectionModifier.padding(top = 20.dp)) { details() } }
+                        item(if (selectedSection == 1) "details" else "personal") {
+                            Box(sectionModifier.padding(top = 20.dp)) {
+                                if (selectedSection == 1) {
+                                    details()
+                                } else {
+                                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                        Text(
+                                            stringResource(R.string.title_details_your_path),
+                                            style = MaterialTheme.typography.titleLarge,
+                                            fontWeight = FontWeight.Bold,
+                                        )
+                                        onTracking?.let {
+                                            PersonalTrackingSummary(personal, manga, it, expanded = true)
+                                        }
+                                        Text(
+                                            stringResource(R.string.title_details_available_progress),
+                                            style = MaterialTheme.typography.labelLarge,
+                                        )
+                                        DetailProgress(manga, completedCount, totalCount, false)
+                                        DetailNotice(
+                                            stringResource(R.string.detail_offline),
+                                            parts.count { it.offline }.toString(),
+                                            TitleDetailsIcons.Download,
+                                        ) {
+                                            managerFilter = DetailFilter.OFFLINE
+                                            managerQuery = ""
+                                            manager = true
+                                        }
+                                        DetailNotice(
+                                            stringResource(R.string.detail_bookmark),
+                                            parts.count { it.bookmarked }.toString(),
+                                            TitleDetailsIcons.Bookmark,
+                                        ) {
+                                            managerFilter = DetailFilter.BOOKMARKS
+                                            managerQuery = ""
+                                            manager = true
+                                        }
+                                        Row(Modifier.fillMaxWidth()) { follow() }
+                                        DetailNotice(
+                                            stringResource(R.string.detail_together),
+                                            title,
+                                            TitleDetailsIcons.Users,
+                                        ) {
+                                            context.startActivity(Intent(context, WatchTogetherActivity::class.java))
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     } else {
                         if (episodeSections.isNotEmpty() && sectionRows.isNotEmpty()) {
                             items(sectionRows, key = { it.key }, contentType = {
@@ -747,6 +877,17 @@ internal fun TitleDetailsScreen(
                         if (searching) {
                             item("search_viewport") { Spacer(Modifier.height(with(density) { fillHeight.toDp() })) }
                         }
+                        if (compactPreview && searchedParts.size > visibleParts.size) {
+                            item("open_full_catalogue") {
+                                TextButton(
+                                    onClick = { fullCatalogue = true },
+                                    modifier = sectionModifier.padding(top = 12.dp),
+                                ) {
+                                    Text(stringResource(R.string.title_details_full_catalogue, searchedParts.size))
+                                    Icon(TitleDetailsIcons.Next, null, Modifier.padding(start = 8.dp).size(18.dp))
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -915,63 +1056,43 @@ private fun DetailHeroContent(
     onCover: () -> Unit,
     loading: Boolean,
 ) {
-    val scale = LocalConfiguration.current.fontScale
-    BoxWithConstraints(Modifier.widthIn(max = 700.dp).fillMaxWidth().padding(horizontal = 12.dp)) {
-        val height = (maxWidth * 0.865f).coerceIn(280.dp, 400.dp) + (40.dp * (scale - 1f).coerceIn(0f, 1f))
-        Box(
-            Modifier.fillMaxWidth()
-                .height(height)
-                .clip(RoundedCornerShape(20.dp))
-                .combinedClickable(onClick = onCover),
-        ) {
-            PosterDetailArtwork(
-                artwork,
-                Modifier.matchParentSize(),
-                background = background,
-                sourceArtwork = true,
-                shade = nyanimeArtworkScrim,
-            )
-            Column(
-                Modifier.align(Alignment.BottomStart).posterForeground().padding(horizontal = 20.dp, vertical = 21.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Spacer(Modifier.size(16.dp, 3.dp).background(MaterialTheme.colorScheme.primary))
-                    Spacer(Modifier.width(7.dp))
-                    Text(
-                        kicker.uppercase(),
-                        color = Color.White,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.7.sp,
+    BoxWithConstraints(Modifier.widthIn(max = 700.dp).fillMaxWidth()) {
+        val compact = maxWidth < 360.dp || LocalDensity.current.fontScale > 1.3f
+        val coverWidth = if (compact) 88.dp else 104.dp
+        Box(Modifier.fillMaxWidth()) {
+            if (artwork != null && eu.kanade.presentation.motion.posterRequestsEnabled()) {
+                Box(Modifier.matchParentSize().clip(RoundedCornerShape(24.dp))) {
+                    SourceHomeArtwork(
+                        artwork,
+                        Modifier.matchParentSize().blur(24.dp).alpha(.13f),
+                        background = background,
                     )
                 }
-                Text(
-                    title,
-                    color = Color.White,
-                    fontSize = 31.sp,
-                    lineHeight = 33.sp,
-                    letterSpacing = (-1.1)
-                        .sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    maxLines = 4,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                DetailLoadingSlot(loading, placeholder = {
-                    Skeleton(
-                        Modifier.align(Alignment.CenterStart).fillMaxWidth(0.55f)
-                            .height(with(LocalDensity.current) { 16.sp.toDp() }),
-                    )
-                }) {
+            }
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(18.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    Modifier.width(coverWidth).height(coverWidth * 1.5f).clip(RoundedCornerShape(15.dp))
+                        .combinedClickable(
+                            onClickLabel = stringResource(R.string.detail_cover),
+                            role = Role.Button,
+                            onClick = onCover,
+                        ),
+                ) {
+                    PosterDetailArtwork(artwork, Modifier.matchParentSize(), sourceArtwork = true)
+                }
+                Column(Modifier.weight(1f).posterForeground(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        subtitle,
-                        color = Color.White,
-                        fontSize = 12.sp,
-                        lineHeight = 16.sp,
-                        minLines = 2,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
+                        kicker.uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Bold,
                     )
+                    Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
+                    if (loading) Skeleton(Modifier.fillMaxWidth(.65f).height(13.dp))
                 }
             }
         }
@@ -1055,7 +1176,7 @@ private fun DetailPrimary(
     Surface(
         onClick = onClick,
         enabled = enabled,
-        shape = RoundedCornerShape(15.dp),
+        shape = RoundedCornerShape(20.dp),
         color = brand.actionBackground,
         contentColor = brand.actionText,
         modifier = Modifier.fillMaxWidth().heightIn(min = reservedHeight),
@@ -1070,11 +1191,11 @@ private fun DetailPrimary(
                 DetailLoadingSlot(loading, placeholder = { Skeleton(Modifier.fillMaxWidth(0.7f).height(17.dp)) }) {
                     Text(
                         label,
-                        fontSize = 14.sp,
-                        lineHeight = 19.sp,
+                        fontSize = 16.sp,
+                        lineHeight = 22.sp,
                         fontWeight = FontWeight.Bold,
                         minLines = 1,
-                        maxLines = 1,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
@@ -1103,18 +1224,30 @@ internal fun RowScope.DetailQuickAction(
     active: Boolean = false,
     enabled: Boolean = true,
 ) {
+    val colors = MaterialTheme.colorScheme
+    val duration = if (modernMotionEnabled()) ModernMotion.EXIT_MILLIS else 0
+    val fill by animateColorAsState(
+        if (active) colors.surfaceContainerHigh else colors.surfaceContainerLow,
+        tween(duration),
+        label = "detail-action-fill",
+    )
+    val outline by animateColorAsState(
+        if (active) colors.primary.copy(alpha = .5f) else colors.outlineVariant.copy(alpha = .5f),
+        tween(duration),
+        label = "detail-action-outline",
+    )
+    val shape = RoundedCornerShape(14.dp)
     Column(
-        Modifier.weight(1f).heightIn(min = 60.dp).clip(RoundedCornerShape(12.dp))
+        Modifier.weight(1f).padding(horizontal = 3.dp).heightIn(min = 62.dp).clip(shape)
+            .background(fill)
+            .border(1.dp, outline, shape)
             .combinedClickable(
                 enabled = enabled,
+                role = Role.Button,
                 onClick = onClick,
                 onLongClick = onLongClick,
             )
-            .padding(
-                vertical = 10.dp,
-                horizontal = 3.dp,
-            ),
-
+            .padding(vertical = 10.dp, horizontal = 3.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -1122,9 +1255,15 @@ internal fun RowScope.DetailQuickAction(
             icon,
             null,
             Modifier.size(21.dp),
-            tint = if (active) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+            tint = (if (active) colors.primary else colors.onSurface).copy(alpha = if (enabled) 1f else .38f),
         )
-        Text(label, fontSize = 11.sp, lineHeight = 14.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+        Text(
+            label,
+            fontSize = 12.sp,
+            lineHeight = 16.sp,
+            color = colors.onSurface.copy(alpha = if (enabled) 1f else .38f),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        )
     }
 }
 
@@ -1162,7 +1301,7 @@ private fun DetailTab(
 ) {
     Column(
         Modifier.heightIn(min = 48.dp)
-            .combinedClickable(onClick = onClick),
+            .selectable(selected = selected, role = Role.Tab, onClick = onClick),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(
@@ -1939,6 +2078,7 @@ internal fun TitleDetailsLoadingScreen(
         subtitle = "", artwork = null, parts = emptyList(), currentId = null, primaryText = "", primaryInformation = "",
         totalCount = 0, completedCount = 0, favorite = false, loading = true,
         onBack = onBack, onContinue = {}, onLibrary = {}, onCover = {}, onFilter = {}, onRefresh = {}, onOpenPart = {},
+        onTracking = {},
         follow = {
             DetailQuickAction(
                 stringResource(R.string.detail_follow),

@@ -63,7 +63,9 @@ class CachedSourceHomeRepository(
         if (access != gateway.currentAccess()) return@flow
         val snapshot = cached
         val fresh = snapshot != null && clock.millis() - snapshot.at in 0 until TTL
-        emit(SectionState(snapshot?.page, loading = refresh || !fresh, stale = snapshot != null && !fresh))
+        val savedPresentation = snapshot?.page?.let(gateway::preparePresentation)
+        if (access != gateway.currentAccess()) return@flow
+        emit(SectionState(savedPresentation, loading = refresh || !fresh, stale = snapshot != null && !fresh))
         if (fresh && !refresh) return@flow
         try {
             val page = requests[(key.hashCode() and Int.MAX_VALUE) % requests.size].withLock {
@@ -89,14 +91,16 @@ class CachedSourceHomeRepository(
                     }
                 }
             }
-            emit(SectionState(page, loading = false))
+            val presentation = gateway.preparePresentation(page)
+            if (access != gateway.currentAccess()) return@flow
+            emit(SectionState(presentation, loading = false))
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             val stillAllowed = access == gateway.currentAccess()
             emit(
                 SectionState(
-                    snapshot?.page.takeIf { stillAllowed },
+                    savedPresentation.takeIf { stillAllowed },
                     loading = false,
                     stale = snapshot != null && stillAllowed,
                     error = e.message ?: "Impossibile caricare la fonte",

@@ -10,6 +10,32 @@ identificano modifiche nel repository, non garantiscono che ogni commit sia stat
 distribuito come APK.
 
 
+## 21 ottobre 2026 — 0.55.0.0: libreria, schede e lettore manga
+
+### Libreria e schede
+
+- Correzione dei doppioni nelle opere in evidenza: copie della stessa variante unite tramite ID concordanti o indirizzo completo dell'opera, conservando le alternative apribili anche per le fonti personali dello Studio. La verifica locale comprende le schede in cache e riutilizza gli ID generici del tracking; edizioni differenti, omonimi e ID incompatibili restano distinti.
+- Componenti di ricerca e Home rinominati per responsabilità; restano compatibili le preferenze di ricerca, le ricerche memorizzate e gli avvisi già confermati.
+- Ripristino sicuro della navigazione dopo le rinomine: gli stati delle vecchie schermate vengono ricreati senza modificare libreria, progressi o preferenze. Rotazioni e riaperture della versione corrente continuano a ripristinare la schermata.
+- Comandi di ripresa e avanzamento con superfici neutre, icone leggibili e accenti discreti; gli stati disabilitati restano riconoscibili nei temi chiaro e scuro.
+- Nuova interfaccia per anime e manga: copertina compatta, ripresa in primo piano, accesso diretto a tracking e notifiche, sezioni Episodi/Capitoli, L’opera e Per te.
+- Libreria con selettore Tutti/Anime/Manga a larghezza piena, categorie, filtri rapidi Da continuare e Novità, righe più leggibili e copertine a tutta altezza. Restano ricerca, griglie, selezione e azioni già disponibili.
+- Per te riutilizza il tracking locale per stato, voto, note e tag. Download, segnalibri, stanze, fonti, filtri e operazioni multiple mantengono i percorsi esistenti.
+- Testi italiani e inglesi, caricamento con skeleton e transizioni coordinate con le preferenze di movimento. Nessuna nuova dipendenza o regola specifica delle fonti. [Dettagli e limiti](docs/library-and-details.md).
+
+### Lettore manga
+
+- Nuovi controlli immersivi: testata compatta con segnalibro, barra flottante e pannelli Capitoli, Modalità, Qualità e Altro. Restano il renderer, i gesti, la lettura guidata, la doppia pagina e le funzioni delle stanze.
+- Miglioramento delle tavole facoltativo, spento inizialmente, con impostazione globale e per manga. Anime4K per immagini e motori CPU RealCUGAN/Real-ESRGAN a tasselli, confronto con l’originale e processo dedicato; pagina e zoom non vengono sostituiti durante l’elaborazione.
+- Modelli scaricabili su richiesta, con dimensioni, licenze, avanzamento, annullamento, verifica dell’integrità e rimozione. Errori e memoria insufficiente lasciano sempre disponibile la pagina originale.
+- Confronto a pagina intera: il pannello si chiude mostrando l’originale; il comando Originale riporta al miglioramento mantenendo il punto di lettura. La scelta temporanea viene eliminata all’uscita dal lettore.
+- Correzione della gestione dello stream delle immagini e rilascio degli intermedi dei motori CPU dopo ciascun tassello, senza trattenere una cache nativa crescente durante la lettura.
+- EPUB e romanzi appartengono alla consegna successiva. Architettura, verifiche e limiti sono documentati nella [guida tecnica](docs/reader-renewal.md).
+
+### Aggiornamenti
+
+- Nuovo checkpoint con APK completi per tutte le architetture e patch compatibili. I percorsi di aggiornamento dalle versioni precedenti restano disponibili, con verifica di firma e integrità del risultato.
+
 ## 21 ottobre 2026 — 0.54.0.0: invii ai tracker sotto controllo
 
 - Nuova coda in Impostazioni → Tracking e nel pannello delle schede: invii in attesa, attività recente, ricerca, filtri, Riprova, rimozione esplicita e Annulla. Stato e destinazione di ogni modifica sono visibili in italiano e inglese.
@@ -1828,7 +1854,7 @@ Le prove e i limiti di verifica sono descritti nella [Guida Cloud](docs/telegram
 ### Prestazioni
 
 - Richieste limitate e condivise tra i due tipi di contenuto, risultati obsoleti scartati
-  e comportamento incognito/Solo scaricati conservato. [Guida](docs/atlas-search.md).
+  e comportamento incognito/Solo scaricati conservato. [Guida](docs/unified-search.md).
 
 ## 1 ottobre 2026 — Risultati completi per grafie equivalenti
 

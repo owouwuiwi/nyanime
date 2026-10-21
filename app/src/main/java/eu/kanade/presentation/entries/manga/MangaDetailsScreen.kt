@@ -175,6 +175,7 @@ internal fun MangaDetailsScreen(
                 bookmarked = chapter.bookmark,
                 offline = item.isDownloaded,
                 fresh = item.id in newIds && !chapter.read,
+                sequence = chapter.chapterNumber.toDouble().takeIf { it.isFinite() && it >= 0 },
             )
         }
     }
@@ -268,6 +269,13 @@ internal fun MangaDetailsScreen(
         }, onLibrary = onAddToLibraryClicked,
         onCover = onCoverClicked, onFilter = onFilterButtonClicked, onRefresh = onRefresh,
         onShare = onShareClicked, onEditCategories = onEditCategoryClicked,
+        onTracking = onTrackingClicked,
+        trackingSubject = it.lorelore.nyanime.tracking.TrackingSubject(
+            it.lorelore.nyanime.tracking.TrackingMedium.MANGA,
+            manga.source,
+            manga.url,
+        ),
+        onSource = onWebViewClicked,
         onOpenPart = { id -> chapterById[id]?.let { onChapterClicked(it.chapter) } },
         follow = {
             ReleaseFollowAction(

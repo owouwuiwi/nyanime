@@ -12,6 +12,7 @@ import tachiyomi.data.discovery.DiscoveryDatabase
 import tachiyomi.data.discovery.SqlSourceHomeCache
 import tachiyomi.domain.discovery.SourceHomeCacheEntry
 import tachiyomi.domain.discovery.SourceHomeCacheKey
+import tachiyomi.domain.discovery.SourceHomeChoice
 import tachiyomi.domain.discovery.SourceHomePage
 import tachiyomi.domain.discovery.SourceHomePresentation
 import tachiyomi.domain.discovery.homePresentation
@@ -19,6 +20,29 @@ import tachiyomi.domain.entries.anime.model.Anime
 import tachiyomi.domain.entries.anime.repository.AnimeRepository
 
 class SqlSourceHomeCacheTest {
+    @Test fun concreteAddressesAndIdentityConflictsSurviveTheDiskCache() = runBlocking {
+        JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY).use { driver ->
+            DiscoveryDatabase.Schema.create(driver)
+            val cache = SqlSourceHomeCache(DiscoveryDatabase(driver), entries)
+            val presentation = SourceHomePresentation(
+                catalogIds = mapOf("myanimelist" to 42),
+                releaseYear = 2026,
+                identityConflict = true,
+                workUrl = "https://one.example/work/1",
+                choices = listOf(SourceHomeChoice(11, 43, "Example", workUrl = "https://two.example/work/2")),
+            )
+            val card = anime.copy(memo = presentation.attachTo(anime.memo))
+            cache.write(key, page.copy(page = SourceHomePage(listOf(card), false)))
+            coEvery { entries.getAnimeById(10) } returns anime
+            val restored = cache.read(key)!!.page.items.single().homePresentation!!
+            assertTrue(restored.identityConflict)
+            assertTrue(restored.catalogIds.isEmpty())
+            assertNull(restored.releaseYear)
+            assertEquals(presentation.workUrl, restored.workUrl)
+            assertEquals(presentation.choices, restored.choices)
+        }
+    }
+
     @Test fun repeatedSeriesCardsRetainTheirOwnMetadataAfterRestart() = runBlocking {
         JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY).use { driver ->
             DiscoveryDatabase.Schema.create(driver)

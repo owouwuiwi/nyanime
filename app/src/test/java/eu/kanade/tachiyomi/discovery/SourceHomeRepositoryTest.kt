@@ -73,8 +73,10 @@ class SourceHomeRepositoryTest {
         val calls = AtomicInteger()
         var error: Exception? = null
         var gate: CompletableDeferred<Unit>? = null
+        var projection: (SourceHomePage) -> SourceHomePage = { it }
         override fun observeAccess() = access
         override fun currentAccess() = access.value
+        override fun preparePresentation(page: SourceHomePage) = projection(page)
         override suspend fun fetch(access: SourceHomeAccess, request: SourceHomeRequest): SourceHomePage {
             calls.incrementAndGet()
             delay(20)
@@ -122,6 +124,39 @@ class SourceHomeRepositoryTest {
         assertEquals(1, states.size)
         assertFalse(states.single().loading)
         assertTrue(states.single().data!!.hasNextPage)
+    }
+
+    @Test
+    fun localIdentityProjectionAlsoAppliesToMemoryAndDiskWithoutAnotherRequest() = runBlocking {
+        val gateway = Gateway()
+        val disk = Disk()
+        val clock = TestClock()
+        val repository = CachedSourceHomeRepository(gateway, clock, persistent = disk)
+        gateway.projection = { it.copy(title = "First local projection") }
+        val initial = repository.observe(gateway.currentAccess(), request).toList().last().data!!
+        assertEquals("First local projection", initial.title)
+        gateway.projection = { it.copy(title = "Current local projection") }
+        val memory = repository.observe(gateway.currentAccess(), request).toList().single().data!!
+        val restored = CachedSourceHomeRepository(gateway, clock, persistent = disk)
+            .observe(gateway.currentAccess(), request).toList().single().data!!
+        assertEquals("Current local projection", memory.title)
+        assertEquals(memory, restored)
+        assertEquals(1, gateway.calls.get())
+        assertEquals(1, disk.writes)
+    }
+
+    @Test
+    fun aSourceDisabledDuringLocalProjectionCannotPublishSavedCards() = runBlocking {
+        val gateway = Gateway()
+        val repository = CachedSourceHomeRepository(gateway, TestClock())
+        val access = gateway.currentAccess()
+        repository.observe(access, request).toList()
+        gateway.projection = { page ->
+            gateway.access.value = access.copy(offline = true)
+            page
+        }
+        assertTrue(repository.observe(access, request).toList().isEmpty())
+        assertEquals(1, gateway.calls.get())
     }
 
     @Test

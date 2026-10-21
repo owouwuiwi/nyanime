@@ -57,6 +57,7 @@ fun AdaptiveSheet(
     modifier: Modifier = Modifier,
     animationDurationMillis: Int = 350,
     waitForDismissAnimation: Boolean = false,
+    dismissRequested: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val density = LocalDensity.current
@@ -79,6 +80,9 @@ fun AdaptiveSheet(
                     onDismissRequest()
                 }
             }
+        }
+        LaunchedEffect(dismissRequested) {
+            if (dismissRequested) internalOnDismissRequest()
         }
         Box(
             modifier = Modifier
@@ -111,7 +115,7 @@ fun AdaptiveSheet(
             )
 
             LaunchedEffect(Unit) {
-                alpha.animateTo(1f, animationSpec)
+                if (!closing) alpha.animateTo(1f, animationSpec)
             }
         }
     } else {
@@ -126,6 +130,7 @@ fun AdaptiveSheet(
             )
         }
         var dismissed by remember { mutableStateOf(false) }
+        var closing by remember { mutableStateOf(false) }
         val finishDismiss = {
             if (!dismissed) {
                 dismissed = true
@@ -133,12 +138,16 @@ fun AdaptiveSheet(
             }
         }
         val internalOnDismissRequest: () -> Unit = {
-            if (anchoredDraggableState.targetValue != 1) {
+            if (!closing && !dismissed) {
+                closing = true
                 scope.launch {
                     anchoredDraggableState.animateTo(1)
                     finishDismiss()
                 }
             }
+        }
+        LaunchedEffect(dismissRequested) {
+            if (dismissRequested) internalOnDismissRequest()
         }
         Box(
             modifier = Modifier
@@ -166,7 +175,7 @@ fun AdaptiveSheet(
                         onClick = {},
                     )
                     .then(
-                        if (enableSwipeDismiss) {
+                        if (enableSwipeDismiss && !closing) {
                             Modifier.nestedScroll(
                                 remember(anchoredDraggableState) {
                                     anchoredDraggableState.preUpPostDownNestedScrollConnection(
@@ -192,7 +201,7 @@ fun AdaptiveSheet(
                     .anchoredDraggable(
                         state = anchoredDraggableState,
                         orientation = Orientation.Vertical,
-                        enabled = enableSwipeDismiss,
+                        enabled = enableSwipeDismiss && !closing,
                     )
                     .navigationBarsPadding()
                     .statusBarsPadding(),
@@ -208,7 +217,7 @@ fun AdaptiveSheet(
             )
 
             LaunchedEffect(anchoredDraggableState) {
-                scope.launch { anchoredDraggableState.animateTo(0) }
+                scope.launch { if (!closing) anchoredDraggableState.animateTo(0) }
                 // Observe actual visibility: an opening interrupted by a swipe can return to
                 // the hidden anchor without ever changing settledValue from its initial value.
                 snapshotFlow {

@@ -144,7 +144,7 @@ class SourceHomeListScreenModel(
                 mutableState.update {
                     it.copy(
                         items = if (result != null) {
-                            mergeHomeCards(previous + result.items)
+                            mergeHomeCards(previous + result.items, preserveTitleVariants = true)
                         } else {
                             it.items
                         },
@@ -209,7 +209,12 @@ class SourceHomeListScreenModel(
                                 state.filters == current.filters &&
                                 state.access == current.access
                             ) {
-                                state.copy(items = mergeHomeCards(previous + available.flatMap { it.items }))
+                                state.copy(
+                                    items = mergeHomeCards(
+                                        previous + available.flatMap { it.items },
+                                        preserveTitleVariants = true,
+                                    ),
+                                )
                             } else {
                                 state
                             }
@@ -230,7 +235,7 @@ class SourceHomeListScreenModel(
             }
             state.copy(
                 items = if (successful.isNotEmpty()) {
-                    mergeHomeCards(previous + successful.flatMap { it.items })
+                    mergeHomeCards(previous + successful.flatMap { it.items }, preserveTitleVariants = true)
                 } else {
                     if (reset) emptyList() else state.items
                 },

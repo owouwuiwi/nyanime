@@ -98,7 +98,7 @@ internal fun MangaLibraryShelf(
             }
         }
         newsItems.forEachIndexed { index, item ->
-            item(key = "manga_news_${item.libraryManga.id}", contentType = "manga_library_shelf_item") {
+            item(key = "manga_entry_${item.libraryManga.id}", contentType = "manga_library_shelf_item") {
                 MangaShelfRow(
                     modifier = Modifier.then(if (motion) Modifier.animateItemFastScroll() else Modifier),
                     item = item,
@@ -130,7 +130,7 @@ internal fun MangaLibraryShelf(
             }
         }
         shelfItems.forEachIndexed { index, item ->
-            item(key = "manga_shelf_${item.libraryManga.id}", contentType = "manga_library_shelf_item") {
+            item(key = "manga_entry_${item.libraryManga.id}", contentType = "manga_library_shelf_item") {
                 MangaShelfRow(
                     modifier = Modifier.then(if (motion) Modifier.animateItemFastScroll() else Modifier),
                     item = item,
@@ -226,6 +226,7 @@ private fun MangaShelfRow(
             libraryManga.readCount,
             libraryManga.totalChapters,
         ),
+        progressFraction = libraryManga.totalChapters.takeIf { it > 0 }?.let { libraryManga.readCount.toFloat() / it },
         unviewedCount = libraryManga.unreadCount,
         downloadCount = item.downloadCount,
         isAnime = false,

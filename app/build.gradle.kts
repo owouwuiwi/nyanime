@@ -296,6 +296,8 @@ extensions.configure<com.android.build.api.dsl.ApplicationExtension>("android") 
             getByName("androidTest").java.setSrcDirs(listOf("src/remoteBackupProbe/java"))
         } else if (providers.gradleProperty("cloudSyncProbe").orNull == "true") {
             getByName("androidTest").java.setSrcDirs(listOf("src/androidTest/java/eu/kanade/tachiyomi/cloud"))
+            getByName("preview").java.srcDir("src/readerProbe/java")
+            getByName("preview").manifest.srcFile("src/readerProbe/AndroidManifest.xml")
         }
         getByName("main").res.setSrcDirs(emptyList<String>())
         getByName("preview").res.srcDirs("src/debug/res")
@@ -475,6 +477,7 @@ dependencies {
     implementation(projects.core.archive)
     implementation(projects.core.common)
     implementation(projects.core.panels)
+    implementation(projects.core.readerQuality)
     implementation(projects.core.roomVoice)
     implementation(projects.core.telegram)
     implementation(projects.core.privacyDisplay)

@@ -29,6 +29,8 @@ class LibraryPreferences(
         LibraryDisplayMode.Serializer::deserialize,
     )
 
+    fun modernLayoutIntroduced() = preferenceStore.getBoolean("nyanime_library_layout_introduced", false)
+
     fun mangaSortingMode() = preferenceStore.getObject(
         "library_sorting_mode",
         MangaLibrarySort.default,

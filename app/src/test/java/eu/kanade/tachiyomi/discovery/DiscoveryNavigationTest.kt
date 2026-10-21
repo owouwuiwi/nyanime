@@ -11,7 +11,7 @@ import eu.kanade.tachiyomi.ui.library.anime.AnimeLibraryTab
 import eu.kanade.tachiyomi.ui.library.manga.MangaLibraryTab
 import eu.kanade.tachiyomi.ui.more.MoreTab
 import eu.kanade.tachiyomi.ui.releases.ReleasesTab
-import eu.kanade.tachiyomi.ui.search.AtlasSearchTab
+import eu.kanade.tachiyomi.ui.search.UnifiedSearchTab
 import eu.kanade.tachiyomi.ui.updates.UpdatesTab
 import io.mockk.every
 import io.mockk.mockk
@@ -25,7 +25,7 @@ class DiscoveryNavigationTest {
     @Test
     fun `new navigation keeps all destinations with no duplicate or lost tab`() {
         assertEquals(
-            listOf(DiscoveryTab, LibrariesTab, AtlasSearchTab, ReleasesTab, MoreTab),
+            listOf(DiscoveryTab, LibrariesTab, UnifiedSearchTab, ReleasesTab, MoreTab),
             NavStyle.DISCOVERY.visibleTabs,
         )
         assertEquals(listOf(BrowseTab, UpdatesTab, HistoriesTab), NavStyle.DISCOVERY.overflowTabs)

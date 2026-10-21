@@ -88,6 +88,7 @@ import cafe.adriel.voyager.core.model.rememberScreenModel
 import eu.kanade.presentation.motion.ModernMotion
 import eu.kanade.presentation.motion.appMotionEnabled
 import eu.kanade.tachiyomi.R
+import it.lorelore.nyanime.presentation.components.QuietActionIconButton
 import kotlinx.coroutines.delay
 import java.text.DateFormat
 import java.text.NumberFormat
@@ -770,15 +771,13 @@ private fun CounterRow(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = .5f)),
-            ) {
-                IconButton(onClick = onDecrease, enabled = enabled && canDecrease, modifier = Modifier.size(52.dp)) {
-                    Icon(Icons.Outlined.Remove, stringResource(R.string.tracking_decrease))
-                }
-            }
+            QuietActionIconButton(
+                icon = Icons.Outlined.Remove,
+                contentDescription = stringResource(R.string.tracking_decrease),
+                onClick = onDecrease,
+                enabled = enabled && canDecrease,
+                modifier = Modifier.size(52.dp),
+            )
             Surface(
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(14.dp),
@@ -802,19 +801,13 @@ private fun CounterRow(
                     }
                 }
             }
-            Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = MaterialTheme.colorScheme.primaryContainer,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = .35f)),
-            ) {
-                IconButton(onClick = onIncrease, enabled = enabled, modifier = Modifier.size(52.dp)) {
-                    Icon(
-                        Icons.Outlined.Add,
-                        stringResource(R.string.tracking_increase),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            }
+            QuietActionIconButton(
+                icon = Icons.Outlined.Add,
+                contentDescription = stringResource(R.string.tracking_increase),
+                onClick = onIncrease,
+                enabled = enabled,
+                modifier = Modifier.size(52.dp),
+            )
         }
     }
 }

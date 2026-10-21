@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -23,6 +24,8 @@ import eu.kanade.core.preference.PreferenceMutableState
 import eu.kanade.presentation.library.components.LibraryTabs
 import eu.kanade.presentation.theme.LocalNyanimeStyle
 import eu.kanade.tachiyomi.ui.library.anime.AnimeLibraryItem
+import it.lorelore.nyanime.presentation.library.LibraryQuickFilter
+import it.lorelore.nyanime.presentation.library.LibraryQuickFilters
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import tachiyomi.domain.category.model.Category
@@ -61,6 +64,7 @@ fun AnimeLibraryContent(
     getColumnsForOrientation: (Boolean) -> PreferenceMutableState<Int>,
     getAnimeLibraryForPage: (Int) -> List<AnimeLibraryItem>,
 ) {
+    var quickFilter by rememberSaveable { mutableStateOf(LibraryQuickFilter.ALL) }
     val modern = LocalNyanimeStyle.current
     val colors = MaterialTheme.colorScheme
     Column(
@@ -106,6 +110,8 @@ fun AnimeLibraryContent(
             ) { scope.launch { pagerState.animateScrollToPage(it) } }
         }
 
+        if (showModernControls) LibraryQuickFilters(quickFilter) { quickFilter = it }
+
         val notSelectionMode = selection.isEmpty()
         val onClickAnime = { anime: LibraryAnime ->
             if (notSelectionMode) {
@@ -133,13 +139,28 @@ fun AnimeLibraryContent(
             AnimeLibraryPager(
                 state = pagerState,
                 contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding()),
-                hasActiveFilters = hasActiveFilters,
+                hasActiveFilters = hasActiveFilters || modern && quickFilter != LibraryQuickFilter.ALL,
                 selectedAnime = selection,
                 searchQuery = searchQuery,
                 onGlobalSearchClicked = onGlobalSearchClicked,
                 getDisplayMode = getDisplayMode,
                 getColumnsForOrientation = getColumnsForOrientation,
-                getLibraryForPage = getAnimeLibraryForPage,
+                getLibraryForPage = { page ->
+                    val rows = getAnimeLibraryForPage(page)
+                    if (!modern || selection.isNotEmpty()) {
+                        rows
+                    } else {
+                        rows.filter { row ->
+                            val entry = row.libraryAnime
+                            quickFilter.includes(
+                                entry.unseenCount,
+                                entry.seenCount,
+                                entry.lastSeen,
+                                row.shelfStatus.newReleaseCount,
+                            )
+                        }
+                    }
+                },
                 onClickAnime = onClickAnime,
                 onLongClickAnime = onToggleRangeSelection,
                 onClickContinueWatching = onContinueWatchingClicked,

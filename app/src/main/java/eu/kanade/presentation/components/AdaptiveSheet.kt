@@ -73,6 +73,7 @@ fun AdaptiveSheet(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
     enableSwipeDismiss: Boolean = true,
+    dismissRequested: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val isTabletUi = isTabletUi()
@@ -88,6 +89,7 @@ fun AdaptiveSheet(
             isTabletUi = isTabletUi,
             enableSwipeDismiss = enableSwipeDismiss,
             onDismissRequest = onDismissRequest,
+            dismissRequested = dismissRequested,
             animationDurationMillis = if (modern) {
                 if (motion) ModernMotion.PAGE_MILLIS else 0
             } else {

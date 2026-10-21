@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -23,6 +24,8 @@ import eu.kanade.core.preference.PreferenceMutableState
 import eu.kanade.presentation.library.components.LibraryTabs
 import eu.kanade.presentation.theme.LocalNyanimeStyle
 import eu.kanade.tachiyomi.ui.library.manga.MangaLibraryItem
+import it.lorelore.nyanime.presentation.library.LibraryQuickFilter
+import it.lorelore.nyanime.presentation.library.LibraryQuickFilters
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import tachiyomi.domain.category.model.Category
@@ -61,6 +64,7 @@ fun MangaLibraryContent(
     getColumnsForOrientation: (Boolean) -> PreferenceMutableState<Int>,
     getLibraryForPage: (Int) -> List<MangaLibraryItem>,
 ) {
+    var quickFilter by rememberSaveable { mutableStateOf(LibraryQuickFilter.ALL) }
     val modern = LocalNyanimeStyle.current
     val colors = MaterialTheme.colorScheme
     Column(
@@ -106,6 +110,8 @@ fun MangaLibraryContent(
             ) { scope.launch { pagerState.animateScrollToPage(it) } }
         }
 
+        if (showModernControls) LibraryQuickFilters(quickFilter) { quickFilter = it }
+
         val notSelectionMode = selection.isEmpty()
         val onClickManga = { manga: LibraryManga ->
             if (notSelectionMode) {
@@ -132,13 +138,28 @@ fun MangaLibraryContent(
             MangaLibraryPager(
                 state = pagerState,
                 contentPadding = PaddingValues(bottom = contentPadding.calculateBottomPadding()),
-                hasActiveFilters = hasActiveFilters,
+                hasActiveFilters = hasActiveFilters || modern && quickFilter != LibraryQuickFilter.ALL,
                 selectedManga = selection,
                 searchQuery = searchQuery,
                 onGlobalSearchClicked = onGlobalSearchClicked,
                 getDisplayMode = getDisplayMode,
                 getColumnsForOrientation = getColumnsForOrientation,
-                getLibraryForPage = getLibraryForPage,
+                getLibraryForPage = { page ->
+                    val rows = getLibraryForPage(page)
+                    if (!modern || selection.isNotEmpty()) {
+                        rows
+                    } else {
+                        rows.filter { row ->
+                            val entry = row.libraryManga
+                            quickFilter.includes(
+                                entry.unreadCount,
+                                entry.readCount,
+                                entry.lastRead,
+                                row.shelfStatus.newReleaseCount,
+                            )
+                        }
+                    }
+                },
                 onClickManga = onClickManga,
                 onLongClickManga = onToggleRangeSelection,
                 onClickContinueReading = onContinueReadingClicked,
