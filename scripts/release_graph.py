@@ -261,7 +261,9 @@ def verify_android(file, node, package_name, certificate):
     result = subprocess.check_output([java, '-jar', str(tools / 'lib/apksigner.jar'), 'verify', '--verbose', '--print-certs', str(file)], text=True)
     certificates = re.findall(r'Signer #\d+ certificate SHA-256 digest: ([a-fA-F0-9]+)', result)
     if len(certificates) != 1 or certificates[0].upper() != certificate.upper():
-        raise ValueError('Reconstructed APK signer differs from production identity')
+        detail = '\n'.join(line for line in result.splitlines() if 'Signer' in line or 'certificate' in line)
+        raise ValueError('Reconstructed APK signer differs from production identity; tool=' + str(tools) +
+                         '; expected=' + certificate + '; parsed=' + repr(certificates) + '; output=' + detail)
     result = subprocess.check_output([str(tools / aapt), 'dump', 'badging', str(file)], text=True)
     package = re.search(r"package: name='([^']+)' versionCode='(\d+)' versionName='([^']+)'", result)
     if not package or package.groups() != (package_name, str(node['versionCode']), node['versionName']):
