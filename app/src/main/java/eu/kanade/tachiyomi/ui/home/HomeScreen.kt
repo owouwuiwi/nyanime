@@ -125,6 +125,7 @@ import eu.kanade.tachiyomi.ui.search.UnifiedSearchTab
 import eu.kanade.tachiyomi.ui.search.UnifiedSearchUpgradeDialog
 import eu.kanade.tachiyomi.ui.search.UnifiedSearchUpgradeNotice
 import eu.kanade.tachiyomi.ui.updates.UpdatesTab
+import it.lorelore.nyanime.navigation.FloatingNavigationLayout
 import it.lorelore.nyanime.notifications.LocalNotificationAccess
 import it.lorelore.nyanime.notifications.NotificationAccessEdgeGlow
 import it.lorelore.nyanime.notifications.NotificationAccessWarningButton
@@ -283,8 +284,8 @@ object HomeScreen : Screen() {
                             if (modern && showNavigation && measuredFooter > 0.dp) {
                                 measuredFooter
                             } else if (modern && showNavigation) {
-                                (if (compactNavigation) 60.dp else 68.dp) +
-                                    26.dp +
+                                FloatingNavigationLayout.itemMinHeight(compactNavigation) +
+                                    FloatingNavigationLayout.verticalInset +
                                     systemNavigationInset
                             } else {
                                 0.dp
@@ -649,7 +650,7 @@ object HomeScreen : Screen() {
         Box(
             Modifier.fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(horizontal = 12.dp, vertical = FloatingNavigationLayout.verticalMargin),
         ) {
             NyanimeFloatingSurface(
                 modifier =
@@ -665,7 +666,7 @@ object HomeScreen : Screen() {
                 BoxWithConstraints {
                     val compact = maxWidth < 350.dp || LocalDensity.current.fontScale > 1.3f
                     Row(
-                        Modifier.fillMaxWidth().padding(5.dp),
+                        Modifier.fillMaxWidth().padding(FloatingNavigationLayout.contentPadding),
                         horizontalArrangement = Arrangement.spacedBy(2.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -746,7 +747,7 @@ object HomeScreen : Screen() {
             )
         Column(
             Modifier.weight(1f)
-                .heightIn(min = if (compact) 60.dp else 68.dp)
+                .heightIn(min = FloatingNavigationLayout.itemMinHeight(compact))
                 .clip(RoundedCornerShape(27.dp))
                 .combinedClickable(
                     onLongClick = if (tab == UnifiedSearchTab) ({ selectTab(BrowseTab) }) else null,

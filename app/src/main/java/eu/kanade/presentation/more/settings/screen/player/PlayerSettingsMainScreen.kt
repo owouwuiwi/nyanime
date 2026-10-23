@@ -41,9 +41,9 @@ import eu.kanade.presentation.components.AppBarActions
 import eu.kanade.presentation.more.settings.screen.SettingsSearchScreen
 import eu.kanade.presentation.more.settings.screen.player.custombutton.PlayerSettingsCustomButtonScreen
 import eu.kanade.presentation.more.settings.screen.player.editor.PlayerSettingsEditorScreen
-import eu.kanade.presentation.more.settings.widget.TextPreferenceWidget
 import eu.kanade.presentation.util.LocalBackPress
 import eu.kanade.presentation.util.Screen
+import it.lorelore.nyanime.settings.SettingsSectionRow
 import kotlinx.collections.immutable.persistentListOf
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
@@ -157,12 +157,12 @@ class PlayerSettingsMainScreen(private val mainSettings: Boolean) : Screen() {
                             }
                         }
                         CompositionLocalProvider(LocalContentColor provides contentColor) {
-                            TextPreferenceWidget(
+                            SettingsSectionRow(
                                 modifier = modifier,
                                 title = stringResource(item.titleRes),
-                                subtitle = item.formatSubtitle(),
                                 icon = item.icon,
-                                onPreferenceClick = { navigator.navigate(item.screen, twoPane) },
+                                isSelected = if (twoPane) selected else null,
+                                onClick = { navigator.navigate(item.screen, twoPane) },
                             )
                         }
                     }
@@ -177,8 +177,6 @@ class PlayerSettingsMainScreen(private val mainSettings: Boolean) : Screen() {
 
     private data class Item(
         val titleRes: StringResource,
-        val subtitleRes: StringResource? = null,
-        val formatSubtitle: @Composable () -> String? = { subtitleRes?.let { stringResource(it) } },
         val icon: ImageVector,
         val screen: VoyagerScreen,
     )
@@ -191,55 +189,46 @@ class PlayerSettingsMainScreen(private val mainSettings: Boolean) : Screen() {
         ),
         Item(
             titleRes = AYMR.strings.pref_player_internal,
-            subtitleRes = AYMR.strings.pref_player_internal_summary,
             icon = Icons.Outlined.PlayCircleOutline,
             screen = PlayerSettingsPlayerScreen,
         ),
         Item(
             titleRes = AYMR.strings.pref_player_gestures,
-            subtitleRes = AYMR.strings.pref_player_gestures_summary,
             icon = Icons.Outlined.Gesture,
             screen = PlayerSettingsGesturesScreen,
         ),
         Item(
             titleRes = AYMR.strings.pref_player_decoder,
-            subtitleRes = AYMR.strings.pref_player_decoder_summary,
             icon = Icons.Outlined.Memory,
             screen = PlayerSettingsDecoderScreen,
         ),
         Item(
             titleRes = AYMR.strings.pref_player_subtitle,
-            subtitleRes = AYMR.strings.pref_player_subtitle_summary,
             icon = Icons.Outlined.Subtitles,
             screen = PlayerSettingsSubtitleScreen,
         ),
         Item(
             titleRes = AYMR.strings.pref_player_audio,
-            subtitleRes = AYMR.strings.pref_player_audio_summary,
             icon = Icons.Outlined.Audiotrack,
             screen = PlayerSettingsAudioScreen,
         ),
         Item(
             titleRes = AYMR.strings.pref_player_custom_button,
-            subtitleRes = AYMR.strings.pref_player_custom_button_summary,
             icon = Icons.Outlined.Terminal,
             screen = PlayerSettingsCustomButtonScreen,
         ),
         Item(
             titleRes = AYMR.strings.pref_player_editor,
-            subtitleRes = AYMR.strings.pref_player_editor_summary,
             icon = Icons.Outlined.EditNote,
             screen = PlayerSettingsEditorScreen,
         ),
         Item(
             titleRes = AYMR.strings.pref_player_torrents,
-            subtitleRes = AYMR.strings.pref_player_torrents_summary,
             icon = CustomIcons.Magnet,
             screen = PlayerSettingsTorrentScreen,
         ),
         Item(
             titleRes = AYMR.strings.pref_player_advanced,
-            subtitleRes = AYMR.strings.pref_player_advanced_summary,
             icon = Icons.Outlined.Code,
             screen = PlayerSettingsAdvancedScreen,
         ),

@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.ui.browse.BrowseTab
+import it.lorelore.nyanime.navigation.FloatingNavigationLayout
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
@@ -78,7 +79,7 @@ fun UnifiedSearchQueryBar(
         if (Injekt.get<SourcePreferences>().unifiedSearchKeyboardOnOpen().get()) focus.requestFocus()
     }
     Row(
-        Modifier.fillMaxWidth().heightIn(min = if (compact) 60.dp else 68.dp),
+        Modifier.fillMaxWidth().heightIn(min = FloatingNavigationLayout.itemMinHeight(compact)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = {

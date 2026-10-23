@@ -13,6 +13,15 @@ An unavailable selected audio track fails visibly instead of starting silent or
 silently changing languages. Missing subtitles are reported without discarding
 working audio.
 
+Native pause notifications report the decoder's actual state; they are not new
+Pause/Play commands. In particular, acknowledging the temporary preparation hold
+must not replace the pending playback intent. Explicit next/previous selection
+starts when ready, quality replacement retains the previous intent, and a real
+Pause/Play command received during preparation remains authoritative. Stale native
+notifications are ignored when they disagree with the decoder's current property.
+Ordinary native pauses still save eligible progress; preparation and scrub holds
+do not create new pause commands or override room ownership.
+
 Native track metadata is decoded from one atomic `track-list` snapshot on IO.
 Unopened alternatives remain visible as metadata; opening the menu does not open
 their URLs. A selection opens only the requested alternative. The native `auto`
@@ -42,6 +51,10 @@ labels, cookies or credentials. Normal playback adds no periodic polling loop.
 
 JVM fixtures cover missing metadata, unopened alternatives, duplicate URLs, native
 IDs, exact seek policy, stale seek acknowledgements and diagnostic bounds.
+`PlayerPauseObservationTest` exercises the actual native-event boundary with
+controlled engine/model contracts: next episode, quality replacement, commands
+during loading, stale notifications and command-feedback prevention. These JVM
+checks do not replace playback validation on the signed device build.
 `PlaybackTimingDeviceProbe` is an opt-in instrumentation runner: content IDs are
 supplied locally, timing reports are numeric, tracking is disabled and incognito
 is restored after the run. It is not part of the application APK.

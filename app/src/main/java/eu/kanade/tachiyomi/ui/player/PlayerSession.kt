@@ -2015,10 +2015,10 @@ class PlayerSession(
                 it.lorelore.nyanime.attention.core.AttentionControl.nativePauseObserved("native", value)
                 it.lorelore.nyanime.attention.core.AttentionControl.ownedCommand {
                     if (value && player.paused == true) {
-                        if (viewModel.watchTogether.active) viewModel.onNativePause(true) else viewModel.pause()
+                        viewModel.onNativePause(true)
                         setKeepScreenOn(false)
                     } else if (!value && player.paused == false) {
-                        if (viewModel.watchTogether.active) viewModel.onNativePause(false) else viewModel.unpause()
+                        viewModel.onNativePause(false)
                         if (!viewModel.paused.value) setKeepScreenOn(true)
                     }
                 }

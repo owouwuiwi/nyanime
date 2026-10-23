@@ -405,9 +405,12 @@ class PlayerViewModel @JvmOverloads constructor(
 
     fun onNativePause(paused: Boolean) {
         val effective = paused || scrubCoordinator.active || watchTogether.active && watchTogether.expectsPaused
+        val becamePaused = effective && !_paused.value
         if (effective) endHoldSpeed()
         _paused.value = effective
         if (effective != paused) activity.player.paused = effective
+        // A native preparation hold reports actual state; it never replaces the pending play intent.
+        if (becamePaused && !scrubCoordinator.active && !watchTogether.active) savePausedProgress()
     }
 
     fun pauseByUser() {
@@ -1241,14 +1244,18 @@ class PlayerViewModel @JvmOverloads constructor(
         if (isLoadingTracks.value && !watchTogether.active) _pausedState.value = true
         activity.player.paused = true
         _paused.update { true }
+        savePausedProgress()
+        runCatching {
+            activity.setPictureInPictureParams(activity.createPipParams())
+        }
+    }
+
+    private fun savePausedProgress() {
         if (eu.kanade.tachiyomi.data.cloud.sync.CloudSyncManager.wantsProgress() &&
             playbackLoadState.value.canSaveProgress &&
             !isLoadingEpisode.value
         ) {
             saveCurrentEpisodeWatchingProgress()
-        }
-        runCatching {
-            activity.setPictureInPictureParams(activity.createPipParams())
         }
     }
 

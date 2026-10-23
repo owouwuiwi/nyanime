@@ -45,11 +45,11 @@ import dev.icerock.moko.resources.StringResource
 import eu.kanade.presentation.components.AppBar
 import eu.kanade.presentation.components.AppBarActions
 import eu.kanade.presentation.more.settings.screen.about.AboutScreen
-import eu.kanade.presentation.more.settings.widget.TextPreferenceWidget
 import eu.kanade.presentation.util.LocalBackPress
 import eu.kanade.presentation.util.Screen
 import eu.kanade.tachiyomi.BuildConfig
 import eu.kanade.tachiyomi.ui.setting.PlayerSettingsScreen
+import it.lorelore.nyanime.settings.SettingsSectionRow
 import kotlinx.collections.immutable.persistentListOf
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
@@ -153,12 +153,12 @@ object SettingsMainScreen : Screen() {
                             }
                         }
                         CompositionLocalProvider(LocalContentColor provides contentColor) {
-                            TextPreferenceWidget(
+                            SettingsSectionRow(
                                 modifier = modifier,
                                 title = stringResource(item.titleRes),
-                                subtitle = item.formatSubtitle(),
                                 icon = item.icon,
-                                onPreferenceClick = { navigator.navigate(item.screen, twoPane) },
+                                isSelected = if (twoPane) selected else null,
+                                onClick = { navigator.navigate(item.screen, twoPane) },
                             )
                         }
                     }
@@ -173,8 +173,6 @@ object SettingsMainScreen : Screen() {
 
     private data class Item(
         val titleRes: StringResource,
-        val subtitleRes: StringResource? = null,
-        val formatSubtitle: @Composable () -> String? = { subtitleRes?.let { stringResource(it) } },
         val icon: ImageVector,
         val screen: VoyagerScreen,
     )
@@ -182,14 +180,12 @@ object SettingsMainScreen : Screen() {
     private val items = listOfNotNull(
         Item(
             titleRes = MR.strings.pref_category_appearance,
-            subtitleRes = MR.strings.pref_appearance_summary,
             icon = Icons.Outlined.Palette,
             screen = SettingsAppearanceScreen,
         ),
         if (BuildConfig.UPDATER_ENABLED) {
             Item(
                 titleRes = AYMR.strings.pref_app_updates,
-                subtitleRes = AYMR.strings.pref_app_updates_summary,
                 icon = Icons.Outlined.SystemUpdate,
                 screen = SettingsAppUpdatesScreen,
             )
@@ -198,71 +194,56 @@ object SettingsMainScreen : Screen() {
         },
         Item(
             titleRes = AYMR.strings.pref_release_notifications,
-            subtitleRes = AYMR.strings.pref_release_notifications_summary,
             icon = Icons.Outlined.NotificationsActive,
             screen = SettingsReleaseNotificationsScreen,
         ),
         Item(
             titleRes = MR.strings.pref_category_library,
-            subtitleRes = AYMR.strings.pref_library_summary,
             icon = Icons.Outlined.CollectionsBookmark,
             screen = SettingsLibraryScreen,
         ),
         Item(
             titleRes = MR.strings.pref_category_reader,
-            subtitleRes = MR.strings.pref_reader_summary,
             icon = Icons.AutoMirrored.Outlined.ChromeReaderMode,
             screen = SettingsReaderScreen,
         ),
         Item(
-            titleRes = AYMR.strings.label_player,
-            subtitleRes = AYMR.strings.pref_player_settings_summary,
+            titleRes = AYMR.strings.label_player_settings,
             icon = Icons.Outlined.VideoSettings,
             screen = PlayerSettingsScreen(mainSettings = true),
         ),
         Item(
             titleRes = MR.strings.pref_category_downloads,
-            subtitleRes = MR.strings.pref_downloads_summary,
             icon = Icons.Outlined.GetApp,
             screen = SettingsDownloadScreen,
         ),
         Item(
             titleRes = MR.strings.pref_category_tracking,
-            subtitleRes = MR.strings.pref_tracking_summary,
             icon = Icons.Outlined.Sync,
             screen = SettingsTrackingScreen,
         ),
         Item(
             titleRes = MR.strings.browse,
-            subtitleRes = MR.strings.pref_browse_summary,
             icon = Icons.Outlined.Explore,
             screen = SettingsBrowseScreen,
         ),
         Item(
             titleRes = MR.strings.label_data_storage,
-            subtitleRes = MR.strings.pref_backup_summary,
             icon = Icons.Outlined.Storage,
             screen = SettingsDataScreen,
         ),
         Item(
             titleRes = MR.strings.pref_category_security,
-            subtitleRes = MR.strings.pref_security_summary,
             icon = Icons.Outlined.Security,
             screen = SettingsSecurityScreen,
         ),
         Item(
             titleRes = MR.strings.pref_category_advanced,
-            subtitleRes = MR.strings.pref_advanced_summary,
             icon = Icons.Outlined.Code,
             screen = SettingsAdvancedScreen,
         ),
         Item(
             titleRes = MR.strings.pref_category_about,
-            formatSubtitle = {
-                "${stringResource(MR.strings.app_name)} ${AboutScreen.getVersionName(
-                    withBuildDate = false,
-                )}"
-            },
             icon = Icons.Outlined.Info,
             screen = AboutScreen,
         ),

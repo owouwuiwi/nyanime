@@ -10,6 +10,18 @@ identificano modifiche nel repository, non garantiscono che ogni commit sia stat
 distribuito come APK.
 
 
+## 23 ottobre 2026 — 0.80.0.1: avvio del prossimo episodio e comandi più compatti
+
+### Correzioni
+
+- Premendo Prossimo nel player, il nuovo episodio parte appena pronto. La pausa temporanea per preparare audio e sottotitoli non viene più scambiata per una pausa richiesta dall’utente. Restano rispettati Pausa/Riprendi durante il caricamento e lo stato scelto prima di cambiare qualità.
+
+### Interfaccia
+
+- Le sezioni delle Impostazioni e del Player usano righe compatte con icona e titolo, più spazio utile e altezze adattive ai caratteri grandi. Tutte le opzioni restano nelle rispettive pagine.
+- Barra di navigazione inferiore leggermente più bassa, con dimensioni coerenti durante la ricerca, aree di tocco accessibili e spazi adattati agli schermi compatti.
+
+
 ## 23 ottobre 2026 — 0.80.0.0: romanzi e verso Nyanime 1.0
 
 ### Stabilità e navigazione
