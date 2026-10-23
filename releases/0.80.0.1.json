@@ -33,8 +33,8 @@
     "Nyanime-Delta-v1.json": "bd2643200cb3cf70c5dfe006f170d8b690c6270e547dbf33369f2ec41b8d91b1"
   },
   "nativeManifest": "Nyanime-Native-Manifest-0.80.0.1.json",
-  "delivery": "full",
+  "delivery": "patches",
   "graphSha256": {
-    "Nyanime-Release-v2.json": "b1f787355ff6ef449b1b5348dc34d5f3f55dc505bfcbd2f9c1c27e4e5b2cf984"
+    "Nyanime-Release-v2.json": "a5005cff78ce7c7508e4bedf72260087e4c33cd9295e403a14679ae32e0349d9"
   }
 }
