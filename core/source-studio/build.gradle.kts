@@ -10,9 +10,11 @@ tasks.withType<Test>().configureEach {
 
 extensions.configure<com.android.build.api.dsl.LibraryExtension>("android") {
     namespace = "it.lorelore.nyanime.studio"
+    defaultConfig.testInstrumentationRunner = "it.lorelore.nyanime.studio.document.DocumentWorkerProbe"
 }
 
 dependencies {
+    implementation(projects.sourceApi)
     implementation(platform(kotlinx.coroutines.bom))
     implementation(kotlinx.bundles.coroutines)
     api(kotlinx.bundles.serialization)

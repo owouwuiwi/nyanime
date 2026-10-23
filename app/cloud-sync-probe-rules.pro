@@ -23,3 +23,7 @@
 
 # Optional image-worker probe; these rules never apply to ordinary builds.
 -keep class it.lorelore.nyanime.reader.quality.** { *; }
+
+# Optional novel fixture: exercised only in the isolated probe variant.
+-keep class it.lorelore.nyanime.novel.** { *; }
+-keep class tachiyomi.core.common.preference.** { *; }

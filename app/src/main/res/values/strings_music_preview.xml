@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="music_coming_title">Music</string>
-    <string name="music_coming_heading">Music is on its way</string>
-    <string name="music_coming_description">This feature will arrive over the coming weeks.</string>
     <string name="anime_themes_external_search">Search in your browser</string>
     <string name="anime_themes_external_note">Videos and search open in your browser or a compatible app.</string>
 </resources>

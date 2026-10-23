@@ -124,12 +124,16 @@ data object DiscoveryTab : Tab {
     override fun Content() {
         val model = rememberScreenModel { DiscoveryHomeScreenModel() }
         val availability by model.state.collectAsState()
-        var selected by rememberSaveable(
-            stateSaver = Saver<String?, Any>(
-                save = { it.orEmpty() },
-                restore = DiscoveryHomeAvailability::restoreSelection,
-            ),
-        ) { mutableStateOf<String?>(null) }
+        var selected by
+            rememberSaveable(
+                stateSaver =
+                Saver<String?, Any>(
+                    save = { it.orEmpty() },
+                    restore = DiscoveryHomeAvailability::restoreSelection,
+                ),
+            ) {
+                mutableStateOf<String?>(null)
+            }
         val mangaRegistry = remember { Injekt.get<MangaHomeRegistry>() }
         val mangaListing by mangaRegistry.observe().collectAsState(initial = SourceHomeListing())
         val newsModel = requireNotNull(eu.kanade.tachiyomi.ui.news.LocalNewsModel.current)
@@ -139,23 +143,69 @@ data object DiscoveryTab : Tab {
         val tvSources by tvServices.registry.state.collectAsState()
         val tvInitialized by tvServices.initialized.collectAsState()
         val hasTv = tvSources.isNotEmpty()
-        val newsTitle = androidx.compose.ui.res.stringResource(eu.kanade.tachiyomi.R.string.news_title)
+        val newsTitle =
+            androidx.compose.ui.res.stringResource(eu.kanade.tachiyomi.R.string.news_title)
         val tvTitle = androidx.compose.ui.res.stringResource(eu.kanade.tachiyomi.R.string.tv_title)
-        val headerHomes = remember(availability.homes, mangaListing, hasNews, newsTitle, hasTv, tvTitle) {
-            availability.homes +
-                MangaHomeCategories.groups(mangaListing) +
-                (if (hasNews) listOf(SourceHomeGroup(NEWS_CATEGORY, newsTitle, emptyList())) else emptyList()) +
-                (if (hasTv) listOf(SourceHomeGroup(TV_CATEGORY, tvTitle, emptyList())) else emptyList())
-        }
+        val novelTitle =
+            androidx.compose.ui.res.stringResource(eu.kanade.tachiyomi.R.string.novel_library)
+        val localNovels = it.lorelore.nyanime.novel.ui.rememberNovelShelf("", 1, 0)
+        val novelSources = remember { Injekt.get<it.lorelore.nyanime.novel.source.NovelSources>() }
+        val novelAvailable by novelSources.available().collectAsState()
+        val hasNovels = localNovels.total > 0 || novelAvailable
+        val headerHomes =
+            remember(
+                availability.homes,
+                mangaListing,
+                hasNews,
+                newsTitle,
+                hasTv,
+                tvTitle,
+                hasNovels,
+                novelTitle,
+            ) {
+                availability.homes +
+                    MangaHomeCategories.groups(mangaListing) +
+                    (
+                        if (hasNews) {
+                            listOf(SourceHomeGroup(NEWS_CATEGORY, newsTitle, emptyList()))
+                        } else {
+                            emptyList()
+                        }
+                        ) +
+                    (
+                        if (hasTv) {
+                            listOf(SourceHomeGroup(TV_CATEGORY, tvTitle, emptyList()))
+                        } else {
+                            emptyList()
+                        }
+                        ) +
+                    (
+                        if (hasNovels) {
+                            listOf(
+                                SourceHomeGroup(
+                                    it.lorelore.nyanime.novel.ui.NovelHome.CATEGORY,
+                                    novelTitle,
+                                    emptyList(),
+                                ),
+                            )
+                        } else {
+                            emptyList()
+                        }
+                        )
+            }
         val orderPreference = remember { Injekt.get<UiPreferences>().homeCategoryOrder() }
-        val categoryOrder by orderPreference.changes().collectAsState(initial = orderPreference.get())
-        val choices = HomeCategories.choices(headerHomes, categoryOrder, availability.nativeFallback)
-        val initializing = availability.loading || mangaListing.loading || !tvInitialized
-        val effectiveSelection = if (initializing) {
-            selected
-        } else {
-            selected.takeIf { id -> choices.any { it.id == id } } ?: choices.firstOrNull()?.id
-        }
+        val categoryOrder by
+            orderPreference.changes().collectAsState(initial = orderPreference.get())
+        val choices =
+            HomeCategories.choices(headerHomes, categoryOrder, availability.nativeFallback)
+        val initializing =
+            availability.loading || mangaListing.loading || !tvInitialized || localNovels.loading
+        val effectiveSelection =
+            if (initializing) {
+                selected
+            } else {
+                selected.takeIf { id -> choices.any { it.id == id } } ?: choices.firstOrNull()?.id
+            }
         LaunchedEffect(initializing, effectiveSelection) {
             if (!initializing && selected != effectiveSelection) selected = effectiveSelection
         }
@@ -163,43 +213,58 @@ data object DiscoveryTab : Tab {
         val isManga = mangaHomeId != null
         val isNews = effectiveSelection == NEWS_CATEGORY && hasNews
         val isTv = effectiveSelection == TV_CATEGORY && hasTv
+        val isNovel =
+            effectiveSelection == it.lorelore.nyanime.novel.ui.NovelHome.CATEGORY && hasNovels
         LaunchedEffect(isNews) { newsSelected.value = isNews }
-        val homeKey = if (isManga || isNews || isTv) null else availability.selectedHome(effectiveSelection)
+        val homeKey =
+            if (isManga || isNews || isTv || isNovel) {
+                null
+            } else {
+                availability.selectedHome(effectiveSelection)
+            }
         val cycleCategory = {
             selected = HomeCategories.next(effectiveSelection, choices)
         }
         val savedState = rememberSaveableStateHolder()
-        val page = rememberHomePage(
-            homeKey,
-            isManga,
-            initializing,
-            isNews,
-            mangaHomeId ?: MangaHomeCategories.DEFAULT_HOME,
-            tv = isTv,
-            empty = !initializing && choices.isEmpty(),
-        )
+        val page =
+            rememberHomePage(
+                homeKey,
+                isManga,
+                initializing,
+                isNews,
+                mangaHomeId ?: MangaHomeCategories.DEFAULT_HOME,
+                tv = isTv,
+                empty = !initializing && choices.isEmpty(),
+                novel = isNovel,
+            )
         val header = page.headerState(headerHomes)
         val navigator = LocalNavigator.currentOrThrow
         val continuity = LocalHomeContinuity.current
         val continuousHeader = continuity != null
         Scaffold(
-            containerColor = if (continuousHeader) Color.Transparent else MaterialTheme.colorScheme.background,
-            contentWindowInsets = if (continuousHeader) WindowInsets(0) else ScaffoldDefaults.contentWindowInsets,
+            containerColor =
+            if (continuousHeader) Color.Transparent else MaterialTheme.colorScheme.background,
+            contentWindowInsets =
+            if (continuousHeader) WindowInsets(0) else ScaffoldDefaults.contentWindowInsets,
             topBar = {
                 val controls: @Composable () -> Unit = {
                     DiscoveryHomeHeader(
-                        selectedHome = if (isManga) {
+                        selectedHome =
+                        if (isManga) {
                             effectiveSelection
                         } else if (isTv) {
                             TV_CATEGORY
                         } else if (isNews) {
                             NEWS_CATEGORY
+                        } else if (isNovel) {
+                            it.lorelore.nyanime.novel.ui.NovelHome.CATEGORY
                         } else {
                             homeKey
                         },
                         homes = headerHomes,
                         onSelect = { selected = it },
-                        onBack = if (navigator.lastItem == DiscoveryTab) ({ navigator.pop() }) else null,
+                        onBack =
+                        if (navigator.lastItem == DiscoveryTab) ({ navigator.pop() }) else null,
                         onSearch = header.onSearch,
                         onRefresh = header.onRefresh,
                         onUpdates = header.onUpdates,
@@ -207,7 +272,9 @@ data object DiscoveryTab : Tab {
                         logo = header.logo,
                         artworkRefreshKey = header.artworkRefreshKey,
                         categoryOrder = categoryOrder,
-                        onPrioritizeCategory = { orderPreference.set(HomeCategories.moveFirst(categoryOrder, it)) },
+                        onPrioritizeCategory = {
+                            orderPreference.set(HomeCategories.moveFirst(categoryOrder, it))
+                        },
                         nativeFallback = availability.nativeFallback,
                     )
                 }
@@ -219,54 +286,74 @@ data object DiscoveryTab : Tab {
             },
         ) { padding ->
             val topInset = if (continuousHeader) padding.calculateTopPadding() else 0.dp
-            val bodyPadding = if (continuousHeader) {
-                PaddingValues(
-                    bottom = padding.calculateBottomPadding(),
-                )
-            } else {
-                padding
-            }
-            CompositionLocalProvider(
-                LocalHomeContentInset provides topInset,
-            ) {
+            val bodyPadding =
+                if (continuousHeader) {
+                    PaddingValues(bottom = padding.calculateBottomPadding())
+                } else {
+                    padding
+                }
+            CompositionLocalProvider(LocalHomeContentInset provides topInset) {
                 HomeCategoryTransition(
                     page = page,
-                    modifier = Modifier.fillMaxSize()
-                        .then(if (continuity != null) Modifier.homeContinuitySource(continuity) else Modifier)
+                    modifier =
+                    Modifier.fillMaxSize()
+                        .then(
+                            if (continuity != null) {
+                                Modifier.homeContinuitySource(continuity)
+                            } else {
+                                Modifier
+                            },
+                        )
                         .padding(bodyPadding),
                 ) { displayed, active ->
                     savedState.SaveableStateProvider(displayed.key) {
                         when (displayed) {
+                            DiscoveryHomePage.Novel ->
+                                it.lorelore.nyanime.novel.ui.NovelHomeContent(
+                                    active = active,
+                                    onCycleCategory = cycleCategory,
+                                )
                             is DiscoveryHomePage.Tv -> {
                                 val context = LocalContext.current
                                 Box(Modifier.padding(top = LocalHomeContentInset.current)) {
                                     eu.kanade.tachiyomi.ui.tv.TvHomeContent(
                                         displayed.model,
                                         active,
-                                        onPlay = { eu.kanade.tachiyomi.ui.tv.TvActions.play(context, it) },
-                                        onShare = { eu.kanade.tachiyomi.ui.tv.TvActions.share(context, it) },
-                                        onRoom = { eu.kanade.tachiyomi.ui.tv.TvActions.room(context, it) },
+                                        onPlay = {
+                                            eu.kanade.tachiyomi.ui.tv.TvActions.play(context, it)
+                                        },
+                                        onShare = {
+                                            eu.kanade.tachiyomi.ui.tv.TvActions.share(context, it)
+                                        },
+                                        onRoom = {
+                                            eu.kanade.tachiyomi.ui.tv.TvActions.room(context, it)
+                                        },
                                     )
                                 }
                             }
-                            is DiscoveryHomePage.News -> Box(Modifier.padding(top = LocalHomeContentInset.current)) {
-                                eu.kanade.tachiyomi.ui.news.NewsContent(displayed.model, active)
-                            }
+                            is DiscoveryHomePage.News ->
+                                Box(Modifier.padding(top = LocalHomeContentInset.current)) {
+                                    eu.kanade.tachiyomi.ui.news.NewsContent(displayed.model, active)
+                                }
                             DiscoveryHomePage.Initializing -> HomeLoadingSkeleton()
-                            DiscoveryHomePage.Empty -> eu.kanade.presentation.discovery.HomeEmptyContent {
-                                navigator.push(eu.kanade.tachiyomi.ui.browse.BrowseTab)
-                            }
-                            is DiscoveryHomePage.Manga -> MangaHomeTabContent(
-                                page = displayed,
-                                active = active,
-                                onCycleCategory = cycleCategory,
-                            )
-                            is DiscoveryHomePage.Source -> SourceHomeContent(
-                                page = displayed,
-                                active = active,
-                                onCycleCategory = cycleCategory,
-                            )
-                            is DiscoveryHomePage.Catalog -> AnimeContent(displayed, active, cycleCategory)
+                            DiscoveryHomePage.Empty ->
+                                eu.kanade.presentation.discovery.HomeEmptyContent {
+                                    navigator.push(eu.kanade.tachiyomi.ui.browse.BrowseTab)
+                                }
+                            is DiscoveryHomePage.Manga ->
+                                MangaHomeTabContent(
+                                    page = displayed,
+                                    active = active,
+                                    onCycleCategory = cycleCategory,
+                                )
+                            is DiscoveryHomePage.Source ->
+                                SourceHomeContent(
+                                    page = displayed,
+                                    active = active,
+                                    onCycleCategory = cycleCategory,
+                                )
+                            is DiscoveryHomePage.Catalog ->
+                                AnimeContent(displayed, active, cycleCategory)
                         }
                     }
                 }
@@ -285,11 +372,12 @@ data object DiscoveryTab : Tab {
         val continueWatchingRefresher = remember { Injekt.get<ContinueWatchingRefresher>() }
         val scope = rememberCoroutineScope()
         LifecycleStartEffect(active, state.offline, state.sources.isNotEmpty()) {
-            val refreshJob = if (active && !state.offline && state.sources.isNotEmpty()) {
-                scope.launch { continueWatchingRefresher.refresh() }
-            } else {
-                null
-            }
+            val refreshJob =
+                if (active && !state.offline && state.sources.isNotEmpty()) {
+                    scope.launch { continueWatchingRefresher.refresh() }
+                } else {
+                    null
+                }
             onStopOrDispose { refreshJob?.cancel() }
         }
         val navigator = LocalNavigator.currentOrThrow
@@ -298,7 +386,8 @@ data object DiscoveryTab : Tab {
         val seenNotices = remember { Injekt.get<UiPreferences>().lastSeenAnimeUpdateNotice() }
         val lastSeenAt by seenNotices.changes().collectAsState(initial = seenNotices.get())
         val autoAcknowledge = remember { Injekt.get<UiPreferences>().autoAcknowledgeHomeUpdates() }
-        val acknowledgeOnScroll by autoAcknowledge.changes().collectAsState(initial = autoAcknowledge.get())
+        val acknowledgeOnScroll by
+            autoAcknowledge.changes().collectAsState(initial = autoAcknowledge.get())
         val updateKeys = state.updates.data.orEmpty().mapNotNull { it.updateKey }.toSet()
         val hasNewUpdates = hasNewLibraryUpdateNotice(updateKeys, lastSeenAt)
         val listState = rememberLazyListState()
@@ -317,12 +406,15 @@ data object DiscoveryTab : Tab {
             navigator.push(UpdatesTab)
         }
         LaunchedEffect(Unit) { (context as? MainActivity)?.ready = true }
-        val openCatalog: (CatalogAnime) -> Unit = { navigator.push(CatalogDetailScreen(it.id.value, it.id.provider)) }
+        val openCatalog: (CatalogAnime) -> Unit = {
+            navigator.push(CatalogDetailScreen(it.id.value, it.id.provider))
+        }
         var sourceMenu by rememberSaveable { mutableStateOf(false) }
         val selected = state.sources.firstOrNull { it.id == state.selectedSource }
         Box(Modifier.fillMaxSize()) {
             PullRefresh(
-                refreshing = state.catalog.values.any { it.loading } ||
+                refreshing =
+                state.catalog.values.any { it.loading } ||
                     state.popular.loading ||
                     state.latest.loading,
                 enabled = !state.offline,
@@ -333,10 +425,13 @@ data object DiscoveryTab : Tab {
             ) {
                 LazyColumn(
                     state = listState,
-                    contentPadding = PaddingValues(
+                    contentPadding =
+                    PaddingValues(
                         top = LocalHomeContentInset.current,
                         bottom =
-                        24.dp + eu.kanade.tachiyomi.ui.home.LocalFloatingNavigationInset.current,
+                        24.dp +
+                            eu.kanade.tachiyomi.ui.home.LocalFloatingNavigationInset
+                                .current,
                     ),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
@@ -349,7 +444,11 @@ data object DiscoveryTab : Tab {
                             FeaturedCarousel(
                                 featured.data?.items.orEmpty(),
                                 openCatalog,
-                                eu.kanade.presentation.discovery.featuredCarouselAutoplay(listState, "hero", active),
+                                eu.kanade.presentation.discovery.featuredCarouselAutoplay(
+                                    listState,
+                                    "hero",
+                                    active,
+                                ),
                             )
                         }
                     }
@@ -357,33 +456,53 @@ data object DiscoveryTab : Tab {
                         SectionHeader("Continua a guardare") { navigator.push(HistoriesTab) }
                         ContinueWatchingRow(state.resume, { navigator.push(AnimeScreen(it)) }) { item ->
                             scope.launch {
-                                context.playDiscoveryEpisode(item.episode, item.forcedStartPositionMs)
+                                context.playDiscoveryEpisode(
+                                    item.episode,
+                                    item.forcedStartPositionMs,
+                                )
                             }
                         }
                         if (state.resume.data?.isEmpty() == true) {
-                            TextButton(onClick = {
-                                navigator.push(CatalogListScreen(CatalogFeed.TRENDING))
-                            }) { Text("Scopri cosa guardare") }
+                            TextButton(
+                                onClick = {
+                                    navigator.push(CatalogListScreen(CatalogFeed.TRENDING))
+                                },
+                            ) {
+                                Text("Scopri cosa guardare")
+                            }
                         }
                     }
                     if (state.updates.data?.isNotEmpty() == true) {
                         item(key = "updates") {
                             SectionHeader("Le tue novità", openUpdatesScreen)
-                            LocalAnimeRow(state.updates, { item ->
-                                item.updateKey?.let { dismissLibraryUpdate(dismissedUpdates, it) }
-                                navigator.push(AnimeScreen(item.anime.id))
-                            }) { item ->
+                            LocalAnimeRow(
+                                state.updates,
+                                { item ->
+                                    item.updateKey?.let {
+                                        dismissLibraryUpdate(dismissedUpdates, it)
+                                    }
+                                    navigator.push(AnimeScreen(item.anime.id))
+                                },
+                            ) { item ->
                                 item.updateKey?.let { dismissLibraryUpdate(dismissedUpdates, it) }
                                 scope.launch { context.playDiscoveryEpisode(item.episode) }
                             }
                         }
                     }
                     item(key = "shortcuts") {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                            TextButton(onClick = { navigator.push(HistoriesTab) }) { Text("Cronologia") }
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                        ) {
+                            TextButton(onClick = { navigator.push(HistoriesTab) }) {
+                                Text("Cronologia")
+                            }
                         }
                         if (state.offline) {
-                            Text("Solo download · catalogo salvato", Modifier.padding(horizontal = 16.dp))
+                            Text(
+                                "Solo download · catalogo salvato",
+                                Modifier.padding(horizontal = 16.dp),
+                            )
                         }
                     }
                     state.catalogueOutage?.let { message ->
@@ -410,50 +529,77 @@ data object DiscoveryTab : Tab {
                     ) { feed ->
                         val section = state.catalog[feed] ?: SectionState()
                         Column {
-                            SectionHeader(feed.displayTitle()) { navigator.push(CatalogListScreen(feed)) }
-                            if (feed ==
-                                CatalogFeed.WEEK
-                            ) {
+                            SectionHeader(feed.displayTitle()) {
+                                navigator.push(CatalogListScreen(feed))
+                            }
+                            if (feed == CatalogFeed.WEEK) {
                                 Text(
                                     "Messa in onda · la disponibilità nelle fonti può variare",
                                     Modifier.padding(horizontal = 16.dp),
                                     style = MaterialTheme.typography.bodySmall,
                                 )
                             }
-                            val error = section.error.takeUnless {
-                                section.failureReason == CatalogFailureReason.SERVICE_UNAVAILABLE
-                            }
-                            LoadNotice(section.loading, error, section.stale, showLoadingIndicator = false) {
+                            val error =
+                                section.error.takeUnless {
+                                    section.failureReason ==
+                                        CatalogFailureReason.SERVICE_UNAVAILABLE
+                                }
+                            LoadNotice(
+                                section.loading,
+                                error,
+                                section.stale,
+                                showLoadingIndicator = false,
+                            ) {
                                 model.load(feed, true)
                             }
                             HomeLoadingTransition(
                                 loading = section.awaitingContent,
                                 placeholder = { HomePosterRowSkeleton() },
                             ) {
-                                CatalogRow(section.data?.items.orEmpty(), openCatalog, feed == CatalogFeed.WEEK)
+                                CatalogRow(
+                                    section.data?.items.orEmpty(),
+                                    openCatalog,
+                                    feed == CatalogFeed.WEEK,
+                                )
                             }
                             if (feed == CatalogFeed.WEEK) {
-                                section.data?.notice?.let { Text(it, Modifier.padding(horizontal = 16.dp)) }
+                                section.data?.notice?.let {
+                                    Text(it, Modifier.padding(horizontal = 16.dp))
+                                }
                             }
-                            if (section.data?.items?.isEmpty() == true &&
+                            if (
+                                section.data?.items?.isEmpty() == true &&
                                 section.data?.notice == null &&
                                 !section.loading
                             ) {
-                                Text("Nessun anime disponibile", Modifier.padding(horizontal = 16.dp))
+                                Text(
+                                    "Nessun anime disponibile",
+                                    Modifier.padding(horizontal = 16.dp),
+                                )
                             }
                         }
                     }
                     item(key = "source-picker") {
                         SectionHeader("Dalle tue fonti")
                         Column {
-                            TextButton(onClick = { sourceMenu = true }, enabled = state.sources.isNotEmpty()) {
-                                val sourceLabel = selected?.let { "${it.name} (${it.language.uppercase()}) ▾" }
+                            TextButton(
+                                onClick = { sourceMenu = true },
+                                enabled = state.sources.isNotEmpty(),
+                            ) {
+                                val sourceLabel = selected?.let {
+                                    "${it.name} (${it.language.uppercase()}) ▾"
+                                }
                                 Text(sourceLabel ?: "Nessuna fonte abilitata")
                             }
-                            DropdownMenu(expanded = sourceMenu, onDismissRequest = { sourceMenu = false }) {
+                            DropdownMenu(
+                                expanded = sourceMenu,
+                                onDismissRequest = { sourceMenu = false },
+                            ) {
                                 state.sources.forEach { source ->
                                     DropdownMenuItem(
-                                        text = { Text("${source.name} (${source.language.uppercase()})") },
+                                        text = {
+                                            Text("${source.name} (${source.language.uppercase()})")
+                                        },
                                         onClick = {
                                             sourceMenu = false
                                             model.selectSource(source.id)
@@ -463,26 +609,36 @@ data object DiscoveryTab : Tab {
                             }
                         }
                         if (state.sources.isEmpty()) {
-                            TextButton(onClick = {
-                                scope.launch {
-                                    HomeScreen.openTab(HomeScreen.Tab.Browse(toExtensions = true, anime = true))
-                                }
-                            }) { Text("Configura le estensioni") }
+                            TextButton(
+                                onClick = {
+                                    scope.launch {
+                                        HomeScreen.openTab(
+                                            HomeScreen.Tab.Browse(toExtensions = true, anime = true),
+                                        )
+                                    }
+                                },
+                            ) {
+                                Text("Configura le estensioni")
+                            }
                         }
                     }
                     if (selected != null && !state.offline) {
-                        items(if (selected.supportsLatest) listOf(false, true) else listOf(false), key = {
-                            "source:$it"
-                        }) { latest ->
+                        items(
+                            if (selected.supportsLatest) listOf(false, true) else listOf(false),
+                            key = {
+                                "source:$it"
+                            },
+                        ) { latest ->
                             val section = if (latest) state.latest else state.popular
                             Column {
                                 val title = if (latest) "Ultimi aggiornamenti" else "Popolari"
                                 SectionHeader("$title · ${selected.name}") {
-                                    val query = if (latest) {
-                                        GetRemoteAnime.QUERY_LATEST
-                                    } else {
-                                        GetRemoteAnime.QUERY_POPULAR
-                                    }
+                                    val query =
+                                        if (latest) {
+                                            GetRemoteAnime.QUERY_LATEST
+                                        } else {
+                                            GetRemoteAnime.QUERY_POPULAR
+                                        }
                                     navigator.push(BrowseAnimeSourceScreen(selected.id, query))
                                 }
                                 LoadNotice(
@@ -527,7 +683,11 @@ data object DiscoveryTab : Tab {
     }
 
     @Composable
-    internal fun HandleHomeReselect(listState: LazyListState, onAtTop: () -> Unit, active: Boolean = true) {
+    internal fun HandleHomeReselect(
+        listState: LazyListState,
+        onAtTop: () -> Unit,
+        active: Boolean = true,
+    ) {
         val motion = appMotionEnabled()
         val currentOnAtTop by rememberUpdatedState(onAtTop)
         LaunchedEffect(listState, motion, active) {
@@ -548,14 +708,23 @@ data object DiscoveryTab : Tab {
     }
 
     @Composable
-    internal fun HandleHomeUpdateRequest(listState: LazyListState, pageKey: String, index: Int, active: Boolean) {
+    internal fun HandleHomeUpdateRequest(
+        listState: LazyListState,
+        pageKey: String,
+        index: Int,
+        active: Boolean,
+    ) {
         val motion = appMotionEnabled()
         val currentIndex by rememberUpdatedState(index)
         LaunchedEffect(listState, pageKey, active, motion) {
             if (!active) return@LaunchedEffect
             updateRequests.collect { target ->
                 if (target == pageKey) {
-                    if (motion) listState.animateScrollToItem(currentIndex) else listState.scrollToItem(currentIndex)
+                    if (motion) {
+                        listState.animateScrollToItem(currentIndex)
+                    } else {
+                        listState.scrollToItem(currentIndex)
+                    }
                 }
             }
         }

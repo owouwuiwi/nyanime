@@ -3,6 +3,7 @@ package eu.kanade.tachiyomi.data.backup
 import android.content.Context
 import android.net.Uri
 import eu.kanade.tachiyomi.data.track.TrackerManager
+import kotlinx.serialization.json.jsonObject
 import tachiyomi.core.common.preference.Preference
 import tachiyomi.domain.source.anime.service.AnimeSourceManager
 import tachiyomi.domain.source.manga.service.MangaSourceManager
@@ -22,52 +23,59 @@ class BackupFileValidator(
      * @return List of missing sources or missing trackers.
      */
     fun validate(uri: Uri): Results {
-        val backup = try {
-            BackupDecoder(context).decode(uri)
-        } catch (e: Exception) {
-            throw IllegalStateException(e)
-        }
+        val backup =
+            try {
+                BackupDecoder(context).decode(uri)
+            } catch (e: Exception) {
+                throw IllegalStateException(e)
+            }
 
         val sources = backup.backupSources.associate { it.sourceId to it.name }
         val animesources = backup.backupAnimeSources.associate { it.sourceId to it.name }
-        val missingSources = sources
-            .filter { mangaSourceManager.get(it.key) == null }
-            .values.map {
-                val id = it.toLongOrNull()
-                if (id == null) {
-                    it
-                } else {
-                    mangaSourceManager.getOrStub(id).toString()
-                }
-            }
-            .distinct()
-            .sorted() +
-            animesources
-                .filter { animeSourceManager.get(it.key) == null }
-                .values.map {
+        val missingSources =
+            sources
+                .filter { mangaSourceManager.get(it.key) == null }
+                .values
+                .map {
                     val id = it.toLongOrNull()
                     if (id == null) {
                         it
                     } else {
-                        animeSourceManager.getOrStub(id).toString()
+                        mangaSourceManager.getOrStub(id).toString()
                     }
                 }
                 .distinct()
+                .sorted() +
+                animesources
+                    .filter { animeSourceManager.get(it.key) == null }
+                    .values
+                    .map {
+                        val id = it.toLongOrNull()
+                        if (id == null) {
+                            it
+                        } else {
+                            animeSourceManager.getOrStub(id).toString()
+                        }
+                    }
+                    .distinct()
+                    .sorted()
+
+        val animeTrackers = backup.backupAnime.flatMap { it.tracking }.map { it.syncId }
+        val mangaTrackers = backup.backupManga.flatMap { it.tracking }.map { it.syncId }
+        val trackers = (animeTrackers + mangaTrackers).distinct()
+        val missingTrackers =
+            trackers
+                .mapNotNull { trackerManager.get(it.toLong()) }
+                .filter { !it.isLoggedIn }
+                .map { it.name }
                 .sorted()
 
-        val animeTrackers = backup.backupAnime
-            .flatMap { it.tracking }
-            .map { it.syncId }
-        val mangaTrackers = backup.backupManga
-            .flatMap { it.tracking }
-            .map { it.syncId }
-        val trackers = (animeTrackers + mangaTrackers).distinct()
-        val missingTrackers = trackers
-            .mapNotNull { trackerManager.get(it.toLong()) }
-            .filter { !it.isLoggedIn }
-            .map { it.name }
-            .sorted()
-
+        val novelRecords =
+            backup.novelMetadata
+                ?.let { metadata ->
+                    it.lorelore.nyanime.novel.NovelBackup.validate(metadata).records
+                }
+                .orEmpty()
         return Results(
             missingSources = missingSources,
             missingTrackers = missingTrackers,
@@ -76,9 +84,21 @@ class BackupFileValidator(
             episodeCount = backup.backupAnime.sumOf { it.episodes.size },
             chapterCount = backup.backupManga.sumOf { it.chapters.size },
             extensionCount = backup.backupExtensions.size,
-            settingCount = backup.backupPreferences.size + backup.backupSourcePreferences.sumOf { it.prefs.size },
-            containsPrivateSettings = backup.backupPreferences.any { Preference.isPrivate(it.key) } ||
-                backup.backupSourcePreferences.any { group -> group.prefs.any { Preference.isPrivate(it.key) } },
+            settingCount =
+            backup.backupPreferences.size +
+                backup.backupSourcePreferences.sumOf { it.prefs.size },
+            containsPrivateSettings =
+            backup.backupPreferences.any { Preference.isPrivate(it.key) } ||
+                backup.backupSourcePreferences.any { group ->
+                    group.prefs.any { Preference.isPrivate(it.key) }
+                },
+            novelCount = novelRecords.count { it.kind == "book" },
+            novelPositionCount = novelRecords.count { it.kind == "position" },
+            novelAnnotationCount =
+            novelRecords.count {
+                it.kind == "annotation" &&
+                    it.payload.jsonObject["deleted"]?.toString() != "true"
+            },
         )
     }
 
@@ -92,5 +112,8 @@ class BackupFileValidator(
         val extensionCount: Int,
         val settingCount: Int,
         val containsPrivateSettings: Boolean,
+        val novelCount: Int = 0,
+        val novelPositionCount: Int = 0,
+        val novelAnnotationCount: Int = 0,
     )
 }

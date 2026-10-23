@@ -22,6 +22,7 @@ object ExtensionPackageDiscovery {
         "tachiyomi.animeextension",
         "tachiyomi.extension",
         "nyanime.newsextension",
+        "nyanime.novelextension",
         "nyanime.tvextension",
         "nyanime.guideextension",
         "nyanime.addon",

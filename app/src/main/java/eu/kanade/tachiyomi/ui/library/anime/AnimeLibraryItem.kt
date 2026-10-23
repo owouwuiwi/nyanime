@@ -27,7 +27,7 @@ data class AnimeLibraryItem(
     fun matches(constraint: String): Boolean {
         val sourceName by lazy { sourceManager.getOrStub(libraryAnime.anime.source).getNameForAnimeInfo() }
         if (constraint.startsWith("id:", true)) {
-            val id = constraint.substringAfter("id:").toLongOrNull()
+            val id = constraint.substringAfter(':').toLongOrNull()
             return libraryAnime.id == id
         }
         return libraryAnime.anime.title.contains(constraint, true) ||

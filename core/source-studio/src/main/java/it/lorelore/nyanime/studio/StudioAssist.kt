@@ -9,42 +9,57 @@ import java.net.URI
 import java.net.URLDecoder
 import java.net.URLEncoder
 
-/** Proposals are ordinary graphs. No domain, selector, query parameter or title is supplied here. */
+/**
+ * Proposals are ordinary graphs. No domain, selector, query parameter or title is supplied here.
+ */
 object StudioAssist {
     data class Field(val selector: String, val attribute: String = "text")
+
     data class FilterRoute(val parameter: String, val value: String, val initial: String)
 
-    fun address(raw: String): URI = URI(raw).also {
-        require(raw.length <= 4096 && it.scheme in setOf("http", "https") && !it.host.isNullOrBlank())
-        require(it.userInfo == null && it.fragment == null)
-        require(
-            parameters(it).keys.none { key ->
-                key.lowercase() in
-                    setOf(
-                        "token",
-                        "access_token",
-                        "auth",
-                        "authorization",
-                        "password",
-                        "session",
-                        "sid",
-                        "key",
-                        "api_key",
-                    )
-            },
-        )
-    }
+    fun address(raw: String): URI =
+        URI(raw).also {
+            require(
+                raw.length <= 4096 &&
+                    it.scheme in setOf("http", "https") &&
+                    !it.host.isNullOrBlank(),
+            )
+            require(it.userInfo == null && it.fragment == null)
+            require(
+                parameters(it).keys.none { key ->
+                    key.lowercase() in
+                        setOf(
+                            "token",
+                            "access_token",
+                            "auth",
+                            "authorization",
+                            "password",
+                            "session",
+                            "sid",
+                            "key",
+                            "api_key",
+                        )
+                },
+            )
+        }
 
     private fun parameters(uri: URI): Map<String, String> {
-        val entries = uri.rawQuery.orEmpty().split('&').filter(String::isNotBlank).map {
-            val pair = it.split('=', limit = 2)
-            URLDecoder.decode(pair[0], "UTF-8") to URLDecoder.decode(pair.getOrElse(1) { "" }, "UTF-8")
-        }
+        val entries =
+            uri.rawQuery.orEmpty().split('&').filter(String::isNotBlank).map {
+                val pair = it.split('=', limit = 2)
+                URLDecoder.decode(pair[0], "UTF-8") to
+                    URLDecoder.decode(pair.getOrElse(1) { "" }, "UTF-8")
+            }
         require(
-            entries.map {
-                it.first
-            }.distinct().size == entries.size,
-        ) { "Repeated query parameters require the editor" }
+            entries
+                .map {
+                    it.first
+                }
+                .distinct()
+                .size == entries.size,
+        ) {
+            "Repeated query parameters require the editor"
+        }
         return entries.toMap()
     }
 
@@ -70,7 +85,9 @@ object StudioAssist {
         require(before.keys.all { it in after })
         val changed = after.filter { (name, value) -> before[name] != value }
         require(changed.size == 1) { "Choose one filter at a time in the same search" }
-        return changed.entries.single().let { FilterRoute(it.key, it.value, before[it.key].orEmpty()) }
+        return changed.entries.single().let {
+            FilterRoute(it.key, it.value, before[it.key].orEmpty())
+        }
     }
 
     fun parameter(template: String, name: String, value: String): String {
@@ -83,19 +100,31 @@ object StudioAssist {
 
     fun preserveFilters(template: String, source: StudioSource): String {
         if (source.filters.isEmpty()) return template
-        val previous = source.flows[StudioFlow.SEARCH]?.nodes?.singleOrNull { it.kind == StudioKind.HTTP }
-            ?.parameters?.get("url") ?: error("Complex search filters require the editor")
+        val previous =
+            source.flows[StudioFlow.SEARCH]
+                ?.nodes
+                ?.singleOrNull { it.kind == StudioKind.HTTP }
+                ?.parameters
+                ?.get("url") ?: error("Complex search filters require the editor")
         val pairs = previous.substringAfter('?', "").split('&')
         var result = template
         source.filters.forEach { field ->
             val marker = "{{filter.${field.id}|url}}"
-            val binding = pairs.singleOrNull { it.substringAfter('=', "") == marker }
-                ?: error("Complex search filters require the editor")
+            val binding =
+                pairs.singleOrNull { it.substringAfter('=', "") == marker }
+                    ?: error("Complex search filters require the editor")
             val key = URLDecoder.decode(binding.substringBefore('='), "UTF-8")
-            val existing = result.substringAfter('?', "").split('&').firstOrNull {
-                URLDecoder.decode(it.substringBefore('='), "UTF-8") == key
-            }?.substringAfter('=')
-            require(existing == null || (!existing.contains("{{query") && !existing.contains("{{page")))
+            val existing =
+                result
+                    .substringAfter('?', "")
+                    .split('&')
+                    .firstOrNull {
+                        URLDecoder.decode(it.substringBefore('='), "UTF-8") == key
+                    }
+                    ?.substringAfter('=')
+            require(
+                existing == null || (!existing.contains("{{query") && !existing.contains("{{page")),
+            )
             result = parameter(result, key, marker)
         }
         return result
@@ -110,18 +139,26 @@ object StudioAssist {
         nextSelector: String = "",
     ): StudioGraph {
         require(selector.isNotBlank() && selector.length <= 4096)
-        val required = when (flow) {
-            StudioFlow.CONTENT -> setOf("url")
-            StudioFlow.DETAILS -> setOf("title")
-            else -> setOf("title", "url")
+        if (flow == StudioFlow.CONTENT && medium == StudioMedium.NOVEL) {
+            return StudioBlueprints.novelBodyGraph(
+                request,
+                fields["body"]?.selector?.ifBlank { selector } ?: selector,
+            )
         }
+        val required =
+            when (flow) {
+                StudioFlow.CONTENT -> setOf("url")
+                StudioFlow.DETAILS -> setOf("title")
+                else -> setOf("title", "url")
+            }
         require(fields.keys.containsAll(required))
         val rules = buildJsonObject {
             fields.forEach { (key, field) ->
                 require(key in StudioBlueprints.fields(flow, medium))
                 require(
                     field.selector.length <= 4096 &&
-                        field.attribute in setOf("text", "href", "src", "data-src", "alt", "title", "content"),
+                        field.attribute in
+                        setOf("text", "href", "src", "data-src", "alt", "title", "content"),
                 )
                 put(
                     key,
@@ -133,9 +170,7 @@ object StudioAssist {
                     },
                 )
             }
-            if (flow ==
-                StudioFlow.DETAILS
-            ) {
+            if (flow == StudioFlow.DETAILS) {
                 put(
                     "url",
                     buildJsonObject {
@@ -146,18 +181,20 @@ object StudioAssist {
             }
         }
         val blueprint = StudioBlueprints.graph(flow, medium)
-        val nodes = blueprint.nodes.map {
-            when (it.id) {
-                "request" -> it.copy(parameters = it.parameters + ("url" to request))
-                "select" -> it.copy(parameters = mapOf("selector" to selector, "mode" to "css"))
-                "map" -> it.copy(parameters = mapOf("fields" to rules.toString()))
-                else -> it
+        val nodes =
+            blueprint.nodes.map {
+                when (it.id) {
+                    "request" -> it.copy(parameters = it.parameters + ("url" to request))
+                    "select" -> it.copy(parameters = mapOf("selector" to selector, "mode" to "css"))
+                    "map" -> it.copy(parameters = mapOf("fields" to rules.toString()))
+                    else -> it
+                }
             }
-        }
         if (nextSelector.isBlank()) return blueprint.copy(nodes = nodes)
         // A next-page control is evidence of more content, never an assumption based on item count.
         return blueprint.copy(
-            nodes = nodes +
+            nodes =
+            nodes +
                 listOf(
                     StudioNode(
                         "next",
@@ -174,7 +211,8 @@ object StudioAssist {
                         parameters = mapOf("operation" to "exists"),
                     ),
                 ),
-            wires = blueprint.wires +
+            wires =
+            blueprint.wires +
                 listOf(
                     StudioWire("parse", "value", "next", "document"),
                     StudioWire("next", "value", "hasNext", "value"),
@@ -183,7 +221,9 @@ object StudioAssist {
         )
     }
 
-    /** Adding a filter keeps the existing graph and maps human labels to observed request values. */
+    /**
+     * Adding a filter keeps the existing graph and maps human labels to observed request values.
+     */
     fun filter(
         source: StudioSource,
         title: String,
@@ -201,40 +241,55 @@ object StudioAssist {
         val id = old?.id ?: "filter${source.filters.size + 1}"
         val current = old ?: StudioFilter(id, title, options = listOf(allLabel), initial = allLabel)
         require(old == null || current.values[anyLabel] == route.initial)
-        val field = current.copy(
-            options = (current.options + label).distinct(),
-            values =
-            current.values + (label to route.value) + (anyLabel to route.initial),
-        )
+        val field =
+            current.copy(
+                options = (current.options + label).distinct(),
+                values = current.values + (label to route.value) + (anyLabel to route.initial),
+            )
         val graph = requireNotNull(source.flows[StudioFlow.SEARCH])
         val request = graph.nodes.single { it.kind == StudioKind.HTTP }
         val marker = "{{filter.$id|url}}"
         // Never overwrite an unrelated route when the user reuses a group name.
         val template = request.parameters.getValue("url")
-        require(old == null || template.contains("${URLEncoder.encode(route.parameter, "UTF-8")}=$marker"))
+        require(
+            old == null ||
+                template.contains("${URLEncoder.encode(route.parameter, "UTF-8")}=$marker"),
+        )
         return source.copy(
             filters = source.filters.filterNot { it.id == id } + field,
-            flows = source.flows +
+            flows =
+            source.flows +
                 (
-                    StudioFlow.SEARCH to graph.copy(
-                        nodes = graph.nodes.map {
-                            if (it.id ==
-                                request.id
-                            ) {
-                                it.copy(
-                                    parameters =
-                                    it.parameters + ("url" to parameter(template, route.parameter, marker)),
-                                )
-                            } else {
-                                it
-                            }
-                        },
-                    )
+                    StudioFlow.SEARCH to
+                        graph.copy(
+                            nodes =
+                            graph.nodes.map {
+                                if (it.id == request.id) {
+                                    it.copy(
+                                        parameters =
+                                        it.parameters +
+                                            (
+                                                "url" to
+                                                    parameter(
+                                                        template,
+                                                        route.parameter,
+                                                        marker,
+                                                    )
+                                                ),
+                                    )
+                                } else {
+                                    it
+                                }
+                            },
+                        )
                     ),
         )
     }
 
-    /** The selected next link must be the second page of the same query, with a single numeric parameter. */
+    /**
+     * The selected next link must be the second page of the same query, with a single numeric
+     * parameter.
+     */
     fun pagination(template: String, example: String, next: String): String {
         val route = filterRoute(example, next)
         require(route.value == "2")
@@ -243,11 +298,12 @@ object StudioAssist {
         return parameter(template, route.parameter, "{{page}}")
     }
 
-    fun filterValue(field: StudioFilter, label: String): String = if (field.kind == "multiple") {
-        label.split(',').joinToString(",") { field.values[it] ?: it }
-    } else {
-        field.values[label] ?: label
-    }
+    fun filterValue(field: StudioFilter, label: String): String =
+        if (field.kind == "multiple") {
+            label.split(',').joinToString(",") { field.values[it] ?: it }
+        } else {
+            field.values[label] ?: label
+        }
 
     /** Rendered-DOM evidence alone never proves that HTTP can reproduce the selected item. */
     fun verify(value: JsonElement, flow: StudioFlow, exampleTitle: String? = null) {
@@ -258,12 +314,20 @@ object StudioAssist {
         rows.forEach { row ->
             require(row["url"]?.studioText()?.isNotBlank() == true)
             val url = URI(row.getValue("url").studioText())
-            require(url.scheme in setOf("http", "https") && url.userInfo == null && !url.host.isNullOrBlank())
+            require(
+                url.scheme in setOf("http", "https") &&
+                    url.userInfo == null &&
+                    !url.host.isNullOrBlank(),
+            )
             if (flow != StudioFlow.CONTENT) require(!row["title"]?.studioText().isNullOrBlank())
         }
         if (!exampleTitle.isNullOrBlank()) {
             fun normalize(text: String) = text.trim().replace(Regex("\\s+"), " ")
-            require(rows.any { normalize(it["title"]?.studioText().orEmpty()) == normalize(exampleTitle) })
+            require(
+                rows.any {
+                    normalize(it["title"]?.studioText().orEmpty()) == normalize(exampleTitle)
+                },
+            )
         }
     }
 }

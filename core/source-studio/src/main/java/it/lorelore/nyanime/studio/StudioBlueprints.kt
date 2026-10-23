@@ -6,23 +6,43 @@ import kotlinx.serialization.json.put
 /** Structural starting points only. Addresses, selectors and data always come from the user. */
 object StudioBlueprints {
     const val HOME_FILTER = "Studio flow"
-    fun fields(flow: StudioFlow, medium: StudioMedium): List<String> = when (flow) {
-        StudioFlow.SEARCH, StudioFlow.POPULAR, StudioFlow.LATEST -> listOf("title", "url", "cover", "aliases")
-        StudioFlow.DETAILS -> listOf(
-            "title", "url", "cover", "background", "description", "genres", "author", "artist",
-            "status", "aliases", "anilistId", "malId",
-        )
-        StudioFlow.ENTRIES -> listOf("title", "url", "number", "uploaded", "group")
-        StudioFlow.CONTENT -> if (medium ==
-            StudioMedium.VIDEO
-        ) {
-            listOf("url", "title", "resolution", "headers", "subtitles", "audio")
-        } else {
-            listOf("url")
+
+    fun fields(flow: StudioFlow, medium: StudioMedium): List<String> =
+        when (flow) {
+            StudioFlow.SEARCH,
+            StudioFlow.POPULAR,
+            StudioFlow.LATEST,
+            -> listOf("title", "url", "cover", "aliases")
+            StudioFlow.DETAILS ->
+                listOf(
+                    "title",
+                    "url",
+                    "cover",
+                    "background",
+                    "description",
+                    "genres",
+                    "author",
+                    "artist",
+                    "status",
+                    "aliases",
+                    "anilistId",
+                    "malId",
+                )
+            StudioFlow.ENTRIES -> listOf("title", "url", "number", "uploaded", "group")
+            StudioFlow.CONTENT ->
+                if (medium == StudioMedium.NOVEL) {
+                    listOf("body", "title", "format", "resources")
+                } else if (medium == StudioMedium.VIDEO) {
+                    listOf("url", "title", "resolution", "headers", "subtitles", "audio")
+                } else {
+                    listOf("url")
+                }
         }
-    }
 
     fun graph(flow: StudioFlow, medium: StudioMedium, json: Boolean = false): StudioGraph {
+        if (flow == StudioFlow.CONTENT && medium == StudioMedium.NOVEL && !json) {
+            return novelBodyGraph()
+        }
         val request =
             StudioNode(
                 id = "request",
@@ -31,14 +51,24 @@ object StudioBlueprints {
                 y = 80f,
                 parameters = mapOf("url" to "{{url}}", "method" to "GET", "headers" to "{}"),
             )
-        val parse = StudioNode(id = "parse", kind = if (json) StudioKind.JSON else StudioKind.HTML, x = 300f, y = 80f)
+        val parse =
+            StudioNode(
+                id = "parse",
+                kind = if (json) StudioKind.JSON else StudioKind.HTML,
+                x = 300f,
+                y = 80f,
+            )
         val select =
             StudioNode(
                 id = "select",
                 kind = StudioKind.SELECT,
                 x = 568f,
                 y = 80f,
-                parameters = mapOf("selector" to if (json) "$" else "body", "mode" to if (json) "json" else "css"),
+                parameters =
+                mapOf(
+                    "selector" to if (json) "$" else "body",
+                    "mode" to if (json) "json" else "css",
+                ),
             )
         val map =
             StudioNode(
@@ -46,28 +76,39 @@ object StudioBlueprints {
                 kind = StudioKind.MAP,
                 x = 836f,
                 y = 80f,
-                parameters = mapOf(
-                    "fields" to buildJsonObject {
-                        fields(flow, medium).forEach { field ->
-                            put(
-                                field,
-                                buildJsonObject {
-                                    put("enabled", false)
-                                    put("selector", "")
-                                    if (json) put("mode", "json")
-                                    if (field in setOf("url", "cover", "background")) {
-                                        put("attribute", "href")
-                                        put("url", true)
-                                    }
-                                    if (field in
-                                        setOf("number", "uploaded", "status", "resolution", "anilistId", "malId")
-                                    ) {
-                                        put("type", "number")
-                                    }
-                                },
-                            )
+                parameters =
+                mapOf(
+                    "fields" to
+                        buildJsonObject {
+                            fields(flow, medium).forEach { field ->
+                                put(
+                                    field,
+                                    buildJsonObject {
+                                        put("enabled", false)
+                                        put("selector", "")
+                                        if (json) put("mode", "json")
+                                        if (field in setOf("url", "cover", "background")) {
+                                            put("attribute", "href")
+                                            put("url", true)
+                                        }
+                                        if (
+                                            field in
+                                            setOf(
+                                                "number",
+                                                "uploaded",
+                                                "status",
+                                                "resolution",
+                                                "anilistId",
+                                                "malId",
+                                            )
+                                        ) {
+                                            put("type", "number")
+                                        }
+                                    },
+                                )
+                            }
                         }
-                    }.toString(),
+                            .toString(),
                 ),
             )
         val output =
@@ -89,17 +130,59 @@ object StudioBlueprints {
         )
     }
 
-    fun source(medium: StudioMedium = StudioMedium.VIDEO) = StudioSource(
-        medium = medium,
-        flows = listOf(StudioFlow.SEARCH, StudioFlow.DETAILS, StudioFlow.ENTRIES, StudioFlow.CONTENT).associateWith {
-            graph(it, medium)
-        },
-    )
-
-    fun hasScripts(source: StudioSource): Boolean = (
-        source.flows.values +
-            source.homeFlows.values +
-            source.functions.map { it.graph }
+    fun source(medium: StudioMedium = StudioMedium.VIDEO) =
+        StudioSource(
+            schema = if (medium == StudioMedium.NOVEL) 2 else 1,
+            medium = medium,
+            flows =
+            listOf(
+                StudioFlow.SEARCH,
+                StudioFlow.DETAILS,
+                StudioFlow.ENTRIES,
+                StudioFlow.CONTENT,
+            )
+                .associateWith {
+                    graph(it, medium)
+                },
         )
-        .any { graph -> graph.nodes.any { it.kind == StudioKind.SCRIPT } }
+
+    fun novelBodyGraph(request: String = "{{url}}", selector: String = "body"): StudioGraph =
+        StudioGraph(
+            nodes =
+            listOf(
+                StudioNode(
+                    "request",
+                    StudioKind.HTTP,
+                    x = 32f,
+                    y = 80f,
+                    parameters = mapOf("url" to request),
+                ),
+                StudioNode("parse", StudioKind.HTML, x = 300f, y = 80f),
+                StudioNode(
+                    "body",
+                    StudioKind.NOVEL_BODY,
+                    x = 568f,
+                    y = 80f,
+                    parameters = mapOf("selector" to selector),
+                ),
+                StudioNode(
+                    "result",
+                    StudioKind.OUTPUT,
+                    x = 836f,
+                    y = 80f,
+                    parameters = mapOf("structured" to "true"),
+                ),
+            ),
+            wires =
+            listOf(
+                StudioWire("request", "body", "parse", "text"),
+                StudioWire("parse", "value", "body", "document"),
+                StudioWire("body", "value", "result", "value"),
+            ),
+        )
+
+    fun hasScripts(source: StudioSource): Boolean =
+        (source.flows.values + source.homeFlows.values + source.functions.map { it.graph }).any { graph ->
+            graph.nodes.any { it.kind == StudioKind.SCRIPT }
+        }
 }

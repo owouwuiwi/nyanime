@@ -64,6 +64,10 @@ data object LibrariesTab : AppTab {
         selectedMedium.value = LibraryMedium.Manga
     }
 
+    fun showNovels() {
+        selectedMedium.value = LibraryMedium.Novel
+    }
+
     override val options: TabOptions
         @Composable get() = TabOptions(
             index = 1u,
@@ -90,6 +94,7 @@ data object LibrariesTab : AppTab {
                         onAll = ::showAll,
                         onAnime = ::showAnime,
                         onManga = ::showManga,
+                        onNovel = ::showNovels,
                     )
                 } else {
                     LegacyLibraryHeader(
@@ -97,6 +102,7 @@ data object LibrariesTab : AppTab {
                         onAll = ::showAll,
                         onAnime = ::showAnime,
                         onManga = ::showManga,
+                        onNovel = ::showNovels,
                     )
                 }
                 LibraryMediumContent(medium)
@@ -109,6 +115,7 @@ private enum class LibraryMedium {
     All,
     Anime,
     Manga,
+    Novel,
 }
 
 @Composable
@@ -117,6 +124,7 @@ private fun ModernLibraryHeader(
     onAll: () -> Unit,
     onAnime: () -> Unit,
     onManga: () -> Unit,
+    onNovel: () -> Unit,
 ) {
     Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp)) {
         Text(
@@ -149,6 +157,12 @@ private fun ModernLibraryHeader(
                     "Manga",
                     medium == LibraryMedium.Manga,
                     onManga,
+                    Modifier.weight(1f),
+                )
+                LibraryMediumButton(
+                    androidx.compose.ui.res.stringResource(eu.kanade.tachiyomi.R.string.novel_library),
+                    medium == LibraryMedium.Novel,
+                    onNovel,
                     Modifier.weight(1f),
                 )
             }
@@ -192,6 +206,7 @@ private fun LegacyLibraryHeader(
     onAll: () -> Unit,
     onAnime: () -> Unit,
     onManga: () -> Unit,
+    onNovel: () -> Unit,
 ) {
     Text(
         stringResource(MR.strings.label_library),
@@ -220,6 +235,11 @@ private fun LegacyLibraryHeader(
             unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             text = { Text("Manga") },
         )
+        Tab(
+            selected = medium == LibraryMedium.Novel,
+            onClick = onNovel,
+            text = { Text(androidx.compose.ui.res.stringResource(eu.kanade.tachiyomi.R.string.novel_library)) },
+        )
     }
 }
 
@@ -242,6 +262,7 @@ private fun LibrariesTab.LibraryMediumContent(medium: LibraryMedium) {
             LibraryMedium.All -> AllLibrariesContent()
             LibraryMedium.Anime -> AnimeLibraryTab.Content()
             LibraryMedium.Manga -> MangaLibraryTab.LibraryContent()
+            LibraryMedium.Novel -> it.lorelore.nyanime.novel.ui.NovelShelfContent()
         }
     }
 }

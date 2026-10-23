@@ -478,6 +478,7 @@ dependencies {
     implementation(projects.core.common)
     implementation(projects.core.panels)
     implementation(projects.core.readerQuality)
+    implementation(projects.core.novelReader)
     implementation(projects.core.roomVoice)
     implementation(projects.core.telegram)
     implementation(projects.core.privacyDisplay)
@@ -576,7 +577,8 @@ dependencies {
     // UI libraries
     implementation(libs.material)
     implementation(libs.flexible.adapter.core)
-    implementation(libs.photoview)
+    // PhotoView2.3.0 is embedded byte-identically in pinned Readium navigator3.3.0.
+    // Keep its attribution; a second direct AAR would duplicate22classes.
     implementation(libs.directionalviewpager) {
         exclude(group = "androidx.viewpager", module = "viewpager")
     }

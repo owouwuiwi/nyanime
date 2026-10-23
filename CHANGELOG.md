@@ -10,6 +10,60 @@ identificano modifiche nel repository, non garantiscono che ogni commit sia stat
 distribuito come APK.
 
 
+## 23 ottobre 2026 — 0.80.0.0: romanzi e verso Nyanime 1.0
+
+### Stabilità e navigazione
+
+- Pagina sulla nuova roadmap verso Nyanime1.0.0.0: una sola volta per chi aggiorna, anche da revisioni molto vecchie, esclusa dalle prime installazioni. Testi italiani e inglesi, disposizione compatta senza scorrimento e transizioni coordinate.
+- Corretto un ciclo di inizializzazione della modalità di visualizzazione predefinita che poteva far chiudere le schede anime e altri percorsi condivisi con libreria e ricerca, a seconda dell’ordine di apertura delle schermate. Preferenze e progressi restano conservati.
+- I collegamenti relativi nelle note di aggiornamento vengono risolti rispetto alla documentazione della loro versione. Un collegamento non valido o senza un’app compatibile non causa più la chiusura dell’interfaccia.
+- Anche i collegamenti degli articoli possono essere relativi alla pagina originale; i contenuti Markdown non possono aprire file locali o collegamenti eseguibili.
+- Rimossi il pulsante Musica e la pagina di anticipazione: la funzione sarà separata in un addon. Una vecchia schermata salvata torna alla Home; sigle, ending e tracce audio rimangono disponibili.
+- Corretto il salvataggio dei filtri predefiniti delle stagioni: la scelta sui download rimane indipendente da quella sulle stagioni viste o non viste.
+- Il menu delle opzioni di un episodio gestisce le voci non più presenti nel database senza chiudere l’app. L’annullamento del caricamento non viene trasformato in un errore del menu.
+- L’indice di ricerca rimuove i vecchi termini quando cambiano titolo o alias, conservando quelli ancora dichiarati da altre voci. Gli aggiornamenti dei soli metadati evitano la reindicizzazione e il controllo della dimensione non scansiona più tutto l’indice a ogni aggiunta.
+- La ricerca per ID nella Libreria riconosce anche i prefissi `ID:`, `Id:` e `iD:`, sia per anime sia per manga.
+
+### Accesso delle fonti a Telegram
+
+- Installare una fonte che richiede Telegram non la attiva: l’accesso all’account e l’approvazione dei canali vengono guidati dal comando Attiva. Nella prima attivazione, annullamento, errori o consensi incompleti lasciano la fonte disattivata.
+- Autorizzazioni locali legate ad account, sessione, autore della fonte e canali dichiarati. Logout e revoca disattivano la fonte; una semplice perdita di rete conserva le autorizzazioni. Progressi, libri e download restano disponibili.
+- Controlli applicati anche al registro delle estensioni e alle definizioni dello Studio, oltre che all’interfaccia. L’elenco delle fonti non avvia Telegram né si iscrive ai canali; le impostazioni del sync restano indipendenti.
+- Corretto il recupero di una sessione Telegram invalidata, evitando che il controllo dell’account ripeta continuamente la verifica dell’autorizzazione.
+- Corretto il rinnovo dei permessi di una fonte Telegram già attiva: la nuova approvazione non disattiva quella precedente durante la verifica. Se il tentativo fallisce o viene annullato, i permessi validi restano disponibili; revoche e cambi di account continuano a essere rispettati.
+
+### Lettore romanzi
+
+- Lettore EPUB/TXT con Readium3.4.0: importazione verificata, originali conservati, codifica del testo selezionabile e conversione a capitoli limitati in memoria.
+- Nuova interfaccia immersiva con indice, aspetto globale e per libro, ricerca progressiva, evidenziazioni, note e segnalibri. Ripresa e rotazione conservano la posizione strutturale; l’avanzamento rimane utile anche per libri molto compressi.
+- Sezione Romanzi nella Libreria, con importazione dal selettore Android e apertura dei documenti EPUB/TXT. Il percorso degli EPUB grafici dei manga rimane distinto.
+- Romanzi anche nella Libreria Tutti, con ricerca locale, paginazione e filtri Da continuare e Solo scaricati. Un libro ricevuto dal backup richiede il ricollegamento del file prima di essere considerato disponibile offline.
+- Disponibilità offline distinta dai metadati e migrata senza perdere posizioni o note: copertine e indici online da soli non vengono contati come libri scaricati.
+- Home Romanzi con ripresa e copertine locali; nuova scheda nella cronologia, inclusi libri completati o rimossi dai preferiti. Le ricerche e il caricamento delle pagine restano limitati e non avviano richieste remote per i documenti locali.
+- Accesso diretto alla cronologia Romanzi dalla Home e comandi del lettore adattivi ai caratteri grandi, senza spezzare le etichette su più righe.
+- Archivio indipendente per libri, posizioni strutturali e note; indice di ricerca con quote e rimozione delle cache meno recenti, senza inserire dati dei romanzi nei progressi manga.
+- Metadati portabili nei backup esistenti, con anteprima dei contenuti e conservazione dei file locali durante il ripristino. Migrazione dei dati e campi opzionali delle versioni successive conservati.
+- Collegamento al Cloud con registro che conserva solo l’ultima modifica di ogni voce e confronto atomico per proteggere gli interventi offline. I file originali e la cache dei testi non vengono trasferiti.
+- Documenti locali senza richieste automatiche alla rete o esecuzione dei propri script. Attribuzioni di codice e caratteri incluse nelle licenze.
+- Famiglia opzionale di fonti Romanzi nei pacchetti esistenti: consenso all’esecuzione, identità dichiarate, compatibilità host, aggiornamenti e abilitazione condivisi con lo Store. Il vecchio formato publication resta dismesso; ricerca e lettura online usano il nuovo contratto facoltativo.
+- Runtime del lettore online: capitoli e immagini dichiarate dalla fonte, risorse interne sanificate e caricamento a richiesta con limite di concorrenza e annullamento. Cache separata e limitata, protezione dei file in lettura e accesso alla sola cache per evitare richieste implicite durante la ricerca.
+- Timeout e interruzioni dei caricamenti online vengono gestiti come errori della risorsa, senza chiudere il WebView o l’app. La chiusura durante un caricamento e il nuovo tentativo conservano il rilascio delle risorse; l’annullamento del lettore continua a interrompere il lavoro richiesto.
+- Adattatore online con indice atomico, verifica della revisione della fonte e richieste delle immagini separate dalle sessioni dell’app. Un aggiornamento dei dettagli conserva le scelte fatte nel frattempo sui preferiti.
+- Ricerca nel lettore online limitata ai capitoli già salvati e verificati, senza scaricare il romanzo per indicizzarlo. I testi modificati o rimossi dalla cache non lasciano risultati obsoleti; preparazione e indicizzazione hanno avanzamenti distinti.
+- Note e posizioni online conservano anche la versione del capitolo: una citazione appartenente a un testo cambiato non viene applicata automaticamente alla nuova versione.
+- Fonti Romanzi collegate ad Atlante, con cursori indipendenti, alias e risultati progressivi. La scheda offre preferiti, ripresa e ricerca dei capitoli; i dettagli salvati rimangono visibili se l’aggiornamento fallisce. Nessun catalogo esterno viene interrogato per i romanzi.
+- Le copertine cercate prima di aggiungere un romanzo hanno una cache separata e limitata. La copia della Libreria non dipende dalla memoria dell’interfaccia; un errore della sola immagine non trattiene il caricamento dei capitoli.
+- Download dei romanzi online con capitoli e illustrazioni verificati, separati dalla cache temporanea. Selezione, avanzamento, pausa, ripresa e rimozione sono collegati alla scheda e alla sezione Romanzi dei Download; le copie disponibili restano leggibili senza fonte o rete.
+- Anteprime del lettore con archivio, note, progressi e ricerca temporanei separati dalla Libreria e dal Cloud. Il nucleo attende il completamento delle scritture e il rilascio delle pubblicazioni prima della pulizia; lo Studio apre il vero lettore senza salvare dati di prova nella raccolta.
+- Preparazione progressiva degli indici Romanzi dello Studio, con conteggi reali, pausa e ripresa. Gli indici già completi rimangono disponibili durante un aggiornamento; una scansione interrotta conserva il punto da cui ripartire. Anteprima e fonte attiva mantengono autorizzazioni separate.
+- Le impostazioni delle fonti Romanzi importate offrono Esplora per aprire direttamente ciascuna fonte abilitata, senza dover passare dalla ricerca generale.
+- Home Romanzi con sezioni dichiarate dalle fonti attive; capitoli e indice raggruppati in sezioni espandibili mantenendo identità e progressi. Nessuna ricerca vuota o regola specifica di una fonte nell’app.
+- L’importazione Legado è rinviata a una consegna futura. PDF, TTS, OCR e traduzione non fanno parte di questo aggiornamento.
+
+### Aggiornamenti
+
+- Nuovo checkpoint completo con cinque APK firmati e patch dagli APK pubblici precedenti. Le rotte OTA delle versioni più vecchie restano disponibili; firma e integrità vengono verificate prima dell’installazione.
+
 ## 21 ottobre 2026 — 0.55.0.0: libreria, schede e lettore manga
 
 ### Libreria e schede

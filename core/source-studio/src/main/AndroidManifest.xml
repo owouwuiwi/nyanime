@@ -1,6 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application>
         <service
+            android:name="it.lorelore.nyanime.studio.document.StudioDocumentWorkerService"
+            android:exported="false"
+            android:isolatedProcess="true"
+            android:process=":source_document_worker" />
+        <service
             android:name="it.lorelore.nyanime.studio.StudioScriptService"
             android:exported="false"
             android:isolatedProcess="true"

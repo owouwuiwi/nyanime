@@ -149,7 +149,8 @@ import uy.kohesive.injekt.injectLazy
 
 val LocalFloatingNavigationInset = compositionLocalOf { 0.dp }
 
-internal val LocalSelectHomeTab = compositionLocalOf<(eu.kanade.presentation.util.Tab) -> Unit> { {} }
+internal val LocalSelectHomeTab =
+    compositionLocalOf<(eu.kanade.presentation.util.Tab) -> Unit> { {} }
 private val LocalCloseUnifiedSearch = compositionLocalOf<() -> Unit> { {} }
 
 object HomeScreen : Screen() {
@@ -175,7 +176,8 @@ object HomeScreen : Screen() {
         val navStyle = eu.kanade.domain.ui.model.NavStyle.DISCOVERY
         val navigator = LocalNavigator.currentOrThrow
         // A retained Home can still be composed behind the next destination during navigation.
-        // Only the active Home route may own the room/Cast controllers; MainActivity owns other routes.
+        // Only the active Home route may own the room/Cast controllers; MainActivity owns other
+        // routes.
         val ownsMiniControllers = navigator.lastItem is HomeScreen && navigator.lastItem.key == key
         val unifiedSearch = rememberScreenModel { UnifiedSearchScreenModel() }
         val news = rememberScreenModel { eu.kanade.tachiyomi.ui.news.NewsScreenModel() }
@@ -191,14 +193,17 @@ object HomeScreen : Screen() {
             var originTag by rememberSaveable { mutableStateOf(navigationTag(defaultTab)) }
             val closeUnifiedSearch: () -> Unit = {
                 if (newsSearch) news.closeSearch() else unifiedSearch.close()
-                tabNavigator.current = (navStyle.visibleTabs + navStyle.overflowTabs)
-                    .firstOrNull { navigationTag(it) == originTag } ?: defaultTab
+                tabNavigator.current =
+                    (navStyle.visibleTabs + navStyle.overflowTabs).firstOrNull {
+                        navigationTag(it) == originTag
+                    } ?: defaultTab
             }
             val selectTab: (eu.kanade.presentation.util.Tab) -> Unit = { tab ->
                 if (tab == UnifiedSearchTab) {
                     if (tabNavigator.current != UnifiedSearchTab) {
                         originTag = navigationTag(tabNavigator.current)
-                        newsSearch = tabNavigator.current == DiscoveryTab && DiscoveryTab.newsSelected.value
+                        newsSearch =
+                            tabNavigator.current == DiscoveryTab && DiscoveryTab.newsSelected.value
                         if (newsSearch) news.openSearch() else unifiedSearch.open()
                     }
                 } else if (tabNavigator.current == UnifiedSearchTab) {
@@ -207,17 +212,23 @@ object HomeScreen : Screen() {
                 tabNavigator.current = tab
             }
             val searching = tabNavigator.current == UnifiedSearchTab
-            val notificationAccess by rememberNotificationAccess(
-                ownsMiniControllers && (tabNavigator.current == DiscoveryTab || searching),
-            )
+            val notificationAccess by
+                rememberNotificationAccess(
+                    ownsMiniControllers && (tabNavigator.current == DiscoveryTab || searching),
+                )
             LaunchedEffect(searching) {
                 if (searching && newsSearch && !news.state.value.searching) news.openSearch()
-                if (searching && !newsSearch && !unifiedSearch.state.value.open) unifiedSearch.open()
+                if (searching && !newsSearch && !unifiedSearch.state.value.open) {
+                    unifiedSearch.open()
+                }
                 if (!searching && unifiedSearch.state.value.open) unifiedSearch.close()
             }
             val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
             BackHandler(enabled = searching && !imeVisible, onBack = closeUnifiedSearch)
-            if (upgradeNoticeState == UnifiedSearchUpgradeNotice.PENDING && navigator.lastItem == HomeScreen) {
+            if (
+                upgradeNoticeState == UnifiedSearchUpgradeNotice.PENDING &&
+                navigator.lastItem == HomeScreen
+            ) {
                 UnifiedSearchUpgradeDialog(
                     onDismiss = upgradeNotice::acknowledge,
                     onSearch = {
@@ -240,36 +251,51 @@ object HomeScreen : Screen() {
                     LocalCloseUnifiedSearch provides closeUnifiedSearch,
                     LocalNotificationAccess provides notificationAccess,
                 ) {
-                    val bottomNavVisible by produceState(initialValue = true) {
-                        showBottomNavEvent.receiveAsFlow().collectLatest { value = it }
-                    }
-                    val showNavigation = (searching || !isTabletUi()) &&
-                        bottomNavVisible &&
-                        (tabNavigator.current !in navStyle.overflowTabs || tabNavigator.current == BrowseTab)
-                    BoxWithConstraints(Modifier.fillMaxSize()) {
-                        val compactNavigation = maxWidth - 24.dp < 350.dp || LocalDensity.current.fontScale > 1.3f
-                        val systemNavigationInset = with(LocalDensity.current) {
-                            WindowInsets.navigationBars.getBottom(this).toDp()
+                    val bottomNavVisible by
+                        produceState(initialValue = true) {
+                            showBottomNavEvent.receiveAsFlow().collectLatest { value = it }
                         }
+                    val showNavigation =
+                        (searching || !isTabletUi()) &&
+                            bottomNavVisible &&
+                            (
+                                tabNavigator.current !in navStyle.overflowTabs ||
+                                    tabNavigator.current == BrowseTab
+                                )
+                    BoxWithConstraints(Modifier.fillMaxSize()) {
+                        val compactNavigation =
+                            maxWidth - 24.dp < 350.dp || LocalDensity.current.fontScale > 1.3f
+                        val systemNavigationInset =
+                            with(LocalDensity.current) {
+                                WindowInsets.navigationBars.getBottom(this).toDp()
+                            }
                         var measuredFooter by remember { mutableStateOf(0.dp) }
                         val density = LocalDensity.current
                         var measuredHeader by remember { mutableStateOf(0.dp) }
-                        val headerInset = measuredHeader.takeIf { it > 0.dp } ?: with(density) {
-                            WindowInsets.statusBars.getTop(this).toDp() + 54.dp
-                        }
-                        val showHeader = modern && (tabNavigator.current == DiscoveryTab || searching)
-                        val floatingInset = if (modern && showNavigation && measuredFooter > 0.dp) {
-                            measuredFooter
-                        } else if (modern && showNavigation) {
-                            (if (compactNavigation) 60.dp else 68.dp) + 26.dp + systemNavigationInset
-                        } else {
-                            0.dp
-                        }
+                        val headerInset =
+                            measuredHeader.takeIf { it > 0.dp }
+                                ?: with(density) {
+                                    WindowInsets.statusBars.getTop(this).toDp() + 54.dp
+                                }
+                        val showHeader =
+                            modern && (tabNavigator.current == DiscoveryTab || searching)
+                        val floatingInset =
+                            if (modern && showNavigation && measuredFooter > 0.dp) {
+                                measuredFooter
+                            } else if (modern && showNavigation) {
+                                (if (compactNavigation) 60.dp else 68.dp) +
+                                    26.dp +
+                                    systemNavigationInset
+                            } else {
+                                0.dp
+                            }
                         Scaffold(
                             modifier = Modifier.semantics { testTagsAsResourceId = true },
                             startBar = {
                                 if (isTabletUi()) {
-                                    NavigationRail(modifier = Modifier.posterForeground(zIndex = 3f)) {
+                                    NavigationRail(
+                                        modifier = Modifier.posterForeground(zIndex = 3f),
+                                    ) {
                                         navStyle.visibleTabs.fastForEach {
                                             NavigationRailItem(it)
                                         }
@@ -291,8 +317,8 @@ object HomeScreen : Screen() {
                             contentWindowInsets = WindowInsets(0),
                         ) { contentPadding ->
                             Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
+                                modifier =
+                                Modifier.fillMaxSize()
                                     .padding(contentPadding)
                                     .consumeWindowInsets(contentPadding),
                             ) {
@@ -302,11 +328,15 @@ object HomeScreen : Screen() {
                                         if (modern) {
                                             ModernMotion.transform(motion).using(null)
                                         } else {
-                                            val exit = materialFadeThroughOut(durationMillis = TAB_FADE_DURATION)
-                                            val fade = materialFadeThroughIn(
-                                                initialScale = 1f,
-                                                durationMillis = TAB_FADE_DURATION,
-                                            ) togetherWith exit
+                                            val exit =
+                                                materialFadeThroughOut(
+                                                    durationMillis = TAB_FADE_DURATION,
+                                                )
+                                            val fade =
+                                                materialFadeThroughIn(
+                                                    initialScale = 1f,
+                                                    durationMillis = TAB_FADE_DURATION,
+                                                ) togetherWith exit
                                             fade
                                         }
                                     },
@@ -314,16 +344,24 @@ object HomeScreen : Screen() {
                                 ) {
                                     tabNavigator.saveableState(key = "currentTab", it) {
                                         CompositionLocalProvider(
-                                            LocalHomeContentActive provides (it == tabNavigator.current),
+                                            LocalHomeContentActive provides
+                                                (it == tabNavigator.current),
                                             LocalFloatingNavigationInset provides floatingInset,
-                                            LocalHomeContinuity provides if (modern) continuity else null,
+                                            LocalHomeContinuity provides
+                                                if (modern) continuity else null,
                                             LocalHomeLogoInset provides
-                                                if (modern && it == DiscoveryTab) headerInset else 0.dp,
+                                                if (modern && it == DiscoveryTab) {
+                                                    headerInset
+                                                } else {
+                                                    0.dp
+                                                },
                                         ) {
                                             val pinned = modern && it == UnifiedSearchTab
                                             Box(
                                                 Modifier.fillMaxSize()
-                                                    .padding(top = if (pinned) headerInset else 0.dp)
+                                                    .padding(
+                                                        top = if (pinned) headerInset else 0.dp,
+                                                    )
                                                     .testTag("content_${navigationTag(it)}"),
                                             ) {
                                                 it.Content()
@@ -333,8 +371,12 @@ object HomeScreen : Screen() {
                                 }
                                 AnimatedVisibility(
                                     visible = showHeader,
-                                    enter = ModernMotion.enter(if (motion) ModernMotion.PAGE_MILLIS else 0),
-                                    exit = fadeOut(tween(if (motion) ModernMotion.EXIT_MILLIS else 0)),
+                                    enter =
+                                    ModernMotion.enter(
+                                        if (motion) ModernMotion.PAGE_MILLIS else 0,
+                                    ),
+                                    exit =
+                                    fadeOut(tween(if (motion) ModernMotion.EXIT_MILLIS else 0)),
                                     modifier = Modifier.align(Alignment.TopCenter),
                                 ) {
                                     PersistentDiscoveryHeader(
@@ -342,7 +384,9 @@ object HomeScreen : Screen() {
                                         unifiedSearch,
                                         searching,
                                         motion,
-                                        Modifier.onSizeChanged { measuredHeader = with(density) { it.height.toDp() } },
+                                        Modifier.onSizeChanged {
+                                            measuredHeader = with(density) { it.height.toDp() }
+                                        },
                                     )
                                 }
                             }
@@ -355,7 +399,8 @@ object HomeScreen : Screen() {
                                 tabNavigator.current,
                                 navStyle.visibleTabs,
                                 ownsMiniControllers = ownsMiniControllers,
-                                modifier = Modifier.align(Alignment.BottomCenter).onSizeChanged {
+                                modifier =
+                                Modifier.align(Alignment.BottomCenter).onSizeChanged {
                                     measuredFooter = with(density) { it.height.toDp() }
                                 },
                             )
@@ -375,7 +420,8 @@ object HomeScreen : Screen() {
                 tabNavigator.current = defaultTab
             }
             BackHandler(
-                enabled = tabNavigator.current != defaultTab && tabNavigator.current != UnifiedSearchTab,
+                enabled =
+                tabNavigator.current != defaultTab && tabNavigator.current != UnifiedSearchTab,
                 onBack = goToStartScreen,
             )
 
@@ -394,25 +440,26 @@ object HomeScreen : Screen() {
                 }
                 launch {
                     openTabEvent.receiveAsFlow().collectLatest {
-                        tabNavigator.current = when (it) {
-                            is Tab.Home -> eu.kanade.tachiyomi.ui.discovery.DiscoveryTab
-                            is Tab.AnimeLib -> LibrariesTab.also { LibrariesTab.showAnime() }
-                            is Tab.Library -> LibrariesTab.also { LibrariesTab.showManga() }
-                            is Tab.Releases -> eu.kanade.tachiyomi.ui.releases.ReleasesTab
-                            is Tab.Updates -> UpdatesTab
-                            is Tab.History -> HistoriesTab
-                            is Tab.Browse -> {
-                                if (it.toExtensions) {
-                                    if (!it.anime) {
-                                        BrowseTab.showExtension()
-                                    } else {
-                                        BrowseTab.showAnimeExtension()
+                        tabNavigator.current =
+                            when (it) {
+                                is Tab.Home -> eu.kanade.tachiyomi.ui.discovery.DiscoveryTab
+                                is Tab.AnimeLib -> LibrariesTab.also { LibrariesTab.showAnime() }
+                                is Tab.Library -> LibrariesTab.also { LibrariesTab.showManga() }
+                                is Tab.Releases -> eu.kanade.tachiyomi.ui.releases.ReleasesTab
+                                is Tab.Updates -> UpdatesTab
+                                is Tab.History -> HistoriesTab
+                                is Tab.Browse -> {
+                                    if (it.toExtensions) {
+                                        if (!it.anime) {
+                                            BrowseTab.showExtension()
+                                        } else {
+                                            BrowseTab.showAnimeExtension()
+                                        }
                                     }
+                                    BrowseTab
                                 }
-                                BrowseTab
+                                is Tab.More -> MoreTab
                             }
-                            is Tab.More -> MoreTab
-                        }
 
                         if (it is Tab.AnimeLib && it.animeIdToOpen != null) {
                             navigator.push(AnimeScreen(it.animeIdToOpen))
@@ -439,7 +486,9 @@ object HomeScreen : Screen() {
     ) {
         val state by host.state.collectAsState()
         Row(
-            modifier.fillMaxWidth().posterForeground(zIndex = 3f)
+            modifier
+                .fillMaxWidth()
+                .posterForeground(zIndex = 3f)
                 .background(
                     androidx.compose.ui.graphics.Brush.verticalGradient(
                         0f to MaterialTheme.colorScheme.background,
@@ -447,7 +496,9 @@ object HomeScreen : Screen() {
                         1f to MaterialTheme.colorScheme.background.copy(alpha = 0f),
                     ),
                 )
-                .statusBarsPadding().heightIn(min = 54.dp).padding(horizontal = 16.dp),
+                .statusBarsPadding()
+                .heightIn(min = 54.dp)
+                .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             eu.kanade.tachiyomi.ui.addon.AddonModeGesture(Modifier.weight(1f)) {
@@ -461,18 +512,24 @@ object HomeScreen : Screen() {
                 if (search) {
                     val newsMode = eu.kanade.tachiyomi.ui.news.LocalNewsSearch.current
                     val navigator = LocalNavigator.currentOrThrow
-                    IconButton(onClick = {
-                        if (newsMode) {
-                            navigator.push(
-                                eu.kanade.tachiyomi.ui.news.NewsSourcesScreen(),
-                            )
-                        } else {
-                            unifiedSearch.showPanel(UnifiedSearchPanel.SETTINGS)
-                        }
-                    }) {
+                    IconButton(
+                        onClick = {
+                            if (newsMode) {
+                                navigator.push(eu.kanade.tachiyomi.ui.news.NewsSourcesScreen())
+                            } else {
+                                unifiedSearch.showPanel(UnifiedSearchPanel.SETTINGS)
+                            }
+                        },
+                    ) {
                         Icon(
                             Icons.Outlined.Tune,
-                            stringResource(if (newsMode) R.string.news_manage else R.string.unified_search_settings),
+                            stringResource(
+                                if (newsMode) {
+                                    R.string.news_manage
+                                } else {
+                                    R.string.unified_search_settings
+                                },
+                            ),
                         )
                     }
                 } else {
@@ -487,7 +544,6 @@ object HomeScreen : Screen() {
             }
             eu.kanade.tachiyomi.ui.watch.WatchTogetherButton()
             NotificationAccessWarningButton()
-            it.lorelore.nyanime.music.MusicComingSoonButton()
         }
     }
 
@@ -503,25 +559,29 @@ object HomeScreen : Screen() {
     ) {
         val searching = currentTab == UnifiedSearchTab
         val unifiedSearch = LocalUnifiedSearch.current
-        Column(modifier.posterForeground(zIndex = 3f).then(if (searching) Modifier.imePadding() else Modifier)) {
+        Column(
+            modifier
+                .posterForeground(zIndex = 3f)
+                .then(if (searching) Modifier.imePadding() else Modifier),
+        ) {
             if (currentTab != MoreTab) ReadyAppUpdateSurface(allowDismiss = true)
             if (ownsMiniControllers) {
-                eu.kanade.tachiyomi.ui.watch.WatchMiniController(includeNavigationInsets = !showNavigation)
+                eu.kanade.tachiyomi.ui.watch.WatchMiniController(
+                    includeNavigationInsets = !showNavigation,
+                )
                 CastMiniController(includeNavigationInsets = !showNavigation)
             }
             AnimatedVisibility(
                 visible = showNavigation,
-                enter = if (modern) {
-                    expandVertically(
-                        tween(if (motion) ModernMotion.RESIZE_MILLIS else 0),
-                    )
+                enter =
+                if (modern) {
+                    expandVertically(tween(if (motion) ModernMotion.RESIZE_MILLIS else 0))
                 } else {
                     expandVertically()
                 },
-                exit = if (modern) {
-                    shrinkVertically(
-                        tween(if (motion) ModernMotion.RESIZE_MILLIS else 0),
-                    )
+                exit =
+                if (modern) {
+                    shrinkVertically(tween(if (motion) ModernMotion.RESIZE_MILLIS else 0))
                 } else {
                     shrinkVertically()
                 },
@@ -530,24 +590,37 @@ object HomeScreen : Screen() {
                     Column {
                         AnimatedVisibility(
                             visible = searching,
-                            enter = fadeIn(tween(if (motion) ModernMotion.PAGE_MILLIS else 0)) +
-                                expandVertically(tween(if (motion) ModernMotion.RESIZE_MILLIS else 0)),
-                            exit = fadeOut(tween(if (motion) ModernMotion.EXIT_MILLIS else 0)) +
-                                shrinkVertically(tween(if (motion) ModernMotion.RESIZE_MILLIS else 0)),
+                            enter =
+                            fadeIn(tween(if (motion) ModernMotion.PAGE_MILLIS else 0)) +
+                                expandVertically(
+                                    tween(if (motion) ModernMotion.RESIZE_MILLIS else 0),
+                                ),
+                            exit =
+                            fadeOut(tween(if (motion) ModernMotion.EXIT_MILLIS else 0)) +
+                                shrinkVertically(
+                                    tween(if (motion) ModernMotion.RESIZE_MILLIS else 0),
+                                ),
                         ) {
                             Box(
-                                Modifier.fillMaxWidth().background(
-                                    Brush.verticalGradient(
-                                        listOf(
-                                            MaterialTheme.colorScheme.background.copy(alpha = 0f),
-                                            MaterialTheme.colorScheme.background.copy(alpha = 0.65f),
+                                Modifier.fillMaxWidth()
+                                    .background(
+                                        Brush.verticalGradient(
+                                            listOf(
+                                                MaterialTheme.colorScheme.background.copy(
+                                                    alpha = 0f,
+                                                ),
+                                                MaterialTheme.colorScheme.background.copy(
+                                                    alpha = 0.65f,
+                                                ),
+                                            ),
                                         ),
                                     ),
-                                ),
                             ) {
                                 if (eu.kanade.tachiyomi.ui.news.LocalNewsSearch.current) {
                                     eu.kanade.tachiyomi.ui.news.NewsFilterBar(
-                                        requireNotNull(eu.kanade.tachiyomi.ui.news.LocalNewsModel.current),
+                                        requireNotNull(
+                                            eu.kanade.tachiyomi.ui.news.LocalNewsModel.current,
+                                        ),
                                     )
                                 } else if (unifiedSearch != null) {
                                     UnifiedSearchGenreBar(unifiedSearch)
@@ -574,23 +647,25 @@ object HomeScreen : Screen() {
         val motion = modernMotionEnabled()
         val selectTab = LocalSelectHomeTab.current
         Box(
-            Modifier.fillMaxWidth().navigationBarsPadding()
+            Modifier.fillMaxWidth()
+                .navigationBarsPadding()
                 .padding(horizontal = 12.dp, vertical = 8.dp),
         ) {
             NyanimeFloatingSurface(
-                modifier = Modifier.fillMaxWidth().shadow(
-                    elevation = 12.dp,
-                    shape = shape,
-                    ambientColor = Color.Black.copy(alpha = 0.32f),
-                    spotColor = Color.Black.copy(alpha = 0.22f),
-                ),
+                modifier =
+                Modifier.fillMaxWidth()
+                    .shadow(
+                        elevation = 12.dp,
+                        shape = shape,
+                        ambientColor = Color.Black.copy(alpha = 0.32f),
+                        spotColor = Color.Black.copy(alpha = 0.22f),
+                    ),
                 shape = shape,
             ) {
                 BoxWithConstraints {
                     val compact = maxWidth < 350.dp || LocalDensity.current.fontScale > 1.3f
                     Row(
-                        Modifier.fillMaxWidth()
-                            .padding(5.dp),
+                        Modifier.fillMaxWidth().padding(5.dp),
                         horizontalArrangement = Arrangement.spacedBy(2.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -601,7 +676,10 @@ object HomeScreen : Screen() {
                         ) { searching ->
                             if (searching) {
                                 if (eu.kanade.tachiyomi.ui.news.LocalNewsSearch.current) {
-                                    val newsModel = requireNotNull(eu.kanade.tachiyomi.ui.news.LocalNewsModel.current)
+                                    val newsModel =
+                                        requireNotNull(
+                                            eu.kanade.tachiyomi.ui.news.LocalNewsModel.current,
+                                        )
                                     val newsState by newsModel.state.collectAsState()
                                     eu.kanade.tachiyomi.ui.search.UnifiedSearchQueryBar(
                                         newsState.query,
@@ -621,7 +699,10 @@ object HomeScreen : Screen() {
                                     )
                                 }
                             } else {
-                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                ) {
                                     tabs.fastForEach { FloatingNavigationItem(it, compact) }
                                 }
                             }
@@ -633,7 +714,10 @@ object HomeScreen : Screen() {
     }
 
     @Composable
-    private fun RowScope.FloatingNavigationItem(tab: eu.kanade.presentation.util.Tab, compact: Boolean) {
+    private fun RowScope.FloatingNavigationItem(
+        tab: eu.kanade.presentation.util.Tab,
+        compact: Boolean,
+    ) {
         val tabNavigator = LocalTabNavigator.current
         val navigator = LocalNavigator.currentOrThrow
         val scope = rememberCoroutineScope()
@@ -644,22 +728,25 @@ object HomeScreen : Screen() {
         val browseTitle = BrowseTab.options.title
         val motion = modernMotionEnabled()
         val dark = LocalDarkTheme.current
-        val scale by animateFloatAsState(
-            if (selected) 1.1f else 1f,
-            tween(if (motion) 180 else 0),
-            label = "floatingTabScale",
-        )
-        val contentColor by animateColorAsState(
-            if (dark) {
-                if (selected) Color.White else Color.White.copy(alpha = 0.68f)
-            } else {
-                if (selected) Color(0xFFB64008) else Color(0xFF44352D)
-            },
-            tween(if (motion) 180 else 0),
-            label = "floatingTabColor",
-        )
+        val scale by
+            animateFloatAsState(
+                if (selected) 1.1f else 1f,
+                tween(if (motion) 180 else 0),
+                label = "floatingTabScale",
+            )
+        val contentColor by
+            animateColorAsState(
+                if (dark) {
+                    if (selected) Color.White else Color.White.copy(alpha = 0.68f)
+                } else {
+                    if (selected) Color(0xFFB64008) else Color(0xFF44352D)
+                },
+                tween(if (motion) 180 else 0),
+                label = "floatingTabColor",
+            )
         Column(
-            Modifier.weight(1f).heightIn(min = if (compact) 60.dp else 68.dp)
+            Modifier.weight(1f)
+                .heightIn(min = if (compact) 60.dp else 68.dp)
                 .clip(RoundedCornerShape(27.dp))
                 .combinedClickable(
                     onLongClick = if (tab == UnifiedSearchTab) ({ selectTab(BrowseTab) }) else null,
@@ -688,12 +775,15 @@ object HomeScreen : Screen() {
                             scaleX = scale
                             scaleY = scale
                         },
-                    ) { NavigationIconItem(tab) }
+                    ) {
+                        NavigationIconItem(tab)
+                    }
                 }
             }
             Text(
                 title,
-                modifier = Modifier.padding(horizontal = 6.dp).graphicsLayer {
+                modifier =
+                Modifier.padding(horizontal = 6.dp).graphicsLayer {
                     scaleX = scale
                     scaleY = scale
                 },
@@ -714,7 +804,8 @@ object HomeScreen : Screen() {
         val selectTab = LocalSelectHomeTab.current
         val selected = tabNavigator.current::class == tab::class
         NavigationBarItem(
-            colors = if (LocalNyanimeStyle.current) {
+            colors =
+            if (LocalNyanimeStyle.current) {
                 NavigationBarItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.onSurface,
                     selectedTextColor = MaterialTheme.colorScheme.onSurface,
@@ -725,7 +816,8 @@ object HomeScreen : Screen() {
             } else {
                 NavigationBarItemDefaults.colors()
             },
-            modifier = Modifier.semantics { testTagsAsResourceId = true }.testTag(navigationTag(tab)),
+            modifier =
+            Modifier.semantics { testTagsAsResourceId = true }.testTag(navigationTag(tab)),
             selected = selected,
             onClick = {
                 if (!selected) {
@@ -738,7 +830,8 @@ object HomeScreen : Screen() {
             label = {
                 Text(
                     text = tab.options.title,
-                    style = if (LocalNyanimeStyle.current) {
+                    style =
+                    if (LocalNyanimeStyle.current) {
                         MaterialTheme.typography.labelMedium
                     } else {
                         MaterialTheme.typography.labelLarge
@@ -759,7 +852,8 @@ object HomeScreen : Screen() {
         val selectTab = LocalSelectHomeTab.current
         val selected = tabNavigator.current::class == tab::class
         NavigationRailItem(
-            colors = if (LocalNyanimeStyle.current) {
+            colors =
+            if (LocalNyanimeStyle.current) {
                 NavigationRailItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.onSurface,
                     selectedTextColor = MaterialTheme.colorScheme.onSurface,
@@ -768,7 +862,8 @@ object HomeScreen : Screen() {
             } else {
                 NavigationRailItemDefaults.colors()
             },
-            modifier = Modifier.semantics { testTagsAsResourceId = true }.testTag(navigationTag(tab)),
+            modifier =
+            Modifier.semantics { testTagsAsResourceId = true }.testTag(navigationTag(tab)),
             selected = selected,
             onClick = {
                 if (!selected) {
@@ -781,7 +876,8 @@ object HomeScreen : Screen() {
             label = {
                 Text(
                     text = tab.options.title,
-                    style = if (LocalNyanimeStyle.current) {
+                    style =
+                    if (LocalNyanimeStyle.current) {
                         MaterialTheme.typography.labelMedium
                     } else {
                         MaterialTheme.typography.labelLarge
@@ -802,23 +898,30 @@ object HomeScreen : Screen() {
                     UpdatesTab::class.isInstance(tab) ||
                         (
                             tab == eu.kanade.tachiyomi.ui.discovery.DiscoveryTab &&
-                                uiPreferences.navStyle().get() == eu.kanade.domain.ui.model.NavStyle.DISCOVERY
+                                uiPreferences.navStyle().get() ==
+                                eu.kanade.domain.ui.model.NavStyle.DISCOVERY
                             ) -> {
-                        val count by produceState(initialValue = 0) {
-                            val pref = Injekt.get<LibraryPreferences>()
-                            combine(
-                                pref.newAnimeUpdatesCount().changes(),
-                                pref.newMangaUpdatesCount().changes(),
-                            ) { countAnime, countManga -> countAnime + countManga }
-                                .collectLatest { value = if (pref.newShowUpdatesCount().get()) it else 0 }
-                        }
+                        val count by
+                            produceState(initialValue = 0) {
+                                val pref = Injekt.get<LibraryPreferences>()
+                                combine(
+                                    pref.newAnimeUpdatesCount().changes(),
+                                    pref.newMangaUpdatesCount().changes(),
+                                ) { countAnime, countManga ->
+                                    countAnime + countManga
+                                }
+                                    .collectLatest {
+                                        value = if (pref.newShowUpdatesCount().get()) it else 0
+                                    }
+                            }
                         if (count > 0) {
                             Badge {
-                                val desc = pluralStringResource(
-                                    MR.plurals.notification_chapters_generic,
-                                    count = count,
-                                    count,
-                                )
+                                val desc =
+                                    pluralStringResource(
+                                        MR.plurals.notification_chapters_generic,
+                                        count = count,
+                                        count,
+                                    )
                                 Text(
                                     text = count.toString(),
                                     modifier = Modifier.semantics { contentDescription = desc },
@@ -827,21 +930,25 @@ object HomeScreen : Screen() {
                         }
                     }
                     BrowseTab::class.isInstance(tab) -> {
-                        val count by produceState(initialValue = 0) {
-                            val pref = Injekt.get<SourcePreferences>()
-                            combine(
-                                pref.mangaExtensionUpdatesCount().changes(),
-                                pref.animeExtensionUpdatesCount().changes(),
-                            ) { extCount, animeExtCount -> extCount + animeExtCount }
-                                .collectLatest { value = it }
-                        }
+                        val count by
+                            produceState(initialValue = 0) {
+                                val pref = Injekt.get<SourcePreferences>()
+                                combine(
+                                    pref.mangaExtensionUpdatesCount().changes(),
+                                    pref.animeExtensionUpdatesCount().changes(),
+                                ) { extCount, animeExtCount ->
+                                    extCount + animeExtCount
+                                }
+                                    .collectLatest { value = it }
+                            }
                         if (count > 0) {
                             Badge {
-                                val desc = pluralStringResource(
-                                    MR.plurals.update_check_notification_ext_updates,
-                                    count = count,
-                                    count,
-                                )
+                                val desc =
+                                    pluralStringResource(
+                                        MR.plurals.update_check_notification_ext_updates,
+                                        count = count,
+                                        count,
+                                    )
                                 Text(
                                     text = count.toString(),
                                     modifier = Modifier.semantics { contentDescription = desc },
@@ -859,17 +966,18 @@ object HomeScreen : Screen() {
         }
     }
 
-    private fun navigationTag(tab: cafe.adriel.voyager.navigator.tab.Tab) = when (tab) {
-        eu.kanade.tachiyomi.ui.releases.ReleasesTab -> "releases"
-        LibrariesTab -> "libraries"
-        AnimeLibraryTab -> "library_anime"
-        MangaLibraryTab -> "library_manga"
-        UnifiedSearchTab -> "search"
-        BrowseTab -> "browse"
-        MoreTab -> "more"
-        eu.kanade.tachiyomi.ui.discovery.DiscoveryTab -> "discovery"
-        else -> "navigation_other"
-    }
+    private fun navigationTag(tab: cafe.adriel.voyager.navigator.tab.Tab) =
+        when (tab) {
+            eu.kanade.tachiyomi.ui.releases.ReleasesTab -> "releases"
+            LibrariesTab -> "libraries"
+            AnimeLibraryTab -> "library_anime"
+            MangaLibraryTab -> "library_manga"
+            UnifiedSearchTab -> "search"
+            BrowseTab -> "browse"
+            MoreTab -> "more"
+            eu.kanade.tachiyomi.ui.discovery.DiscoveryTab -> "discovery"
+            else -> "navigation_other"
+        }
 
     suspend fun search(query: String) {
         librarySearchEvent.send(query)
@@ -885,12 +993,19 @@ object HomeScreen : Screen() {
 
     sealed interface Tab {
         data object Home : Tab
+
         data class AnimeLib(val animeIdToOpen: Long? = null) : Tab
+
         data class Library(val mangaIdToOpen: Long? = null) : Tab
+
         data object Releases : Tab
+
         data object Updates : Tab
+
         data object History : Tab
+
         data class Browse(val toExtensions: Boolean = false, val anime: Boolean = false) : Tab
+
         data class More(val toDownloads: Boolean) : Tab
     }
 }

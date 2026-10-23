@@ -49,6 +49,7 @@ object RinSessions {
                 if (activity is PlayerActivity ||
                     activity is eu.kanade.tachiyomi.ui.tv.TvPlayerActivity ||
                     activity is ReaderActivity ||
+                    activity is it.lorelore.nyanime.novel.ui.NovelReaderActivity ||
                     activity is eu.kanade.tachiyomi.data.addon.RinAddonActivity
                 ) {
                     activities += activity

@@ -3,9 +3,13 @@ package tachiyomi.domain.library.model
 sealed interface LibraryDisplayMode {
 
     data object CompactGrid : LibraryDisplayMode
+
     data object ComfortableGrid : LibraryDisplayMode
+
     data object List : LibraryDisplayMode
+
     data object Shelf : LibraryDisplayMode
+
     data object CoverOnlyGrid : LibraryDisplayMode
 
     object Serializer {
@@ -20,7 +24,11 @@ sealed interface LibraryDisplayMode {
 
     companion object {
         val values by lazy { setOf(CompactGrid, ComfortableGrid, List, Shelf, CoverOnlyGrid) }
-        val default = CompactGrid
+
+        // An implementing singleton can initialize this interface before its INSTANCE is assigned.
+        // Do not retain that partially initialized value as the default for the whole process.
+        val default
+            get() = CompactGrid
 
         fun deserialize(serialized: String): LibraryDisplayMode {
             return when (serialized) {

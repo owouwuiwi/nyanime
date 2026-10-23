@@ -60,15 +60,20 @@ import com.halilibo.richtext.ui.material3.RichText
 import com.halilibo.richtext.ui.string.RichTextStringStyle
 import eu.kanade.presentation.motion.ModernMotion
 import eu.kanade.presentation.motion.appMotionEnabled
+import eu.kanade.presentation.util.ProvideDocumentLinks
 import eu.kanade.tachiyomi.R
 
 @Composable
 internal fun UpdateOverview(installed: String, target: String, notes: List<UpdateVersionNotes>) {
     val colors = MaterialTheme.colorScheme
-    val counts = remember(notes) {
-        notes.flatMap { it.groups }.filter { it.entries != null }
-            .groupBy { it.category }.mapValues { (_, groups) -> groups.sumOf { it.entries.orEmpty().size } }
-    }
+    val counts =
+        remember(notes) {
+            notes
+                .flatMap { it.groups }
+                .filter { it.entries != null }
+                .groupBy { it.category }
+                .mapValues { (_, groups) -> groups.sumOf { it.entries.orEmpty().size } }
+        }
     Surface(
         shape = RoundedCornerShape(24.dp),
         color = colors.surfaceContainerLow,
@@ -83,12 +88,21 @@ internal fun UpdateOverview(installed: String, target: String, notes: List<Updat
             ) {
                 VersionChip(installed, selected = false)
                 Box(Modifier.heightIn(min = 38.dp), contentAlignment = Alignment.Center) {
-                    Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, Modifier.size(18.dp), colors.onSurfaceVariant)
+                    Icon(
+                        Icons.AutoMirrored.Outlined.ArrowForward,
+                        null,
+                        Modifier.size(18.dp),
+                        colors.onSurfaceVariant,
+                    )
                 }
                 VersionChip(target, selected = true)
             }
             Text(
-                pluralStringResource(R.plurals.app_update_included_versions, notes.size, notes.size),
+                pluralStringResource(
+                    R.plurals.app_update_included_versions,
+                    notes.size,
+                    notes.size,
+                ),
                 Modifier.align(Alignment.CenterHorizontally),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
@@ -96,13 +110,16 @@ internal fun UpdateOverview(installed: String, target: String, notes: List<Updat
             if (counts.isNotEmpty()) {
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                    horizontalArrangement =
+                    Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     UpdateNoteCategory.entries.forEach { category ->
-                        counts[category]?.takeIf { it > 0 }?.let { count ->
-                            NoteCountChip(category, count)
-                        }
+                        counts[category]
+                            ?.takeIf { it > 0 }
+                            ?.let { count ->
+                                NoteCountChip(category, count)
+                            }
                     }
                 }
             }
@@ -157,34 +174,51 @@ internal fun UpdateHistoryStatus(loading: Boolean, onDetails: () -> Unit) {
         )
     } else {
         TextButton(onClick = onDetails, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.app_update_history_partial), style = MaterialTheme.typography.bodySmall)
+            Text(
+                stringResource(R.string.app_update_history_partial),
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
     }
 }
 
 @Composable
-internal fun UpdateVersionCard(notes: UpdateVersionNotes, initiallyExpanded: Boolean, last: Boolean) {
+internal fun UpdateVersionCard(
+    notes: UpdateVersionNotes,
+    initiallyExpanded: Boolean,
+    last: Boolean,
+) {
     val colors = MaterialTheme.colorScheme
     val motion = appMotionEnabled()
     var expanded by rememberSaveable(notes.key) { mutableStateOf(initiallyExpanded) }
-    val rotation by animateFloatAsState(
-        if (expanded) 180f else 0f,
-        tween(if (motion) ModernMotion.EXIT_MILLIS else 0),
-        label = "releaseChevron",
-    )
-    val state = stringResource(if (expanded) R.string.app_update_expanded else R.string.app_update_collapsed)
+    val rotation by
+        animateFloatAsState(
+            if (expanded) 180f else 0f,
+            tween(if (motion) ModernMotion.EXIT_MILLIS else 0),
+            label = "releaseChevron",
+        )
+    val state =
+        stringResource(
+            if (expanded) R.string.app_update_expanded else R.string.app_update_collapsed,
+        )
     Column(
-        Modifier.fillMaxWidth().drawBehind {
-            val x = 5.dp.toPx()
-            val y = 25.dp.toPx()
-            drawLine(
-                colors.outlineVariant,
-                Offset(x, y),
-                Offset(x, if (last) y else size.height + 18.dp.toPx()),
-                1.dp.toPx(),
-            )
-            drawCircle(if (initiallyExpanded) colors.primary else colors.outline, 4.dp.toPx(), Offset(x, y))
-        }.padding(start = 20.dp),
+        Modifier.fillMaxWidth()
+            .drawBehind {
+                val x = 5.dp.toPx()
+                val y = 25.dp.toPx()
+                drawLine(
+                    colors.outlineVariant,
+                    Offset(x, y),
+                    Offset(x, if (last) y else size.height + 18.dp.toPx()),
+                    1.dp.toPx(),
+                )
+                drawCircle(
+                    if (initiallyExpanded) colors.primary else colors.outline,
+                    4.dp.toPx(),
+                    Offset(x, y),
+                )
+            }
+            .padding(start = 20.dp),
     ) {
         Surface(
             onClick = { expanded = !expanded },
@@ -202,9 +236,16 @@ internal fun UpdateVersionCard(notes: UpdateVersionNotes, initiallyExpanded: Boo
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(notes.version, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(
+                            notes.version,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                        )
                         if (notes.prerelease) {
-                            Surface(color = colors.tertiaryContainer, shape = RoundedCornerShape(6.dp)) {
+                            Surface(
+                                color = colors.tertiaryContainer,
+                                shape = RoundedCornerShape(6.dp),
+                            ) {
                                 Text(
                                     stringResource(R.string.app_update_preview_badge),
                                     Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
@@ -215,28 +256,44 @@ internal fun UpdateVersionCard(notes: UpdateVersionNotes, initiallyExpanded: Boo
                         }
                     }
                     notes.title?.let {
-                        Text(it, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                        Text(
+                            it,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.onSurfaceVariant,
+                        )
                     }
                 }
-                Icon(Icons.Outlined.ExpandMore, null, Modifier.size(22.dp).rotate(rotation), colors.onSurfaceVariant)
+                Icon(
+                    Icons.Outlined.ExpandMore,
+                    null,
+                    Modifier.size(22.dp).rotate(rotation),
+                    colors.onSurfaceVariant,
+                )
             }
         }
         // A single resize clock prevents section expansion from moving at conflicting speeds.
         Column(Modifier.animateContentSize(tween(if (motion) ModernMotion.RESIZE_MILLIS else 0))) {
             AnimatedVisibility(
                 visible = expanded,
-                enter = if (motion) {
-                    ModernMotion.enter(
-                        ModernMotion.EXIT_MILLIS,
-                    )
+                enter =
+                if (motion) {
+                    ModernMotion.enter(ModernMotion.EXIT_MILLIS)
                 } else {
                     androidx.compose.animation.EnterTransition.None
                 },
-                exit = if (motion) ModernMotion.exit() else androidx.compose.animation.ExitTransition.None,
+                exit =
+                if (motion) {
+                    ModernMotion.exit()
+                } else {
+                    androidx.compose.animation.ExitTransition.None
+                },
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 6.dp)) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.padding(top = 6.dp),
+                ) {
                     notes.groups.forEachIndexed { index, group ->
-                        UpdateNoteCard(notes.key, index, group)
+                        UpdateNoteCard(notes.key, index, group, updateNotesDocument(notes.version))
                     }
                 }
             }
@@ -245,14 +302,20 @@ internal fun UpdateVersionCard(notes: UpdateVersionNotes, initiallyExpanded: Boo
 }
 
 @Composable
-private fun UpdateNoteCard(version: String, index: Int, group: UpdateNoteGroup) {
+private fun UpdateNoteCard(
+    version: String,
+    index: Int,
+    group: UpdateNoteGroup,
+    documentUrl: String,
+) {
     val colors = MaterialTheme.colorScheme
     val accent = group.category.accent()
     val motion = appMotionEnabled()
     var showAll by rememberSaveable(version, index) { mutableStateOf(false) }
     val entries = group.entries
     val canShorten = entries != null && entries.size > 4
-    val content = if (canShorten && !showAll) entries!!.take(4).joinToString("\n\n") else group.markdown
+    val content =
+        if (canShorten && !showAll) entries!!.take(4).joinToString("\n\n") else group.markdown
     Surface(
         color = colors.surfaceContainerLow,
         shape = RoundedCornerShape(18.dp),
@@ -275,23 +338,39 @@ private fun UpdateNoteCard(version: String, index: Int, group: UpdateNoteGroup) 
                         fontWeight = FontWeight.SemiBold,
                     )
                     entries?.let {
-                        Text(it.size.toString(), color = accent, style = MaterialTheme.typography.labelMedium)
+                        Text(
+                            it.size.toString(),
+                            color = accent,
+                            style = MaterialTheme.typography.labelMedium,
+                        )
                     }
                 }
             }
             ProvideTextStyle(MaterialTheme.typography.bodyMedium.copy(color = colors.onSurface)) {
-                RichText(
-                    modifier = Modifier.padding(16.dp),
-                    style = RichTextStyle(
-                        stringStyle = RichTextStringStyle(linkStyle = SpanStyle(color = colors.primary)),
-                    ),
-                ) { Markdown(content) }
+                ProvideDocumentLinks(documentUrl) {
+                    RichText(
+                        modifier = Modifier.padding(16.dp),
+                        style =
+                        RichTextStyle(
+                            stringStyle =
+                            RichTextStringStyle(
+                                linkStyle = SpanStyle(color = colors.primary),
+                            ),
+                        ),
+                    ) {
+                        Markdown(content)
+                    }
+                }
             }
             if (canShorten) {
                 TextButton(onClick = { showAll = !showAll }, modifier = Modifier.fillMaxWidth()) {
                     Text(
                         stringResource(
-                            if (showAll) R.string.app_update_show_less else R.string.app_update_show_all,
+                            if (showAll) {
+                                R.string.app_update_show_less
+                            } else {
+                                R.string.app_update_show_all
+                            },
                             entries!!.size,
                         ),
                     )
@@ -301,31 +380,33 @@ private fun UpdateNoteCard(version: String, index: Int, group: UpdateNoteGroup) 
     }
 }
 
-private fun UpdateNoteCategory.label() = when (this) {
-    UpdateNoteCategory.FEATURES -> R.string.app_update_notes_features
-    UpdateNoteCategory.FIXES -> R.string.app_update_notes_fixes
-    UpdateNoteCategory.PERFORMANCE -> R.string.app_update_notes_performance
-    UpdateNoteCategory.INTERFACE -> R.string.app_update_notes_interface
-    UpdateNoteCategory.COMPATIBILITY -> R.string.app_update_notes_compatibility
-    UpdateNoteCategory.SECURITY -> R.string.app_update_notes_security
-    UpdateNoteCategory.DISTRIBUTION -> R.string.app_update_notes_distribution
-    UpdateNoteCategory.VERIFICATION -> R.string.app_update_notes_verification
-    UpdateNoteCategory.LIMITATIONS -> R.string.app_update_notes_limitations
-    UpdateNoteCategory.ORIGINAL -> R.string.app_update_notes_original
-}
+private fun UpdateNoteCategory.label() =
+    when (this) {
+        UpdateNoteCategory.FEATURES -> R.string.app_update_notes_features
+        UpdateNoteCategory.FIXES -> R.string.app_update_notes_fixes
+        UpdateNoteCategory.PERFORMANCE -> R.string.app_update_notes_performance
+        UpdateNoteCategory.INTERFACE -> R.string.app_update_notes_interface
+        UpdateNoteCategory.COMPATIBILITY -> R.string.app_update_notes_compatibility
+        UpdateNoteCategory.SECURITY -> R.string.app_update_notes_security
+        UpdateNoteCategory.DISTRIBUTION -> R.string.app_update_notes_distribution
+        UpdateNoteCategory.VERIFICATION -> R.string.app_update_notes_verification
+        UpdateNoteCategory.LIMITATIONS -> R.string.app_update_notes_limitations
+        UpdateNoteCategory.ORIGINAL -> R.string.app_update_notes_original
+    }
 
-private fun UpdateNoteCategory.icon() = when (this) {
-    UpdateNoteCategory.FEATURES -> Icons.Outlined.AutoAwesome
-    UpdateNoteCategory.FIXES -> Icons.Outlined.BugReport
-    UpdateNoteCategory.PERFORMANCE -> Icons.Outlined.Speed
-    UpdateNoteCategory.INTERFACE -> Icons.Outlined.Palette
-    UpdateNoteCategory.COMPATIBILITY -> Icons.Outlined.Devices
-    UpdateNoteCategory.SECURITY -> Icons.Outlined.Security
-    UpdateNoteCategory.DISTRIBUTION -> Icons.Outlined.CloudDownload
-    UpdateNoteCategory.VERIFICATION -> Icons.Outlined.FactCheck
-    UpdateNoteCategory.LIMITATIONS -> Icons.Outlined.WarningAmber
-    UpdateNoteCategory.ORIGINAL -> Icons.Outlined.Notes
-}
+private fun UpdateNoteCategory.icon() =
+    when (this) {
+        UpdateNoteCategory.FEATURES -> Icons.Outlined.AutoAwesome
+        UpdateNoteCategory.FIXES -> Icons.Outlined.BugReport
+        UpdateNoteCategory.PERFORMANCE -> Icons.Outlined.Speed
+        UpdateNoteCategory.INTERFACE -> Icons.Outlined.Palette
+        UpdateNoteCategory.COMPATIBILITY -> Icons.Outlined.Devices
+        UpdateNoteCategory.SECURITY -> Icons.Outlined.Security
+        UpdateNoteCategory.DISTRIBUTION -> Icons.Outlined.CloudDownload
+        UpdateNoteCategory.VERIFICATION -> Icons.Outlined.FactCheck
+        UpdateNoteCategory.LIMITATIONS -> Icons.Outlined.WarningAmber
+        UpdateNoteCategory.ORIGINAL -> Icons.Outlined.Notes
+    }
 
 @Composable
 private fun UpdateNoteCategory.accent(): Color {

@@ -1,6 +1,5 @@
 package it.lorelore.nyanime.studio
 
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -52,7 +51,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.model.ScreenModel
-import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
@@ -84,57 +82,67 @@ class StudioLibraryScreen : Screen() {
         val snackbar = remember { SnackbarHostState() }
         var creating by remember { mutableStateOf(false) }
         var medium by remember { mutableStateOf(StudioMedium.VIDEO) }
-        var assisted by remember { mutableStateOf(true) }
+        var assisted by remember { mutableStateOf(false) }
         var export by remember { mutableStateOf<StudioSource?>(null) }
         var deleting by remember { mutableStateOf<StudioRecord?>(null) }
         var incoming by remember { mutableStateOf<StudioSource?>(null) }
+        var cleanups by remember { mutableStateOf<List<SourceMembershipCleanup>>(emptyList()) }
         val onError: (Exception) -> Unit = { error ->
-            scope.launch { snackbar.showSnackbar(error.message ?: context.getString(R.string.studio_network_error)) }
+            scope.launch {
+                snackbar.showSnackbar(
+                    error.message ?: context.getString(R.string.studio_network_error),
+                )
+            }
         }
-        val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            if (uri != null) {
-                scope.launch {
-                    try {
-                        val text =
-                            withContext(Dispatchers.IO) {
-                                context.contentResolver.openInputStream(uri)!!.use { input ->
-                                    val buffer = ByteArray(8192)
-                                    val output = java.io.ByteArrayOutputStream()
-                                    while (true) {
-                                        val count = input.read(buffer)
-                                        if (count <
-                                            0
-                                        ) {
-                                            break
+        val importer =
+            rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+                if (uri != null) {
+                    scope.launch {
+                        try {
+                            val text =
+                                withContext(Dispatchers.IO) {
+                                    context.contentResolver.openInputStream(uri)!!.use { input ->
+                                        val buffer = ByteArray(8192)
+                                        val output = java.io.ByteArrayOutputStream()
+                                        while (true) {
+                                            val count = input.read(buffer)
+                                            if (count < 0) {
+                                                break
+                                            }
+                                            require(
+                                                output.size() + count <=
+                                                    StudioDocuments.MAX_DOCUMENT_BYTES,
+                                            ) {
+                                                "Source file too large"
+                                            }
+                                            output.write(buffer, 0, count)
                                         }
-                                        require(output.size() + count <= StudioDocuments.MAX_DOCUMENT_BYTES) {
+                                        val bytes = output.toByteArray()
+                                        require(bytes.size <= StudioDocuments.MAX_DOCUMENT_BYTES) {
                                             "Source file too large"
                                         }
-                                        output.write(buffer, 0, count)
+                                        bytes.toString(Charsets.UTF_8)
                                     }
-                                    val bytes = output.toByteArray()
-                                    require(bytes.size <= StudioDocuments.MAX_DOCUMENT_BYTES) {
-                                        "Source file too large"
-                                    }
-                                    bytes.toString(Charsets.UTF_8)
                                 }
+                            val document =
+                                withContext(Dispatchers.Default) { StudioDocuments.decode(text) }
+                            if (records.any { it.draft.uuid == document.uuid }) {
+                                incoming = document
+                            } else {
+                                navigator.push(StudioEditorScreen(repository.importDocument(text)))
                             }
-                        val document = withContext(Dispatchers.Default) { StudioDocuments.decode(text) }
-                        if (records.any { it.draft.uuid == document.uuid }) {
-                            incoming = document
-                        } else {
-                            navigator.push(StudioEditorScreen(repository.importDocument(text)))
+                        } catch (cancel: CancellationException) {
+                            throw cancel
+                        } catch (error: Exception) {
+                            onError(error)
                         }
-                    } catch (cancel: CancellationException) {
-                        throw cancel
-                    } catch (error: Exception) {
-                        onError(error)
                     }
                 }
             }
-        }
         val exporter =
-            rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+            rememberLauncherForActivityResult(
+                ActivityResultContracts.CreateDocument("application/octet-stream"),
+            ) { uri ->
                 val definition = export
                 export = null
                 if (uri != null && definition != null) {
@@ -145,9 +153,7 @@ class StudioLibraryScreen : Screen() {
                                     it.write(StudioDocuments.encode(definition).toByteArray())
                                 }
                             }
-                        } catch (
-                            cancel: CancellationException,
-                        ) {
+                        } catch (cancel: CancellationException) {
                             throw cancel
                         } catch (error: Exception) {
                             onError(error)
@@ -155,20 +161,34 @@ class StudioLibraryScreen : Screen() {
                     }
                 }
             }
-        Scaffold(topBar = {
-            TopAppBar(title = { Text(stringResource(R.string.studio_title)) }, navigationIcon = {
-                IconButton({
-                    navigator.pop()
-                }) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.studio_close)) }
-            })
-        }, snackbarHost = { SnackbarHost(snackbar) }) { padding ->
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.studio_title)) },
+                    navigationIcon = {
+                        IconButton({
+                            navigator.pop()
+                        }) {
+                            Icon(
+                                Icons.AutoMirrored.Outlined.ArrowBack,
+                                stringResource(R.string.studio_close),
+                            )
+                        }
+                    },
+                )
+            },
+            snackbarHost = { SnackbarHost(snackbar) },
+        ) { padding ->
             LazyColumn(
                 Modifier.fillMaxSize().padding(padding),
                 contentPadding = PaddingValues(20.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item {
-                    Text(stringResource(R.string.studio_editor), style = MaterialTheme.typography.headlineMedium)
+                    Text(
+                        stringResource(R.string.studio_editor),
+                        style = MaterialTheme.typography.headlineMedium,
+                    )
                     Spacer(Modifier.height(10.dp))
                     Text(
                         stringResource(R.string.studio_description),
@@ -182,16 +202,30 @@ class StudioLibraryScreen : Screen() {
                             Spacer(Modifier.width(6.dp))
                             Text(stringResource(R.string.studio_create))
                         }
-                        OutlinedButton({
-                            importer.launch(arrayOf("application/json", "application/octet-stream", "*/*"))
-                        }, Modifier.weight(1f)) { Text(stringResource(R.string.studio_import)) }
+                        OutlinedButton(
+                            {
+                                importer.launch(
+                                    arrayOf("application/json", "application/octet-stream", "*/*"),
+                                )
+                            },
+                            Modifier.weight(1f),
+                        ) {
+                            Text(stringResource(R.string.studio_import))
+                        }
                     }
                 }
-                if (loadError != null) item { Text(loadError.orEmpty(), color = MaterialTheme.colorScheme.error) }
+                if (loadError != null) {
+                    item { Text(loadError.orEmpty(), color = MaterialTheme.colorScheme.error) }
+                }
                 item {
-                    OutlinedButton({
-                        navigator.push(it.lorelore.nyanime.exchange.SourceExchangeScreen())
-                    }, Modifier.fillMaxWidth()) { Text(stringResource(R.string.exchange_title)) }
+                    OutlinedButton(
+                        {
+                            navigator.push(it.lorelore.nyanime.exchange.SourceExchangeScreen())
+                        },
+                        Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.exchange_title))
+                    }
                 }
                 if (records.isEmpty()) {
                     item {
@@ -210,7 +244,10 @@ class StudioLibraryScreen : Screen() {
                         },
                         shape = RoundedCornerShape(24.dp),
                     ) {
-                        Row(Modifier.padding(20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Row(
+                            Modifier.padding(20.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
                             Column(Modifier.weight(1f)) {
                                 Text(
                                     record.draft.name.ifBlank {
@@ -230,97 +267,129 @@ class StudioLibraryScreen : Screen() {
                                     ),
                                     color = MaterialTheme.colorScheme.primary,
                                 )
-                                Text(record.draft.baseUrl, style = MaterialTheme.typography.bodySmall, maxLines = 2)
+                                Text(
+                                    record.draft.baseUrl,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 2,
+                                )
                             }
                             Box {
                                 IconButton({
                                     menu = true
-                                }) { Icon(Icons.Outlined.MoreVert, stringResource(R.string.studio_inspector)) }
+                                }) {
+                                    Icon(
+                                        Icons.Outlined.MoreVert,
+                                        stringResource(R.string.studio_source_options),
+                                    )
+                                }
                                 DropdownMenu(menu, { menu = false }) {
                                     if (record.enabled && record.active != null) {
-                                        DropdownMenuItem({ Text(stringResource(R.string.store_open)) }, {
+                                        DropdownMenuItem(
+                                            { Text(stringResource(R.string.store_open)) },
+                                            {
+                                                menu = false
+                                                navigator.push(
+                                                    when (record.active.medium) {
+                                                        StudioMedium.VIDEO ->
+                                                            BrowseAnimeSourceScreen(
+                                                                record.active.sourceId,
+                                                                null,
+                                                            )
+                                                        StudioMedium.MANGA ->
+                                                            BrowseMangaSourceScreen(
+                                                                record.active.sourceId,
+                                                                null,
+                                                            )
+                                                        StudioMedium.NOVEL ->
+                                                            it.lorelore.nyanime.novel.ui
+                                                                .NovelBrowseSourceScreen(
+                                                                    record.active.sourceId,
+                                                                )
+                                                    },
+                                                )
+                                            },
+                                        )
+                                    }
+                                    DropdownMenuItem(
+                                        { Text(stringResource(R.string.studio_export)) },
+                                        {
+                                            menu = false
+                                            export = record.draft
+                                            exporter.launch(
+                                                "${record.draft.name.replace(
+                                                    Regex("[^\\p{L}\\p{N}._-]"),
+                                                    "-",
+                                                ).take(70).ifBlank {
+                                                    "source"
+                                                }}.nyastudio",
+                                            )
+                                        },
+                                    )
+                                    DropdownMenuItem(
+                                        { Text(stringResource(R.string.studio_duplicate)) },
+                                        {
+                                            menu = false
+                                            scope.launch {
+                                                try {
+                                                    val copy = record.draft.duplicate()
+                                                    repository.saveDraft(copy)
+                                                    navigator.push(StudioEditorScreen(copy.uuid))
+                                                } catch (error: Exception) {
+                                                    onError(error)
+                                                }
+                                            }
+                                        },
+                                    )
+                                    DropdownMenuItem(
+                                        { Text(stringResource(R.string.exchange_send)) },
+                                        {
                                             menu = false
                                             navigator.push(
-                                                if (record.active.medium == StudioMedium.VIDEO) {
-                                                    BrowseAnimeSourceScreen(record.active.sourceId, null)
-                                                } else {
-                                                    BrowseMangaSourceScreen(record.active.sourceId, null)
-                                                },
+                                                it.lorelore.nyanime.exchange.SourceExchangeScreen(
+                                                    studioUuid = record.draft.uuid,
+                                                ),
                                             )
-                                        })
-                                    }
-                                    DropdownMenuItem({ Text(stringResource(R.string.studio_export)) }, {
-                                        menu = false
-                                        export =
-                                            record.draft
-                                        exporter.launch(
-                                            "${record.draft.name.replace(
-                                                Regex("[^\\p{L}\\p{N}._-]"),
-                                                "-",
-                                            ).take(70).ifBlank {
-                                                "source"
-                                            }}.nyastudio",
-                                        )
-                                    })
-                                    DropdownMenuItem({ Text(stringResource(R.string.studio_duplicate)) }, {
-                                        menu = false
-                                        scope.launch {
-                                            try {
-                                                val copy = record.draft.duplicate()
-                                                repository.saveDraft(copy)
-                                                navigator.push(StudioEditorScreen(copy.uuid))
-                                            } catch (
-                                                error: Exception,
-                                            ) {
-                                                onError(error)
-                                            }
-                                        }
-                                    })
-                                    DropdownMenuItem({ Text(stringResource(R.string.exchange_send)) }, {
-                                        menu = false
-                                        navigator.push(
-                                            it.lorelore.nyanime.exchange.SourceExchangeScreen(
-                                                studioUuid = record.draft.uuid,
-                                            ),
-                                        )
-                                    })
+                                        },
+                                    )
                                     if (record.enabled) {
-                                        DropdownMenuItem({ Text(stringResource(R.string.studio_disable)) }, {
-                                            menu =
-                                                false
-                                            scope.launch {
-                                                try {
-                                                    repository.disable(record.draft.uuid)
-                                                } catch (
-                                                    error: Exception,
-                                                ) {
-                                                    onError(error)
+                                        DropdownMenuItem(
+                                            { Text(stringResource(R.string.studio_disable)) },
+                                            {
+                                                menu = false
+                                                scope.launch {
+                                                    try {
+                                                        repository.disable(record.draft.uuid)
+                                                        cleanups =
+                                                            cleanups + StudioSourceRevocation.revoke(context, record)
+                                                    } catch (error: Exception) {
+                                                        onError(error)
+                                                    }
                                                 }
-                                            }
-                                        })
+                                            },
+                                        )
                                     }
-                                    if (record.previous !=
-                                        null
-                                    ) {
-                                        DropdownMenuItem({ Text(stringResource(R.string.studio_rollback)) }, {
-                                            menu =
-                                                false
-                                            scope.launch {
-                                                try {
-                                                    repository.rollback(record.draft.uuid)
-                                                } catch (
-                                                    error: Exception,
-                                                ) {
-                                                    onError(error)
+                                    if (record.previous != null) {
+                                        DropdownMenuItem(
+                                            { Text(stringResource(R.string.studio_rollback)) },
+                                            {
+                                                menu = false
+                                                scope.launch {
+                                                    try {
+                                                        repository.rollback(record.draft.uuid)
+                                                    } catch (error: Exception) {
+                                                        onError(error)
+                                                    }
                                                 }
-                                            }
-                                        })
+                                            },
+                                        )
                                     }
-                                    DropdownMenuItem({ Text(stringResource(R.string.studio_remove)) }, {
-                                        menu = false
-                                        deleting =
-                                            record
-                                    })
+                                    DropdownMenuItem(
+                                        { Text(stringResource(R.string.studio_remove)) },
+                                        {
+                                            menu = false
+                                            deleting = record
+                                        },
+                                    )
                                 }
                             }
                         }
@@ -328,80 +397,109 @@ class StudioLibraryScreen : Screen() {
                 }
             }
         }
+        cleanups.firstOrNull()?.let { cleanup ->
+            SourceMembershipCleanupDialog(cleanup) { cleanups = cleanups.drop(1) }
+        }
         if (creating) {
-            AlertDialog(onDismissRequest = {
-                creating = false
-            }, title = { Text(stringResource(R.string.studio_create)) }, text = {
-                Column {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        FilterChip(assisted, { assisted = true }, { Text(stringResource(R.string.studio_assist)) })
-                        FilterChip(!assisted, { assisted = false }, { Text(stringResource(R.string.studio_canvas)) })
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        StudioMedium.entries.forEach { option ->
-                            FilterChip(medium == option, { medium = option }, {
-                                Text(
-                                    stringResource(
-                                        if (option ==
-                                            StudioMedium.VIDEO
-                                        ) {
-                                            R.string.studio_video
-                                        } else {
-                                            R.string.studio_manga
-                                        },
-                                    ),
-                                )
-                            })
-                        }
-                    }
-                }
-            }, confirmButton = {
-                TextButton({
+            AlertDialog(
+                onDismissRequest = {
                     creating = false
-                    scope.launch {
-                        try {
-                            val source = StudioBlueprints.source(medium)
-                            repository.saveDraft(source)
-                            navigator.push(StudioEditorScreen(source.uuid, startAssisted = assisted))
-                        } catch (
-                            error: Exception,
-                        ) {
-                            onError(error)
+                },
+                title = { Text(stringResource(R.string.studio_create)) },
+                text = {
+                    Column {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            FilterChip(
+                                assisted,
+                                { assisted = true },
+                                { Text(stringResource(R.string.studio_assist)) },
+                            )
+                            FilterChip(
+                                !assisted,
+                                { assisted = false },
+                                { Text(stringResource(R.string.studio_canvas)) },
+                            )
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            StudioMedium.entries.forEach { option ->
+                                FilterChip(
+                                    medium == option,
+                                    { medium = option },
+                                    {
+                                        Text(
+                                            stringResource(
+                                                when (option) {
+                                                    StudioMedium.VIDEO -> R.string.studio_video
+                                                    StudioMedium.MANGA -> R.string.studio_manga
+                                                    StudioMedium.NOVEL -> R.string.studio_novel
+                                                },
+                                            ),
+                                        )
+                                    },
+                                )
+                            }
                         }
                     }
-                }) { Text(stringResource(R.string.studio_create)) }
-            }, dismissButton = {
-                TextButton({
-                    creating =
-                        false
-                }) { Text(stringResource(R.string.studio_cancel)) }
-            })
+                },
+                confirmButton = {
+                    TextButton({
+                        creating = false
+                        scope.launch {
+                            try {
+                                val source = StudioBlueprints.source(medium)
+                                repository.saveDraft(source)
+                                navigator.push(
+                                    StudioEditorScreen(source.uuid, startAssisted = assisted),
+                                )
+                            } catch (error: Exception) {
+                                onError(error)
+                            }
+                        }
+                    }) {
+                        Text(stringResource(R.string.studio_create))
+                    }
+                },
+                dismissButton = {
+                    TextButton({
+                        creating = false
+                    }) {
+                        Text(stringResource(R.string.studio_cancel))
+                    }
+                },
+            )
         }
         deleting?.let { record ->
-            AlertDialog(onDismissRequest = {
-                deleting = null
-            }, title = {
-                Text(record.draft.name)
-            }, text = { Text(stringResource(R.string.studio_remove_question)) }, confirmButton = {
-                TextButton({
-                    deleting =
-                        null
-                    scope.launch {
-                        try {
-                            repository.remove(record.draft.uuid)
-                        } catch (
-                            error: Exception,
-                        ) {
-                            onError(error)
+            AlertDialog(
+                onDismissRequest = {
+                    deleting = null
+                },
+                title = {
+                    Text(record.draft.name)
+                },
+                text = { Text(stringResource(R.string.studio_remove_question)) },
+                confirmButton = {
+                    TextButton({
+                        deleting = null
+                        scope.launch {
+                            try {
+                                repository.remove(record.draft.uuid)
+                                cleanups = cleanups + StudioSourceRevocation.revoke(context, record)
+                            } catch (error: Exception) {
+                                onError(error)
+                            }
                         }
+                    }) {
+                        Text(stringResource(R.string.studio_remove))
                     }
-                }) { Text(stringResource(R.string.studio_remove)) }
-            }, dismissButton = {
-                TextButton({
-                    deleting =
-                        null
-                }) { Text(stringResource(R.string.studio_cancel)) }
-            })
+                },
+                dismissButton = {
+                    TextButton({
+                        deleting = null
+                    }) {
+                        Text(stringResource(R.string.studio_cancel))
+                    }
+                },
+            )
         }
         incoming?.let { document ->
             fun finish(duplicate: Boolean) {
@@ -409,11 +507,14 @@ class StudioLibraryScreen : Screen() {
                 scope.launch {
                     try {
                         navigator.push(
-                            StudioEditorScreen(repository.importDocument(StudioDocuments.encode(document), duplicate)),
+                            StudioEditorScreen(
+                                repository.importDocument(
+                                    StudioDocuments.encode(document),
+                                    duplicate,
+                                ),
+                            ),
                         )
-                    } catch (
-                        cancel: CancellationException,
-                    ) {
+                    } catch (cancel: CancellationException) {
                         throw cancel
                     } catch (error: Exception) {
                         onError(error)
@@ -427,15 +528,22 @@ class StudioLibraryScreen : Screen() {
                 title = { Text(stringResource(R.string.studio_import_existing)) },
                 text = { Text(stringResource(R.string.studio_import_existing_body)) },
                 confirmButton = {
-                    TextButton({ finish(false) }) { Text(stringResource(R.string.studio_import_update)) }
+                    TextButton({ finish(false) }) {
+                        Text(stringResource(R.string.studio_import_update))
+                    }
                 },
-                dismissButton = { TextButton({ finish(true) }) { Text(stringResource(R.string.studio_import_copy)) } },
+                dismissButton = {
+                    TextButton({ finish(true) }) {
+                        Text(stringResource(R.string.studio_import_copy))
+                    }
+                },
             )
         }
     }
 }
 
-internal class StudioEditorModel(val repository: SourceStudioRepository, uuid: String) : ScreenModel {
+internal class StudioEditorModel(val repository: SourceStudioRepository, uuid: String) :
+    ScreenModel {
     val source = MutableStateFlow<StudioSource?>(null)
     val error = MutableStateFlow<String?>(null)
     val traces = MutableStateFlow<Map<String, StudioTrace>>(emptyMap())
@@ -446,61 +554,76 @@ internal class StudioEditorModel(val repository: SourceStudioRepository, uuid: S
     private var execution: Job? = null
     private var generation = 0L
     private val traceLock = Any()
+
     init {
         screenModelScope.launch {
             try {
                 val draft = repository.draft(uuid)
                 history = StudioHistory(draft)
                 source.value = draft
-            } catch (
-                cancel: CancellationException,
-            ) {
+            } catch (cancel: CancellationException) {
                 throw cancel
             } catch (failure: Exception) {
-                error.value =
-                    failure.message
+                error.value = failure.message
             }
         }
     }
+
     fun change(next: StudioSource) {
         stop()
-        history?.change(next)
-        source.value = next
+        val capabilities = next.medium == StudioMedium.NOVEL ||
+            next.transport != StudioTransport.WEB ||
+            next.documentResolvers.isNotEmpty() ||
+            (next.flows.values + next.homeFlows.values + next.functions.map { it.graph })
+                .any { graph ->
+                    graph.nodes.any {
+                        it.kind in StudioCapabilities.kinds ||
+                            it.parameters["cases"]?.isNotBlank() == true ||
+                            it.parameters["each"] == "true" ||
+                            (it.kind == StudioKind.INPUT && it.parameters["type"] != null)
+                    }
+                }
+        val normalized = if (capabilities) next.copy(schema = 2) else next
+        history?.change(normalized)
+        source.value = normalized
         scheduleSave()
     }
+
     fun alignRevision(revision: Long) {
         history?.alignRevision(revision)
         source.value = source.value?.let { it.copy(revision = maxOf(it.revision, revision)) }
     }
+
     fun undo() {
         stop()
         source.value = history?.undo()
         scheduleSave()
     }
+
     fun redo() {
         stop()
         source.value = history?.redo()
         scheduleSave()
     }
+
     private fun scheduleSave() {
         saving?.cancel()
         saving = screenModelScope.launch {
             delay(500)
             try {
                 flush()
-            } catch (
-                cancel: CancellationException,
-            ) {
+            } catch (cancel: CancellationException) {
                 throw cancel
             } catch (failure: Exception) {
-                error.value =
-                    failure.message ?: "Unable to save the draft"
+                error.value = failure.message ?: "Unable to save the draft"
             }
         }
     }
+
     suspend fun flush() {
         source.value?.let { repository.saveDraft(it) }
     }
+
     fun stop() {
         synchronized(traceLock) {
             generation++
@@ -511,12 +634,14 @@ internal class StudioEditorModel(val repository: SourceStudioRepository, uuid: S
         execution?.cancel()
         running.value = false
     }
+
     fun run(
         flow: StudioFlow,
         graph: StudioGraph,
         variables: JsonObject,
         until: String? = null,
         allowScripts: Boolean = false,
+        allowCapabilityPreview: Boolean = false,
     ) {
         stop()
         val definition = source.value ?: return
@@ -527,11 +652,23 @@ internal class StudioEditorModel(val repository: SourceStudioRepository, uuid: S
         running.value = true
         execution = screenModelScope.launch {
             try {
-                val output = repository.execute(definition, flow, variables, until, allowScripts, trace = { trace ->
-                    synchronized(traceLock) {
-                        if (generation == request) traces.update { it + (trace.node to trace) }
-                    }
-                }, overrideGraph = graph)
+                val output =
+                    repository.execute(
+                        definition,
+                        flow,
+                        variables,
+                        until,
+                        allowScripts,
+                        trace = { trace ->
+                            synchronized(traceLock) {
+                                if (generation == request) {
+                                    traces.update { it + (trace.node to trace) }
+                                }
+                            }
+                        },
+                        overrideGraph = graph,
+                        allowDraftCapabilities = allowCapabilityPreview,
+                    )
                 if (generation == request) result.value = output.value
             } catch (cancel: CancellationException) {
                 throw cancel
@@ -545,6 +682,7 @@ internal class StudioEditorModel(val repository: SourceStudioRepository, uuid: S
             }
         }
     }
+
     override fun onDispose() {
         stop()
     }

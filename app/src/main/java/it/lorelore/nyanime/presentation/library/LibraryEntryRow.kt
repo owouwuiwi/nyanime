@@ -70,6 +70,8 @@ internal fun LibraryEntryRow(
     onContinue: (() -> Unit)?,
     onDownload: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    mediumLabel: String? = null,
+    posterTransition: Boolean = true,
 ) {
     val poster = rememberPosterSource(cover)
     val accent = MaterialTheme.colorScheme.primary
@@ -91,7 +93,10 @@ internal fun LibraryEntryRow(
     )
     Surface(
         modifier = modifier.fillMaxWidth().padding(vertical = 4.dp).nsfwPrivacy(cover, labels)
-            .combinedClickable(onClick = posterOpen(poster, title, onOpen), onLongClick = onLongClick),
+            .combinedClickable(
+                onClick = if (posterTransition) posterOpen(poster, title, onOpen) else onOpen,
+                onLongClick = onLongClick,
+            ),
         shape = shape,
         color = container,
         border = BorderStroke(
@@ -122,7 +127,8 @@ internal fun LibraryEntryRow(
                 verticalArrangement = Arrangement.spacedBy(7.dp),
             ) {
                 Text(
-                    stringResource(if (manga) R.string.library_medium_manga else R.string.library_medium_anime),
+                    mediumLabel
+                        ?: stringResource(if (manga) R.string.library_medium_manga else R.string.library_medium_anime),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

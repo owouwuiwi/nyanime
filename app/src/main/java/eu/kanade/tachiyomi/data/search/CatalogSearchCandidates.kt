@@ -30,7 +30,12 @@ class CatalogSearchCandidates(private val client: OkHttpClient, private val json
     private var kitsuNextAt = 0L
     private val matcher = LexicalTitleMatcher()
 
-    suspend fun fetch(query: String, medium: SearchMedium, budget: SearchRequestBudget): List<SearchTitle> {
+    suspend fun fetch(
+        query: String,
+        medium: SearchMedium,
+        budget: SearchRequestBudget,
+    ): List<SearchTitle> {
+        if (medium == SearchMedium.NOVEL) return emptyList()
         val found = mutableListOf<SearchTitle>()
         var failure: Exception? = null
         val base = TitleNormalizer.trailingNumberBase(query)
@@ -39,7 +44,9 @@ class CatalogSearchCandidates(private val client: OkHttpClient, private val json
             if (!budget.take()) return found
             try {
                 found += kitsu(variant, medium)
-                if (matcher.rank(query, found).firstOrNull()?.score?.let { it >= 85 } == true) return found
+                if (matcher.rank(query, found).firstOrNull()?.score?.let { it >= 85 } == true) {
+                    return found
+                }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
@@ -58,74 +65,101 @@ class CatalogSearchCandidates(private val client: OkHttpClient, private val json
         return found.distinctBy { it.key }
     }
 
-    private suspend fun kitsu(query: String, medium: SearchMedium): List<SearchTitle> = kitsuGate.withLock {
-        val now = android.os.SystemClock.elapsedRealtime()
-        if (kitsuNextAt > now) delay(kitsuNextAt - now)
-        kitsuNextAt = android.os.SystemClock.elapsedRealtime() + 1_100
-        val type = if (medium == SearchMedium.VIDEO) "anime" else "manga"
-        val url = "https://kitsu.io/api/edge/$type".toHttpUrl().newBuilder()
-            .addQueryParameter("filter[text]", query).addQueryParameter("page[limit]", "12").build()
-        client.newCall(GET(url.toString())).await().use { response ->
-            if (!response.isSuccessful) {
-                if (response.code == 429) {
-                    val seconds = response.header("Retry-After")?.toLongOrNull()?.coerceIn(1, 300) ?: 60
-                    kitsuNextAt = android.os.SystemClock.elapsedRealtime() + seconds * 1_000
+    private suspend fun kitsu(query: String, medium: SearchMedium): List<SearchTitle> =
+        kitsuGate.withLock {
+            val now = android.os.SystemClock.elapsedRealtime()
+            if (kitsuNextAt > now) delay(kitsuNextAt - now)
+            kitsuNextAt = android.os.SystemClock.elapsedRealtime() + 1_100
+            val type = if (medium == SearchMedium.VIDEO) "anime" else "manga"
+            val url =
+                "https://kitsu.io/api/edge/$type"
+                    .toHttpUrl()
+                    .newBuilder()
+                    .addQueryParameter("filter[text]", query)
+                    .addQueryParameter("page[limit]", "12")
+                    .build()
+            client.newCall(GET(url.toString())).await().use { response ->
+                if (!response.isSuccessful) {
+                    if (response.code == 429) {
+                        val seconds =
+                            response.header("Retry-After")?.toLongOrNull()?.coerceIn(1, 300) ?: 60
+                        kitsuNextAt = android.os.SystemClock.elapsedRealtime() + seconds * 1_000
+                    }
+                    throw IOException("Catalog HTTP ${response.code}")
                 }
-                throw IOException("Catalog HTTP ${response.code}")
+                parseKitsu(json.parseToJsonElement(response.body.string()) as JsonObject, medium)
             }
-            parseKitsu(json.parseToJsonElement(response.body.string()) as JsonObject, medium)
         }
-    }
 
     private suspend fun anilist(query: String, medium: SearchMedium): List<SearchTitle> {
-        val data = aniList.execute(
-            "query(\u0024search:String!,\u0024type:MediaType!){Page(perPage:12){" +
-                "media(search:\u0024search,type:\u0024type){id title{romaji english native} synonyms}}}",
-            buildJsonObject {
-                put("search", query)
-                put(
-                    "type",
-                    if (medium ==
-                        SearchMedium.VIDEO
-                    ) {
-                        "ANIME"
-                    } else {
-                        "MANGA"
-                    },
-                )
-            },
-        )
+        val data =
+            aniList.execute(
+                "query(\u0024search:String!,\u0024type:MediaType!){Page(perPage:12){" +
+                    "media(search:\u0024search,type:\u0024type){id title{romaji english native} synonyms}}}",
+                buildJsonObject {
+                    put("search", query)
+                    put(
+                        "type",
+                        if (medium == SearchMedium.VIDEO) {
+                            "ANIME"
+                        } else {
+                            "MANGA"
+                        },
+                    )
+                },
+            )
         return parseAniList(data, medium)
     }
 
     companion object {
         fun parseKitsu(root: JsonObject, medium: SearchMedium): List<SearchTitle> =
-            (root["data"] as? JsonArray).orEmpty().mapNotNull { value ->
-                val item = value as? JsonObject ?: return@mapNotNull null
-                val attributes = item["attributes"] as? JsonObject ?: return@mapNotNull null
-                val names = (attributes["titles"] as? JsonObject).orEmpty().values.mapNotNull(::text) +
-                    (attributes["abbreviatedTitles"] as? JsonArray).orEmpty().mapNotNull(::text)
-                val title = text(attributes["canonicalTitle"]) ?: names.firstOrNull() ?: return@mapNotNull null
-                val id = text(item["id"]) ?: return@mapNotNull null
-                SearchTitle("kitsu:$medium:$id", title, medium, names.distinct().take(15), "kitsu")
+            if (medium == SearchMedium.NOVEL) {
+                emptyList()
+            } else {
+                (root["data"] as? JsonArray).orEmpty().mapNotNull { value ->
+                    val item = value as? JsonObject ?: return@mapNotNull null
+                    val attributes = item["attributes"] as? JsonObject ?: return@mapNotNull null
+                    val names =
+                        (attributes["titles"] as? JsonObject).orEmpty().values.mapNotNull(::text) +
+                            (attributes["abbreviatedTitles"] as? JsonArray)
+                                .orEmpty()
+                                .mapNotNull(::text)
+                    val title =
+                        text(attributes["canonicalTitle"])
+                            ?: names.firstOrNull()
+                            ?: return@mapNotNull null
+                    val id = text(item["id"]) ?: return@mapNotNull null
+                    SearchTitle(
+                        "kitsu:$medium:$id",
+                        title,
+                        medium,
+                        names.distinct().take(15),
+                        "kitsu",
+                    )
+                }
             }
 
         fun parseAniList(root: JsonObject, medium: SearchMedium): List<SearchTitle> =
-            ((root["Page"] as? JsonObject)?.get("media") as? JsonArray).orEmpty().mapNotNull { value ->
-                val item = value as? JsonObject ?: return@mapNotNull null
-                val names = (item["title"] as? JsonObject).orEmpty().values.mapNotNull(::text) +
-                    (item["synonyms"] as? JsonArray).orEmpty().mapNotNull(::text)
-                val id = text(item["id"]) ?: return@mapNotNull null
-                SearchTitle(
-                    "anilist:$medium:$id",
-                    names.firstOrNull() ?: return@mapNotNull null,
-                    medium,
-                    names.distinct().take(15),
-                    "anilist",
-                )
+            if (medium == SearchMedium.NOVEL) {
+                emptyList()
+            } else {
+                ((root["Page"] as? JsonObject)?.get("media") as? JsonArray).orEmpty().mapNotNull { value ->
+                    val item = value as? JsonObject ?: return@mapNotNull null
+                    val names =
+                        (item["title"] as? JsonObject).orEmpty().values.mapNotNull(::text) +
+                            (item["synonyms"] as? JsonArray).orEmpty().mapNotNull(::text)
+                    val id = text(item["id"]) ?: return@mapNotNull null
+                    SearchTitle(
+                        "anilist:$medium:$id",
+                        names.firstOrNull() ?: return@mapNotNull null,
+                        medium,
+                        names.distinct().take(15),
+                        "anilist",
+                    )
+                }
             }
 
-        private fun text(value: kotlinx.serialization.json.JsonElement?) = (value as? JsonPrimitive)?.contentOrNull
-            ?.takeIf { it.isNotBlank() && it.length <= 256 }
+        private fun text(value: kotlinx.serialization.json.JsonElement?) =
+            (value as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() && it.length <= 256 }
     }
 }

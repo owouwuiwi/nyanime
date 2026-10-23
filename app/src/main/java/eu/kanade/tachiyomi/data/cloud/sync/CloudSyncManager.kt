@@ -480,6 +480,7 @@ internal class CloudSyncManager private constructor(private val context: Context
             AnimeCloudSyncPort(store, active, name, clock::now, recovery),
             MangaCloudSyncPort(store, active, name, clock::now, recovery),
             GuidedCloudSyncPort(context, store, preferences, clock::now),
+            NovelCloudSyncPort(context, store, preferences, clock::now),
             CloudSyncSettingsPort(context, store, preferences, clock::now),
             CloudSyncContentSettingsPort(context, store, preferences, clock::now),
             CloudSyncCategorySettingsPort(context, store, preferences, clock::now),
@@ -533,6 +534,10 @@ internal class CloudSyncManager private constructor(private val context: Context
         session?.store?.configureExclusions(signature) { ref ->
             when {
                 ref.kind == "manga-guided-page" && !preferences.sharedReader().get() -> true
+                ref.kind == NovelCloudRecords.KIND &&
+                    ref.item.startsWith("appearance/") &&
+                    !preferences.sharedReader().get() -> true
+                ref.kind == NovelCloudRecords.KIND && ref.source != 0L -> ref.source in (anime + manga)
                 ref.kind.endsWith("-category-preference") && !preferences.sharedPreferences().get() -> true
                 ref.kind.endsWith("-choice-intro") && !preferences.sharedPlayback().get() -> true
                 ref.kind.contains("-choice-") &&
@@ -550,6 +555,7 @@ internal class CloudSyncManager private constructor(private val context: Context
         }
         val configuration = Triple(enabled, incognito, anime to manga)
         ports.filterIsInstance<GuidedCloudSyncPort>().forEach { it.configure(enabled, incognito, manga) }
+        ports.filterIsInstance<NovelCloudSyncPort>().forEach { it.configure(enabled, incognito, anime + manga) }
         if (configuration == journalConfiguration) return
         Injekt.get<AnimeDatabaseHandler>().await(true) {
             cloudSyncQueries.configure(if (enabled) 1 else 0, if (incognito) 1 else 0)

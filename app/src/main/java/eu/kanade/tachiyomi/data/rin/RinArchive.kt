@@ -36,7 +36,7 @@ data class RinManifest(
     val optionalFactories: List<String> = emptyList(),
 ) {
     companion object {
-        val supportedMedia: Set<String> = setOf("anime", "manga", "addon", "guide", "tv", "news")
+        val supportedMedia: Set<String> = setOf("anime", "manga", "addon", "guide", "tv", "news", "novel")
     }
 
     val hostVersions get() = eu.kanade.domain.extension.AddonHostVersions(
@@ -181,7 +181,7 @@ object RinArchive {
                     manifest.schema == 1 &&
                         manifest.medium in setOf("anime", "manga") ||
                         manifest.schema == 2 &&
-                        manifest.medium in setOf("addon", "guide", "tv")
+                        manifest.medium in setOf("addon", "guide", "tv", "novel")
                     ) &&
                     packagePattern.matches(manifest.packageName),
             )
@@ -191,6 +191,10 @@ object RinArchive {
             require(manifest.entryPoints.isNotEmpty() && manifest.entryPoints.size <= 32)
             require(manifest.entryPoints.all { packagePattern.matches(it) })
             require(manifest.validSourceIdentities())
+            require(
+                manifest.medium != "novel" ||
+                    it.lorelore.nyanime.novel.source.NovelSourcePackages.compatible(manifest),
+            )
             require(manifest.medium != "addon" || manifest.addon?.api?.toDouble() == manifest.extensionLib)
             require("classes.dex" in manifest.hashes)
             require(

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="novel_download_title">Offline chapters</string>
+    <string name="novel_download_description">Keep selected chapters and illustrations on this device.</string>
+    <string name="novel_download_progress">Chapters saved: %1$d / %2$d</string>
+    <string name="novel_download_resources">Chapter resources: %1$d of %2$d saved</string>
+    <string name="novel_download_queued">Waiting to download</string>
+    <string name="novel_download_pause">Pause download</string>
+    <string name="novel_download_retry">Resume download</string>
+    <string name="novel_download_paused">Paused. Saved chapters remain available.</string>
+    <string name="novel_download_choose">Download chapters</string>
+    <string name="novel_download_manage">Choose chapters</string>
+    <string name="novel_download_remove">Remove downloads</string>
+    <string name="novel_download_remove_detail">Remove only the saved chapter files. Your book, reading position and notes stay in your library. Close the reader first.</string>
+    <string name="novel_download_selection_detail">Downloads include chapter illustrations. They are separate from the temporary cache and metadata backups.</string>
+    <string name="novel_download_all">All</string>
+    <string name="novel_download_from_here">From here</string>
+    <string name="novel_download_custom">Select</string>
+    <plurals name="novel_download_selected_count">
+        <item quantity="one">Download %1$d chapter</item>
+        <item quantity="other">Download %1$d chapters</item>
+    </plurals>
+    <string name="novel_download_saved_size">%1$s on this device</string>
+    <string name="novel_download_space">Not enough free space. Free some storage and resume; verified files have been kept.</string>
+    <string name="novel_download_limit">The offline size or resource limit for this book was reached. Choose fewer chapters or remove its downloads.</string>
+    <string name="novel_download_damaged">A saved file could not be verified. Resume to retrieve it again.</string>
+    <string name="novel_download_failed">Download interrupted. Check the source and storage, then resume. Verified files have been kept.</string>
+    <string name="novel_download_empty">Your books, offline</string>
+    <string name="novel_download_empty_detail">Open an online novel and choose Download chapters to save it for later.</string>
+    <string name="novel_download_ready_count">%1$d chapters offline</string>
+</resources>

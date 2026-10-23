@@ -46,6 +46,7 @@ object ExtensionPackageArchive {
             "tachiyomi.animeextension" in features -> "anime"
             "tachiyomi.extension" in features -> "manga"
             "nyanime.newsextension" in features -> "news"
+            "nyanime.novelextension" in features -> "novel"
             "nyanime.tvextension" in features -> "tv"
             "nyanime.guideextension" in features -> "guide"
             "nyanime.addon" in features -> "addon"
@@ -54,6 +55,7 @@ object ExtensionPackageArchive {
         val apiKey = when (medium) {
             "anime" -> "aniyomix.extensionLib"
             "news" -> "nyanime.news.api"
+            "novel" -> "nyanime.novel.api"
             "tv" -> "nyanime.tv.api"
             "guide" -> "nyanime.guide.api"
             "addon" -> "nyanime.addon.api"
@@ -107,6 +109,13 @@ object ExtensionPackageArchive {
                 manifest.extensionLib == api,
         )
         require(app.minSdkVersion <= Build.VERSION.SDK_INT)
+        require(
+            medium != "novel" ||
+                declared != null &&
+                it.lorelore.nyanime.novel.source.NovelSourcePackages.compatible(manifest),
+        ) {
+            "Novel packages require explicit identities and host compatibility"
+        }
         require(
             manifest.optionalFactories.size <= 8 &&
                 manifest.optionalFactories.all {

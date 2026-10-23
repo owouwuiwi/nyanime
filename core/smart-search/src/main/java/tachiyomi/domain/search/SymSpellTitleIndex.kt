@@ -11,6 +11,7 @@ class SymSpellTitleIndex(private val capacity: Int = 5_000) {
     private val terms = mutableMapOf<String, MutableSet<String>>()
     private val prefixes = mutableMapOf<String, MutableSet<String>>()
     private val editions = mutableMapOf<List<String>, MutableSet<String>>()
+    private var termAssociations = 0L
 
     @Synchronized
     fun replace(items: Collection<SearchTitle>) {
@@ -22,16 +23,21 @@ class SymSpellTitleIndex(private val capacity: Int = 5_000) {
     @Synchronized
     fun add(items: Collection<SearchTitle>) {
         var changed = false
+        var namesChanged = false
         items.forEach { item ->
-            if (records[item.key] != item) {
+            val previous = records[item.key]
+            if (previous != item) {
                 records.remove(item.key)
                 records[item.key] = item
-                index(item)
+                if (previous != null && previous.names != item.names) namesChanged = true
+                if (previous == null && !namesChanged) index(item)
                 changed = true
             }
         }
-        if (changed && (records.size > capacity || terms.values.sumOf { it.size } > capacity * 40)) {
+        if (changed && (namesChanged || records.size > capacity || termAssociations > capacity.toLong() * 40)) {
             while (records.size > capacity) records.remove(records.keys.first())
+            // SymSpell cannot remove individual terms. Rebuild once per batch so replaced names,
+            // aliases and evicted identities disappear from every lookup without deleting shared terms.
             rebuild()
         }
     }
@@ -93,6 +99,7 @@ class SymSpellTitleIndex(private val capacity: Int = 5_000) {
         terms.clear()
         prefixes.clear()
         editions.clear()
+        termAssociations = 0L
         records.values.forEach(::index)
     }
 
@@ -104,6 +111,7 @@ class SymSpellTitleIndex(private val capacity: Int = 5_000) {
             val values = words + compact.take(7) + compact
             values.filter { it.length in 1..128 }.distinct().forEach { term ->
                 if (terms.getOrPut(term) { linkedSetOf() }.add(item.key)) {
+                    termAssociations++
                     // Full joined titles remain exact keys. Short lexical prefixes avoid enormous
                     // SymSpell deletion buckets for titles sharing a long introduction.
                     if (term.length <= 32 && term.none(Char::isDigit) && (term in words || term == compact.take(7))) {

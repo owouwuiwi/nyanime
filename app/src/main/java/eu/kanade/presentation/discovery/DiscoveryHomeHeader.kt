@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -20,16 +19,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Adjust
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -63,7 +59,6 @@ import eu.kanade.presentation.motion.appMotionEnabled
 import eu.kanade.presentation.motion.modernMotionEnabled
 import eu.kanade.presentation.motion.posterForeground
 import eu.kanade.presentation.theme.LocalNyanimeStyle
-import eu.kanade.presentation.theme.NyanimeWordmark
 import eu.kanade.presentation.theme.TachiyomiPreviewTheme
 import eu.kanade.tachiyomi.R
 import tachiyomi.domain.discovery.SourceHomeGroup
@@ -116,7 +111,10 @@ fun DiscoveryHomeHeader(
                     ) {
                         if (onBack != null) {
                             IconButton(onClick = onBack) {
-                                Icon(Icons.AutoMirrored.Outlined.ArrowBack, androidStringResource(R.string.home_back))
+                                Icon(
+                                    Icons.AutoMirrored.Outlined.ArrowBack,
+                                    androidStringResource(R.string.home_back),
+                                )
                             }
                         }
                         SourceHomeWordmark(
@@ -128,7 +126,14 @@ fun DiscoveryHomeHeader(
                     }
                 }
             }
-            HomeContentSwitch(selectedHome, homes, categoryOrder, onSelect, onPrioritizeCategory, nativeFallback)
+            HomeContentSwitch(
+                selectedHome,
+                homes,
+                categoryOrder,
+                onSelect,
+                onPrioritizeCategory,
+                nativeFallback,
+            )
         }
     }
 }
@@ -136,7 +141,10 @@ fun DiscoveryHomeHeader(
 @Composable
 private fun HomeHeaderActions(onUpdates: (() -> Unit)?, hasUpdates: Boolean) {
     val motion = appMotionEnabled()
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
         Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
             Crossfade(
                 targetState = onUpdates != null && hasUpdates,
@@ -145,14 +153,16 @@ private fun HomeHeaderActions(onUpdates: (() -> Unit)?, hasUpdates: Boolean) {
             ) { visible ->
                 if (visible) {
                     IconButton(onClick = { onUpdates?.invoke() }) {
-                        Icon(Icons.Outlined.Adjust, contentDescription = androidStringResource(R.string.home_updates))
+                        Icon(
+                            Icons.Outlined.Adjust,
+                            contentDescription = androidStringResource(R.string.home_updates),
+                        )
                     }
                 }
             }
         }
         eu.kanade.tachiyomi.ui.watch.WatchTogetherButton()
         it.lorelore.nyanime.notifications.NotificationAccessWarningButton()
-        it.lorelore.nyanime.music.MusicComingSoonButton()
     }
 }
 
@@ -178,7 +188,11 @@ private fun HomeContentSwitch(
         val widths = choices.map { category ->
             (
                 with(density) {
-                    textMeasurer.measure(AnnotatedString(category.title), style = labelStyle).size.width.toDp()
+                    textMeasurer
+                        .measure(AnnotatedString(category.title), style = labelStyle)
+                        .size
+                        .width
+                        .toDp()
                 } +
                     24.dp
                 )
@@ -187,49 +201,61 @@ private fun HomeContentSwitch(
         }
         val pages = categoryPages(widths.map { it.value }, pageWidth.value, 12f)
         Row(
-            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
-                .selectableGroup().padding(horizontal = 16.dp),
+            Modifier.fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .selectableGroup()
+                .padding(horizontal = 16.dp),
         ) {
             pages.forEach { page ->
-                Column(Modifier.width(pageWidth), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(
+                    Modifier.width(pageWidth),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
                     page.forEach { row ->
                         Row(
                             Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+                            horizontalArrangement =
+                            Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
                         ) {
                             row.forEach { index ->
                                 val category = choices[index]
                                 key(category.orderKey) {
                                     val bringIntoView = remember { BringIntoViewRequester() }
                                     val isSelected = selectedHome == category.id
-                                    val indicatorWidth by animateDpAsState(
-                                        if (isSelected) 32.dp else 0.dp,
-                                        tween(if (motion) 220 else 0),
-                                        label = "homeIndicator",
-                                    )
-                                    val labelColor by animateColorAsState(
-                                        if (isSelected) {
-                                            MaterialTheme.colorScheme.onSurface
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                        },
-                                        tween(if (motion) 180 else 0),
-                                        label = "homeLabel",
-                                    )
+                                    val indicatorWidth by
+                                        animateDpAsState(
+                                            if (isSelected) 32.dp else 0.dp,
+                                            tween(if (motion) 220 else 0),
+                                            label = "homeIndicator",
+                                        )
+                                    val labelColor by
+                                        animateColorAsState(
+                                            if (isSelected) {
+                                                MaterialTheme.colorScheme.onSurface
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                            },
+                                            tween(if (motion) 180 else 0),
+                                            label = "homeLabel",
+                                        )
                                     LaunchedEffect(isSelected, pageWidth) {
                                         if (isSelected) bringIntoView.bringIntoView()
                                     }
                                     Column(
-                                        Modifier.width(widths[index]).bringIntoViewRequester(bringIntoView)
+                                        Modifier.width(widths[index])
+                                            .bringIntoViewRequester(bringIntoView)
                                             .combinedClickable(
                                                 onClick = { onSelect(category.id) },
                                                 onLongClick = {
                                                     if (choices.firstOrNull() != category) {
-                                                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                        haptics.performHapticFeedback(
+                                                            HapticFeedbackType.LongPress,
+                                                        )
                                                         onPrioritizeCategory(category)
                                                     }
                                                 },
-                                                onLongClickLabel = androidStringResource(
+                                                onLongClickLabel =
+                                                androidStringResource(
                                                     R.string.home_prioritize,
                                                     category.title,
                                                 ),
@@ -241,7 +267,10 @@ private fun HomeContentSwitch(
                                             },
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                     ) {
-                                        Box(Modifier.heightIn(min = 36.dp), contentAlignment = Alignment.Center) {
+                                        Box(
+                                            Modifier.heightIn(min = 36.dp),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
                                             Text(
                                                 category.title,
                                                 color = labelColor,
@@ -251,7 +280,8 @@ private fun HomeContentSwitch(
                                             )
                                         }
                                         Box(
-                                            Modifier.width(indicatorWidth).height(3.dp)
+                                            Modifier.width(indicatorWidth)
+                                                .height(3.dp)
                                                 .background(MaterialTheme.colorScheme.primary),
                                         )
                                     }
@@ -270,6 +300,13 @@ private fun HomeContentSwitch(
 @Composable
 private fun NyanimeHomeHeaderPreview() {
     TachiyomiPreviewTheme {
-        DiscoveryHomeHeader(null, {}, null, {}, {}, homes = listOf(SourceHomeGroup("cartoons", "Cartoni", emptyList())))
+        DiscoveryHomeHeader(
+            null,
+            {},
+            null,
+            {},
+            {},
+            homes = listOf(SourceHomeGroup("cartoons", "Cartoni", emptyList())),
+        )
     }
 }

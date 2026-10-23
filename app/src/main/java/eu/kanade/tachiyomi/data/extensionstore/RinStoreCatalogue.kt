@@ -52,6 +52,7 @@ internal object RinStoreCatalogue {
                 "anime" -> StoreMedium.ANIME
                 "manga" -> StoreMedium.MANGA
                 "news" -> StoreMedium.NEWS
+                "novel" -> StoreMedium.NOVEL
                 else -> error("Unknown RIN medium")
             },
             ready = eu.kanade.tachiyomi.data.rin.RinRepository.compatible(
@@ -70,7 +71,7 @@ internal object RinStoreCatalogue {
                 StoreAction.TRUST
             } else if (candidate != null && RinUpdatePolicy.accepts(candidate, record)) {
                 StoreAction.UPDATE
-            } else if (manifest.medium in setOf("addon", "guide", "tv") &&
+            } else if (manifest.medium in setOf("addon", "guide", "tv", "novel") &&
                 !eu.kanade.tachiyomi.data.rin.RinRepository.compatible(manifest)
             ) {
                 StoreAction.MANAGE

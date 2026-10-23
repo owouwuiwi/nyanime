@@ -19,6 +19,7 @@ import eu.kanade.presentation.theme.LocalNyanimeStyle
 import eu.kanade.presentation.util.ScreenTransition
 import eu.kanade.presentation.util.isTabletUi
 import tachiyomi.presentation.core.components.AdaptiveSheet as AdaptiveSheetImpl
+import tachiyomi.presentation.core.components.InputAdaptiveSheet as InputAdaptiveSheetImpl
 
 @OptIn(InternalVoyagerApi::class)
 @Composable
@@ -52,9 +53,7 @@ fun NavigatorAdaptiveSheet(
             if (sheetNavigator.parent?.disposeBehavior?.disposeNestedNavigators == false) {
                 DisposableEffectIgnoringConfiguration {
                     onDispose {
-                        sheetNavigator.items
-                            .asReversed()
-                            .forEach(sheetNavigator::dispose)
+                        sheetNavigator.items.asReversed().forEach(sheetNavigator::dispose)
                     }
                 }
             }
@@ -63,8 +62,8 @@ fun NavigatorAdaptiveSheet(
 }
 
 /**
- * Sheet with adaptive position aligned to bottom on small screen, otherwise aligned to center
- * and will not be able to dismissed with swipe gesture.
+ * Sheet with adaptive position aligned to bottom on small screen, otherwise aligned to center and
+ * will not be able to dismissed with swipe gesture.
  *
  * Max width of the content is set to 460 dp.
  */
@@ -75,6 +74,41 @@ fun AdaptiveSheet(
     enableSwipeDismiss: Boolean = true,
     dismissRequested: Boolean = false,
     content: @Composable () -> Unit,
+) =
+    AdaptiveSheetHost(
+        onDismissRequest,
+        modifier,
+        enableSwipeDismiss,
+        dismissRequested,
+        false,
+        content,
+    )
+
+@Composable
+fun InputAdaptiveSheet(
+    onDismissRequest: () -> Unit,
+    modifier: Modifier = Modifier,
+    enableSwipeDismiss: Boolean = true,
+    dismissRequested: Boolean = false,
+    content: @Composable () -> Unit,
+) =
+    AdaptiveSheetHost(
+        onDismissRequest,
+        modifier,
+        enableSwipeDismiss,
+        dismissRequested,
+        true,
+        content,
+    )
+
+@Composable
+private fun AdaptiveSheetHost(
+    onDismissRequest: () -> Unit,
+    modifier: Modifier,
+    enableSwipeDismiss: Boolean,
+    dismissRequested: Boolean,
+    inputAware: Boolean,
+    content: @Composable () -> Unit,
 ) {
     val isTabletUi = isTabletUi()
     val modern = LocalNyanimeStyle.current
@@ -82,27 +116,55 @@ fun AdaptiveSheet(
 
     Dialog(
         onDismissRequest = onDismissRequest,
-        properties = dialogProperties,
+        properties = if (inputAware) inputDialogProperties else dialogProperties,
     ) {
-        AdaptiveSheetImpl(
-            modifier = modifier,
-            isTabletUi = isTabletUi,
-            enableSwipeDismiss = enableSwipeDismiss,
-            onDismissRequest = onDismissRequest,
-            dismissRequested = dismissRequested,
-            animationDurationMillis = if (modern) {
-                if (motion) ModernMotion.PAGE_MILLIS else 0
+        val sheet: @Composable (@Composable () -> Unit) -> Unit = { body ->
+            if (inputAware) {
+                InputAdaptiveSheetImpl(
+                    modifier = modifier,
+                    isTabletUi = isTabletUi,
+                    enableSwipeDismiss = enableSwipeDismiss,
+                    onDismissRequest = onDismissRequest,
+                    dismissRequested = dismissRequested,
+                    animationDurationMillis =
+                    if (modern) {
+                        if (motion) ModernMotion.PAGE_MILLIS else 0
+                    } else {
+                        350
+                    },
+                    waitForDismissAnimation = modern,
+                    content = body,
+                )
             } else {
-                350
-            },
-            waitForDismissAnimation = modern,
-        ) {
-            content()
+                AdaptiveSheetImpl(
+                    modifier = modifier,
+                    isTabletUi = isTabletUi,
+                    enableSwipeDismiss = enableSwipeDismiss,
+                    onDismissRequest = onDismissRequest,
+                    dismissRequested = dismissRequested,
+                    animationDurationMillis =
+                    if (modern) {
+                        if (motion) ModernMotion.PAGE_MILLIS else 0
+                    } else {
+                        350
+                    },
+                    waitForDismissAnimation = modern,
+                    content = body,
+                )
+            }
         }
+        sheet(content)
     }
 }
 
-private val dialogProperties = DialogProperties(
-    usePlatformDefaultWidth = false,
-    decorFitsSystemWindows = true,
-)
+private val dialogProperties =
+    DialogProperties(
+        usePlatformDefaultWidth = false,
+        decorFitsSystemWindows = true,
+    )
+
+private val inputDialogProperties =
+    DialogProperties(
+        usePlatformDefaultWidth = false,
+        decorFitsSystemWindows = false,
+    )

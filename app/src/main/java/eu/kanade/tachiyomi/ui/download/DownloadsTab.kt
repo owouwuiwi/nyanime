@@ -24,7 +24,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
@@ -104,7 +104,7 @@ data object DownloadsTab : Tab {
             derivedStateOf { mangaDownloadList.sumOf { it.subItems.size } }
         }
 
-        val state = rememberPagerState { 3 }
+        val state = rememberPagerState { 4 }
         val snackbarHostState = remember { SnackbarHostState() }
 
         val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
@@ -117,15 +117,26 @@ data object DownloadsTab : Tab {
                     return scrollBehavior.nestedScrollConnection.onPreScroll(available, source)
                 }
 
-                override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
-                    return scrollBehavior.nestedScrollConnection.onPostScroll(consumed, available, source)
+                override fun onPostScroll(
+                    consumed: Offset,
+                    available: Offset,
+                    source: NestedScrollSource,
+                ): Offset {
+                    return scrollBehavior.nestedScrollConnection.onPostScroll(
+                        consumed,
+                        available,
+                        source,
+                    )
                 }
 
                 override suspend fun onPreFling(available: Velocity): Velocity {
                     return scrollBehavior.nestedScrollConnection.onPreFling(available)
                 }
 
-                override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+                override suspend fun onPostFling(
+                    consumed: Velocity,
+                    available: Velocity,
+                ): Velocity {
                     return scrollBehavior.nestedScrollConnection.onPostFling(consumed, available)
                 }
             }
@@ -135,11 +146,12 @@ data object DownloadsTab : Tab {
             topBar = {
                 AppBar(
                     titleContent = {
-                        val currentDownloadCount = when (state.currentPage) {
-                            0 -> animeDownloadCount
-                            1 -> mangaDownloadCount
-                            else -> 0
-                        }
+                        val currentDownloadCount =
+                            when (state.currentPage) {
+                                0 -> animeDownloadCount
+                                1 -> mangaDownloadCount
+                                else -> 0
+                            }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = stringResource(MR.strings.label_download_queue),
@@ -152,8 +164,10 @@ data object DownloadsTab : Tab {
                                 Pill(
                                     text = "$currentDownloadCount",
                                     modifier = Modifier.padding(start = 4.dp),
-                                    color = MaterialTheme.colorScheme.onBackground
-                                        .copy(alpha = pillAlpha),
+                                    color =
+                                    MaterialTheme.colorScheme.onBackground.copy(
+                                        alpha = pillAlpha,
+                                    ),
                                     fontSize = 14.sp,
                                 )
                             }
@@ -171,7 +185,8 @@ data object DownloadsTab : Tab {
             },
             floatingActionButton = {
                 AnimatedVisibility(
-                    visible = when (state.currentPage) {
+                    visible =
+                    when (state.currentPage) {
                         0 -> animeDownloadList.isNotEmpty()
                         1 -> mangaDownloadList.isNotEmpty()
                         else -> false
@@ -183,50 +198,58 @@ data object DownloadsTab : Tab {
                     val mangaIsRunning by mangaScreenModel.isDownloaderRunning.collectAsState()
                     ExtendedFloatingActionButton(
                         text = {
-                            val id = when (state.currentPage) {
-                                0 -> if (animeIsRunning) {
-                                    AYMR.strings.action_stop
-                                } else {
-                                    AYMR.strings.action_continue
+                            val id =
+                                when (state.currentPage) {
+                                    0 ->
+                                        if (animeIsRunning) {
+                                            AYMR.strings.action_stop
+                                        } else {
+                                            AYMR.strings.action_continue
+                                        }
+                                    1 ->
+                                        if (mangaIsRunning) {
+                                            MR.strings.action_pause
+                                        } else {
+                                            MR.strings.action_resume
+                                        }
+                                    else -> MR.strings.action_pause
                                 }
-                                1 -> if (mangaIsRunning) {
-                                    MR.strings.action_pause
-                                } else {
-                                    MR.strings.action_resume
-                                }
-                                else -> MR.strings.action_pause
-                            }
                             Text(text = stringResource(id))
                         },
                         icon = {
-                            val icon = when (state.currentPage) {
-                                0 -> if (animeIsRunning) {
-                                    Icons.Outlined.Pause
-                                } else {
-                                    Icons.Filled.PlayArrow
+                            val icon =
+                                when (state.currentPage) {
+                                    0 ->
+                                        if (animeIsRunning) {
+                                            Icons.Outlined.Pause
+                                        } else {
+                                            Icons.Filled.PlayArrow
+                                        }
+                                    1 ->
+                                        if (mangaIsRunning) {
+                                            Icons.Outlined.Pause
+                                        } else {
+                                            Icons.Filled.PlayArrow
+                                        }
+                                    else -> Icons.Filled.PlayArrow
                                 }
-                                1 -> if (mangaIsRunning) {
-                                    Icons.Outlined.Pause
-                                } else {
-                                    Icons.Filled.PlayArrow
-                                }
-                                else -> Icons.Filled.PlayArrow
-                            }
                             Icon(imageVector = icon, contentDescription = null)
                         },
                         onClick = {
                             when (state.currentPage) {
-                                0 -> if (animeIsRunning) {
-                                    animeScreenModel.pauseDownloads()
-                                } else {
-                                    animeScreenModel.startDownloads()
-                                }
+                                0 ->
+                                    if (animeIsRunning) {
+                                        animeScreenModel.pauseDownloads()
+                                    } else {
+                                        animeScreenModel.startDownloads()
+                                    }
 
-                                1 -> if (mangaIsRunning) {
-                                    mangaScreenModel.pauseDownloads()
-                                } else {
-                                    mangaScreenModel.startDownloads()
-                                }
+                                1 ->
+                                    if (mangaIsRunning) {
+                                        mangaScreenModel.pauseDownloads()
+                                    } else {
+                                        mangaScreenModel.startDownloads()
+                                    }
                             }
                         },
                         expanded = fabExpanded,
@@ -235,13 +258,14 @@ data object DownloadsTab : Tab {
             },
         ) { contentPadding ->
             Column(
-                modifier = Modifier.padding(
+                modifier =
+                Modifier.padding(
                     top = contentPadding.calculateTopPadding(),
                     start = contentPadding.calculateStartPadding(LocalLayoutDirection.current),
                     end = contentPadding.calculateEndPadding(LocalLayoutDirection.current),
                 ),
             ) {
-                PrimaryTabRow(
+                PrimaryScrollableTabRow(
                     selectedTabIndex = state.currentPage,
                     modifier = Modifier.zIndex(1f),
                 ) {
@@ -274,6 +298,14 @@ data object DownloadsTab : Tab {
                             text = { Text("Ultra") },
                             unselectedContentColor = MaterialTheme.colorScheme.onSurface,
                         ),
+                        Tab(
+                            selected = state.currentPage == 3,
+                            onClick = { scope.launch { state.animateScrollToPage(3) } },
+                            text = {
+                                Text(androidx.compose.ui.res.stringResource(R.string.novel_library))
+                            },
+                            unselectedContentColor = MaterialTheme.colorScheme.onSurface,
+                        ),
                     )
                 }
 
@@ -284,21 +316,32 @@ data object DownloadsTab : Tab {
                     pageNestedScrollConnection = nestedScrollConnection,
                 ) { page ->
                     when (page) {
-                        2 -> eu.kanade.presentation.more.settings.widget.UltraQueueContent(
-                            modifier = Modifier.padding(bottom = contentPadding.calculateBottomPadding()),
-                        )
-                        0 -> animeDownloadTab(
-                            nestedScrollConnection,
-                        ).content(
-                            PaddingValues(bottom = contentPadding.calculateBottomPadding()),
-                            snackbarHostState,
-                        )
-                        1 -> mangaDownloadTab(
-                            nestedScrollConnection,
-                        ).content(
-                            PaddingValues(bottom = contentPadding.calculateBottomPadding()),
-                            snackbarHostState,
-                        )
+                        3 ->
+                            it.lorelore.nyanime.novel.ui.NovelDownloadsQueueContent(
+                                PaddingValues(
+                                    top = 16.dp,
+                                    bottom = contentPadding.calculateBottomPadding() + 24.dp,
+                                ),
+                            )
+                        2 ->
+                            eu.kanade.presentation.more.settings.widget.UltraQueueContent(
+                                modifier =
+                                Modifier.padding(
+                                    bottom = contentPadding.calculateBottomPadding(),
+                                ),
+                            )
+                        0 ->
+                            animeDownloadTab(nestedScrollConnection)
+                                .content(
+                                    PaddingValues(bottom = contentPadding.calculateBottomPadding()),
+                                    snackbarHostState,
+                                )
+                        1 ->
+                            mangaDownloadTab(nestedScrollConnection)
+                                .content(
+                                    PaddingValues(bottom = contentPadding.calculateBottomPadding()),
+                                    snackbarHostState,
+                                )
                     }
                 }
             }
@@ -344,9 +387,7 @@ data object DownloadsTab : Tab {
                 )
                 NestedMenuItem(
                     text = {
-                        Text(
-                            text = stringResource(AYMR.strings.action_order_by_episode_number),
-                        )
+                        Text(text = stringResource(AYMR.strings.action_order_by_episode_number))
                     },
                     children = { closeMenu ->
                         DropdownMenuItem(
@@ -428,9 +469,7 @@ data object DownloadsTab : Tab {
                 )
                 NestedMenuItem(
                     text = {
-                        Text(
-                            text = stringResource(MR.strings.action_order_by_chapter_number),
-                        )
+                        Text(text = stringResource(MR.strings.action_order_by_chapter_number))
                     },
                     children = { closeMenu ->
                         DropdownMenuItem(

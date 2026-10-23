@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -60,7 +59,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -72,6 +70,7 @@ import coil3.compose.AsyncImage
 import com.halilibo.richtext.markdown.Markdown
 import com.halilibo.richtext.ui.material3.RichText
 import eu.kanade.domain.base.BasePreferences
+import eu.kanade.presentation.util.rememberSafeUriHandler
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.news.NewsRepository
 import eu.kanade.tachiyomi.data.news.NewsRules
@@ -109,6 +108,7 @@ class NewsReaderActivity : BaseActivity() {
         }
         setComposeContent { NewsReaderContent(key, onBack = ::finish) }
     }
+
     companion object {
         const val ARTICLE = "news_article"
     }
@@ -134,10 +134,12 @@ private fun NewsReaderContent(key: String, onBack: () -> Unit) {
     val close: () -> Unit = {
         scope.launch {
             try {
-                if (restored &&
-                    !Injekt.get<BasePreferences>().incognitoMode().get()
-                ) {
-                    repository.position(key, list.firstVisibleItemIndex, list.firstVisibleItemScrollOffset)
+                if (restored && !Injekt.get<BasePreferences>().incognitoMode().get()) {
+                    repository.position(
+                        key,
+                        list.firstVisibleItemIndex,
+                        list.firstVisibleItemScrollOffset,
+                    )
                 }
             } catch (cancel: CancellationException) {
                 throw cancel
@@ -155,9 +157,7 @@ private fun NewsReaderContent(key: String, onBack: () -> Unit) {
         try {
             repository.initialize()
             repository.detail(key)
-        } catch (
-            cancel: CancellationException,
-        ) {
+        } catch (cancel: CancellationException) {
             throw cancel
         } catch (_: Exception) {
             error = true
@@ -167,7 +167,10 @@ private fun NewsReaderContent(key: String, onBack: () -> Unit) {
     }
     LaunchedEffect(key, loading) {
         if (!loading && item != null && !restored) {
-            list.scrollToItem(item.position.coerceIn(0, (item.article.blocks.size + 1).coerceAtLeast(0)), item.offset)
+            list.scrollToItem(
+                item.position.coerceIn(0, (item.article.blocks.size + 1).coerceAtLeast(0)),
+                item.offset,
+            )
             restored = true
         }
     }
@@ -175,110 +178,120 @@ private fun NewsReaderContent(key: String, onBack: () -> Unit) {
         if (!restored || Injekt.get<BasePreferences>().incognitoMode().get()) return@LaunchedEffect
         snapshotFlow {
             list.firstVisibleItemIndex to list.firstVisibleItemScrollOffset
-        }.distinctUntilChanged().debounce(400).collect { (index, offset) ->
-            try {
-                repository.position(key, index, offset)
-            } catch (
-                cancel: CancellationException,
-            ) {
-                throw cancel
-            } catch (
-                _: Exception,
-            ) {
-                snackbar.showSnackbar(context.getString(R.string.news_storage_error))
-            }
         }
+            .distinctUntilChanged()
+            .debounce(400)
+            .collect { (index, offset) ->
+                try {
+                    repository.position(key, index, offset)
+                } catch (cancel: CancellationException) {
+                    throw cancel
+                } catch (_: Exception) {
+                    snackbar.showSnackbar(context.getString(R.string.news_storage_error))
+                }
+            }
     }
     Scaffold(
         topBar = {
-            TopAppBar(title = {
-            }, navigationIcon = {
-                IconButton(close) {
-                    Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.news_close))
-                }
-            }, actions = {
-                IconButton(onClick = {
-                    fontDialog = true
-                }) { Icon(Icons.Outlined.TextFields, stringResource(R.string.news_text_size)) }
-                IconButton(onClick = {
-                    val article = item?.article ?: return@IconButton
-                    context.startActivity(
-                        Intent.createChooser(
-                            Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(
-                                Intent.EXTRA_TEXT,
-                                article.title + "\n" + article.url,
-                            ),
-                            context.getString(R.string.news_share),
-                        ),
-                    )
-                }, enabled = item != null) { Icon(Icons.Outlined.Share, stringResource(R.string.news_share)) }
-                IconButton(onClick = {
-                    saving = true
-                    scope.launch {
-                        try {
-                            repository.save(key, item?.saved != true)
-                        } catch (
-                            cancel: CancellationException,
-                        ) {
-                            throw cancel
-                        } catch (
-                            _: Exception,
-                        ) {
-                            snackbar.showSnackbar(context.getString(R.string.news_error))
-                        } finally {
-                            saving = false
-                        }
+            TopAppBar(
+                title = {},
+                navigationIcon = {
+                    IconButton(close) {
+                        Icon(
+                            Icons.AutoMirrored.Outlined.ArrowBack,
+                            stringResource(R.string.news_close),
+                        )
                     }
-                }, enabled = item != null && !saving) {
-                    Icon(
-                        if (item?.saved ==
-                            true
-                        ) {
-                            Icons.Outlined.Bookmark
-                        } else {
-                            Icons.Outlined.BookmarkBorder
+                },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            fontDialog = true
                         },
-                        stringResource(
-                            if (item?.saved ==
-                                true
-                            ) {
-                                R.string.news_unsave
+                    ) {
+                        Icon(Icons.Outlined.TextFields, stringResource(R.string.news_text_size))
+                    }
+                    IconButton(
+                        onClick = {
+                            val article = item?.article ?: return@IconButton
+                            context.startActivity(
+                                Intent.createChooser(
+                                    Intent(Intent.ACTION_SEND)
+                                        .setType("text/plain")
+                                        .putExtra(
+                                            Intent.EXTRA_TEXT,
+                                            article.title + "\n" + article.url,
+                                        ),
+                                    context.getString(R.string.news_share),
+                                ),
+                            )
+                        },
+                        enabled = item != null,
+                    ) {
+                        Icon(Icons.Outlined.Share, stringResource(R.string.news_share))
+                    }
+                    IconButton(
+                        onClick = {
+                            saving = true
+                            scope.launch {
+                                try {
+                                    repository.save(key, item?.saved != true)
+                                } catch (cancel: CancellationException) {
+                                    throw cancel
+                                } catch (_: Exception) {
+                                    snackbar.showSnackbar(context.getString(R.string.news_error))
+                                } finally {
+                                    saving = false
+                                }
+                            }
+                        },
+                        enabled = item != null && !saving,
+                    ) {
+                        Icon(
+                            if (item?.saved == true) {
+                                Icons.Outlined.Bookmark
                             } else {
-                                R.string.news_save
+                                Icons.Outlined.BookmarkBorder
                             },
-                        ),
-                    )
-                }
-            })
+                            stringResource(
+                                if (item?.saved == true) {
+                                    R.string.news_unsave
+                                } else {
+                                    R.string.news_save
+                                },
+                            ),
+                        )
+                    }
+                },
+            )
         },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         if (item == null) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                if (loading) CircularProgressIndicator() else Text(stringResource(R.string.news_error))
+                if (loading) {
+                    CircularProgressIndicator()
+                } else {
+                    Text(stringResource(R.string.news_error))
+                }
             }
         } else {
             val typography = MaterialTheme.typography
             val scale = snapshot.textScale
-            val uriHandler = remember(context) {
-                object : UriHandler {
-                    override fun openUri(uri: String) {
-                        if (NewsRules.webUrl(uri)) context.openInBrowser(uri)
-                    }
-                }
-            }
+            val uriHandler = rememberSafeUriHandler(item.article.url)
             CompositionLocalProvider(LocalUriHandler provides uriHandler) {
                 MaterialTheme(
-                    typography = typography.copy(
-                        bodyLarge = typography.bodyLarge.copy(
+                    typography =
+                    typography.copy(
+                        bodyLarge =
+                        typography.bodyLarge.copy(
                             fontSize = typography.bodyLarge.fontSize * scale,
-                            lineHeight =
-                            typography.bodyLarge.lineHeight * scale,
+                            lineHeight = typography.bodyLarge.lineHeight * scale,
                         ),
-                        bodyMedium = typography.bodyMedium.copy(
+                        bodyMedium =
+                        typography.bodyMedium.copy(
                             fontSize = typography.bodyMedium.fontSize * scale,
-                            lineHeight =
-                            typography.bodyMedium.lineHeight * scale,
+                            lineHeight = typography.bodyMedium.lineHeight * scale,
                         ),
                     ),
                 ) {
@@ -295,7 +308,10 @@ private fun NewsReaderContent(key: String, onBack: () -> Unit) {
                                     style = MaterialTheme.typography.labelLarge,
                                     color = MaterialTheme.colorScheme.primary,
                                 )
-                                Text(item.article.title, style = MaterialTheme.typography.headlineMedium)
+                                Text(
+                                    item.article.title,
+                                    style = MaterialTheme.typography.headlineMedium,
+                                )
                                 Text(
                                     item.article.publishedAt?.let(::newsDate)
                                         ?: stringResource(R.string.news_date_unknown),
@@ -326,23 +342,29 @@ private fun NewsReaderContent(key: String, onBack: () -> Unit) {
                                         stringResource(R.string.news_error),
                                         style = MaterialTheme.typography.bodySmall,
                                     )
-                                    TextButton(onClick = { retry++ }) { Text(stringResource(R.string.news_retry)) }
+                                    TextButton(onClick = { retry++ }) {
+                                        Text(stringResource(R.string.news_retry))
+                                    }
                                 }
                             }
                         }
                         if (item.article.blocks.isEmpty()) {
                             item(key = "excerpt") {
-                                Text(item.article.excerpt.orEmpty(), style = MaterialTheme.typography.bodyLarge)
+                                Text(
+                                    item.article.excerpt.orEmpty(),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                )
                             }
                         }
-                        itemsIndexed(item.article.blocks, key = { index, _ -> "block:$index" }) { _, block ->
+                        itemsIndexed(item.article.blocks, key = { index, _ -> "block:$index" }) {
+                                _,
+                                block,
+                            ->
                             NewsArticleBlock(block, onImage = { image = it })
                         }
                         item(key = "attribution") {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                if (!item.article.fullText &&
-                                    !loading
-                                ) {
+                                if (!item.article.fullText && !loading) {
                                     Text(
                                         stringResource(R.string.news_excerpt_only),
                                         style = MaterialTheme.typography.bodyMedium,
@@ -355,9 +377,13 @@ private fun NewsReaderContent(key: String, onBack: () -> Unit) {
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
-                                TextButton(onClick = {
-                                    context.openInBrowser(item.article.url)
-                                }) { Text(stringResource(R.string.news_read_original)) }
+                                TextButton(
+                                    onClick = {
+                                        context.openInBrowser(item.article.url)
+                                    },
+                                ) {
+                                    Text(stringResource(R.string.news_read_original))
+                                }
                                 if (item.article.topics.isNotEmpty()) NewsTopicLinks(item)
                             }
                         }
@@ -368,41 +394,54 @@ private fun NewsReaderContent(key: String, onBack: () -> Unit) {
     }
     if (fontDialog) {
         var scale by remember { mutableFloatStateOf(snapshot.textScale) }
-        AlertDialog(onDismissRequest = {
-            fontDialog = false
-        }, title = { Text(stringResource(R.string.news_text_size)) }, text = {
-            Column {
-                Text(
-                    "Aa",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontSize =
-                        MaterialTheme.typography.headlineMedium.fontSize * scale,
-                    ),
-                )
-                Slider(
-                    scale,
-                    { scale = it },
-                    valueRange =
-                    0.85f..1.6f,
-                )
-            }
-        }, confirmButton = {
-            TextButton(onClick = {
-                scope.launch {
-                    try {
-                        repository.store.update { it.copy(textScale = scale) }
-                    } catch (cancel: CancellationException) {
-                        throw cancel
-                    } catch (_: Exception) {
-                        snackbar.showSnackbar(context.getString(R.string.news_storage_error))
-                    }
-                }
+        AlertDialog(
+            onDismissRequest = {
                 fontDialog = false
-            }) { Text(stringResource(R.string.news_close)) }
-        })
+            },
+            title = { Text(stringResource(R.string.news_text_size)) },
+            text = {
+                Column {
+                    Text(
+                        "Aa",
+                        style =
+                        MaterialTheme.typography.headlineMedium.copy(
+                            fontSize = MaterialTheme.typography.headlineMedium.fontSize * scale,
+                        ),
+                    )
+                    Slider(
+                        scale,
+                        { scale = it },
+                        valueRange = 0.85f..1.6f,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        scope.launch {
+                            try {
+                                repository.store.update { it.copy(textScale = scale) }
+                            } catch (cancel: CancellationException) {
+                                throw cancel
+                            } catch (_: Exception) {
+                                snackbar.showSnackbar(
+                                    context.getString(R.string.news_storage_error),
+                                )
+                            }
+                        }
+                        fontDialog = false
+                    },
+                ) {
+                    Text(stringResource(R.string.news_close))
+                }
+            },
+        )
     }
     image?.let { url ->
-        Dialog(onDismissRequest = { image = null }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Dialog(
+            onDismissRequest = { image = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+        ) {
             var scale by remember { mutableFloatStateOf(1f) }
             var pan by remember { mutableStateOf(Offset.Zero) }
             Box(
@@ -412,7 +451,11 @@ private fun NewsReaderContent(key: String, onBack: () -> Unit) {
                         val moved = pan + move
                         val limitX = size.width * (scale - 1) / 2
                         val limitY = size.height * (scale - 1) / 2
-                        pan = Offset(moved.x.coerceIn(-limitX, limitX), moved.y.coerceIn(-limitY, limitY))
+                        pan =
+                            Offset(
+                                moved.x.coerceIn(-limitX, limitX),
+                                moved.y.coerceIn(-limitY, limitY),
+                            )
                     }
                 },
             ) {
@@ -422,16 +465,22 @@ private fun NewsReaderContent(key: String, onBack: () -> Unit) {
                     Modifier.fillMaxSize().graphicsLayer {
                         scaleX = scale
                         scaleY = scale
-                        translationX =
-                            pan.x
+                        translationX = pan.x
                         translationY = pan.y
                     },
                     contentScale = ContentScale.Fit,
                 )
-                IconButton(onClick = {
-                    image = null
-                }, modifier = Modifier.align(Alignment.TopEnd)) {
-                    Icon(Icons.Outlined.Close, stringResource(R.string.news_close), tint = Color.White)
+                IconButton(
+                    onClick = {
+                        image = null
+                    },
+                    modifier = Modifier.align(Alignment.TopEnd),
+                ) {
+                    Icon(
+                        Icons.Outlined.Close,
+                        stringResource(R.string.news_close),
+                        tint = Color.White,
+                    )
                 }
             }
         }
@@ -443,14 +492,19 @@ private fun NewsArticleBlock(block: NewsBlock, onImage: (String) -> Unit) {
     val context = LocalContext.current
     when (block.kind) {
         NewsBlockKind.IMAGE -> block.url?.let { NewsImage(it, block.caption) { onImage(it) } }
-        NewsBlockKind.MEDIA -> TextButton(onClick = {
-            block.url?.takeIf(NewsRules::webUrl)?.let { context.openInBrowser(it) }
-        }) {
-            Icon(Icons.Outlined.Link, null)
-            Text(block.text.ifBlank { stringResource(R.string.news_open_media) })
-        }
+        NewsBlockKind.MEDIA ->
+            TextButton(
+                onClick = {
+                    block.url?.takeIf(NewsRules::webUrl)?.let { context.openInBrowser(it) }
+                },
+            ) {
+                Icon(Icons.Outlined.Link, null)
+                Text(block.text.ifBlank { stringResource(R.string.news_open_media) })
+            }
         NewsBlockKind.HEADING -> Text(block.text, style = MaterialTheme.typography.titleLarge)
-        NewsBlockKind.TEXT, NewsBlockKind.QUOTE -> RichText { Markdown(block.text) }
+        NewsBlockKind.TEXT,
+        NewsBlockKind.QUOTE,
+        -> RichText { Markdown(block.text) }
     }
 }
 
@@ -459,19 +513,25 @@ private fun NewsImage(url: String, caption: String?, onClick: () -> Unit) {
     var failed by remember(url) { mutableStateOf(false) }
     Column {
         Box(
-            Modifier.fillMaxWidth().aspectRatio(
-                1.6f,
-            ).clip(
-                RoundedCornerShape(16.dp),
-            ).background(MaterialTheme.colorScheme.surfaceContainerLow).clickable(onClick = onClick),
+            Modifier.fillMaxWidth()
+                .aspectRatio(1.6f)
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                .clickable(onClick = onClick),
             contentAlignment = Alignment.Center,
         ) {
-            AsyncImage(url, caption, Modifier.fillMaxSize(), contentScale = ContentScale.Fit, onError = {
-                failed = true
-            }, onSuccess = {
-                failed =
-                    false
-            })
+            AsyncImage(
+                url,
+                caption,
+                Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit,
+                onError = {
+                    failed = true
+                },
+                onSuccess = {
+                    failed = false
+                },
+            )
             if (failed) {
                 Text(
                     stringResource(R.string.news_image_missing),
@@ -480,6 +540,8 @@ private fun NewsImage(url: String, caption: String?, onClick: () -> Unit) {
                 )
             }
         }
-        caption?.let { Text(it, Modifier.padding(top = 6.dp), style = MaterialTheme.typography.bodySmall) }
+        caption?.let {
+            Text(it, Modifier.padding(top = 6.dp), style = MaterialTheme.typography.bodySmall)
+        }
     }
 }

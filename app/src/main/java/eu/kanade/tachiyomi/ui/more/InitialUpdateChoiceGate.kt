@@ -80,7 +80,7 @@ fun InitialAppSetupGate(onReady: () -> Unit, content: @Composable () -> Unit) {
         InitialThemeChoiceGate(onReady) {
             InitialUpdateChoiceGate(onReady) {
                 InitialAddonIntroductionGate(onReady) {
-                    content()
+                    it.lorelore.nyanime.updates.InitialRoadmapUpdateGate(onReady, content)
                 }
             }
         }

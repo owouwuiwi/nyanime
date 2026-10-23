@@ -11,6 +11,8 @@ import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.network.awaitSuccess
 import eu.kanade.tachiyomi.network.catalogueRequest
+import it.lorelore.nyanime.studio.SourceActivationRequirements
+import it.lorelore.nyanime.studio.StudioTelegramGrantStore
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,6 +21,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -33,6 +36,7 @@ import kotlinx.serialization.json.jsonObject
 import logcat.LogPriority
 import mihon.domain.extension.anime.repository.AnimeExtensionStoreRepository
 import mihon.domain.extensionrepo.manga.repository.MangaExtensionRepoRepository
+import nyanime.telegram.TelegramAccountSessions
 import tachiyomi.core.common.util.system.logcat
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
@@ -117,6 +121,14 @@ class RinRepository private constructor(private val context: Context) {
         migration.edit().remove("pending").apply()
         storage.pruneOnColdStart(emptyList())
         scope.launch(Dispatchers.IO) { reloadInstalled() }
+        scope.launch(Dispatchers.IO) {
+            combine(TelegramAccountSessions.get(context).state, StudioTelegramGrantStore.get(context).changes) {
+                    session,
+                    grants,
+                ->
+                session.version to grants
+            }.drop(1).collect { reloadInstalled() }
+        }
         androidx.core.content.ContextCompat.registerReceiver(
             context,
             object : android.content.BroadcastReceiver() {
@@ -160,8 +172,31 @@ class RinRepository private constructor(private val context: Context) {
                 storage.remove(it.manifest.packageName)
             }
             val records = eu.kanade.tachiyomi.extension.ExtensionPackageInventory.hosted(context, storage)
-            mutableInstalled.value = records.map {
-                it.copy(trusted = eu.kanade.tachiyomi.extension.ExtensionPackageConsent.trusted(it))
+            mutableInstalled.value = records.map { raw ->
+                val record = raw.copy(trusted = eu.kanade.tachiyomi.extension.ExtensionPackageConsent.trusted(raw))
+                if (record.enabled && record.trusted && record.manifest.medium == "novel") {
+                    val proof = try {
+                        SourceActivationRequirements.proof(
+                            context,
+                            SourceActivationRequirements.inspect(context, record),
+                            live = false,
+                        )
+                    } catch (cancel: CancellationException) {
+                        throw cancel
+                    } catch (_: Exception) {
+                        null
+                    }
+                    if (proof == null || !SourceActivationRequirements.current(context, proof)) {
+                        storage.record(record.manifest.packageName)?.takeIf { it.sha256 == record.sha256 }?.let {
+                            storage.setEnabled(record.manifest.packageName, false, expected = it)
+                        }
+                        record.copy(enabled = false)
+                    } else {
+                        record
+                    }
+                } else {
+                    record
+                }
             }
             if (eu.kanade.tachiyomi.extension.ExtensionPackageDiscovery.unavailable.value &&
                 inventoryRetry?.isActive != true
@@ -268,10 +303,16 @@ class RinRepository private constructor(private val context: Context) {
                                 require(RinArchive.validBundleUrl(entry.url))
                                 require(
                                     entry.manifest.schema ==
-                                        if (entry.manifest.medium in setOf("addon", "guide", "tv", "news")) 2 else 1,
+                                        if (entry.manifest.medium in
+                                            setOf("addon", "guide", "tv", "news", "novel")
+                                        ) {
+                                            2
+                                        } else {
+                                            1
+                                        },
                                 )
                                 if (!compatible(entry.manifest, entry.format) &&
-                                    entry.manifest.medium !in setOf("addon", "guide", "tv")
+                                    entry.manifest.medium !in setOf("addon", "guide", "tv", "novel")
                                 ) {
                                     return@extensions
                                 }
@@ -522,6 +563,17 @@ class RinRepository private constructor(private val context: Context) {
         }
         val approved = record.copy(trusted = true)
         val sources = RinLoader.instantiate(context, approved)
+        val accessProof = try {
+            SourceActivationRequirements.proof(
+                context,
+                SourceActivationRequirements.capture(approved, sources),
+                live = false,
+            )
+        } catch (cancel: CancellationException) {
+            throw cancel
+        } catch (_: Exception) {
+            null
+        }
         if (record.manifest.medium == "tv") {
             Injekt.get<eu.kanade.tachiyomi.data.tv.TvServices>().validatePackage(context, approved)
         }
@@ -558,11 +610,15 @@ class RinRepository private constructor(private val context: Context) {
                     automaticUpdates = expected?.automaticUpdates ?: record.automaticUpdates,
                     catalogueConsent = record.catalogueConsent,
                     enabled =
-                    if (preserveEnabled) {
-                        storage.record(record.manifest.packageName)?.enabled ?: record.enabled
-                    } else {
-                        record.enabled
-                    },
+                    (
+                        if (preserveEnabled) {
+                            storage.record(record.manifest.packageName)?.enabled ?: record.enabled
+                        } else {
+                            record.enabled
+                        }
+                        ) &&
+                        accessProof != null &&
+                        SourceActivationRequirements.current(context, accessProof),
                 ),
             )
             if (approveConsent) approveExecution(verified)
@@ -592,21 +648,35 @@ class RinRepository private constructor(private val context: Context) {
         if (medium == "manga") MangaExtensionInstallReceiver.notifyRemoved(context, packageName)
     }
 
-    suspend fun setEnabled(packageName: String, enabled: Boolean) = withContext(Dispatchers.IO) {
+    suspend fun setEnabled(
+        packageName: String,
+        enabled: Boolean,
+        expected: RinRecord? = null,
+        stillRequested: () -> Boolean = { true },
+    ) = withContext(Dispatchers.IO) {
         check(!RinSessions.busy.value && !eu.kanade.tachiyomi.data.addon.RinAddonRuntime.busy.value) {
             "Close playback or reading before changing extensions"
         }
         val previous = requireNotNull(storage.record(packageName))
+        check(stillRequested() && (expected == null || previous == expected.copy(trusted = previous.trusted))) {
+            "Source activation changed or was cancelled"
+        }
         if (previous.enabled == enabled) return@withContext
         // Validate before enabling; failed factories leave the disabled package intact.
-        if (enabled) RinLoader.instantiate(context, previous)
+        val proof = if (enabled) {
+            SourceActivationRequirements.requireEnabled(context, previous, RinLoader.instantiate(context, previous))
+        } else {
+            null
+        }
         withContext(Dispatchers.Main.immediate) {
             check(
                 !RinSessions.busy.value &&
                     !eu.kanade.tachiyomi.data.addon.RinAddonRuntime.busy.value &&
-                    storage.record(packageName) == previous,
+                    storage.record(packageName) == previous &&
+                    stillRequested() &&
+                    (proof == null || SourceActivationRequirements.current(context, proof)),
             )
-            val changed = storage.setEnabled(packageName, enabled)
+            val changed = storage.setEnabled(packageName, enabled, expected = previous)
             reloadInstalled()
             if (changed.manifest.medium == "addon") {
                 if (!enabled) eu.kanade.tachiyomi.data.addon.RinAddonRuntime.stop(context, packageName)
@@ -646,6 +716,7 @@ class RinRepository private constructor(private val context: Context) {
         fun compatible(m: RinManifest, format: String = "rin"): Boolean =
             m.hostVersions.supports(eu.kanade.tachiyomi.BuildConfig.VERSION_CODE.toLong()) &&
                 when (m.medium) {
+                    "novel" -> it.lorelore.nyanime.novel.source.NovelSourcePackages.compatible(m)
                     "news" -> m.schema == 2 && m.extensionLib == 1.0 && m.entryPoints.size == 1
                     "tv" ->
                         m.schema == 2 &&

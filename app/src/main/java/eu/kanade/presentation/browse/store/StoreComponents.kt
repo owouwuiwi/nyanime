@@ -723,6 +723,7 @@ internal fun StoreMedium.label() =
         StoreMedium.MANGA -> R.string.store_manga
         StoreMedium.TV -> R.string.tv_title
         StoreMedium.NEWS -> R.string.store_news
+        StoreMedium.NOVEL -> R.string.novel_library
         StoreMedium.GUIDE -> R.string.store_guide
         StoreMedium.ADDON -> R.string.store_addon
     }
@@ -733,6 +734,7 @@ internal fun StoreMedium.icon(): ImageVector =
         StoreMedium.MANGA -> Icons.AutoMirrored.Outlined.MenuBook
         StoreMedium.TV -> Icons.Outlined.LiveTv
         StoreMedium.NEWS -> Icons.Outlined.Newspaper
+        StoreMedium.NOVEL -> Icons.AutoMirrored.Outlined.MenuBook
         StoreMedium.GUIDE -> Icons.Outlined.MenuBook
         StoreMedium.ADDON -> Icons.Outlined.Extension
     }

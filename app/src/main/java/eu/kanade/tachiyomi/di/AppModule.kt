@@ -79,6 +79,42 @@ class AppModule(
 
     override fun InjektRegistrar.registerInjectables() {
         addSingleton(app)
+        addSingletonFactory {
+            it.lorelore.nyanime.novel.NovelLibrary(
+                app,
+                onlineOpener = { book ->
+                    get<it.lorelore.nyanime.novel.source.NovelOnlineRepository>().open(book)
+                },
+            )
+        }
+        addSingletonFactory {
+            it.lorelore.nyanime.novel.source.NovelSources(
+                app,
+                get(),
+                extraProviders = {
+                    listOf(it.lorelore.nyanime.studio.StudioNovelSourceProvider(app))
+                },
+            )
+        }
+        addSingletonFactory { it.lorelore.nyanime.novel.NovelDownloadStore(app) }
+        addSingletonFactory {
+            it.lorelore.nyanime.novel.download.NovelDownloads(
+                app,
+                get(),
+                it.lorelore.nyanime.novel.NovelStore.shared(app),
+            )
+        }
+        addSingletonFactory {
+            it.lorelore.nyanime.novel.source.NovelOnlineRepository(
+                app,
+                get(),
+                get(),
+                get(),
+                offlineOnly = {
+                    get<eu.kanade.domain.base.BasePreferences>().downloadedOnly().get()
+                },
+            )
+        }
         addSingletonFactory { eu.kanade.tachiyomi.data.news.NewsRepository(app, get()) }
         addSingletonFactory { eu.kanade.tachiyomi.data.tv.TvServices(app, get(), get()) }
         addSingletonFactory { eu.kanade.tachiyomi.data.workinfo.WorkInfoPreferences(get(), get()) }
@@ -86,7 +122,8 @@ class AppModule(
         addSingletonFactory {
             val json = get<Json>()
             val preferences = get<eu.kanade.tachiyomi.data.workinfo.WorkInfoPreferences>()
-            val http = eu.kanade.tachiyomi.data.workinfo.WorkInfoHttp(get<NetworkHelper>().client, json)
+            val http =
+                eu.kanade.tachiyomi.data.workinfo.WorkInfoHttp(get<NetworkHelper>().client, json)
             it.lorelore.nyanime.themes.AnimeThemesRepository(
                 listOf(
                     it.lorelore.nyanime.themes.AnimeThemesProvider(http),
@@ -97,123 +134,157 @@ class AppModule(
                     json,
                 ),
                 json,
-                { preferences.consent().get() == eu.kanade.tachiyomi.data.workinfo.WorkInfoPreferences.ENABLED },
+                {
+                    preferences.consent().get() ==
+                        eu.kanade.tachiyomi.data.workinfo.WorkInfoPreferences.ENABLED
+                },
             )
         }
         addSingletonFactory {
             val json = get<Json>()
             val preferences = get<eu.kanade.tachiyomi.data.workinfo.WorkInfoPreferences>()
-            val http = eu.kanade.tachiyomi.data.workinfo.WorkInfoHttp(get<NetworkHelper>().client, json)
+            val http =
+                eu.kanade.tachiyomi.data.workinfo.WorkInfoHttp(get<NetworkHelper>().client, json)
             eu.kanade.tachiyomi.data.workinfo.WorkInfoRepository(
-                providers = listOf(
+                providers =
+                listOf(
                     eu.kanade.tachiyomi.data.workinfo.AniListWorkInformation(
                         eu.kanade.tachiyomi.data.discovery.AnilistCatalogTransport(
-                            get<NetworkHelper>().client.newBuilder().cookieJar(okhttp3.CookieJar.NO_COOKIES)
-                                .cache(null).build(),
+                            get<NetworkHelper>()
+                                .client
+                                .newBuilder()
+                                .cookieJar(okhttp3.CookieJar.NO_COOKIES)
+                                .cache(null)
+                                .build(),
                             json,
                         ),
                     ),
                     eu.kanade.tachiyomi.data.workinfo.TvMazeWorkInformation(http),
                     eu.kanade.tachiyomi.data.workinfo.WikidataWorkInformation(http),
                 ),
-                cache = eu.kanade.tachiyomi.data.workinfo.FileWorkInfoCache(
+                cache =
+                eu.kanade.tachiyomi.data.workinfo.FileWorkInfoCache(
                     java.io.File(app.cacheDir, "work-info-v1"),
                     json,
                 ),
                 json = json,
                 enabled = {
-                    preferences.consent().get() == eu.kanade.tachiyomi.data.workinfo.WorkInfoPreferences.ENABLED
+                    preferences.consent().get() ==
+                        eu.kanade.tachiyomi.data.workinfo.WorkInfoPreferences.ENABLED
                 },
             )
         }
 
-        val sqlDriverManga = AndroidSqliteDriver(
-            schema = Database.Schema,
-            context = app,
-            name = "tachiyomi.db",
-            factory = if (BuildConfig.DEBUG && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                // Support database inspector in Android Studio
-                FrameworkSQLiteOpenHelperFactory()
-            } else {
-                RequerySQLiteOpenHelperFactory()
-            },
-            callback = object : AndroidSqliteDriver.Callback(Database.Schema) {
-                override fun onCreate(db: SupportSQLiteDatabase) {
-                    check(!recoveryOnly || recoveryWrites) { "No existing manga database to recover" }
-                    super.onCreate(db)
-                }
-
-                override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {
-                    check(!recoveryOnly || recoveryWrites) { "Recovery cannot migrate the manga database" }
-                    super.onUpgrade(db, oldVersion, newVersion)
-                }
-
-                override fun onOpen(db: SupportSQLiteDatabase) {
-                    super.onOpen(db)
-                    if (recoveryOnly) {
-                        if (!recoveryWrites) setPragma(db, "query_only = ON")
-                        return
+        val sqlDriverManga =
+            AndroidSqliteDriver(
+                schema = Database.Schema,
+                context = app,
+                name = "tachiyomi.db",
+                factory =
+                if (BuildConfig.DEBUG && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    // Support database inspector in Android Studio
+                    FrameworkSQLiteOpenHelperFactory()
+                } else {
+                    RequerySQLiteOpenHelperFactory()
+                },
+                callback =
+                object : AndroidSqliteDriver.Callback(Database.Schema) {
+                    override fun onCreate(db: SupportSQLiteDatabase) {
+                        check(!recoveryOnly || recoveryWrites) {
+                            "No existing manga database to recover"
+                        }
+                        super.onCreate(db)
                     }
-                    setPragma(db, "foreign_keys = ON")
-                    setPragma(db, "journal_mode = WAL")
-                    setPragma(db, "synchronous = NORMAL")
-                    setPragma(db, "busy_timeout = 3000")
-                }
-                private fun setPragma(db: SupportSQLiteDatabase, pragma: String) {
-                    val cursor = db.query("PRAGMA $pragma")
-                    cursor.moveToFirst()
-                    cursor.close()
-                }
-            },
-        )
 
-        val sqlDriverAnime = AndroidSqliteDriver(
-            schema = AnimeDatabase.Schema,
-            context = app,
-            name = "tachiyomi.animedb",
-            factory = if (BuildConfig.DEBUG && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                // Support database inspector in Android Studio
-                FrameworkSQLiteOpenHelperFactory()
-            } else {
-                RequerySQLiteOpenHelperFactory()
-            },
-            callback = object : AndroidSqliteDriver.Callback(AnimeDatabase.Schema) {
-                override fun onCreate(db: SupportSQLiteDatabase) {
-                    check(!recoveryOnly || recoveryWrites) { "No existing anime database to recover" }
-                    super.onCreate(db)
-                }
-
-                override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {
-                    check(!recoveryOnly || recoveryWrites) { "Recovery cannot migrate the anime database" }
-                    super.onUpgrade(db, oldVersion, newVersion)
-                }
-
-                override fun onOpen(db: SupportSQLiteDatabase) {
-                    super.onOpen(db)
-                    if (recoveryOnly) {
-                        if (!recoveryWrites) setPragma(db, "query_only = ON")
-                        return
+                    override fun onUpgrade(
+                        db: SupportSQLiteDatabase,
+                        oldVersion: Int,
+                        newVersion: Int,
+                    ) {
+                        check(!recoveryOnly || recoveryWrites) {
+                            "Recovery cannot migrate the manga database"
+                        }
+                        super.onUpgrade(db, oldVersion, newVersion)
                     }
-                    setPragma(db, "foreign_keys = ON")
-                    setPragma(db, "journal_mode = WAL")
-                    setPragma(db, "synchronous = NORMAL")
-                    setPragma(db, "busy_timeout = 3000")
-                }
-                private fun setPragma(db: SupportSQLiteDatabase, pragma: String) {
-                    val cursor = db.query("PRAGMA $pragma")
-                    cursor.moveToFirst()
-                    cursor.close()
-                }
-            },
-        )
+
+                    override fun onOpen(db: SupportSQLiteDatabase) {
+                        super.onOpen(db)
+                        if (recoveryOnly) {
+                            if (!recoveryWrites) setPragma(db, "query_only = ON")
+                            return
+                        }
+                        setPragma(db, "foreign_keys = ON")
+                        setPragma(db, "journal_mode = WAL")
+                        setPragma(db, "synchronous = NORMAL")
+                        setPragma(db, "busy_timeout = 3000")
+                    }
+
+                    private fun setPragma(db: SupportSQLiteDatabase, pragma: String) {
+                        val cursor = db.query("PRAGMA $pragma")
+                        cursor.moveToFirst()
+                        cursor.close()
+                    }
+                },
+            )
+
+        val sqlDriverAnime =
+            AndroidSqliteDriver(
+                schema = AnimeDatabase.Schema,
+                context = app,
+                name = "tachiyomi.animedb",
+                factory =
+                if (BuildConfig.DEBUG && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    // Support database inspector in Android Studio
+                    FrameworkSQLiteOpenHelperFactory()
+                } else {
+                    RequerySQLiteOpenHelperFactory()
+                },
+                callback =
+                object : AndroidSqliteDriver.Callback(AnimeDatabase.Schema) {
+                    override fun onCreate(db: SupportSQLiteDatabase) {
+                        check(!recoveryOnly || recoveryWrites) {
+                            "No existing anime database to recover"
+                        }
+                        super.onCreate(db)
+                    }
+
+                    override fun onUpgrade(
+                        db: SupportSQLiteDatabase,
+                        oldVersion: Int,
+                        newVersion: Int,
+                    ) {
+                        check(!recoveryOnly || recoveryWrites) {
+                            "Recovery cannot migrate the anime database"
+                        }
+                        super.onUpgrade(db, oldVersion, newVersion)
+                    }
+
+                    override fun onOpen(db: SupportSQLiteDatabase) {
+                        super.onOpen(db)
+                        if (recoveryOnly) {
+                            if (!recoveryWrites) setPragma(db, "query_only = ON")
+                            return
+                        }
+                        setPragma(db, "foreign_keys = ON")
+                        setPragma(db, "journal_mode = WAL")
+                        setPragma(db, "synchronous = NORMAL")
+                        setPragma(db, "busy_timeout = 3000")
+                    }
+
+                    private fun setPragma(db: SupportSQLiteDatabase, pragma: String) {
+                        val cursor = db.query("PRAGMA $pragma")
+                        cursor.moveToFirst()
+                        cursor.close()
+                    }
+                },
+            )
 
         addSingletonFactory {
             Database(
                 driver = sqlDriverManga,
-                historyAdapter = History.Adapter(
-                    last_readAdapter = DateColumnAdapter,
-                ),
-                mangasAdapter = Mangas.Adapter(
+                historyAdapter = History.Adapter(last_readAdapter = DateColumnAdapter),
+                mangasAdapter =
+                Mangas.Adapter(
                     genreAdapter = StringListColumnAdapter,
                     update_strategyAdapter = MangaUpdateStrategyColumnAdapter,
                 ),
@@ -223,18 +294,15 @@ class AppModule(
         addSingletonFactory {
             AnimeDatabase(
                 driver = sqlDriverAnime,
-                animehistoryAdapter = Animehistory.Adapter(
-                    last_seenAdapter = DateColumnAdapter,
-                ),
-                animesAdapter = Animes.Adapter(
+                animehistoryAdapter = Animehistory.Adapter(last_seenAdapter = DateColumnAdapter),
+                animesAdapter =
+                Animes.Adapter(
                     genreAdapter = StringListColumnAdapter,
                     update_strategyAdapter = AnimeUpdateStrategyColumnAdapter,
                     fetch_typeAdapter = FetchTypeColumnAdapter,
                     memoAdapter = MemoColumnAdapter,
                 ),
-                episodesAdapter = Episodes.Adapter(
-                    memoAdapter = MemoColumnAdapter,
-                ),
+                episodesAdapter = Episodes.Adapter(memoAdapter = MemoColumnAdapter),
             )
         }
 
@@ -242,10 +310,9 @@ class AppModule(
             AndroidMangaDatabaseHandler(
                 get(),
                 sqlDriverManga,
-                queryDispatcher = Dispatchers.IO.limitedParallelism(
-                    if (app.getSystemService<ActivityManager>()?.isLowRamDevice ==
-                        true
-                    ) {
+                queryDispatcher =
+                Dispatchers.IO.limitedParallelism(
+                    if (app.getSystemService<ActivityManager>()?.isLowRamDevice == true) {
                         1
                     } else {
                         2
@@ -258,10 +325,9 @@ class AppModule(
             AndroidAnimeDatabaseHandler(
                 get(),
                 sqlDriverAnime,
-                queryDispatcher = Dispatchers.IO.limitedParallelism(
-                    if (app.getSystemService<ActivityManager>()?.isLowRamDevice ==
-                        true
-                    ) {
+                queryDispatcher =
+                Dispatchers.IO.limitedParallelism(
+                    if (app.getSystemService<ActivityManager>()?.isLowRamDevice == true) {
                         1
                     } else {
                         2

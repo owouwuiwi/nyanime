@@ -13,11 +13,16 @@ object ExtensionPackageInventory {
         val system = ExtensionPackageDiscovery.candidates(
             context,
             ExtensionPackageArchive.FLAGS,
-            setOf("nyanime.tvextension", "nyanime.guideextension", "nyanime.addon"),
+            setOf("nyanime.tvextension", "nyanime.guideextension", "nyanime.addon", "nyanime.novelextension"),
         ).mapNotNull { info ->
             if (info.reqFeatures.orEmpty().none {
                     it.name in
-                        setOf("nyanime.tvextension", "nyanime.guideextension", "nyanime.addon")
+                        setOf(
+                            "nyanime.tvextension",
+                            "nyanime.guideextension",
+                            "nyanime.addon",
+                            "nyanime.novelextension",
+                        )
                 }
             ) {
                 return@mapNotNull null

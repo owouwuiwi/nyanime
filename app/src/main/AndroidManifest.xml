@@ -90,6 +90,20 @@
         <activity android:name=".data.recovery.ProtectedAppUpdateActivity" android:exported="false" />
 
         <activity android:name=".ui.news.NewsReaderActivity" android:exported="false" />
+        <activity android:name="it.lorelore.nyanime.novel.ui.NovelReaderActivity" android:exported="false" />
+        <activity
+            android:name="it.lorelore.nyanime.novel.ui.NovelOpenDocumentActivity"
+            android:label="@string/novel_library"
+            android:exported="true"
+            android:excludeFromRecents="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:mimeType="application/epub+zip" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
         <activity android:name=".ui.more.AboutActivity" android:exported="false" />
         <provider
             android:name=".data.theme.AppearanceProvider"
@@ -525,6 +539,7 @@
         <activity android:name=".data.addon.RinAddonActivity" android:exported="false" />
         <service android:name=".data.addon.RinAddonForegroundService" android:exported="false" android:foregroundServiceType="dataSync" />
         <receiver android:name="it.lorelore.nyanime.backup.remote.RemoteBackupCancelReceiver" android:exported="false" />
+        <receiver android:name="it.lorelore.nyanime.novel.download.NovelDownloadCancelReceiver" android:exported="false" />
         <activity android:name=".ui.cloud.CloudActivity" android:exported="false" />
         <service android:name=".data.telegram.TelegramEngineService" android:exported="false" android:process=":telegram" />
     </application>

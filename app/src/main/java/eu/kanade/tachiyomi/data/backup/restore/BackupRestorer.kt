@@ -48,16 +48,19 @@ class BackupRestorer(
     private val isSync: Boolean,
     private val onProgress: suspend (Int, Int) -> Unit = { _, _ -> },
     private val emergency: Boolean = false,
-
     private val animeCategoriesRestorer: AnimeCategoriesRestorer = AnimeCategoriesRestorer(),
     private val mangaCategoriesRestorer: MangaCategoriesRestorer = MangaCategoriesRestorer(),
-    private val preferenceRestorer: PreferenceRestorer = PreferenceRestorer(context, reschedule = !emergency),
-    private val animeExtensionStoreRestorer: AnimeExtensionStoreRestorer = AnimeExtensionStoreRestorer(),
-    private val mangaExtensionRepoRestorer: MangaExtensionRepoRestorer = MangaExtensionRepoRestorer(),
+    private val preferenceRestorer: PreferenceRestorer =
+        PreferenceRestorer(context, reschedule = !emergency),
+    private val animeExtensionStoreRestorer: AnimeExtensionStoreRestorer =
+        AnimeExtensionStoreRestorer(),
+    private val mangaExtensionRepoRestorer: MangaExtensionRepoRestorer =
+        MangaExtensionRepoRestorer(),
     private val customButtonRestorer: CustomButtonRestorer = CustomButtonRestorer(),
     private val animeRestorer: AnimeRestorer = AnimeRestorer(),
     private val mangaRestorer: MangaRestorer = MangaRestorer(),
-    private val extensionsRestorer: ExtensionsRestorer = ExtensionsRestorer(context, emergency = emergency),
+    private val extensionsRestorer: ExtensionsRestorer =
+        ExtensionsRestorer(context, emergency = emergency),
     private val animeRepository: AnimeRepository = Injekt.get(),
     private val preferenceStore: PreferenceStore = Injekt.get(),
 ) {
@@ -66,9 +69,7 @@ class BackupRestorer(
     private var restoreProgress = 0
     private val errors = mutableListOf<Pair<Date, String>>()
 
-    /**
-     * Mapping of source ID to source name from backup data
-     */
+    /** Mapping of source ID to source name from backup data */
     private var animeSourceMapping: Map<Long, String> = emptyMap()
     private var mangaSourceMapping: Map<Long, String> = emptyMap()
 
@@ -113,7 +114,8 @@ class BackupRestorer(
             restoreAmount += 1
         }
         if (options.extensionStores) {
-            restoreAmount += backup.backupAnimeExtensionStores.size + backup.backupMangaExtensionRepo.size
+            restoreAmount +=
+                backup.backupAnimeExtensionStores.size + backup.backupMangaExtensionRepo.size
         }
         if (options.customButtons) {
             restoreAmount += 1
@@ -130,17 +132,21 @@ class BackupRestorer(
                 restoreCategories(
                     backupAnimeCategories = backup.backupAnimeCategories,
                     backupMangaCategories = backup.backupCategories,
-                ).join()
+                )
+                    .join()
             }
             if (options.appSettings) {
                 restoreAppPreferences(
                     backup.backupPreferences,
                     backup.backupAnimeCategories.takeIf { options.categories },
                     backup.backupCategories.takeIf { options.categories },
-                ).join()
+                )
+                    .join()
                 backup.newsState?.let {
                     eu.kanade.tachiyomi.data.news.NewsStore(context).restore(it)
-                    if (!emergency) Injekt.get<eu.kanade.tachiyomi.data.news.NewsRepository>().initialize()
+                    if (!emergency) {
+                        Injekt.get<eu.kanade.tachiyomi.data.news.NewsRepository>().initialize()
+                    }
                 }
             }
             if (options.sourceSettings) {
@@ -149,50 +155,89 @@ class BackupRestorer(
                 }
                 restoreSourcePreferences(backup.backupSourcePreferences).join()
             }
-            if (options.libraryEntries) {
-                restoreAnime(backup.backupAnime, if (options.categories) backup.backupAnimeCategories else emptyList())
-                    .join()
-                restoreManga(backup.backupManga, if (options.categories) backup.backupCategories else emptyList())
-                    .join()
-                val personalTitles = backup.backupAnime.map { entry ->
-                    Triple(it.lorelore.nyanime.tracking.TrackingMedium.ANIME, entry.source, entry.url)
-                }.toSet() +
-                    backup.backupManga.map { entry ->
-                        Triple(it.lorelore.nyanime.tracking.TrackingMedium.MANGA, entry.source, entry.url)
-                    }
-                it.lorelore.nyanime.tracking.PersonalTrackingStore.get(context).merge(
-                    backup.personalTracking.filter { record ->
-                        Triple(record.subject.medium, record.subject.source, record.subject.url) in personalTitles
-                    },
-                )
-                val guidedTitles = backup.backupManga.mapTo(hashSetOf()) { it.source to it.url }
-                if (options.appSettings) {
-                    eu.kanade.tachiyomi.ui.reader.spread.SpreadStore.get(context).merge(
-                        backup.readerSpreads.filter { (it.source to it.title) in guidedTitles },
-                    )
+            if (options.libraryEntries || options.appSettings) {
+                backup.novelMetadata?.let { metadata ->
+                    it.lorelore.nyanime.novel.NovelBackup.restore(context, metadata, options)
                 }
-                nyanime.panels.GuidedReadingStore.get(context).merge(
-                    backup.guidedReading.filter { record ->
-                        (record.ref.source to record.ref.title) in guidedTitles
-                    }.map { record ->
-                        if (options.appSettings) {
-                            record
-                        } else {
-                            record.copy(
-                                corrections = nyanime.panels.GuidedReadingStore.get(context)
-                                    .get(record.ref)?.corrections,
+            }
+            if (options.libraryEntries) {
+                restoreAnime(
+                    backup.backupAnime,
+                    if (options.categories) backup.backupAnimeCategories else emptyList(),
+                )
+                    .join()
+                restoreManga(
+                    backup.backupManga,
+                    if (options.categories) backup.backupCategories else emptyList(),
+                )
+                    .join()
+                val personalTitles =
+                    backup.backupAnime
+                        .map { entry ->
+                            Triple(
+                                it.lorelore.nyanime.tracking.TrackingMedium.ANIME,
+                                entry.source,
+                                entry.url,
                             )
                         }
-                    },
-                )
+                        .toSet() +
+                        backup.backupManga.map { entry ->
+                            Triple(
+                                it.lorelore.nyanime.tracking.TrackingMedium.MANGA,
+                                entry.source,
+                                entry.url,
+                            )
+                        }
+                it.lorelore.nyanime.tracking.PersonalTrackingStore.get(context)
+                    .merge(
+                        backup.personalTracking.filter { record ->
+                            Triple(
+                                record.subject.medium,
+                                record.subject.source,
+                                record.subject.url,
+                            ) in personalTitles
+                        },
+                    )
+                val guidedTitles = backup.backupManga.mapTo(hashSetOf()) { it.source to it.url }
+                if (options.appSettings) {
+                    eu.kanade.tachiyomi.ui.reader.spread.SpreadStore.get(context)
+                        .merge(
+                            backup.readerSpreads.filter { (it.source to it.title) in guidedTitles },
+                        )
+                }
+                nyanime.panels.GuidedReadingStore.get(context)
+                    .merge(
+                        backup.guidedReading
+                            .filter { record ->
+                                (record.ref.source to record.ref.title) in guidedTitles
+                            }
+                            .map { record ->
+                                if (options.appSettings) {
+                                    record
+                                } else {
+                                    record.copy(
+                                        corrections =
+                                        nyanime.panels.GuidedReadingStore.get(context)
+                                            .get(record.ref)
+                                            ?.corrections,
+                                    )
+                                }
+                            },
+                    )
                 if (options.appSettings) {
                     backup.backupHiddenResume?.let { restoreHiddenResume(it) }
-                    eu.kanade.tachiyomi.data.releases.ReleaseStore().restore(backup.releaseSubscriptions)
+                    eu.kanade.tachiyomi.data.releases
+                        .ReleaseStore()
+                        .restore(backup.releaseSubscriptions)
                     if (!emergency) eu.kanade.tachiyomi.data.releases.ReleaseMonitor.setup(context)
                 }
             }
             if (options.extensionStores) {
-                restoreExtensionStores(backup.backupAnimeExtensionStores, backup.backupMangaExtensionRepo).join()
+                restoreExtensionStores(
+                    backup.backupAnimeExtensionStores,
+                    backup.backupMangaExtensionRepo,
+                )
+                    .join()
             }
             if (options.customButtons) {
                 restoreCustomButtons(backup.backupCustomButton).join()
@@ -206,20 +251,27 @@ class BackupRestorer(
     }
 
     private suspend fun restoreHiddenResume(state: BackupHiddenResumeState) {
-        val ids = state.entries.mapNotNull { entry ->
-            val id = try {
-                animeRepository.getAnimeByUrlAndSourceId(entry.url, entry.source)?.id?.toString()
-            } catch (e: CancellationException) {
-                throw e
-            } catch (_: Exception) {
-                null
+        val ids =
+            state.entries.mapNotNull { entry ->
+                val id =
+                    try {
+                        animeRepository
+                            .getAnimeByUrlAndSourceId(entry.url, entry.source)
+                            ?.id
+                            ?.toString()
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (_: Exception) {
+                        null
+                    }
+                if (id == null) {
+                    errors.add(Date() to "Hidden title unavailable [${entry.source}]: ${entry.url}")
+                }
+                id
             }
-            if (id == null) {
-                errors.add(Date() to "Hidden title unavailable [${entry.source}]: ${entry.url}")
-            }
-            id
-        }
-        preferenceStore.getStringSet(Preference.appStateKey("discovery_hidden_resume")).set(ids.toSet())
+        preferenceStore
+            .getStringSet(Preference.appStateKey("discovery_hidden_resume"))
+            .set(ids.toSet())
     }
 
     private fun CoroutineScope.restoreCategories(
@@ -244,11 +296,16 @@ class BackupRestorer(
         backupAnimeCategories: List<BackupCategory>,
     ) = launch {
         val idsInBackup = backupAnimes.mapNotNull { it.id }.toSet()
-        val seasonsByParent = backupAnimes.filter { it.parentId in idsInBackup }.groupBy { it.parentId }
+        val seasonsByParent =
+            backupAnimes.filter { it.parentId in idsInBackup }.groupBy { it.parentId }
         restoreInBatches(
             entries = animeRestorer.sortByNew(backupAnimes.filter { it.parentId !in idsInBackup }),
-            restoreBatch = { animeRestorer.restoreBatch(it, backupAnimeCategories, seasonsByParent) },
-            restoreEntry = { animeRestorer.restore(it, backupAnimeCategories, seasonsByParent[it.id].orEmpty()) },
+            restoreBatch = {
+                animeRestorer.restoreBatch(it, backupAnimeCategories, seasonsByParent)
+            },
+            restoreEntry = {
+                animeRestorer.restore(it, backupAnimeCategories, seasonsByParent[it.id].orEmpty())
+            },
             onError = { entry, error ->
                 val sourceName = animeSourceMapping[entry.source] ?: entry.source.toString()
                 errors.add(Date() to "${entry.title} [$sourceName]: ${error.message}")
@@ -285,11 +342,13 @@ class BackupRestorer(
         mangaCategories: List<BackupCategory>?,
     ) = launch {
         ensureActive()
-        preferenceRestorer.restoreApp(
-            preferences,
-            animeCategories,
-            mangaCategories,
-        ).forEach { key -> errors.add(Date() to "App setting: $key") }
+        preferenceRestorer
+            .restoreApp(
+                preferences,
+                animeCategories,
+                mangaCategories,
+            )
+            .forEach { key -> errors.add(Date() to "App setting: $key") }
 
         restoreProgress += 1
         reportProgress(
@@ -300,10 +359,13 @@ class BackupRestorer(
         )
     }
 
-    private fun CoroutineScope.restoreSourcePreferences(preferences: List<BackupSourcePreferences>) = launch {
+    private fun CoroutineScope.restoreSourcePreferences(
+        preferences: List<BackupSourcePreferences>,
+    ) = launch {
         ensureActive()
-        preferenceRestorer.restoreSource(preferences)
-            .forEach { key -> errors.add(Date() to "Source setting: $key") }
+        preferenceRestorer.restoreSource(preferences).forEach { key ->
+            errors.add(Date() to "Source setting: $key")
+        }
 
         restoreProgress += 1
         reportProgress(
@@ -318,61 +380,62 @@ class BackupRestorer(
         backupAnimeExtensionStores: List<BackupExtensionStore>,
         backupMangaExtensionRepo: List<BackupExtensionRepos>,
     ) = launch {
-        backupAnimeExtensionStores
-            .forEach {
-                ensureActive()
+        backupAnimeExtensionStores.forEach {
+            ensureActive()
 
-                try {
-                    animeExtensionStoreRestorer(it)
-                } catch (e: Exception) {
-                    errors.add(Date() to "Error Adding Anime Repo: ${it.name} : ${e.message}")
-                }
-
-                restoreProgress += 1
-                reportProgress(
-                    context.stringResource(MR.strings.extensionStores),
-                    restoreProgress,
-                    restoreAmount,
-                    isSync,
-                )
+            try {
+                animeExtensionStoreRestorer(it)
+            } catch (e: Exception) {
+                errors.add(Date() to "Error Adding Anime Repo: ${it.name} : ${e.message}")
             }
 
-        backupMangaExtensionRepo
-            .forEach {
-                ensureActive()
+            restoreProgress += 1
+            reportProgress(
+                context.stringResource(MR.strings.extensionStores),
+                restoreProgress,
+                restoreAmount,
+                isSync,
+            )
+        }
 
-                try {
-                    mangaExtensionRepoRestorer(it)
-                } catch (e: Exception) {
-                    errors.add(Date() to "Error Adding Manga Repo: ${it.name} : ${e.message}")
-                }
+        backupMangaExtensionRepo.forEach {
+            ensureActive()
 
-                restoreProgress += 1
-                reportProgress(
-                    context.stringResource(MR.strings.extensionRepo_settings),
-                    restoreProgress,
-                    restoreAmount,
-                    isSync,
-                )
+            try {
+                mangaExtensionRepoRestorer(it)
+            } catch (e: Exception) {
+                errors.add(Date() to "Error Adding Manga Repo: ${it.name} : ${e.message}")
             }
+
+            restoreProgress += 1
+            reportProgress(
+                context.stringResource(MR.strings.extensionRepo_settings),
+                restoreProgress,
+                restoreAmount,
+                isSync,
+            )
+        }
     }
 
-    private fun CoroutineScope.restoreCustomButtons(customButtons: List<BackupCustomButtons>) = launch {
-        ensureActive()
-        customButtonRestorer(customButtons)
+    private fun CoroutineScope.restoreCustomButtons(customButtons: List<BackupCustomButtons>) =
+        launch {
+            ensureActive()
+            customButtonRestorer(customButtons)
 
-        restoreProgress += 1
-        reportProgress(
-            context.stringResource(AYMR.strings.custom_button_settings),
-            restoreProgress,
-            restoreAmount,
-            isSync,
-        )
-    }
+            restoreProgress += 1
+            reportProgress(
+                context.stringResource(AYMR.strings.custom_button_settings),
+                restoreProgress,
+                restoreAmount,
+                isSync,
+            )
+        }
 
     private fun CoroutineScope.restoreExtensions(extensions: List<BackupExtension>) = launch {
         ensureActive()
-        extensionsRestorer.restoreExtensions(extensions).forEach { errors.add(Date() to "Extension: $it") }
+        extensionsRestorer.restoreExtensions(extensions).forEach {
+            errors.add(Date() to "Extension: $it")
+        }
 
         restoreProgress += 1
         reportProgress(
@@ -408,4 +471,8 @@ class BackupRestorer(
     }
 }
 
-data class BackupRestoreResult(val errorCount: Int, val durationMillis: Long, val errorLogPath: String?)
+data class BackupRestoreResult(
+    val errorCount: Int,
+    val durationMillis: Long,
+    val errorLogPath: String?,
+)

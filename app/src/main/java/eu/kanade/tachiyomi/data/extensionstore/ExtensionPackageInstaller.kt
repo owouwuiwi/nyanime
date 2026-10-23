@@ -131,6 +131,7 @@ internal class ExtensionPackageInstaller(private val context: Context, private v
                     when (it) {
                         is eu.kanade.tachiyomi.animesource.AnimeSource -> it.id
                         is eu.kanade.tachiyomi.source.MangaSource -> it.id
+                        is it.lorelore.nyanime.source.novel.NovelSource -> it.id
                         else -> null
                     }
                 }.toSet()
@@ -140,7 +141,11 @@ internal class ExtensionPackageInstaller(private val context: Context, private v
                         (entry.manga as? eu.kanade.tachiyomi.extension.manga.model.MangaExtension.Installed)
                             ?.sources.orEmpty().map { it.id }
                     ).toSet()
-                if (staged.manifest.medium in setOf("anime", "manga")) require(actualIds.containsAll(previousIds))
+                if (staged.manifest.medium in
+                    setOf("anime", "manga", "novel")
+                ) {
+                    require(actualIds.containsAll(previousIds))
+                }
                 if (staged.manifest.medium == "tv") {
                     Injekt.get<eu.kanade.tachiyomi.data.tv.TvServices>().validatePackage(context, staged)
                 }

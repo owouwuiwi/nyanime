@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="novel_download_title">Capitoli offline</string>
+    <string name="novel_download_description">Conserva capitoli e illustrazioni su questo dispositivo.</string>
+    <string name="novel_download_progress">Capitoli salvati: %1$d / %2$d</string>
+    <string name="novel_download_resources">Risorse del capitolo: %1$d di %2$d salvate</string>
+    <string name="novel_download_queued">In attesa di scaricare</string>
+    <string name="novel_download_pause">Metti in pausa</string>
+    <string name="novel_download_retry">Riprendi download</string>
+    <string name="novel_download_paused">In pausa. I capitoli salvati restano disponibili.</string>
+    <string name="novel_download_choose">Scarica capitoli</string>
+    <string name="novel_download_manage">Scegli capitoli</string>
+    <string name="novel_download_remove">Elimina download</string>
+    <string name="novel_download_remove_detail">Elimina solo i file dei capitoli scaricati. Il libro, il punto di lettura e le note restano nella libreria. Prima chiudi il lettore.</string>
+    <string name="novel_download_selection_detail">I download comprendono le illustrazioni. Restano separati dalla cache temporanea e dai backup dei metadati.</string>
+    <string name="novel_download_all">Tutti</string>
+    <string name="novel_download_from_here">Da qui in poi</string>
+    <string name="novel_download_custom">Seleziona</string>
+    <plurals name="novel_download_selected_count">
+        <item quantity="one">Scarica %1$d capitolo</item>
+        <item quantity="other">Scarica %1$d capitoli</item>
+    </plurals>
+    <string name="novel_download_saved_size">%1$s sul dispositivo</string>
+    <string name="novel_download_space">Spazio insufficiente. Libera spazio e riprendi: i file verificati sono stati conservati.</string>
+    <string name="novel_download_limit">Raggiunto il limite di spazio o risorse offline per questo libro. Scegli meno capitoli o elimina i suoi download.</string>
+    <string name="novel_download_damaged">Un file salvato non è verificabile. Riprendi per scaricarlo di nuovo.</string>
+    <string name="novel_download_failed">Download interrotto. Controlla la fonte e lo spazio, poi riprendi. I file verificati sono stati conservati.</string>
+    <string name="novel_download_empty">I tuoi libri, offline</string>
+    <string name="novel_download_empty_detail">Apri la scheda di un romanzo online e scegli Scarica capitoli per leggerlo anche senza rete.</string>
+    <string name="novel_download_ready_count">%1$d capitoli offline</string>
+</resources>

@@ -68,4 +68,5 @@ data class Backup(
     // 513 is reserved for legacy optional music state; never re-use it.
     @ProtoNumber(514) val sourceStudioState: String? = null,
     @ProtoNumber(515) val personalTracking: List<it.lorelore.nyanime.tracking.PersonalTrackingRecord> = emptyList(),
+    @ProtoNumber(516) val novelMetadata: String? = null,
 )

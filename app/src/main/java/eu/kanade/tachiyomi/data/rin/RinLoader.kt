@@ -18,6 +18,8 @@ import eu.kanade.tachiyomi.source.CatalogueSource
 import eu.kanade.tachiyomi.source.MangaSource
 import eu.kanade.tachiyomi.source.SourceFactory
 import eu.kanade.tachiyomi.util.system.ChildFirstPathClassLoader
+import it.lorelore.nyanime.source.novel.NovelSource
+import it.lorelore.nyanime.source.novel.NovelSourceFactory
 import kotlinx.coroutines.CancellationException
 import logcat.LogPriority
 import tachiyomi.core.common.util.system.logcat
@@ -83,6 +85,16 @@ object RinLoader {
                 ).getDeclaredConstructor().newInstance() is nyanime.addon.api.RinAddon,
             )
             return@guard emptyList()
+        }
+        if (manifest.medium == "novel") {
+            val sources = manifest.entryPoints.flatMap { name ->
+                when (val instance = Class.forName(name, false, loader).getDeclaredConstructor().newInstance()) {
+                    is NovelSourceFactory -> instance.createNovelSources()
+                    is NovelSource -> listOf(instance)
+                    else -> error("Invalid novel source entry point")
+                }
+            }
+            return@guard it.lorelore.nyanime.novel.source.NovelSourcePackages.verify(manifest, sources)
         }
         val baseSources = manifest.entryPoints.flatMap {
             when (val instance = Class.forName(it, false, loader).getDeclaredConstructor().newInstance()) {

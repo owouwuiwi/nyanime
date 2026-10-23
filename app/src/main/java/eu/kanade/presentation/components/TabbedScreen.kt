@@ -46,7 +46,6 @@ fun TabbedScreen(
     animeSearchQuery: String? = null,
     onChangeAnimeSearchQuery: (String?) -> Unit = {},
     pageScopedTheme: Boolean = false,
-
 ) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -60,15 +59,17 @@ fun TabbedScreen(
                     val tab = tabs[chromePage]
                     val searchEnabled = tab.searchEnabled
 
-                    val actualQuery = when (chromePage % 2) {
-                        1 -> mangaSearchQuery // History and Browse
-                        else -> animeSearchQuery
-                    }
+                    val actualQuery =
+                        when (chromePage % 2) {
+                            1 -> mangaSearchQuery // History and Browse
+                            else -> animeSearchQuery
+                        }
 
-                    val actualOnChange = when (chromePage % 2) {
-                        1 -> onChangeMangaSearchQuery // History and Browse
-                        else -> onChangeAnimeSearchQuery
-                    }
+                    val actualOnChange =
+                        when (chromePage % 2) {
+                            1 -> onChangeMangaSearchQuery // History and Browse
+                            else -> onChangeAnimeSearchQuery
+                        }
 
                     SearchToolbar(
                         titleContent = {
@@ -90,7 +91,8 @@ fun TabbedScreen(
             snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         ) { contentPadding ->
             Column(
-                modifier = Modifier.padding(
+                modifier =
+                Modifier.padding(
                     top = contentPadding.calculateTopPadding(),
                     start = contentPadding.calculateStartPadding(LocalLayoutDirection.current),
                     end = contentPadding.calculateEndPadding(LocalLayoutDirection.current),
@@ -106,7 +108,7 @@ fun TabbedScreen(
                             onClick = { scope.launch { state.animateScrollToPage(index) } },
                             text = {
                                 TabText(
-                                    text = stringResource(tab.titleRes),
+                                    text = tab.titleOverride ?: stringResource(tab.titleRes),
                                     badgeCount = tab.badgeNumber,
                                 )
                             },
@@ -125,7 +127,8 @@ fun TabbedScreen(
                             PaddingValues(
                                 bottom =
                                 contentPadding.calculateBottomPadding() +
-                                    eu.kanade.tachiyomi.ui.home.LocalFloatingNavigationInset.current,
+                                    eu.kanade.tachiyomi.ui.home.LocalFloatingNavigationInset
+                                        .current,
                             ),
                             snackbarHostState,
                         )
@@ -142,11 +145,13 @@ data class TabContent(
     val badgeNumber: Int? = null,
     val searchEnabled: Boolean = false,
     val actions: ImmutableList<AppBar.AppBarAction> = persistentListOf(),
-    val content: @Composable (contentPadding: PaddingValues, snackbarHostState: SnackbarHostState) -> Unit,
+    val content:
+    @Composable (contentPadding: PaddingValues, snackbarHostState: SnackbarHostState) -> Unit,
     val numberTitle: Int = 0,
     val cancelAction: () -> Unit = {},
     val navigateUp: (() -> Unit)? = null,
     val privacyArea: PrivacyArea? = null,
+    val titleOverride: String? = null,
 )
 
 @Composable

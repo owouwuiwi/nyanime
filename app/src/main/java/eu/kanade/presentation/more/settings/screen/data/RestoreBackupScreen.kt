@@ -46,9 +46,7 @@ import tachiyomi.presentation.core.components.material.Scaffold
 import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.stringResource
 
-class RestoreBackupScreen(
-    private val uri: String,
-) : Screen() {
+class RestoreBackupScreen(private val uri: String) : Screen() {
 
     @Composable
     override fun Content() {
@@ -112,13 +110,36 @@ class RestoreBackupScreen(
                                         },
                                     ),
                                 ),
-                                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+                                modifier =
+                                Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
                                 style = MaterialTheme.typography.bodySmall,
                             )
+                            if (preview.novelCount > 0) {
+                                Text(
+                                    context.getString(
+                                        R.string.novel_backup_contents,
+                                        preview.novelCount,
+                                        preview.novelPositionCount,
+                                        preview.novelAnnotationCount,
+                                    ),
+                                    modifier =
+                                    Modifier.padding(
+                                        start = 16.dp,
+                                        end = 16.dp,
+                                        bottom = 16.dp,
+                                    ),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            }
                             if (preview.extensionCount > 0) {
                                 Text(
                                     context.getString(R.string.quick_backup_extensions_note),
-                                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                                    modifier =
+                                    Modifier.padding(
+                                        start = 16.dp,
+                                        end = 16.dp,
+                                        bottom = 16.dp,
+                                    ),
                                     style = MaterialTheme.typography.bodySmall,
                                 )
                             }
@@ -155,9 +176,7 @@ class RestoreBackupScreen(
         }
     }
 
-    private fun LazyListScope.errorMessageItem(
-        error: Any?,
-    ) {
+    private fun LazyListScope.errorMessageItem(error: Any?) {
         item {
             SectionCard {
                 Column(
@@ -171,7 +190,11 @@ class RestoreBackupScreen(
                                 if (error.sources.isNotEmpty()) {
                                     appendLine()
                                     withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                                        appendLine(stringResource(MR.strings.backup_restore_missing_sources))
+                                        appendLine(
+                                            stringResource(
+                                                MR.strings.backup_restore_missing_sources,
+                                            ),
+                                        )
                                     }
                                     error.sources.joinTo(
                                         this,
@@ -182,7 +205,11 @@ class RestoreBackupScreen(
                                 if (error.trackers.isNotEmpty()) {
                                     appendLine()
                                     withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                                        appendLine(stringResource(MR.strings.backup_restore_missing_trackers))
+                                        appendLine(
+                                            stringResource(
+                                                MR.strings.backup_restore_missing_trackers,
+                                            ),
+                                        )
                                     }
                                     error.trackers.joinTo(
                                         this,
@@ -232,9 +259,7 @@ private class RestoreBackupScreenModel(
 
     fun toggle(setter: (RestoreOptions, Boolean) -> RestoreOptions, enabled: Boolean) {
         mutableState.update {
-            it.copy(
-                options = setter(it.options, enabled),
-            )
+            it.copy(options = setter(it.options, enabled))
         }
     }
 
@@ -247,20 +272,22 @@ private class RestoreBackupScreenModel(
     }
 
     private suspend fun validate(uri: Uri) {
-        val results = try {
-            withContext(Dispatchers.IO) { BackupFileValidator(context).validate(uri) }
-        } catch (e: Exception) {
-            setError(
-                error = InvalidRestore(uri, e.message.toString()),
-                canRestore = false,
-                preview = null,
-            )
-            return
-        }
+        val results =
+            try {
+                withContext(Dispatchers.IO) { BackupFileValidator(context).validate(uri) }
+            } catch (e: Exception) {
+                setError(
+                    error = InvalidRestore(uri, e.message.toString()),
+                    canRestore = false,
+                    preview = null,
+                )
+                return
+            }
 
         if (results.missingSources.isNotEmpty() || results.missingTrackers.isNotEmpty()) {
             setError(
-                error = MissingRestoreComponents(uri, results.missingSources, results.missingTrackers),
+                error =
+                MissingRestoreComponents(uri, results.missingSources, results.missingTrackers),
                 canRestore = true,
                 preview = results,
             )

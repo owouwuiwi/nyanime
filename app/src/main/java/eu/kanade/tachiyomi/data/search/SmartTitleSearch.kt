@@ -40,7 +40,8 @@ import java.io.File
 /** Disposable runtime dictionary. It is unrelated to tracking, playback and source linking. */
 class SmartTitleSearch(context: Context) : TitleSearch {
     private val connectivity = context.getSystemService(ConnectivityManager::class.java)
-    private val libraryAliases = java.util.concurrent.ConcurrentHashMap<Pair<Long, String>, List<String>>()
+    private val libraryAliases =
+        java.util.concurrent.ConcurrentHashMap<Pair<Long, String>, List<String>>()
     private val preferences: SourcePreferences = Injekt.get()
     private val base: BasePreferences = Injekt.get()
     private val animePrivacy: GetAnimeIncognitoState = Injekt.get()
@@ -65,62 +66,86 @@ class SmartTitleSearch(context: Context) : TitleSearch {
         sourceId: Long?,
         catalogBudget: SearchRequestBudget?,
     ): SearchSession {
-        val private = if (medium == SearchMedium.VIDEO) animePrivacy.await(sourceId) else mangaPrivacy.await(sourceId)
-        val provider = object : SearchCandidateProvider {
-            private val budget = catalogBudget ?: SearchRequestBudget(3)
-            override suspend fun candidates(query: String, medium: SearchMedium, online: Boolean): List<SearchTitle> =
-                withContext(Dispatchers.IO) {
-                    val local = lock.withLock {
-                        load()
-                        refreshLibrary()
-                        index.candidates(query, medium)
-                    }
-                    if (!online || matcher.rank(query, local).firstOrNull()?.score?.let { it >= 85 } == true) {
-                        return@withContext local
-                    }
-                    val remote = try {
-                        withTimeout(12_000) { catalog.fetch(query, medium, budget) }
-                    } catch (timeout: TimeoutCancellationException) {
-                        currentCoroutineContext().ensureActive()
-                        throw SearchCandidateFailure(local, timeout)
-                    } catch (cancelled: CancellationException) {
-                        throw cancelled
-                    } catch (error: Exception) {
-                        throw SearchCandidateFailure(local, error)
-                    }
-                    if (!private) remember(remote)
-                    local + remote
-                }
+        val private =
+            when (medium) {
+                SearchMedium.VIDEO -> animePrivacy.await(sourceId)
+                SearchMedium.MANGA -> mangaPrivacy.await(sourceId)
+                SearchMedium.NOVEL -> base.incognitoMode().get()
+            }
+        val provider =
+            object : SearchCandidateProvider {
+                private val budget = catalogBudget ?: SearchRequestBudget(3)
 
-            override suspend fun remember(items: List<SearchTitle>) {
-                if (private) return
-                withContext(Dispatchers.IO) {
-                    lock.withLock {
-                        load()
-                        val safe = items.mapNotNull(codec::sanitize).map(::withKnownAliases).filter { item ->
-                            item.title.isNotBlank() &&
-                                item.title.length <= 256 &&
-                                !isPrivate(item)
+                override suspend fun candidates(
+                    query: String,
+                    medium: SearchMedium,
+                    online: Boolean,
+                ): List<SearchTitle> =
+                    withContext(Dispatchers.IO) {
+                        val local = lock.withLock {
+                            load()
+                            if (medium == SearchMedium.NOVEL) {
+                                refreshNovelLibrary()
+                            } else {
+                                refreshLibrary()
+                            }
+                            index.candidates(query, medium)
                         }
-                        safe.forEach {
-                            stored.remove(it.key)
-                            stored[it.key] = it
-                            rememberAliases(it)
+                        if (
+                            !online ||
+                            medium == SearchMedium.NOVEL ||
+                            matcher.rank(query, local).firstOrNull()?.score?.let { it >= 85 } ==
+                            true
+                        ) {
+                            return@withContext local
                         }
-                        while (stored.size > 5_000) stored.remove(stored.keys.first())
-                        index.add(safe)
-                        if (safe.isNotEmpty()) save()
+                        val remote =
+                            try {
+                                withTimeout(12_000) { catalog.fetch(query, medium, budget) }
+                            } catch (timeout: TimeoutCancellationException) {
+                                currentCoroutineContext().ensureActive()
+                                throw SearchCandidateFailure(local, timeout)
+                            } catch (cancelled: CancellationException) {
+                                throw cancelled
+                            } catch (error: Exception) {
+                                throw SearchCandidateFailure(local, error)
+                            }
+                        if (!private) remember(remote)
+                        local + remote
+                    }
+
+                override suspend fun remember(items: List<SearchTitle>) {
+                    if (private) return
+                    withContext(Dispatchers.IO) {
+                        lock.withLock {
+                            load()
+                            val safe =
+                                items.mapNotNull(codec::sanitize).map(::withKnownAliases).filter { item ->
+                                    item.title.isNotBlank() &&
+                                        item.title.length <= 256 &&
+                                        !isPrivate(item)
+                                }
+                            safe.forEach {
+                                stored.remove(it.key)
+                                stored[it.key] = it
+                                rememberAliases(it)
+                            }
+                            while (stored.size > 5_000) stored.remove(stored.keys.first())
+                            index.add(safe)
+                            if (safe.isNotEmpty()) save()
+                        }
                     }
                 }
             }
-        }
         return SearchSession(
             query,
             medium,
             provider,
             matcher,
             enabled = preferences.tolerantSearch().get(),
-            online = preferences.onlineSearchAssistance().get() &&
+            online =
+            medium != SearchMedium.NOVEL &&
+                preferences.onlineSearchAssistance().get() &&
                 !base.downloadedOnly().get() &&
                 connectivity?.activeNetwork != null,
             exact = exact,
@@ -128,34 +153,43 @@ class SmartTitleSearch(context: Context) : TitleSearch {
         )
     }
 
-    suspend fun clear() = withContext(Dispatchers.IO) {
-        lock.withLock {
-            file.delete()
-            stored.clear()
-            libraryAliases.clear()
-            index.clear()
-            loaded = true
-            libraryAt = 0
+    suspend fun clear() =
+        withContext(Dispatchers.IO) {
+            lock.withLock {
+                file.delete()
+                stored.clear()
+                libraryAliases.clear()
+                index.clear()
+                loaded = true
+                libraryAt = 0
+                novelLibraryAt = 0
+            }
         }
-    }
 
     suspend fun prepareLibrary() = withContext(Dispatchers.IO) { lock.withLock { load() } }
 
-    override suspend fun withKnownAliases(titles: List<SearchTitle>): List<SearchTitle> = withContext(Dispatchers.IO) {
-        lock.withLock {
-            load()
-            titles.map { if (isPrivate(it)) it else withKnownAliases(it) }
+    override suspend fun withKnownAliases(titles: List<SearchTitle>): List<SearchTitle> =
+        withContext(Dispatchers.IO) {
+            lock.withLock {
+                load()
+                titles.map { if (isPrivate(it)) it else withKnownAliases(it) }
+            }
         }
-    }
 
-    fun aliases(sourceId: Long, title: String): List<String> = libraryAliases[sourceId to title].orEmpty()
+    fun aliases(sourceId: Long, title: String): List<String> =
+        libraryAliases[sourceId to title].orEmpty()
 
-    private fun withKnownAliases(item: SearchTitle): SearchTitle = item.copy(
-        aliases = mergeSearchAliases(
-            item.aliases,
-            stored[item.key]?.takeIf { it.medium == item.medium && it.sourceId == item.sourceId }?.aliases.orEmpty(),
-        ),
-    )
+    private fun withKnownAliases(item: SearchTitle): SearchTitle =
+        item.copy(
+            aliases =
+            mergeSearchAliases(
+                item.aliases,
+                stored[item.key]
+                    ?.takeIf { it.medium == item.medium && it.sourceId == item.sourceId }
+                    ?.aliases
+                    .orEmpty(),
+            ),
+        )
 
     private fun rememberAliases(item: SearchTitle) {
         val source = item.sourceId ?: return
@@ -166,10 +200,49 @@ class SmartTitleSearch(context: Context) : TitleSearch {
         }
     }
 
-    private fun isPrivate(item: SearchTitle) = if (item.medium == SearchMedium.VIDEO) {
-        animePrivacy.await(item.sourceId)
-    } else {
-        mangaPrivacy.await(item.sourceId)
+    private fun isPrivate(item: SearchTitle) =
+        when (item.medium) {
+            SearchMedium.VIDEO -> animePrivacy.await(item.sourceId)
+            SearchMedium.MANGA -> mangaPrivacy.await(item.sourceId)
+            SearchMedium.NOVEL -> base.incognitoMode().get()
+        }
+
+    private var novelLibraryAt = 0L
+
+    private suspend fun refreshNovelLibrary() {
+        if (base.incognitoMode().get()) return
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (novelLibraryAt != 0L && now - novelLibraryAt < 30_000) return
+        val store = Injekt.get<it.lorelore.nyanime.novel.NovelLibrary>().store
+        var cursor: it.lorelore.nyanime.novel.NovelStore.Cursor? = null
+        var count = 0
+        do {
+            val page = store.page(after = cursor, size = 200)
+            index.add(
+                page.items
+                    .map {
+                        val book = it.book
+                        book.origin?.let { origin ->
+                            runtimeSearchTitle(
+                                origin.sourceId,
+                                origin.reference,
+                                book.title,
+                                SearchMedium.NOVEL,
+                            )
+                        }
+                            ?: SearchTitle(
+                                "novel-local:" + book.id,
+                                book.title,
+                                SearchMedium.NOVEL,
+                                origin = "library",
+                            )
+                    }
+                    .map(::withKnownAliases),
+            )
+            count += page.items.size
+            cursor = page.next
+        } while (cursor != null && count < 2000)
+        novelLibraryAt = now
     }
 
     private fun load() {
@@ -189,18 +262,30 @@ class SmartTitleSearch(context: Context) : TitleSearch {
     private suspend fun refreshLibrary() {
         val now = android.os.SystemClock.elapsedRealtime()
         if (libraryAt != 0L && now - libraryAt < 30_000) return
-        val titles = animeLibrary.await().filterNot { animePrivacy.await(it.anime.source) }.map {
-            runtimeSearchTitle(
-                it.anime.source,
-                it.anime.url,
-                it.anime.title,
-                SearchMedium.VIDEO,
-                searchAliases(it.anime.memo),
-            )
-        } +
-            mangaLibrary.await().filterNot { mangaPrivacy.await(it.manga.source) }.map {
-                runtimeSearchTitle(it.manga.source, it.manga.url, it.manga.title, SearchMedium.MANGA)
-            }
+        val titles =
+            animeLibrary
+                .await()
+                .filterNot { animePrivacy.await(it.anime.source) }
+                .map {
+                    runtimeSearchTitle(
+                        it.anime.source,
+                        it.anime.url,
+                        it.anime.title,
+                        SearchMedium.VIDEO,
+                        searchAliases(it.anime.memo),
+                    )
+                } +
+                mangaLibrary
+                    .await()
+                    .filterNot { mangaPrivacy.await(it.manga.source) }
+                    .map {
+                        runtimeSearchTitle(
+                            it.manga.source,
+                            it.manga.url,
+                            it.manga.title,
+                            SearchMedium.MANGA,
+                        )
+                    }
         index.add(titles.map(::withKnownAliases))
         libraryAt = now
     }

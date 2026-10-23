@@ -169,8 +169,18 @@ class EpisodeOptionsDialogScreenModel(
         val hasFoundPreferredVideo = AtomicBoolean(false)
 
         screenModelScope.launchIO {
-            val episode = Injekt.get<GetEpisode>().await(episodeId)!!
-            val anime = Injekt.get<GetAnime>().await(animeId)!!
+            val entry = loadEpisodeOptionsEntry(
+                episodeId = episodeId,
+                animeId = animeId,
+                getEpisode = { Injekt.get<GetEpisode>().await(it) },
+                getAnime = { Injekt.get<GetAnime>().await(it) },
+            )
+            val failure = entry.exceptionOrNull()
+            if (failure != null) {
+                _hosterState.value = Result.failure(failure)
+                return@launchIO
+            }
+            val (episode, anime) = entry.getOrThrow()
             val source = sourceManager.getOrStub(sourceId)
 
             _episode.update { _ -> episode }
@@ -180,6 +190,8 @@ class EpisodeOptionsDialogScreenModel(
             val hosterListResult = withIOContext {
                 try {
                     Result.success(EpisodeLoader.getHosters(episode, anime, source))
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
                 } catch (e: Exception) {
                     Result.failure(e)
                 }

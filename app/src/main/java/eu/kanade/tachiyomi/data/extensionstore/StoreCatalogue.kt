@@ -10,7 +10,7 @@ import eu.kanade.tachiyomi.extension.anime.util.AnimeExtensionLoader
 import eu.kanade.tachiyomi.extension.manga.model.MangaExtension
 import eu.kanade.tachiyomi.extension.manga.util.MangaExtensionLoader
 
-enum class StoreMedium { ANIME, MANGA, NEWS, TV, GUIDE, ADDON }
+enum class StoreMedium { ANIME, MANGA, NEWS, TV, GUIDE, ADDON, NOVEL }
 enum class StoreAction { INSTALL, OPEN, UPDATE, TRUST, MANAGE }
 
 /** Presentation data comes exclusively from configured catalogues and inspected packages. */
@@ -42,7 +42,7 @@ data class StoreEntry(
     val addonHostCompatible get() = (
         addonCandidate?.hostVersions ?: addon?.hostVersions
             ?: (rinRecord?.manifest ?: rinCandidate?.manifest)?.takeIf {
-                it.medium in setOf("addon", "guide", "tv")
+                it.medium in setOf("addon", "guide", "tv", "novel")
             }?.hostVersions
         )
         ?.supports(eu.kanade.tachiyomi.BuildConfig.VERSION_CODE.toLong()) != false

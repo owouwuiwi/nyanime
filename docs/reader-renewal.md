@@ -111,5 +111,5 @@ is a separate maintenance operation, not a requirement for each app build.
 
 EPUB/TXT, structural positions, annotations, dedicated storage, NovelSource,
 Studio novel flows, Legado and versioned backup/cloud support are a separate
-approved delivery and are **not implemented yet**. Existing image-only EPUB
+approved delivery, now in [foundation integration](novel-reader.md), and are **not released yet**. Existing image-only EPUB
 reading remains unchanged. PDF, TTS, OCR and translation are excluded.

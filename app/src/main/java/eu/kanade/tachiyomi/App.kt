@@ -296,6 +296,10 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
             }
         }
         eu.kanade.tachiyomi.ui.search.UnifiedSearchUpgradeNotice(preferenceStore).initialize(preference.get())
+        it.lorelore.nyanime.updates.RoadmapUpgradeNotice(preferenceStore).initialize(
+            previousVersion = preference.get(),
+            beforeStableRelease = BuildConfig.VERSION_NAME.substringBefore('.').toIntOrNull() == 0,
+        )
         logcat { "Migration from ${preference.get()} to ${BuildConfig.VERSION_CODE}" }
         Migrator.initialize(
             old = preference.get(),
@@ -312,6 +316,9 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
         return ImageLoader.Builder(this).apply {
             val callFactoryLazy = lazy { Injekt.get<NetworkHelper>().client }
             components {
+                add(it.lorelore.nyanime.novel.ui.NovelCoverMapper())
+                add(it.lorelore.nyanime.novel.ui.NovelSourceCoverKeyer())
+                add(it.lorelore.nyanime.novel.ui.NovelSourceCoverFetcher.Factory())
                 // NetworkFetcher.Factory
                 add(OkHttpNetworkFetcherFactory(callFactoryLazy::value))
                 // Decoder.Factory

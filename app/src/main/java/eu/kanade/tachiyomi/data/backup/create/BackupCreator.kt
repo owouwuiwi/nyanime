@@ -61,7 +61,6 @@ class BackupCreator(
     private val context: Context,
     private val isAutoBackup: Boolean,
     private val emergency: Boolean = false,
-
     private val parser: ProtoBuf = Injekt.get(),
     private val getAnimeFavorites: GetAnimeFavorites = Injekt.get(),
     private val getMangaFavorites: GetMangaFavorites = Injekt.get(),
@@ -69,80 +68,107 @@ class BackupCreator(
     private val mangaRepository: MangaRepository = Injekt.get(),
     private val animeRepository: AnimeRepository = Injekt.get(),
     private val preferenceStore: PreferenceStore = Injekt.get(),
-
-    private val animeCategoriesBackupCreator: AnimeCategoriesBackupCreator = AnimeCategoriesBackupCreator(),
-    private val mangaCategoriesBackupCreator: MangaCategoriesBackupCreator = MangaCategoriesBackupCreator(),
+    private val animeCategoriesBackupCreator: AnimeCategoriesBackupCreator =
+        AnimeCategoriesBackupCreator(),
+    private val mangaCategoriesBackupCreator: MangaCategoriesBackupCreator =
+        MangaCategoriesBackupCreator(),
     private val animeBackupCreator: AnimeBackupCreator = AnimeBackupCreator(),
     private val mangaBackupCreator: MangaBackupCreator = MangaBackupCreator(),
-    private val preferenceBackupCreator: PreferenceBackupCreator = if (emergency) {
-        PreferenceBackupCreator(null, null, offlineContext = context)
-    } else {
-        PreferenceBackupCreator()
-    },
+    private val preferenceBackupCreator: PreferenceBackupCreator =
+        if (emergency) {
+            PreferenceBackupCreator(null, null, offlineContext = context)
+        } else {
+            PreferenceBackupCreator()
+        },
     private val animeExtensionStoresBackupCreator: AnimeExtensionStoresBackupCreator =
         AnimeExtensionStoresBackupCreator(),
-    private val mangaExtensionRepoBackupCreator: MangaExtensionRepoBackupCreator = MangaExtensionRepoBackupCreator(),
+    private val mangaExtensionRepoBackupCreator: MangaExtensionRepoBackupCreator =
+        MangaExtensionRepoBackupCreator(),
     private val customButtonBackupCreator: CustomButtonBackupCreator = CustomButtonBackupCreator(),
-    private val animeSourcesBackupCreator: AnimeSourcesBackupCreator = if (emergency) {
-        AnimeSourcesBackupCreator(null)
-    } else {
-        AnimeSourcesBackupCreator()
-    },
-    private val mangaSourcesBackupCreator: MangaSourcesBackupCreator = if (emergency) {
-        MangaSourcesBackupCreator(null)
-    } else {
-        MangaSourcesBackupCreator()
-    },
-    private val extensionsBackupCreator: ExtensionsBackupCreator = if (emergency) {
-        ExtensionsBackupCreator(context, null, null)
-    } else {
-        ExtensionsBackupCreator(context)
-    },
+    private val animeSourcesBackupCreator: AnimeSourcesBackupCreator =
+        if (emergency) {
+            AnimeSourcesBackupCreator(null)
+        } else {
+            AnimeSourcesBackupCreator()
+        },
+    private val mangaSourcesBackupCreator: MangaSourcesBackupCreator =
+        if (emergency) {
+            MangaSourcesBackupCreator(null)
+        } else {
+            MangaSourcesBackupCreator()
+        },
+    private val extensionsBackupCreator: ExtensionsBackupCreator =
+        if (emergency) {
+            ExtensionsBackupCreator(context, null, null)
+        } else {
+            ExtensionsBackupCreator(context)
+        },
 ) {
 
-    suspend fun backup(uri: Uri, options: BackupOptions, onPhase: suspend (String) -> Unit = {}): String {
+    suspend fun backup(
+        uri: Uri,
+        options: BackupOptions,
+        onPhase: suspend (String) -> Unit = {},
+    ): String {
         var file: UniFile? = null
         try {
-            file = if (isAutoBackup) {
-                // Get dir of file and create
-                val dir = UniFile.fromUri(context, uri)
-                // Create new file to place backup
-                dir?.createFile(getFilename())
-            } else {
-                UniFile.fromUri(context, uri)
-            }
+            file =
+                if (isAutoBackup) {
+                    // Get dir of file and create
+                    val dir = UniFile.fromUri(context, uri)
+                    // Create new file to place backup
+                    dir?.createFile(getFilename())
+                } else {
+                    UniFile.fromUri(context, uri)
+                }
 
             if (isAutoBackup && (file == null || !file.isFile)) {
-                throw IllegalStateException(context.stringResource(MR.strings.create_backup_file_error))
+                throw IllegalStateException(
+                    context.stringResource(MR.strings.create_backup_file_error),
+                )
             }
             val fileUri = file?.uri ?: uri
 
-            val nonFavoriteAnime = if (options.readEntries) {
-                animeRepository.getWatchedAnimeNotInLibrary()
-            } else {
-                emptyList()
-            }
+            val nonFavoriteAnime =
+                if (options.readEntries) {
+                    animeRepository.getWatchedAnimeNotInLibrary()
+                } else {
+                    emptyList()
+                }
             val hiddenResume = backupHiddenResume(options)
-            val hiddenAnime = hiddenResume?.entries.orEmpty().mapNotNull { entry ->
-                animeRepository.getAnimeByUrlAndSourceId(entry.url, entry.source)
-            }
+            val hiddenAnime =
+                hiddenResume?.entries.orEmpty().mapNotNull { entry ->
+                    animeRepository.getAnimeByUrlAndSourceId(entry.url, entry.source)
+                }
             val releaseStore = eu.kanade.tachiyomi.data.releases.ReleaseStore()
             val subscriptions = if (options.appSettings) releaseStore.backup() else emptyList()
-            val followedAnime = subscriptions.filter { it.medium == "ANIME" }.mapNotNull {
-                animeRepository.getAnimeByUrlAndSourceId(it.url, it.source)
-            }
-            val followedManga = subscriptions.filter { it.medium == "MANGA" }.mapNotNull {
-                mangaRepository.getMangaByUrlAndSourceId(it.url, it.source)
-            }
-            val animeEntries = getAnimeFavorites.await() + nonFavoriteAnime + hiddenAnime + followedAnime
-            val seasons = animeEntries.filter { it.fetchType == FetchType.Seasons }
-                .flatMap { animeRepository.getAnimeSeasonsById(it.id).map { season -> season.anime } }
+            val followedAnime =
+                subscriptions
+                    .filter { it.medium == "ANIME" }
+                    .mapNotNull {
+                        animeRepository.getAnimeByUrlAndSourceId(it.url, it.source)
+                    }
+            val followedManga =
+                subscriptions
+                    .filter { it.medium == "MANGA" }
+                    .mapNotNull {
+                        mangaRepository.getMangaByUrlAndSourceId(it.url, it.source)
+                    }
+            val animeEntries =
+                getAnimeFavorites.await() + nonFavoriteAnime + hiddenAnime + followedAnime
+            val seasons =
+                animeEntries
+                    .filter { it.fetchType == FetchType.Seasons }
+                    .flatMap {
+                        animeRepository.getAnimeSeasonsById(it.id).map { season -> season.anime }
+                    }
             val backupAnime = backupAnimes((animeEntries + seasons).distinctBy { it.id }, options)
-            val nonFavoriteManga = if (options.readEntries) {
-                mangaRepository.getReadMangaNotInLibrary()
-            } else {
-                emptyList()
-            }
+            val nonFavoriteManga =
+                if (options.readEntries) {
+                    mangaRepository.getReadMangaNotInLibrary()
+                } else {
+                    emptyList()
+                }
             val backupManga =
                 backupMangas(
                     (getMangaFavorites.await() + nonFavoriteManga + followedManga).distinctBy {
@@ -152,65 +178,91 @@ class BackupCreator(
                 )
 
             val guidedTitles = backupManga.mapTo(hashSetOf()) { it.source to it.url }
-            val backup = Backup(
-                backupManga = backupManga,
-                readerSpreads = if (options.appSettings) {
-                    eu.kanade.tachiyomi.ui.reader.spread.SpreadStore.get(context).snapshot().filter {
-                        (it.source to it.title) in guidedTitles
-                    }
-                } else {
-                    emptyList()
-                },
-                guidedReading = nyanime.panels.GuidedReadingStore.get(context).snapshot().filter { record ->
-                    (record.ref.source to record.ref.title) in guidedTitles
-                }.map { record ->
-                    record.copy(
-                        corrections = record.corrections.takeIf { options.appSettings },
-                        location = record.location.takeIf { options.chapters },
-                    )
-                }.filter { it.corrections != null || it.location != null },
-                backupCategories = backupMangaCategories(options),
-                backupSources = backupMangaSources(backupManga),
-                backupPreferences = backupAppPreferences(options),
-                backupSourcePreferences = backupSourcePreferences(options),
-                backupMangaExtensionRepo = backupMangaExtensionRepos(options),
-
-                isLegacy = false,
-                backupAnime = backupAnime,
-                backupAnimeCategories = backupAnimeCategories(options),
-                backupAnimeSources = backupAnimeSources(backupAnime),
-                backupExtensions = backupExtensions(options),
-                backupAnimeExtensionStores = backupAnimeExtensionStores(options),
-                backupCustomButton = backupCustomButtons(options),
-                backupHiddenResume = hiddenResume,
-                releaseSubscriptions = subscriptions,
-                newsState = if (options.appSettings) {
-                    eu.kanade.tachiyomi.data.news.NewsStore(context).backup()
-                } else {
-                    null
-                },
-                sourceStudioState = if (options.sourceSettings) {
-                    it.lorelore.nyanime.studio.SourceStudioRepository.get(
-                        context,
-                    ).backup()
-                } else {
-                    null
-                },
-                personalTracking = if (options.libraryEntries && options.tracking) {
-                    val identities =
-                        backupAnime.map { entry ->
-                            Triple(it.lorelore.nyanime.tracking.TrackingMedium.ANIME, entry.source, entry.url)
-                        }.toSet() +
-                            backupManga.map { entry ->
-                                Triple(it.lorelore.nyanime.tracking.TrackingMedium.MANGA, entry.source, entry.url)
+            val backup =
+                Backup(
+                    backupManga = backupManga,
+                    novelMetadata = it.lorelore.nyanime.novel.NovelBackup.create(context, options),
+                    readerSpreads =
+                    if (options.appSettings) {
+                        eu.kanade.tachiyomi.ui.reader.spread.SpreadStore.get(context)
+                            .snapshot()
+                            .filter {
+                                (it.source to it.title) in guidedTitles
                             }
-                    it.lorelore.nyanime.tracking.PersonalTrackingStore.get(context).snapshot().filter { record ->
-                        Triple(record.subject.medium, record.subject.source, record.subject.url) in identities
-                    }
-                } else {
-                    emptyList()
-                },
-            )
+                    } else {
+                        emptyList()
+                    },
+                    guidedReading =
+                    nyanime.panels.GuidedReadingStore.get(context)
+                        .snapshot()
+                        .filter { record ->
+                            (record.ref.source to record.ref.title) in guidedTitles
+                        }
+                        .map { record ->
+                            record.copy(
+                                corrections = record.corrections.takeIf { options.appSettings },
+                                location = record.location.takeIf { options.chapters },
+                            )
+                        }
+                        .filter { it.corrections != null || it.location != null },
+                    backupCategories = backupMangaCategories(options),
+                    backupSources = backupMangaSources(backupManga),
+                    backupPreferences = backupAppPreferences(options),
+                    backupSourcePreferences = backupSourcePreferences(options),
+                    backupMangaExtensionRepo = backupMangaExtensionRepos(options),
+                    isLegacy = false,
+                    backupAnime = backupAnime,
+                    backupAnimeCategories = backupAnimeCategories(options),
+                    backupAnimeSources = backupAnimeSources(backupAnime),
+                    backupExtensions = backupExtensions(options),
+                    backupAnimeExtensionStores = backupAnimeExtensionStores(options),
+                    backupCustomButton = backupCustomButtons(options),
+                    backupHiddenResume = hiddenResume,
+                    releaseSubscriptions = subscriptions,
+                    newsState =
+                    if (options.appSettings) {
+                        eu.kanade.tachiyomi.data.news.NewsStore(context).backup()
+                    } else {
+                        null
+                    },
+                    sourceStudioState =
+                    if (options.sourceSettings) {
+                        it.lorelore.nyanime.studio.SourceStudioRepository.get(context).backup()
+                    } else {
+                        null
+                    },
+                    personalTracking =
+                    if (options.libraryEntries && options.tracking) {
+                        val identities =
+                            backupAnime
+                                .map { entry ->
+                                    Triple(
+                                        it.lorelore.nyanime.tracking.TrackingMedium.ANIME,
+                                        entry.source,
+                                        entry.url,
+                                    )
+                                }
+                                .toSet() +
+                                backupManga.map { entry ->
+                                    Triple(
+                                        it.lorelore.nyanime.tracking.TrackingMedium.MANGA,
+                                        entry.source,
+                                        entry.url,
+                                    )
+                                }
+                        it.lorelore.nyanime.tracking.PersonalTrackingStore.get(context)
+                            .snapshot()
+                            .filter { record ->
+                                Triple(
+                                    record.subject.medium,
+                                    record.subject.source,
+                                    record.subject.url,
+                                ) in identities
+                            }
+                    } else {
+                        emptyList()
+                    },
+                )
 
             val byteArray = parser.encodeToByteArray(Backup.serializer(), backup)
             if (byteArray.isEmpty()) {
@@ -218,20 +270,29 @@ class BackupCreator(
             }
 
             onPhase("saving")
-            val output = if (isAutoBackup) {
-                file?.openOutputStream()
-            } else {
-                context.contentResolver.openOutputStream(
-                    fileUri,
-                    "wt",
+            val output =
+                if (isAutoBackup) {
+                    file?.openOutputStream()
+                } else {
+                    context.contentResolver.openOutputStream(
+                        fileUri,
+                        "wt",
+                    )
+                }
+            (
+                output
+                    ?: throw IllegalStateException(
+                        context.stringResource(MR.strings.create_backup_file_error),
+                    )
                 )
-            }
-            (output ?: throw IllegalStateException(context.stringResource(MR.strings.create_backup_file_error)))
                 .also {
                     // Force overwrite old file
                     (it as? FileOutputStream)?.channel?.truncate(0)
                 }
-                .sink().gzip().buffer().use {
+                .sink()
+                .gzip()
+                .buffer()
+                .use {
                     it.write(byteArray)
                 }
 
@@ -239,7 +300,10 @@ class BackupCreator(
             onPhase("verifying")
             if (emergency) {
                 val decoded = eu.kanade.tachiyomi.data.backup.BackupDecoder(context).decode(fileUri)
-                check(decoded.backupAnime.size == backupAnime.size && decoded.backupManga.size == backupManga.size)
+                check(
+                    decoded.backupAnime.size == backupAnime.size &&
+                        decoded.backupManga.size == backupManga.size,
+                )
                 check(decoded.backupExtensions.size == backup.backupExtensions.size)
             } else {
                 BackupFileValidator(context).validate(fileUri)
@@ -250,11 +314,15 @@ class BackupCreator(
                 // Retention cannot invalidate an already verified replacement.
                 runCatching {
                     val directory = UniFile.fromUri(context, uri)
-                    val files = directory?.listFiles { _, filename -> FILENAME_REGEX.matches(filename) }
-                        .orEmpty().sortedByDescending { it.name }
+                    val files =
+                        directory
+                            ?.listFiles { _, filename -> FILENAME_REGEX.matches(filename) }
+                            .orEmpty()
+                            .sortedByDescending { it.name }
                     val obsolete = BackupRetention.obsolete(files.map { it.uri }, fileUri)
                     files.filter { it.uri in obsolete }.forEach { it.delete() }
-                }.onFailure { logcat(LogPriority.WARN, it) }
+                }
+                    .onFailure { logcat(LogPriority.WARN, it) }
             }
 
             return fileUri.toString()
@@ -277,13 +345,19 @@ class BackupCreator(
         return mangaCategoriesBackupCreator()
     }
 
-    private suspend fun backupMangas(mangas: List<Manga>, options: BackupOptions): List<BackupManga> {
+    private suspend fun backupMangas(
+        mangas: List<Manga>,
+        options: BackupOptions,
+    ): List<BackupManga> {
         if (!options.libraryEntries) return emptyList()
 
         return mangaBackupCreator(mangas, options)
     }
 
-    private suspend fun backupAnimes(animes: List<Anime>, options: BackupOptions): List<BackupAnime> {
+    private suspend fun backupAnimes(
+        animes: List<Anime>,
+        options: BackupOptions,
+    ): List<BackupAnime> {
         if (!options.libraryEntries) return emptyList()
 
         return animeBackupCreator(animes, options)
@@ -292,6 +366,7 @@ class BackupCreator(
     private fun backupAnimeSources(animes: List<BackupAnime>): List<BackupAnimeSource> {
         return animeSourcesBackupCreator(animes)
     }
+
     private fun backupMangaSources(mangas: List<BackupManga>): List<BackupSource> {
         return mangaSourcesBackupCreator(mangas)
     }
@@ -299,16 +374,22 @@ class BackupCreator(
     private fun backupAppPreferences(options: BackupOptions): List<BackupPreference> {
         if (!options.appSettings) return emptyList()
 
-        return preferenceBackupCreator.createApp(includePrivatePreferences = options.privateSettings)
+        return preferenceBackupCreator.createApp(
+            includePrivatePreferences = options.privateSettings,
+        )
     }
 
-    private suspend fun backupAnimeExtensionStores(options: BackupOptions): List<BackupExtensionStore> {
+    private suspend fun backupAnimeExtensionStores(
+        options: BackupOptions,
+    ): List<BackupExtensionStore> {
         if (!options.extensionStores) return emptyList()
 
         return animeExtensionStoresBackupCreator()
     }
 
-    private suspend fun backupMangaExtensionRepos(options: BackupOptions): List<BackupExtensionRepos> {
+    private suspend fun backupMangaExtensionRepos(
+        options: BackupOptions,
+    ): List<BackupExtensionRepos> {
         if (!options.extensionStores) return emptyList()
 
         return mangaExtensionRepoBackupCreator()
@@ -323,15 +404,17 @@ class BackupCreator(
     private suspend fun backupHiddenResume(options: BackupOptions): BackupHiddenResumeState? {
         if (!options.appSettings || !options.libraryEntries) return null
 
-        val hiddenIds = preferenceStore.getStringSet(Preference.appStateKey("discovery_hidden_resume")).get()
+        val hiddenIds =
+            preferenceStore.getStringSet(Preference.appStateKey("discovery_hidden_resume")).get()
         val entries = hiddenIds.mapNotNull { id ->
-            val anime = try {
-                animeRepository.getAnimeById(id.toLong())
-            } catch (e: CancellationException) {
-                throw e
-            } catch (_: Exception) {
-                null
-            }
+            val anime =
+                try {
+                    animeRepository.getAnimeById(id.toLong())
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    null
+                }
             anime?.let { BackupHiddenResume(source = it.source, url = it.url) }
         }
         return BackupHiddenResumeState(entries)
@@ -340,7 +423,9 @@ class BackupCreator(
     private fun backupSourcePreferences(options: BackupOptions): List<BackupSourcePreferences> {
         if (!options.sourceSettings) return emptyList()
 
-        return preferenceBackupCreator.createSource(includePrivatePreferences = options.privateSettings)
+        return preferenceBackupCreator.createSource(
+            includePrivatePreferences = options.privateSettings,
+        )
     }
 
     private fun backupExtensions(options: BackupOptions): List<BackupExtension> {
@@ -353,7 +438,8 @@ class BackupCreator(
         private val FILENAME_REGEX =
             """${Regex.escape(
                 BuildConfig.APPLICATION_ID,
-            )}_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}(?:-\d{2}-\d{3})?\.nyabk""".toRegex()
+            )}_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}(?:-\d{2}-\d{3})?\.nyabk"""
+                .toRegex()
 
         fun getFilename(): String {
             val date = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss-SSS", Locale.ENGLISH).format(Date())

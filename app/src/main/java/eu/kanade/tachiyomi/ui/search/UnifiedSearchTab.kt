@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -71,7 +70,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.navigator.LocalNavigator
@@ -105,11 +103,13 @@ val LocalUnifiedSearch = compositionLocalOf<UnifiedSearchScreenModel?> { null }
 
 data object UnifiedSearchTab : Tab {
     override val options: TabOptions
-        @Composable get() = TabOptions(
-            2u,
-            stringResource(R.string.unified_search_search),
-            rememberVectorPainter(Icons.Outlined.Search),
-        )
+        @Composable
+        get() =
+            TabOptions(
+                2u,
+                stringResource(R.string.unified_search_search),
+                rememberVectorPainter(Icons.Outlined.Search),
+            )
 
     @Composable
     override fun Content() {
@@ -141,6 +141,13 @@ data object UnifiedSearchTab : Tab {
                 val live = card.entry.tvChannel
                 if (live != null) {
                     eu.kanade.tachiyomi.ui.tv.TvActions.play(context, live)
+                } else if (card.entry.novel != null) {
+                    navigator.push(
+                        it.lorelore.nyanime.novel.ui.NovelDetailsScreen(
+                            card.entry.source,
+                            card.entry.url,
+                        ),
+                    )
                 } else if (card.targets.size == 1) {
                     open(card.targets.single())
                 } else {
@@ -152,9 +159,7 @@ data object UnifiedSearchTab : Tab {
                 val section = UnifiedSearchFilters.section(route, state.selected)
                 if (route.tv) {
                     navigator.push(eu.kanade.tachiyomi.ui.tv.TvBrowseScreen())
-                } else if (route.medium ==
-                    SearchMedium.VIDEO
-                ) {
+                } else if (route.medium == SearchMedium.VIDEO) {
                     navigator.push(
                         BrowseAnimeSourceScreen(
                             route.source,
@@ -164,7 +169,13 @@ data object UnifiedSearchTab : Tab {
                         ),
                     )
                 } else {
-                    navigator.push(BrowseMangaSourceScreen(route.source, state.query, section?.selections.orEmpty()))
+                    navigator.push(
+                        BrowseMangaSourceScreen(
+                            route.source,
+                            state.query,
+                            section?.selections.orEmpty(),
+                        ),
+                    )
                 }
             },
         )
@@ -172,13 +183,17 @@ data object UnifiedSearchTab : Tab {
             UnifiedSearchSheet(onDismiss = { chosen = null }, title = card.entry.title) {
                 LazyColumn(Modifier.heightIn(max = 540.dp)) {
                     items(card.targets, key = { "${it.medium}:${it.id}" }) { target ->
-                        val route = state.routes.firstOrNull {
-                            it.source == target.source && it.medium == target.medium
-                        }
+                        val route =
+                            state.routes.firstOrNull {
+                                it.source == target.source && it.medium == target.medium
+                            }
                         Row(
-                            Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable {
-                                open(target)
-                            }.padding(16.dp),
+                            Modifier.fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .clickable {
+                                    open(target)
+                                }
+                                .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Column(Modifier.weight(1f)) {
@@ -195,7 +210,10 @@ data object UnifiedSearchTab : Tab {
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis,
                                 )
-                                Text(route?.language?.uppercase().orEmpty(), style = MaterialTheme.typography.bodySmall)
+                                Text(
+                                    route?.language?.uppercase().orEmpty(),
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
                             }
                             Icon(Icons.Outlined.ExpandMore, null)
                         }
@@ -226,18 +244,23 @@ private fun UnifiedSearchContent(
     LaunchedEffect(grid, model) {
         snapshotFlow {
             val info = grid.layoutInfo
-            val nearEnd = info.totalItemsCount > 0 &&
-                (info.visibleItemsInfo.lastOrNull()?.index ?: 0) >= info.totalItemsCount - 5
+            val nearEnd =
+                info.totalItemsCount > 0 &&
+                    (info.visibleItemsInfo.lastOrNull()?.index ?: 0) >= info.totalItemsCount - 5
             nearEnd to (grid.firstVisibleItemIndex > 1)
-        }.distinctUntilChanged().collect { (nearEnd, reading) ->
-            if (reading) model.preserveBroadResults()
-            // A shortened grid must not crawl every hidden source page to fill the viewport.
-            if (nearEnd && !model.state.value.results.narrowed) model.loadMore()
         }
+            .distinctUntilChanged()
+            .collect { (nearEnd, reading) ->
+                if (reading) model.preserveBroadResults()
+                // A shortened grid must not crawl every hidden source page to fill the viewport.
+                if (nearEnd && !model.state.value.results.narrowed) model.loadMore()
+            }
     }
     LaunchedEffect(state.loading, state.cards.size) {
         val last = grid.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-        if (!state.loading && !results.narrowed && last >= grid.layoutInfo.totalItemsCount - 5) model.loadMore()
+        if (!state.loading && !results.narrowed && last >= grid.layoutInfo.totalItemsCount - 5) {
+            model.loadMore()
+        }
     }
     val context = LocalContext.current
     var announcedFilters by rememberSaveable { mutableStateOf(0) }
@@ -247,14 +270,18 @@ private fun UnifiedSearchContent(
                 context,
                 R.string.unified_search_filters_removed,
                 android.widget.Toast.LENGTH_SHORT,
-            ).show()
+            )
+                .show()
             announcedFilters = state.removedFilters
         }
     }
     Column(Modifier.fillMaxSize().privacyRegion(PrivacyArea.SEARCH)) {
         if (LocalDiscoveryHeaderHost.current == null) {
             Row(
-                Modifier.fillMaxWidth().statusBarsPadding().heightIn(min = 54.dp).padding(horizontal = 16.dp),
+                Modifier.fillMaxWidth()
+                    .statusBarsPadding()
+                    .heightIn(min = 54.dp)
+                    .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 SourceHomeWordmark(null, Modifier.weight(1f))
@@ -268,7 +295,8 @@ private fun UnifiedSearchContent(
             columns = GridCells.Adaptive(128.dp),
             state = grid,
             modifier = Modifier.fillMaxSize().testTag("unified_search_results"),
-            contentPadding = PaddingValues(
+            contentPadding =
+            PaddingValues(
                 start = 20.dp,
                 end = 20.dp,
                 top = 16.dp,
@@ -297,10 +325,15 @@ private fun UnifiedSearchContent(
                             onClick = { model.showPanel(UnifiedSearchPanel.CATEGORIES) },
                             shape = RoundedCornerShape(14.dp),
                             color = MaterialTheme.colorScheme.surfaceContainerLow,
-                            modifier = Modifier.widthIn(max = 144.dp).heightIn(min = 44.dp)
+                            modifier =
+                            Modifier.widthIn(max = 144.dp)
+                                .heightIn(min = 44.dp)
                                 .testTag("unified_search_category"),
                         ) {
-                            Row(Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                Modifier.padding(horizontal = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
                                 Text(
                                     categoryLabel(state),
                                     Modifier.weight(
@@ -334,11 +367,15 @@ private fun UnifiedSearchContent(
             }
             if (!state.exploring) {
                 item(key = "assistance", span = { GridItemSpan(maxLineSpan) }) {
-                    val corrected = state.assistance.values.mapNotNull { it.correctedQuery }.distinct()
+                    val corrected =
+                        state.assistance.values.mapNotNull { it.correctedQuery }.distinct()
                     Surface(
                         onClick = { model.showPanel(UnifiedSearchPanel.ASSISTANCE) },
                         color = Color.Transparent,
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).testTag("unified_search_assistance"),
+                        modifier =
+                        Modifier.fillMaxWidth()
+                            .heightIn(min = 44.dp)
+                            .testTag("unified_search_assistance"),
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
@@ -346,10 +383,11 @@ private fun UnifiedSearchContent(
                                     state.assistance.isEmpty() && state.loading ->
                                         stringResource(R.string.unified_search_preparing_help)
                                     state.exact -> stringResource(R.string.search_exact_active)
-                                    corrected.isNotEmpty() -> stringResource(
-                                        R.string.search_recovered,
-                                        corrected.joinToString(" · "),
-                                    )
+                                    corrected.isNotEmpty() ->
+                                        stringResource(
+                                            R.string.search_recovered,
+                                            corrected.joinToString(" · "),
+                                        )
                                     state.assistance.values.any {
                                         it.loading
                                     } -> stringResource(R.string.search_finding_titles)
@@ -387,18 +425,21 @@ private fun UnifiedSearchContent(
                     }
                 }
             }
-            itemsIndexed(results.cards, key = { _, card -> card.key }, span = { index, _ ->
-                GridItemSpan(if (index == 0 && state.exploring) maxLineSpan else 1)
-            }) { index, card ->
+            itemsIndexed(
+                results.cards,
+                key = { _, card -> card.key },
+                span = { index, _ ->
+                    GridItemSpan(if (index == 0 && state.exploring) maxLineSpan else 1)
+                },
+            ) { index, card ->
                 UnifiedSearchPoster(
                     card,
                     index == 0 && state.exploring,
                     { onOpen(card) },
                     Modifier.animateItem(
                         fadeInSpec = if (motion) tween(ModernMotion.PAGE_MILLIS) else null,
-                        placementSpec = if (motion &&
-                            !grid.isScrollInProgress
-                        ) {
+                        placementSpec =
+                        if (motion && !grid.isScrollInProgress) {
                             tween(ModernMotion.RESIZE_MILLIS)
                         } else {
                             null
@@ -412,12 +453,22 @@ private fun UnifiedSearchContent(
                     TextButton(
                         onClick = model::showOtherResults,
                         modifier = Modifier.fillMaxWidth().testTag("unified_search_other_results"),
-                        colors = ButtonDefaults.textButtonColors(
+                        colors =
+                        ButtonDefaults.textButtonColors(
                             contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         ),
                     ) {
-                        Text(stringResource(R.string.unified_search_other_results, results.otherCount))
-                        Icon(Icons.Outlined.ExpandMore, null, Modifier.padding(start = 6.dp).size(18.dp))
+                        Text(
+                            stringResource(
+                                R.string.unified_search_other_results,
+                                results.otherCount,
+                            ),
+                        )
+                        Icon(
+                            Icons.Outlined.ExpandMore,
+                            null,
+                            Modifier.padding(start = 6.dp).size(18.dp),
+                        )
                     }
                 }
             }
@@ -447,7 +498,8 @@ private fun UnifiedSearchContent(
                                 when {
                                     state.offline -> R.string.unified_search_offline
                                     state.exploring -> R.string.unified_search_begin
-                                    state.input.trim() != state.query -> R.string.unified_search_confirm
+                                    state.input.trim() != state.query ->
+                                        R.string.unified_search_confirm
                                     else -> R.string.unified_search_empty
                                 },
                             ),
@@ -500,66 +552,74 @@ private fun UnifiedSearchPoster(
     val entry = card.entry
     val context = LocalContext.current
     val motion = appMotionEnabled()
-    val tint = if (entry.tvChannel !=
-        null
-    ) {
-        Color(0xFF9BD1E8)
-    } else if (entry.medium == SearchMedium.MANGA) {
-        Color(0xFF9BD1E8)
-    } else {
-        Color(0xFFFFB278)
-    }
+    val tint =
+        if (entry.tvChannel != null) {
+            Color(0xFF9BD1E8)
+        } else if (entry.medium == SearchMedium.MANGA) {
+            Color(0xFF9BD1E8)
+        } else {
+            Color(0xFFFFB278)
+        }
     Column(modifier) {
         Box(
-            Modifier.fillMaxWidth().then(
-                when {
-                    featured -> Modifier.height(if (entry.tvChannel != null) 160.dp else 210.dp)
-                    entry.tvChannel != null -> Modifier.aspectRatio(16f / 9f)
-                    else -> Modifier.aspectRatio(0.72f)
-                },
-            )
+            Modifier.fillMaxWidth()
+                .then(
+                    when {
+                        featured -> Modifier.height(if (entry.tvChannel != null) 160.dp else 210.dp)
+                        entry.tvChannel != null -> Modifier.aspectRatio(16f / 9f)
+                        else -> Modifier.aspectRatio(0.72f)
+                    },
+                )
                 .clip(RoundedCornerShape(if (featured) 22.dp else 16.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh).clickable(onClick = onOpen),
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                .clickable(onClick = onOpen),
         ) {
             AsyncImage(
-                model = ImageRequest.Builder(context).data(entry.artwork).crossfade(if (motion) 180 else 0).build(),
+                model =
+                ImageRequest.Builder(context)
+                    .data(entry.artwork)
+                    .crossfade(if (motion) 180 else 0)
+                    .build(),
                 contentDescription = entry.title,
                 contentScale = if (entry.tvChannel != null) ContentScale.Fit else ContentScale.Crop,
-                modifier = Modifier.fillMaxSize().then(
-                    if (entry.tvChannel !=
-                        null
-                    ) {
-                        Modifier.padding(18.dp)
-                    } else {
-                        Modifier
-                    },
-                ),
+                modifier =
+                Modifier.fillMaxSize()
+                    .then(
+                        if (entry.tvChannel != null) {
+                            Modifier.padding(18.dp)
+                        } else {
+                            Modifier
+                        },
+                    ),
             )
             if (featured) {
                 Box(
-                    Modifier.fillMaxSize().background(
-                        Brush.verticalGradient(
-                            listOf(
-                                Color.Transparent,
-                                Color.Black.copy(alpha = 0.88f),
+                    Modifier.fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.88f),
+                                ),
                             ),
                         ),
-                    ),
                 )
             }
             Surface(
                 shape = RoundedCornerShape(8.dp),
                 color = Color(0xDC15171B),
                 contentColor = tint,
-                modifier = Modifier.align(if (featured) Alignment.BottomStart else Alignment.TopStart).padding(10.dp),
+                modifier =
+                Modifier.align(if (featured) Alignment.BottomStart else Alignment.TopStart)
+                    .padding(10.dp),
             ) {
                 Text(
                     entry.categoryTitle.ifBlank {
                         stringResource(
-                            if (entry.medium == SearchMedium.MANGA) {
-                                R.string.unified_search_manga
-                            } else {
-                                R.string.unified_search_video
+                            when (entry.medium) {
+                                SearchMedium.MANGA -> R.string.unified_search_manga
+                                SearchMedium.VIDEO -> R.string.unified_search_video
+                                SearchMedium.NOVEL -> R.string.novel_library
                             },
                         )
                     },
@@ -570,7 +630,8 @@ private fun UnifiedSearchPoster(
             if (featured) {
                 Text(
                     entry.title,
-                    Modifier.align(Alignment.BottomStart).padding(start = 16.dp, end = 16.dp, bottom = 46.dp),
+                    Modifier.align(Alignment.BottomStart)
+                        .padding(start = 16.dp, end = 16.dp, bottom = 46.dp),
                     color = Color.White,
                     style = MaterialTheme.typography.headlineSmall,
                     maxLines = 2,
@@ -605,7 +666,11 @@ private fun UnifiedSearchPoster(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun UnifiedSearchSheet(onDismiss: () -> Unit, title: String, content: @Composable () -> Unit) {
+private fun UnifiedSearchSheet(
+    onDismiss: () -> Unit,
+    title: String,
+    content: @Composable () -> Unit,
+) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -633,7 +698,8 @@ private fun UnifiedSearchPanelContent(
     val preferences = remember { Injekt.get<SourcePreferences>() }
     UnifiedSearchSheet(
         onDismiss = { model.showPanel(null) },
-        title = stringResource(
+        title =
+        stringResource(
             when (panel) {
                 UnifiedSearchPanel.CATEGORIES -> R.string.unified_search_categories
                 UnifiedSearchPanel.FILTERS -> R.string.unified_search_filters
@@ -642,7 +708,10 @@ private fun UnifiedSearchPanelContent(
             },
         ),
     ) {
-        LazyColumn(Modifier.heightIn(max = 540.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        LazyColumn(
+            Modifier.heightIn(max = 540.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
             when (panel) {
                 UnifiedSearchPanel.CATEGORIES -> {
                     item {
@@ -669,9 +738,12 @@ private fun UnifiedSearchPanelContent(
                         Text(
                             stringResource(
                                 R.string.unified_search_supported_sources,
-                                state.eligible.map {
-                                    it.medium to it.source
-                                }.distinct().size,
+                                state.eligible
+                                    .map {
+                                        it.medium to it.source
+                                    }
+                                    .distinct()
+                                    .size,
                             ),
                             style = MaterialTheme.typography.bodySmall,
                         )
@@ -684,62 +756,95 @@ private fun UnifiedSearchPanelContent(
                             model.toggleGenre(genre.key)
                         }
                     }
-                    item {
-                        Text(
-                            stringResource(R.string.unified_search_advanced),
-                            style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier.padding(top = 20.dp),
-                        )
+                    if (state.eligible.any { it.medium != SearchMedium.NOVEL }) {
+                        item {
+                            Text(
+                                stringResource(R.string.unified_search_advanced),
+                                style = MaterialTheme.typography.titleSmall,
+                                modifier = Modifier.padding(top = 20.dp),
+                            )
+                        }
                     }
-                    items(state.eligible.distinctBy { it.medium to it.source }, key = { it.key }) { route ->
-                        TextButton(onClick = {
-                            onAdvanced(route)
-                        }) {
+                    items(
+                        state.eligible
+                            .filter {
+                                it.medium != SearchMedium.NOVEL
+                            }
+                            .distinctBy { it.medium to it.source },
+                        key = { it.key },
+                    ) { route ->
+                        TextButton(
+                            onClick = {
+                                onAdvanced(route)
+                            },
+                        ) {
                             Text(route.name + " · " + route.language.uppercase())
                         }
                     }
                 }
                 UnifiedSearchPanel.ASSISTANCE -> {
                     item {
-                        TextButton(onClick = {
-                            model.toggleExact()
-                            model.showPanel(null)
-                        }) {
+                        TextButton(
+                            onClick = {
+                                model.toggleExact()
+                                model.showPanel(null)
+                            },
+                        ) {
                             Text(
                                 stringResource(
-                                    if (state.exact) R.string.search_smart_resume else R.string.search_exact,
+                                    if (state.exact) {
+                                        R.string.search_smart_resume
+                                    } else {
+                                        R.string.search_exact
+                                    },
                                 ),
                             )
                         }
                     }
                     items(
-                        state.assistance.values.flatMap {
-                            it.suggestions
-                        }.distinctBy {
-                            it.title
-                        },
+                        state.assistance.values
+                            .flatMap {
+                                it.suggestions
+                            }
+                            .distinctBy {
+                                it.title
+                            },
                         key = {
                             it.title
                         },
                     ) { suggestion ->
-                        TextButton(onClick = {
-                            model.useSuggestion(suggestion.title)
-                            model.showPanel(null)
-                        }) {
+                        TextButton(
+                            onClick = {
+                                model.useSuggestion(suggestion.title)
+                                model.showPanel(null)
+                            },
+                        ) {
                             Text(suggestion.title)
                         }
                     }
                 }
                 UnifiedSearchPanel.SETTINGS -> {
-                    item { UnifiedSearchSetting(R.string.unified_search_remember, preferences.rememberUnifiedSearch()) }
+                    item {
+                        UnifiedSearchSetting(
+                            R.string.unified_search_remember,
+                            preferences.rememberUnifiedSearch(),
+                        )
+                    }
                     item {
                         UnifiedSearchSetting(
                             R.string.unified_search_keyboard,
                             preferences.unifiedSearchKeyboardOnOpen(),
                         )
                     }
-                    item { UnifiedSearchSetting(R.string.unified_search_live, preferences.liveUnifiedSearch()) }
-                    item { UnifiedSearchSetting(R.string.search_tolerant, preferences.tolerantSearch()) }
+                    item {
+                        UnifiedSearchSetting(
+                            R.string.unified_search_live,
+                            preferences.liveUnifiedSearch(),
+                        )
+                    }
+                    item {
+                        UnifiedSearchSetting(R.string.search_tolerant, preferences.tolerantSearch())
+                    }
                     item {
                         UnifiedSearchSetting(
                             R.string.search_catalog_assistance,
@@ -753,10 +858,14 @@ private fun UnifiedSearchPanelContent(
 }
 
 @Composable
-private fun UnifiedSearchSetting(label: Int, preference: tachiyomi.core.common.preference.Preference<Boolean>) {
+private fun UnifiedSearchSetting(
+    label: Int,
+    preference: tachiyomi.core.common.preference.Preference<Boolean>,
+) {
     val checked by preference.changes().collectAsState(initial = preference.get())
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+        Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
             .toggleable(value = checked, role = Role.Switch, onValueChange = preference::set)
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -831,21 +940,24 @@ private fun UnifiedSearchGenrePill(
     val motion = appMotionEnabled()
     val accent = MaterialTheme.colorScheme.primary
     val base = if (dark) Color(0xFF29181C) else Color(0xFFFFF9F2)
-    val color by animateColorAsState(
-        targetValue = if (selected) {
-            accent.copy(alpha = if (dark) 0.24f else 0.12f).compositeOver(base)
-        } else {
-            base
-        },
-        animationSpec = tween(if (motion) ModernMotion.RESIZE_MILLIS else 0),
-        label = "unifiedSearchGenreSelection",
-    )
+    val color by
+        animateColorAsState(
+            targetValue =
+            if (selected) {
+                accent.copy(alpha = if (dark) 0.24f else 0.12f).compositeOver(base)
+            } else {
+                base
+            },
+            animationSpec = tween(if (motion) ModernMotion.RESIZE_MILLIS else 0),
+            label = "unifiedSearchGenreSelection",
+        )
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(50),
         color = color,
         contentColor = MaterialTheme.colorScheme.onSurface,
-        border = BorderStroke(
+        border =
+        BorderStroke(
             1.dp,
             if (selected) {
                 accent.copy(alpha = 0.6f)

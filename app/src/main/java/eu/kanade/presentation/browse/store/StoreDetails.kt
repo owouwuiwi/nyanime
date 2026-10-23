@@ -210,6 +210,7 @@ internal fun StoreDetails(
                 eu.kanade.tachiyomi.data.extensionstore.StoreMedium.GUIDE,
                 eu.kanade.tachiyomi.data.extensionstore.StoreMedium.TV,
                 eu.kanade.tachiyomi.data.extensionstore.StoreMedium.NEWS,
+                eu.kanade.tachiyomi.data.extensionstore.StoreMedium.NOVEL,
             ) &&
             anime.isEmpty() &&
             manga.isEmpty()

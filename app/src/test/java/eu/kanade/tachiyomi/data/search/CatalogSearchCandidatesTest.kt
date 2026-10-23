@@ -1,12 +1,28 @@
 package eu.kanade.tachiyomi.data.search
 
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import okhttp3.OkHttpClient
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import tachiyomi.domain.search.SearchMedium
+import tachiyomi.domain.search.SearchRequestBudget
 
 class CatalogSearchCandidatesTest {
+    @Test fun `novels never call anime catalogs or consume their shared allowance`() = runBlocking<Unit> {
+        val client = OkHttpClient.Builder().addInterceptor { error("No catalog request is allowed for novels") }.build()
+        val catalog = CatalogSearchCandidates(client, Json)
+        val budget = SearchRequestBudget(3)
+        assertEquals(emptyList<Any>(), catalog.fetch("Fictional book", SearchMedium.NOVEL, budget))
+        repeat(3) { assertTrue(budget.take()) }
+        assertFalse(budget.take())
+        assertEquals(emptyList<Any>(), CatalogSearchCandidates.parseKitsu(JsonObject(emptyMap()), SearchMedium.NOVEL))
+        assertEquals(emptyList<Any>(), CatalogSearchCandidates.parseAniList(JsonObject(emptyMap()), SearchMedium.NOVEL))
+    }
+
     @Test
     fun `public catalog titles and aliases remain suggestions of the requested medium`() {
         val root = Json.parseToJsonElement(

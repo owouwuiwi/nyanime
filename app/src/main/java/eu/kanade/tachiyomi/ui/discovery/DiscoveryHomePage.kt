@@ -35,6 +35,10 @@ internal sealed interface DiscoveryHomePage {
         override val key = "empty"
     }
 
+    data object Novel : DiscoveryHomePage {
+        override val key = "novel"
+    }
+
     data class Catalog(val model: DiscoveryScreenModel) : DiscoveryHomePage {
         override val key = "catalog"
     }
@@ -68,28 +72,42 @@ internal fun DiscoveryTab.rememberHomePage(
     mangaHomeId: String = MangaHomeCategories.DEFAULT_HOME,
     tv: Boolean = false,
     empty: Boolean = false,
-): DiscoveryHomePage = when {
-    empty -> DiscoveryHomePage.Empty
-    tv -> DiscoveryHomePage.Tv(
-        rememberScreenModel(tag = "live-tv") {
-            val services = Injekt.get<eu.kanade.tachiyomi.data.tv.TvServices>()
-            eu.kanade.tachiyomi.ui.tv.TvHomeModel(services.repository, services.adultContent)
-        },
-    )
-    news -> DiscoveryHomePage.News(requireNotNull(eu.kanade.tachiyomi.ui.news.LocalNewsModel.current))
-    manga -> DiscoveryHomePage.Manga(
-        rememberScreenModel(tag = "reading:$mangaHomeId") { MangaHomeScreenModel(mangaHomeId) },
-        mangaHomeId,
-    )
-    initializing -> DiscoveryHomePage.Initializing
-    homeKey != null -> DiscoveryHomePage.Source(
-        homeKey,
-        rememberScreenModel(tag = homeKey) {
-            SourceHomeScreenModel(homeKey)
-        },
-    )
-    else -> DiscoveryHomePage.Catalog(rememberScreenModel { DiscoveryScreenModel() })
-}
+    novel: Boolean = false,
+): DiscoveryHomePage =
+    when {
+        empty -> DiscoveryHomePage.Empty
+        novel -> DiscoveryHomePage.Novel
+        tv ->
+            DiscoveryHomePage.Tv(
+                rememberScreenModel(tag = "live-tv") {
+                    val services = Injekt.get<eu.kanade.tachiyomi.data.tv.TvServices>()
+                    eu.kanade.tachiyomi.ui.tv.TvHomeModel(
+                        services.repository,
+                        services.adultContent,
+                    )
+                },
+            )
+        news ->
+            DiscoveryHomePage.News(
+                requireNotNull(eu.kanade.tachiyomi.ui.news.LocalNewsModel.current),
+            )
+        manga ->
+            DiscoveryHomePage.Manga(
+                rememberScreenModel(tag = "reading:$mangaHomeId") {
+                    MangaHomeScreenModel(mangaHomeId)
+                },
+                mangaHomeId,
+            )
+        initializing -> DiscoveryHomePage.Initializing
+        homeKey != null ->
+            DiscoveryHomePage.Source(
+                homeKey,
+                rememberScreenModel(tag = homeKey) {
+                    SourceHomeScreenModel(homeKey)
+                },
+            )
+        else -> DiscoveryHomePage.Catalog(rememberScreenModel { DiscoveryScreenModel() })
+    }
 
 internal data class DiscoveryHeaderState(
     val onSearch: (() -> Unit)? = null,
@@ -104,70 +122,100 @@ internal data class DiscoveryHeaderState(
 @Composable
 internal fun DiscoveryHomePage.headerState(homes: List<SourceHomeGroup>): DiscoveryHeaderState {
     val navigator = LocalNavigator.currentOrThrow
-    val preference = remember(this is DiscoveryHomePage.Manga) {
-        val preferences = Injekt.get<UiPreferences>()
-        if (this is DiscoveryHomePage.Manga) {
-            preferences.lastSeenMangaUpdateNotice()
-        } else {
-            preferences.lastSeenAnimeUpdateNotice()
+    val preference =
+        remember(this is DiscoveryHomePage.Manga) {
+            val preferences = Injekt.get<UiPreferences>()
+            if (this is DiscoveryHomePage.Manga) {
+                preferences.lastSeenMangaUpdateNotice()
+            } else {
+                preferences.lastSeenAnimeUpdateNotice()
+            }
         }
-    }
     val seenAt by preference.changes().collectAsState(initial = preference.get())
     var updateKeys: Set<String> = emptySet()
-    val header = when (this) {
-        is DiscoveryHomePage.Tv -> return DiscoveryHeaderState(onRefresh = { model.refresh(true) })
-        is DiscoveryHomePage.News -> return DiscoveryHeaderState(onRefresh = { model.refresh(true) })
-        DiscoveryHomePage.Initializing, DiscoveryHomePage.Empty -> DiscoveryHeaderState()
-        is DiscoveryHomePage.Catalog -> {
-            val state by model.state.collectAsStateWithLifecycle()
-            updateKeys = state.updates.data.orEmpty().mapNotNull { it.updateKey }.toSet()
-            DiscoveryHeaderState(
-                onSearch = { navigator.push(CatalogListScreen(CatalogFeed.SEARCH)) },
-                onRefresh = model::refresh,
-            )
-        }
-        is DiscoveryHomePage.Source -> {
-            val state by model.state.collectAsStateWithLifecycle()
-            // The registry already validated the category; its actions need not disappear during model startup.
-            val group = state.access.group ?: homes.firstOrNull { it.id == homeKey }
-            updateKeys = state.updates.data.orEmpty().mapNotNull { it.updateKey }.toSet()
-            val provider = group?.providers?.takeUnless { state.access.offline }
-                ?.distinctBy { it.id }?.singleOrNull()
-            val presentation = provider?.let {
-                state.sections.values.asSequence().flatMap { it.data?.items.orEmpty().asSequence() }
-                    .filter { item -> item.source == it.id }.mapNotNull { item -> item.homePresentation }
-                    .firstOrNull { item -> item.logoUrl != null }
+    val header =
+        when (this) {
+            DiscoveryHomePage.Novel ->
+                return DiscoveryHeaderState(
+                    onRefresh = {
+                        it.lorelore.nyanime.novel.ui.NovelHome.refreshRequests.tryEmit(Unit)
+                    },
+                )
+            is DiscoveryHomePage.Tv ->
+                return DiscoveryHeaderState(onRefresh = { model.refresh(true) })
+            is DiscoveryHomePage.News ->
+                return DiscoveryHeaderState(onRefresh = { model.refresh(true) })
+            DiscoveryHomePage.Initializing,
+            DiscoveryHomePage.Empty,
+            -> DiscoveryHeaderState()
+            is DiscoveryHomePage.Catalog -> {
+                val state by model.state.collectAsStateWithLifecycle()
+                updateKeys = state.updates.data.orEmpty().mapNotNull { it.updateKey }.toSet()
+                DiscoveryHeaderState(
+                    onSearch = { navigator.push(CatalogListScreen(CatalogFeed.SEARCH)) },
+                    onRefresh = model::refresh,
+                )
             }
-            DiscoveryHeaderState(
-                onSearch = if (!state.access.offline && group?.searchable == true) {
-                    { navigator.push(SourceHomeListScreen(homeKey, SourceHomeRequest.SEARCH, "Cerca ${group.title}")) }
-                } else {
-                    null
-                },
-                onRefresh = model::refresh,
-                artworkRefreshKey = state.artworkRefreshKey,
-                logo = if (provider != null && presentation?.logoUrl != null) {
-                    SourceHomeLogo(
-                        provider.id,
-                        provider.sourceName,
-                        requireNotNull(presentation.logoUrl),
-                        presentation.logoName,
-                        presentation.logoBackground,
-                    )
-                } else {
-                    null
-                },
-            )
+            is DiscoveryHomePage.Source -> {
+                val state by model.state.collectAsStateWithLifecycle()
+                // The registry already validated the category; its actions need not disappear
+                // during model startup.
+                val group = state.access.group ?: homes.firstOrNull { it.id == homeKey }
+                updateKeys = state.updates.data.orEmpty().mapNotNull { it.updateKey }.toSet()
+                val provider =
+                    group
+                        ?.providers
+                        ?.takeUnless { state.access.offline }
+                        ?.distinctBy { it.id }
+                        ?.singleOrNull()
+                val presentation = provider?.let {
+                    state.sections.values
+                        .asSequence()
+                        .flatMap { it.data?.items.orEmpty().asSequence() }
+                        .filter { item -> item.source == it.id }
+                        .mapNotNull { item -> item.homePresentation }
+                        .firstOrNull { item -> item.logoUrl != null }
+                }
+                DiscoveryHeaderState(
+                    onSearch =
+                    if (!state.access.offline && group?.searchable == true) {
+                        {
+                            navigator.push(
+                                SourceHomeListScreen(
+                                    homeKey,
+                                    SourceHomeRequest.SEARCH,
+                                    "Cerca ${group.title}",
+                                ),
+                            )
+                        }
+                    } else {
+                        null
+                    },
+                    onRefresh = model::refresh,
+                    artworkRefreshKey = state.artworkRefreshKey,
+                    logo =
+                    if (provider != null && presentation?.logoUrl != null) {
+                        SourceHomeLogo(
+                            provider.id,
+                            provider.sourceName,
+                            requireNotNull(presentation.logoUrl),
+                            presentation.logoName,
+                            presentation.logoBackground,
+                        )
+                    } else {
+                        null
+                    },
+                )
+            }
+            is DiscoveryHomePage.Manga -> {
+                val state by model.state.collectAsStateWithLifecycle()
+                updateKeys = state.updates.map { it.inboxKey() }.toSet()
+                DiscoveryHeaderState(
+                    onSearch = { navigator.push(MangaHomeSearchScreen(homeId = homeId)) },
+                    onRefresh = model::refresh,
+                )
+            }
         }
-        is DiscoveryHomePage.Manga -> {
-            val state by model.state.collectAsStateWithLifecycle()
-            updateKeys = state.updates.map { it.inboxKey() }.toSet()
-            DiscoveryHeaderState(
-                onSearch = { navigator.push(MangaHomeSearchScreen(homeId = homeId)) },
-                onRefresh = model::refresh,
-            )
-        }
-    }
     return header.copy(
         hasUpdates = hasNewLibraryUpdateNotice(updateKeys, seenAt),
         onUpdates = {

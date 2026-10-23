@@ -244,5 +244,37 @@
     "licenseName": "MIT",
     "asset": "licenses/reader-quality/Ruapu.txt",
     "website": "https://github.com/Tencent/ncnn/blob/56775de50990ab7f16627efdcf5529b49541206f/src/ruapu.h"
+  },
+  {
+    "name": "Readium — EPUB navigation",
+    "website": "https://github.com/readium/kotlin-toolkit/tree/3.4.0",
+    "licenseName": "BSD-3-Clause",
+    "asset": "novel/licenses/Readium-BSD-3-Clause.txt",
+    "notice": "novel/licenses/Readium-NOTICE.txt"
+  },
+  {
+    "name": "PhotoView — embedded in Readium navigator",
+    "website": "https://github.com/Baseflow/PhotoView/tree/2.3.0",
+    "licenseName": "Apache-2.0",
+    "asset": "novel/licenses/PhotoView-Apache-2.0.txt",
+    "notice": "novel/licenses/Readium-NOTICE.txt"
+  },
+  {
+    "name": "OpenDyslexic — legacy embedded font",
+    "website": "https://github.com/antijingoist/open-dyslexic",
+    "licenseName": "Bitstream Vera + CC BY3.0",
+    "asset": "novel/licenses/OpenDyslexic-Legacy-License.txt"
+  },
+  {
+    "name": "iA Writer Duospace / IBM Plex — Readium font",
+    "website": "https://github.com/readium/kotlin-toolkit/tree/3.4.0",
+    "licenseName": "OFL-1.1",
+    "asset": "novel/licenses/LICENSE-IaWriterDuospace.md"
+  },
+  {
+    "name": "Accessible-Dfa — Readium font",
+    "website": "https://github.com/readium/kotlin-toolkit/tree/3.4.0",
+    "licenseName": "OFL-1.1",
+    "asset": "novel/licenses/LICENSE-AccessibleDfa"
   }
 ]

@@ -3,11 +3,14 @@ package it.lorelore.nyanime.studio
 import android.content.Context
 import android.util.AtomicFile
 import eu.kanade.tachiyomi.data.rin.RinSessions
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
@@ -51,7 +54,8 @@ data class StudioRecord(
                 draft = published,
                 pending = true,
                 trustedScriptFingerprint = fingerprint,
-                activeScriptFingerprint = active?.takeIf(::trusts)?.let(StudioDocuments::fingerprint),
+                activeScriptFingerprint =
+                active?.takeIf(::trusts)?.let(StudioDocuments::fingerprint),
             )
         } else {
             copy(
@@ -69,15 +73,19 @@ data class StudioRecord(
     fun withDraft(source: StudioSource): StudioRecord =
         if (draft == source) this else copy(draft = source, pending = false)
 
-    fun afterRestore(): StudioRecord = copy(
-        enabled = enabled && !StudioBlueprints.hasScripts(draft) && active?.let(StudioBlueprints::hasScripts) != true,
-        pending = false,
-        trustedScriptFingerprint = null,
-        activeScriptFingerprint = null,
-        // A previous version was approved on another installation. Do not let rollback
-        // turn that foreign approval into local permission to execute its scripts.
-        previous = previous?.takeUnless(StudioBlueprints::hasScripts),
-    )
+    fun afterRestore(): StudioRecord =
+        copy(
+            enabled =
+            enabled &&
+                !StudioBlueprints.hasScripts(draft) &&
+                active?.let(StudioBlueprints::hasScripts) != true,
+            pending = false,
+            trustedScriptFingerprint = null,
+            activeScriptFingerprint = null,
+            // A previous version was approved on another installation. Do not let rollback
+            // turn that foreign approval into local permission to execute its scripts.
+            previous = previous?.takeUnless(StudioBlueprints::hasScripts),
+        )
 }
 
 /** A single atomic document owns drafts and published snapshots; sources never read a half edit. */
@@ -91,7 +99,10 @@ class SourceStudioRepository private constructor(context: Context) {
     val records = _records.asStateFlow()
     private val _error = MutableStateFlow<String?>(null)
     val error = _error.asStateFlow()
-    val active = records.map { list -> list.filter { it.enabled }.mapNotNull { it.active } }.distinctUntilChanged()
+    val active =
+        records
+            .map { list -> list.filter { it.enabled }.mapNotNull { it.active } }
+            .distinctUntilChanged()
     private val leases = mutableMapOf<String, Int>()
     private val vault by lazy { StudioSecretVault(this.context) }
     private val cookies = mutableMapOf<String, MutableList<Cookie>>()
@@ -102,14 +113,27 @@ class SourceStudioRepository private constructor(context: Context) {
             try {
                 if (file.baseFile.exists() || File(file.baseFile.path + ".bak").exists()) {
                     val text = file.openRead().use { it.readBytes() }.toString(Charsets.UTF_8)
-                    _records.value = decodeRecords(text)
+                    val decoded = decodeRecords(text)
+                    val authorized = reconcileAccess(decoded)
+                    if (authorized != decoded) persist(authorized)
+                    _records.value = authorized
                 }
             } catch (_: Exception) {
-                _error.value = "Saved source definitions could not be read. The original file has been preserved."
+                _error.value =
+                    "Saved source definitions could not be read. The original file has been preserved."
             } finally {
                 ready.complete(Unit)
             }
             RinSessions.busy.collect { if (!it) applyPending() }
+        }
+        scope.launch {
+            ready.await()
+            kotlinx.coroutines.flow.combine(
+                nyanime.telegram.TelegramAccountSessions.get(this@SourceStudioRepository.context).state,
+                StudioTelegramGrantStore.get(this@SourceStudioRepository.context).changes,
+            ) { session, grants -> session.version to grants }.collect {
+                if (error.value == null) update { it }
+            }
         }
     }
 
@@ -124,20 +148,36 @@ class SourceStudioRepository private constructor(context: Context) {
     }
 
     suspend fun activate(uuid: String, allowScripts: Boolean = false): StudioRecord {
+        ready.await()
+        val expected = requireNotNull(records.value.singleOrNull { it.draft.uuid == uuid })
+        val proof = requireNotNull(
+            SourceActivationRequirements.proof(
+                context,
+                SourceActivationRequirements.declared(expected.draft),
+                live = true,
+            ),
+        ) {
+            "Sign in and approve Telegram access before activating this source"
+        }
         var publication: StudioRecord? = null
         update { records ->
             records.map { record ->
                 if (record.draft.uuid != uuid) {
                     record
                 } else {
+                    check(record.draft == expected.draft && SourceActivationRequirements.current(context, proof)) {
+                        "Source or Telegram access changed before activation"
+                    }
                     val issues = StudioValidation.source(record.draft)
                     require(issues.isEmpty()) { issues.firstOrNull()?.message ?: "Invalid source" }
-                    val published = record.draft.copy(
-                        revision = maxOf(
-                            record.draft.revision,
-                            (record.active?.revision ?: 0) + 1,
-                        ),
-                    )
+                    val published =
+                        record.draft.copy(
+                            revision =
+                            maxOf(
+                                record.draft.revision,
+                                (record.active?.revision ?: 0) + 1,
+                            ),
+                        )
                     val fingerprint = StudioDocuments.fingerprint(published)
                     require(
                         !StudioBlueprints.hasScripts(published) ||
@@ -152,7 +192,10 @@ class SourceStudioRepository private constructor(context: Context) {
                 }
             }
         }
-        return requireNotNull(publication) { "Source definition no longer available" }
+        requireNotNull(publication) { "Source definition no longer available" }
+        return requireNotNull(records.value.singleOrNull { it.draft.uuid == uuid }).also {
+            check(it.enabled || it.pending) { "Source access changed before publication" }
+        }
     }
 
     suspend fun disable(uuid: String) = update { records ->
@@ -189,7 +232,9 @@ class SourceStudioRepository private constructor(context: Context) {
     suspend fun importDocument(text: String, duplicateExisting: Boolean = false): String {
         var source = withContext(Dispatchers.Default) { StudioDocuments.decode(text) }
         ready.await()
-        if (duplicateExisting && records.value.any { it.draft.uuid == source.uuid }) source = source.duplicate()
+        if (duplicateExisting && records.value.any { it.draft.uuid == source.uuid }) {
+            source = source.duplicate()
+        }
         saveDraft(source)
         return source.uuid
     }
@@ -197,10 +242,14 @@ class SourceStudioRepository private constructor(context: Context) {
     suspend fun draft(uuid: String): StudioSource {
         awaitReady()
         return requireNotNull(
-            records.value.firstOrNull {
-                it.draft.uuid == uuid
-            }?.draft,
-        ) { "Source definition no longer available" }
+            records.value
+                .firstOrNull {
+                    it.draft.uuid == uuid
+                }
+                ?.draft,
+        ) {
+            "Source definition no longer available"
+        }
     }
 
     suspend fun awaitReady() {
@@ -217,13 +266,17 @@ class SourceStudioRepository private constructor(context: Context) {
         val restored = decodeRecords(text)
         // A restored graph cannot inherit script permission from another installation.
         val reviewed = restored.map(StudioRecord::afterRestore)
-        (existing + reviewed.filter { incoming -> existing.none { it.draft.uuid == incoming.draft.uuid } })
+        (
+            existing +
+                reviewed.filter { incoming -> existing.none { it.draft.uuid == incoming.draft.uuid } }
+            )
     }
 
-    suspend fun setSecret(uuid: String, name: String, value: String) = withContext(Dispatchers.IO) {
-        require(name.matches(Regex("[A-Za-z0-9_-]{1,64}"))) { "Invalid secret name" }
-        vault.set(draft(uuid), name, value)
-    }
+    suspend fun setSecret(uuid: String, name: String, value: String) =
+        withContext(Dispatchers.IO) {
+            require(name.matches(Regex("[A-Za-z0-9_-]{1,64}"))) { "Invalid secret name" }
+            vault.set(draft(uuid), name, value)
+        }
 
     suspend fun execute(
         source: StudioSource,
@@ -233,55 +286,89 @@ class SourceStudioRepository private constructor(context: Context) {
         allowDraftScripts: Boolean = false,
         trace: (StudioTrace) -> Unit = {},
         overrideGraph: StudioGraph? = null,
+        allowDraftCapabilities: Boolean = false,
     ): StudioResult {
         ready.await()
-        val trusted = records.value.firstOrNull { it.draft.uuid == source.uuid }?.trusts(source) == true
+        fun validateDraft() {
+            if (allowDraftCapabilities) {
+                check(
+                    error.value == null &&
+                        records.value.singleOrNull {
+                            it.draft.uuid == source.uuid
+                        }?.draft == source,
+                ) {
+                    "The source draft changed during the preview"
+                }
+            }
+        }
+        validateDraft()
+        val trusted =
+            records.value.firstOrNull { it.draft.uuid == source.uuid }?.trusts(source) == true
         val scripts = StudioScript { code, input ->
-            check(trusted || allowDraftScripts) { "Review and authorize JavaScript before running it" }
+            check(trusted || allowDraftScripts) {
+                "Review and authorize JavaScript before running it"
+            }
             StudioScriptClient(context).evaluate(code, input)
         }
-        val cookieJar = object : CookieJar {
-            override fun loadForRequest(url: HttpUrl): List<Cookie> = synchronized(cookies) {
-                cookies[source.uuid].orEmpty().filter { it.expiresAt > System.currentTimeMillis() && it.matches(url) }
-            }
-            override fun saveFromResponse(url: HttpUrl, incoming: List<Cookie>) = synchronized(cookies) {
-                val session = cookies.getOrPut(source.uuid) { mutableListOf() }
-                incoming.forEach { cookie ->
-                    session.removeAll {
-                        it.name == cookie.name &&
-                            it.domain == cookie.domain &&
-                            it.path == cookie.path
+        val cookieJar =
+            object : CookieJar {
+                override fun loadForRequest(url: HttpUrl): List<Cookie> =
+                    synchronized(cookies) {
+                        cookies[source.uuid].orEmpty().filter {
+                            it.expiresAt > System.currentTimeMillis() && it.matches(url)
+                        }
                     }
-                    session.add(cookie)
-                }
-                session.removeAll { it.expiresAt <= System.currentTimeMillis() }
-                while (session.size > 128) session.removeAt(0)
-                Unit
+
+                override fun saveFromResponse(url: HttpUrl, incoming: List<Cookie>) =
+                    synchronized(cookies) {
+                        val session = cookies.getOrPut(source.uuid) { mutableListOf() }
+                        incoming.forEach { cookie ->
+                            session.removeAll {
+                                it.name == cookie.name &&
+                                    it.domain == cookie.domain &&
+                                    it.path == cookie.path
+                            }
+                            session.add(cookie)
+                        }
+                        session.removeAll { it.expiresAt <= System.currentTimeMillis() }
+                        while (session.size > 128) session.removeAt(0)
+                        Unit
+                    }
             }
-        }
         val network =
             StudioNetwork(http.newBuilder().cookieJar(cookieJar).build()) { definition, name ->
                 vault.get(definition, name)
             }
         mutex.withLock { leases[source.uuid] = (leases[source.uuid] ?: 0) + 1 }
         return try {
-            StudioExecutor(network, scripts).run(source, flow, variables, until, trace, overrideGraph)
+            val execute: suspend () -> StudioResult = {
+                StudioExecutor(network, scripts, StudioHostServices(context, allowDraftCapabilities))
+                    .run(source, flow, variables, until, trace, overrideGraph)
+            }
+            val result = if (allowDraftCapabilities && source.transport == StudioTransport.TELEGRAM) {
+                StudioTelegramAccess.get(context).preview(source, execute)
+            } else {
+                execute()
+            }
+            validateDraft()
+            result
         } finally {
             withContext(NonCancellable) {
-                mutex.withLock { leases[source.uuid] = ((leases[source.uuid] ?: 1) - 1).coerceAtLeast(0) }
+                mutex.withLock {
+                    leases[source.uuid] = ((leases[source.uuid] ?: 1) - 1).coerceAtLeast(0)
+                }
                 applyPending()
             }
         }
     }
 
     private fun isBusy(uuid: String) = RinSessions.busy.value || (leases[uuid] ?: 0) > 0
+
     private suspend fun applyPending() {
         if (_records.value.none { it.pending } || error.value != null) return
         update { list ->
             list.map {
-                if (it.pending &&
-                    !isBusy(it.draft.uuid)
-                ) {
+                if (it.pending && !isBusy(it.draft.uuid)) {
                     it.copy(
                         active = it.draft,
                         previous = it.active,
@@ -295,25 +382,54 @@ class SourceStudioRepository private constructor(context: Context) {
             }
         }
     }
-    private suspend fun update(change: (List<StudioRecord>) -> List<StudioRecord>) = withContext(Dispatchers.IO) {
-        ready.await()
-        mutex.withLock {
-            check(error.value == null) { "Resolve the saved definitions error before editing" }
-            val next = change(records.value)
-            require(next.size <= 64) { "Source limit reached" }
-            val bytes = StudioDocuments.json.encodeToString(next).toByteArray()
-            require(bytes.size <= 16 * 1024 * 1024) { "Source definitions are too large" }
-            val output = file.startWrite()
-            try {
-                output.write(bytes)
-                file.finishWrite(output)
-            } catch (
-                failure: Throwable,
-            ) {
-                file.failWrite(output)
-                throw failure
+
+    private suspend fun update(change: (List<StudioRecord>) -> List<StudioRecord>) =
+        withContext(Dispatchers.IO) {
+            ready.await()
+            mutex.withLock {
+                check(error.value == null) { "Resolve the saved definitions error before editing" }
+                val next = reconcileAccess(change(records.value))
+                require(next.size <= 64) { "Source limit reached" }
+                if (next == records.value) return@withLock
+                currentCoroutineContext().ensureActive()
+                persist(next)
+                _records.value = next
             }
-            _records.value = next
+        }
+
+    /** Local authorization only; this never starts Telegram while editing or listing definitions. */
+    private suspend fun reconcileAccess(records: List<StudioRecord>): List<StudioRecord> = records.map { record ->
+        suspend fun permitted(source: StudioSource?): Boolean {
+            if (source == null || source.transport != StudioTransport.TELEGRAM) return true
+            return try {
+                val proof = SourceActivationRequirements.proof(
+                    context,
+                    SourceActivationRequirements.declared(source),
+                    live = false,
+                )
+                proof != null && SourceActivationRequirements.current(context, proof)
+            } catch (cancel: CancellationException) {
+                throw cancel
+            } catch (_: Exception) {
+                false
+            }
+        }
+        record.copy(
+            enabled = record.enabled && permitted(record.active),
+            pending = record.pending && permitted(record.draft),
+        )
+    }
+
+    private fun persist(records: List<StudioRecord>) {
+        val bytes = StudioDocuments.json.encodeToString(records).toByteArray()
+        require(bytes.size <= 16 * 1024 * 1024) { "Source definitions are too large" }
+        val output = file.startWrite()
+        try {
+            output.write(bytes)
+            file.finishWrite(output)
+        } catch (failure: Throwable) {
+            file.failWrite(output)
+            throw failure
         }
     }
 
@@ -325,7 +441,10 @@ class SourceStudioRepository private constructor(context: Context) {
                 StudioDocuments.decode(StudioDocuments.encode(record.draft))
                 listOfNotNull(record.active, record.previous).forEach { definition ->
                     StudioDocuments.decode(StudioDocuments.encode(definition))
-                    require(definition.uuid == record.draft.uuid && definition.medium == record.draft.medium)
+                    require(
+                        definition.uuid == record.draft.uuid &&
+                            definition.medium == record.draft.medium,
+                    )
                     require(StudioValidation.source(definition).isEmpty())
                 }
             }
@@ -334,8 +453,11 @@ class SourceStudioRepository private constructor(context: Context) {
 
     companion object {
         @Volatile private var instance: SourceStudioRepository? = null
-        fun get(context: Context): SourceStudioRepository = instance ?: synchronized(this) {
-            instance ?: SourceStudioRepository(context).also { instance = it }
-        }
+
+        fun get(context: Context): SourceStudioRepository =
+            instance
+                ?: synchronized(this) {
+                    instance ?: SourceStudioRepository(context).also { instance = it }
+                }
     }
 }

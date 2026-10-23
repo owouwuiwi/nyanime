@@ -238,6 +238,14 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
             scope.launch {
                 try {
                     repository.rin.setEnabled(entry.packageName, !entry.enabled)
+                } catch (required: it.lorelore.nyanime.studio.SourceActivationRequired) {
+                    detail = null
+                    navigator.push(
+                        it.lorelore.nyanime.novel.source.NovelSourceSettingsScreen(
+                            required.packageName,
+                            requestActivation = true,
+                        ),
+                    )
                 } catch (cancel: CancellationException) {
                     throw cancel
                 } catch (_: Exception) {
@@ -255,6 +263,7 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                 StoreMedium.ANIME -> AnimeExtensionDetailsScreen(entry.packageName)
                 StoreMedium.MANGA -> MangaExtensionDetailsScreen(entry.packageName)
                 StoreMedium.NEWS -> NewsSourcesScreen()
+                StoreMedium.NOVEL -> it.lorelore.nyanime.novel.source.NovelSourceSettingsScreen(entry.packageName)
                 StoreMedium.TV -> eu.kanade.tachiyomi.ui.tv.TvExtensionScreen(entry.packageName)
                 StoreMedium.GUIDE -> eu.kanade.presentation.episodeguide.GuideExtensionScreen(entry.packageName)
                 StoreMedium.ADDON -> if (entry.isRin) {
@@ -300,7 +309,12 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                 val a = (entry.anime as? AnimeExtension.Installed)?.sources.orEmpty()
                 val m = (entry.manga as? MangaExtension.Installed)?.sources.orEmpty()
                 when {
-                    entry.medium in setOf(StoreMedium.GUIDE, StoreMedium.TV, StoreMedium.NEWS) -> manage(entry)
+                    entry.medium in setOf(
+                        StoreMedium.GUIDE,
+                        StoreMedium.TV,
+                        StoreMedium.NEWS,
+                        StoreMedium.NOVEL,
+                    ) -> manage(entry)
                     entry.medium == eu.kanade.tachiyomi.data.extensionstore.StoreMedium.ADDON &&
                         entry.rinRecord != null ->
                         eu.kanade.tachiyomi.data.addon.RinAddonRuntime.open(context, entry.packageName)

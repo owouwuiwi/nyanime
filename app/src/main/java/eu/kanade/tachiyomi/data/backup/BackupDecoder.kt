@@ -19,36 +19,58 @@ class BackupDecoder(
     private val context: Context,
     private val parser: ProtoBuf = Injekt.get(),
 ) {
-    /**
-     * Decode a potentially-gzipped backup.
-     */
+    /** Decode a potentially-gzipped backup. */
     fun decode(uri: Uri): Backup {
         return context.contentResolver.openInputStream(uri)!!.use { inputStream ->
             val source = inputStream.source().buffer()
 
-            val peeked = source.peek().apply {
-                require(2)
-            }
-            val id1id2 = peeked.readShort()
-            val backupString = when (id1id2.toInt()) {
-                0x1f8b -> source.gzip().buffer() // 0x1f8b is gzip magic bytes
-                MAGIC_JSON_SIGNATURE1, MAGIC_JSON_SIGNATURE2, MAGIC_JSON_SIGNATURE3 -> {
-                    throw IOException(context.stringResource(MR.strings.invalid_backup_file_json))
+            val peeked =
+                source.peek().apply {
+                    require(2)
                 }
-                else -> source
-            }.use { it.readByteArray() }
+            val id1id2 = peeked.readShort()
+            val backupString =
+                when (id1id2.toInt()) {
+                    0x1f8b -> source.gzip().buffer() // 0x1f8b is gzip magic bytes
+                    MAGIC_JSON_SIGNATURE1,
+                    MAGIC_JSON_SIGNATURE2,
+                    MAGIC_JSON_SIGNATURE3,
+                    -> {
+                        throw IOException(
+                            context.stringResource(MR.strings.invalid_backup_file_json),
+                        )
+                    }
+                    else -> source
+                }.use { it.readByteArray() }
 
             try {
                 if (BackupDetector.isLegacyBackup(backupString)) {
-                    parser.decodeFromByteArray(LegacyBackup.serializer(), backupString)
+                    parser
+                        .decodeFromByteArray(LegacyBackup.serializer(), backupString)
                         .toBackup()
                 } else {
                     parser.decodeFromByteArray(Backup.serializer(), backupString)
-                }.also { backup ->
-                    if (backup.personalTracking.size > 100_000 || backup.personalTracking.any { !it.valid() }) {
-                        throw IOException(context.stringResource(MR.strings.invalid_backup_file_unknown))
-                    }
                 }
+                    .also { backup ->
+                        backup.novelMetadata?.let { metadata ->
+                            try {
+                                it.lorelore.nyanime.novel.NovelBackup.validate(metadata)
+                            } catch (error: IllegalArgumentException) {
+                                throw IOException(
+                                    context.stringResource(MR.strings.invalid_backup_file_unknown),
+                                    error,
+                                )
+                            }
+                        }
+                        if (
+                            backup.personalTracking.size > 100_000 ||
+                            backup.personalTracking.any { !it.valid() }
+                        ) {
+                            throw IOException(
+                                context.stringResource(MR.strings.invalid_backup_file_unknown),
+                            )
+                        }
+                    }
             } catch (_: SerializationException) {
                 throw IOException(context.stringResource(MR.strings.invalid_backup_file_unknown))
             }

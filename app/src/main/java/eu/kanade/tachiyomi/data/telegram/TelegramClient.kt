@@ -11,6 +11,7 @@ import android.os.Looper
 import android.os.Message
 import android.os.Messenger
 import android.os.RemoteException
+import it.lorelore.nyanime.telegram.TelegramAuthorizationRecovery
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -36,6 +37,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 import nyanime.telegram.TelegramAccount
 import nyanime.telegram.TelegramAccountRepository
+import nyanime.telegram.TelegramAccountSessions
 import nyanime.telegram.TelegramErrors
 import nyanime.telegram.TelegramException
 import nyanime.telegram.TelegramFailure
@@ -53,6 +55,12 @@ import java.util.concurrent.ConcurrentHashMap
 
 class TelegramClient private constructor(private val context: Context) : TelegramGateway, TelegramAccountRepository {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val sessions = TelegramAccountSessions.get(context)
+    private val authenticationLock = Any()
+
+    @Volatile private var authenticationGeneration = 0L
+
+    @Volatile private var loggingOut = false
     private val mutableState = MutableStateFlow(TelegramState())
     override val state: StateFlow<TelegramState> = mutableState
     private val mutableUpdates = MutableSharedFlow<JsonObject>(extraBufferCapacity = 256)
@@ -167,10 +175,10 @@ class TelegramClient private constructor(private val context: Context) : Telegra
     override suspend fun connect() = lock.withLock {
         val attached = service
         if (attached != null) {
-            if (mutableState.value.authorization == "disconnected") {
+            if (TelegramAuthorizationRecovery.required(mutableState.value, sessions.state.value.account, loggingOut)) {
                 // getMe can fail transiently while IPC remains alive. Re-read authorization
                 // instead of keeping a failed account lookup permanently latched.
-                mutableState.update { it.copy(authorization = "connecting", failure = null) }
+                mutableState.update(TelegramAuthorizationRecovery::begin)
                 try {
                     attached.send(
                         Message.obtain(null, TelegramEngineService.REQUEST).apply {
@@ -309,6 +317,11 @@ class TelegramClient private constructor(private val context: Context) : Telegra
     }
 
     private fun updateAuth(auth: JsonObject) {
+        val generation = synchronized(authenticationLock) {
+            authenticationGeneration++
+            if (TelegramAccountSessions.requiresLogin(auth.type())) sessions.invalidate()
+            authenticationGeneration
+        }
         val codeInfo = auth.objectOrNull("code_info")
         val resendAt = when {
             auth.type() == "authorizationStateWaitEmailCode" -> System.currentTimeMillis() + 60_000
@@ -337,13 +350,13 @@ class TelegramClient private constructor(private val context: Context) : Telegra
                             (me.text("first_name") + " " + me.text("last_name")).trim(),
                             me.text("username"),
                         )
-                    mutableState.update {
-                        if (it.authorization ==
-                            "authorizationStateReady"
+                    synchronized(authenticationLock) {
+                        if (!loggingOut &&
+                            generation == authenticationGeneration &&
+                            mutableState.value.authorization == "authorizationStateReady"
                         ) {
-                            it.copy(account = account)
-                        } else {
-                            it
+                            sessions.signedIn(account.id)
+                            mutableState.update { it.copy(account = account) }
                         }
                     }
                 } catch (
@@ -354,7 +367,11 @@ class TelegramClient private constructor(private val context: Context) : Telegra
                     _: Exception,
                 ) {
                     mutableState.update {
-                        it.copy(authorization = "disconnected", failure = TelegramFailure.DISCONNECTED)
+                        if (generation == authenticationGeneration) {
+                            it.copy(authorization = "disconnected", failure = TelegramFailure.DISCONNECTED)
+                        } else {
+                            it
+                        }
                     }
                 }
             }
@@ -390,12 +407,24 @@ class TelegramClient private constructor(private val context: Context) : Telegra
     }
     override suspend fun logout() {
         val account = state.value.account?.id
-        request(tdRequest("logOut"))
-        withTimeout(30_000) { state.first { it.authorization == "authorizationStateClosed" } }
-        account?.let { mutableSignedOut.emit(it) }
-        close()
-        withContext(Dispatchers.IO) { TelegramSessionKey.clear(context) }
-        mutableState.value = TelegramState()
+        synchronized(authenticationLock) {
+            loggingOut = true
+            authenticationGeneration++
+            sessions.invalidate()
+        }
+        try {
+            request(tdRequest("logOut"))
+            withTimeout(30_000) { state.first { it.authorization == "authorizationStateClosed" } }
+            account?.let { mutableSignedOut.emit(it) }
+            close()
+            withContext(Dispatchers.IO) { TelegramSessionKey.clear(context) }
+            mutableState.value = TelegramState()
+        } finally {
+            synchronized(authenticationLock) {
+                authenticationGeneration++
+                loggingOut = false
+            }
+        }
     }
 
     private suspend fun closeIfUnused() = lock.withLock { if (leases.isEmpty()) unbind() }

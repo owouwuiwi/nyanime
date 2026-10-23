@@ -16,11 +16,12 @@ class RetiredDocumentDataTest {
                 {"manifest":{"medium":"anime"},"enabled":false,"future":{"keep":true}},
                 {"manifest":{"medium":"publication"},"file":"old.rin"},
                 {"manifest":{"medium":"manga"},"progress":17},
-                {"manifest":{"medium":"future-medium"},"private":"untouched"}
+                {"manifest":{"medium":"future-medium"},"private":"untouched"},
+                {"manifest":{"medium":"novel"},"book":"keep"}
             ]""",
         )
         val retained = RetiredDocumentData.retain(active)
-        assertEquals(JsonArray(listOf(active[0], active[2], active[3])), retained)
+        assertEquals(JsonArray(listOf(active[0], active[2], active[3], active[4])), retained)
         assertEquals(retained, RetiredDocumentData.retain(retained))
     }
 

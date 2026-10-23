@@ -5,7 +5,7 @@ import java.text.Normalizer
 import java.util.Locale
 
 @Serializable
-enum class SearchMedium { VIDEO, MANGA }
+enum class SearchMedium { VIDEO, MANGA, NOVEL }
 
 /** Data received at runtime. A catalog suggestion is never a source identity. */
 @Serializable

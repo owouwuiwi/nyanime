@@ -8,7 +8,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RippleConfiguration
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.collectAsState
@@ -19,6 +18,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import eu.kanade.domain.ui.NyanimeIdentity
 import eu.kanade.domain.ui.ThemeSettingsRepository
 import eu.kanade.domain.ui.UiPreferences
@@ -47,6 +47,7 @@ import eu.kanade.presentation.theme.colorscheme.TealTurqoiseColorScheme
 import eu.kanade.presentation.theme.colorscheme.TidalWaveColorScheme
 import eu.kanade.presentation.theme.colorscheme.YinYangColorScheme
 import eu.kanade.presentation.theme.colorscheme.YotsubaColorScheme
+import eu.kanade.presentation.util.rememberSafeUriHandler
 import eu.kanade.tachiyomi.ui.base.delegate.ThemingDelegateImpl
 import tachiyomi.presentation.core.util.collectAsState
 import uy.kohesive.injekt.Injekt
@@ -111,16 +112,19 @@ private fun BaseTachiyomiTheme(
     content: @Composable () -> Unit,
 ) {
     val mangaSurfaces = LocalMangaSurfaces.current ?: remember { mutableStateMapOf() }
+    val uriHandler = rememberSafeUriHandler()
     CompositionLocalProvider(
         LocalNyanimeStyle provides modernUi,
         LocalDarkTheme provides darkTheme,
         LocalNyanimeIdentity provides identity,
         LocalMangaSurfaces provides mangaSurfaces,
+        LocalUriHandler provides uriHandler,
     ) {
         MaterialTheme(
             colorScheme = getThemeColorScheme(appTheme, isAmoled && darkTheme, darkTheme, identity),
             shapes = if (modernUi) NyanimeShapes else androidx.compose.material3.Shapes(),
-            typography = if (modernUi) {
+            typography =
+            if (modernUi) {
                 NyanimeTypography
             } else {
                 androidx.compose.material3.Typography()
@@ -138,13 +142,14 @@ private fun getThemeColorScheme(
     darkTheme: Boolean,
     identity: NyanimeIdentity,
 ): ColorScheme {
-    val colorScheme = if (appTheme == AppTheme.NYANIME) {
-        NyanimeClassicColorScheme
-    } else if (appTheme == AppTheme.MONET) {
-        MonetColorScheme(LocalContext.current)
-    } else {
-        colorSchemes.getOrDefault(appTheme, TachiyomiColorScheme)
-    }
+    val colorScheme =
+        if (appTheme == AppTheme.NYANIME) {
+            NyanimeClassicColorScheme
+        } else if (appTheme == AppTheme.MONET) {
+            MonetColorScheme(LocalContext.current)
+        } else {
+            colorSchemes.getOrDefault(appTheme, TachiyomiColorScheme)
+        }
     return colorScheme.getColorScheme(
         darkTheme,
         isAmoled,
@@ -157,34 +162,38 @@ private const val RIPPLE_HOVERED_ALPHA = .1f
 private const val RIPPLE_PRESSED_ALPHA = .1f
 
 val playerRippleConfiguration
-    @Composable get() = RippleConfiguration(
-        color = if (isSystemInDarkTheme()) Color.White else Color.Black,
-        rippleAlpha = RippleAlpha(
-            draggedAlpha = RIPPLE_DRAGGED_ALPHA,
-            focusedAlpha = RIPPLE_FOCUSED_ALPHA,
-            hoveredAlpha = RIPPLE_HOVERED_ALPHA,
-            pressedAlpha = RIPPLE_PRESSED_ALPHA,
-        ),
-    )
+    @Composable
+    get() =
+        RippleConfiguration(
+            color = if (isSystemInDarkTheme()) Color.White else Color.Black,
+            rippleAlpha =
+            RippleAlpha(
+                draggedAlpha = RIPPLE_DRAGGED_ALPHA,
+                focusedAlpha = RIPPLE_FOCUSED_ALPHA,
+                hoveredAlpha = RIPPLE_HOVERED_ALPHA,
+                pressedAlpha = RIPPLE_PRESSED_ALPHA,
+            ),
+        )
 
-private val colorSchemes: Map<AppTheme, BaseColorScheme> = mapOf(
-    AppTheme.NYANIME to NyanimeColorScheme,
-    AppTheme.DEFAULT to TachiyomiColorScheme,
-    AppTheme.CLOUDFLARE to CloudflareColorScheme,
-    AppTheme.COTTONCANDY to CottoncandyColorScheme,
-    AppTheme.DOOM to DoomColorScheme,
-    AppTheme.GREEN_APPLE to GreenAppleColorScheme,
-    AppTheme.LAVENDER to LavenderColorScheme,
-    AppTheme.MATRIX to MatrixColorScheme,
-    AppTheme.MIDNIGHT_DUSK to MidnightDuskColorScheme,
-    AppTheme.MONOCHROME to MonochromeColorScheme,
-    AppTheme.MOCHA to MochaColorScheme,
-    AppTheme.SAPPHIRE to SapphireColorScheme,
-    AppTheme.NORD to NordColorScheme,
-    AppTheme.STRAWBERRY_DAIQUIRI to StrawberryColorScheme,
-    AppTheme.TAKO to TakoColorScheme,
-    AppTheme.TEALTURQUOISE to TealTurqoiseColorScheme,
-    AppTheme.TIDAL_WAVE to TidalWaveColorScheme,
-    AppTheme.YINYANG to YinYangColorScheme,
-    AppTheme.YOTSUBA to YotsubaColorScheme,
-)
+private val colorSchemes: Map<AppTheme, BaseColorScheme> =
+    mapOf(
+        AppTheme.NYANIME to NyanimeColorScheme,
+        AppTheme.DEFAULT to TachiyomiColorScheme,
+        AppTheme.CLOUDFLARE to CloudflareColorScheme,
+        AppTheme.COTTONCANDY to CottoncandyColorScheme,
+        AppTheme.DOOM to DoomColorScheme,
+        AppTheme.GREEN_APPLE to GreenAppleColorScheme,
+        AppTheme.LAVENDER to LavenderColorScheme,
+        AppTheme.MATRIX to MatrixColorScheme,
+        AppTheme.MIDNIGHT_DUSK to MidnightDuskColorScheme,
+        AppTheme.MONOCHROME to MonochromeColorScheme,
+        AppTheme.MOCHA to MochaColorScheme,
+        AppTheme.SAPPHIRE to SapphireColorScheme,
+        AppTheme.NORD to NordColorScheme,
+        AppTheme.STRAWBERRY_DAIQUIRI to StrawberryColorScheme,
+        AppTheme.TAKO to TakoColorScheme,
+        AppTheme.TEALTURQUOISE to TealTurqoiseColorScheme,
+        AppTheme.TIDAL_WAVE to TidalWaveColorScheme,
+        AppTheme.YINYANG to YinYangColorScheme,
+        AppTheme.YOTSUBA to YotsubaColorScheme,
+    )

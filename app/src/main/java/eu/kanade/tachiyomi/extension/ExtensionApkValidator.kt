@@ -18,6 +18,7 @@ object ExtensionApkValidator {
         ANIME("tachiyomi.animeextension"),
         MANGA("tachiyomi.extension"),
         NEWS("nyanime.newsextension"),
+        NOVEL("nyanime.novelextension"),
         TV("nyanime.tvextension"),
         GUIDE("nyanime.guideextension"),
         ADDON("nyanime.addon"),
@@ -58,7 +59,7 @@ object ExtensionApkValidator {
         require(info.reqFeatures?.any { it.name == feature } == true)
         val api = if (expected.kind == Kind.ADDON) {
             info.applicationInfo?.metaData?.getInt("nyanime.addon.api")?.takeIf { it > 0 }?.toDouble()
-        } else if (expected.kind in setOf(Kind.TV, Kind.GUIDE)) {
+        } else if (expected.kind in setOf(Kind.TV, Kind.GUIDE, Kind.NOVEL)) {
             info.applicationInfo?.metaData?.getInt("nyanime.${expected.kind.name.lowercase()}.api")?.takeIf {
                 it > 0
             }?.toDouble()

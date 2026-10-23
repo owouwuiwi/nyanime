@@ -16,7 +16,8 @@ internal enum class UpdateNoteCategory(val headings: Set<String>) {
     ORIGINAL(setOf("Note originali", "Original notes")),
 }
 
-private fun noteCategory(heading: String) = UpdateNoteCategory.entries.firstOrNull { heading in it.headings }
+private fun noteCategory(heading: String) =
+    UpdateNoteCategory.entries.firstOrNull { heading in it.headings }
 
 internal data class UpdateNoteGroup(
     val category: UpdateNoteCategory,
@@ -35,6 +36,14 @@ internal data class UpdateVersionNotes(
 
 internal const val UPDATE_NOTES_FORMAT = "<!-- nyanime-changelog:1 -->"
 
+internal fun updateNotesDocument(version: String): String {
+    val tag =
+        version
+            .takeIf { it.matches(Regex("v?\\d+\\.\\d+\\.\\d+\\.\\d+|r\\d+")) }
+            ?.let { if (it.startsWith("r") || it.startsWith("v")) it else "v$it" } ?: "main"
+    return "https://github.com/owouwuiwi/nyanime/blob/$tag/CHANGELOG.md"
+}
+
 /** Categories are authoritative only in the explicitly versioned format. Old notes stay intact. */
 internal fun parseUpdateTimeline(version: String, content: String): List<UpdateVersionNotes> {
     if (content.lineSequence().none { it.trim() == UPDATE_NOTES_FORMAT }) {
@@ -44,11 +53,14 @@ internal fun parseUpdateTimeline(version: String, content: String): List<UpdateV
         val body = StringBuilder()
         fun flush() {
             if (body.isNotBlank()) {
-                versions += UpdateVersionNotes(
-                    currentVersion,
-                    title,
-                    listOf(UpdateNoteGroup(UpdateNoteCategory.ORIGINAL, body.toString().trim())),
-                )
+                versions +=
+                    UpdateVersionNotes(
+                        currentVersion,
+                        title,
+                        listOf(
+                            UpdateNoteGroup(UpdateNoteCategory.ORIGINAL, body.toString().trim()),
+                        ),
+                    )
             }
             body.clear()
         }
@@ -77,12 +89,16 @@ internal fun parseUpdateTimeline(version: String, content: String): List<UpdateV
     val body = StringBuilder()
     fun flushGroup() {
         val markdown = body.toString().trim()
-        if (markdown.isNotEmpty()) groups += UpdateNoteGroup(category, markdown, updateNoteEntries(markdown))
+        if (markdown.isNotEmpty()) {
+            groups += UpdateNoteGroup(category, markdown, updateNoteEntries(markdown))
+        }
         body.clear()
     }
     fun flushVersion() {
         flushGroup()
-        if (groups.isNotEmpty()) versions += UpdateVersionNotes(currentVersion, title, groups.toList())
+        if (groups.isNotEmpty()) {
+            versions += UpdateVersionNotes(currentVersion, title, groups.toList())
+        }
         groups.clear()
     }
     for (line in content.replace("\r\n", "\n").lines()) {
@@ -95,7 +111,8 @@ internal fun parseUpdateTimeline(version: String, content: String): List<UpdateV
             }
             fence != null -> body.appendLine(line)
             trimmed == UPDATE_NOTES_FORMAT || line.startsWith("## Novità di Nyanime ") -> Unit
-            trimmed.matches(Regex("(?:#{1,6}\\s+)?Checksums?\\b.*", RegexOption.IGNORE_CASE)) -> break
+            trimmed.matches(Regex("(?:#{1,6}\\s+)?Checksums?\\b.*", RegexOption.IGNORE_CASE)) ->
+                break
             // Generated metadata is an action in the native page, not a changelog item.
             trimmed.startsWith("[Changelog completo](") -> Unit
             line.startsWith("### ") -> {
@@ -124,12 +141,15 @@ internal fun parseUpdateTimeline(version: String, content: String): List<UpdateV
         }
     }
     flushVersion()
-    return versions.ifEmpty { listOf(UpdateVersionNotes(version.removePrefix("v"), null, emptyList())) }
+    return versions.ifEmpty {
+        listOf(UpdateVersionNotes(version.removePrefix("v"), null, emptyList()))
+    }
 }
 
 private fun versionInHeading(heading: String) =
-    Regex("(?<![\\d.])\\d+\\.\\d+\\.\\d+\\.\\d+(?![\\d.])").find(heading)?.value
-        ?.takeIf { ReleaseVersion.parse(it) != null }
+    Regex("(?<![\\d.])\\d+\\.\\d+\\.\\d+\\.\\d+(?![\\d.])").find(heading)?.value?.takeIf {
+        ReleaseVersion.parse(it) != null
+    }
 
 /** Nested lists, code fences and paragraphs are preserved inside their parent entry. */
 internal fun updateNoteEntries(markdown: String): List<String>? {
@@ -153,7 +173,9 @@ internal fun updateNoteEntries(markdown: String): List<String>? {
     return entries.takeIf(List<String>::isNotEmpty)
 }
 
-/** Seed notes render immediately. Optional history adds older versions without replacing the seed. */
+/**
+ * Seed notes render immediately. Optional history adds older versions without replacing the seed.
+ */
 internal fun mergeUpdateTimeline(
     installedVersion: String,
     targetVersion: String,
@@ -164,13 +186,21 @@ internal fun mergeUpdateTimeline(
     val target = ReleaseVersion.parse(targetVersion)
     val metadata = history.associateBy { it.version.removePrefix("v") }
     val entries =
-        parseUpdateTimeline(targetVersion, seed) + history.flatMap { parseUpdateTimeline(it.version, it.info) }
-    return entries.filter { entry ->
-        val numeric = ReleaseVersion.parse(entry.version)
-        installed == null || target == null || numeric == null || (numeric > installed && numeric <= target)
-    }.distinctBy { it.version }.map {
-        it.copy(prerelease = metadata[it.version]?.prerelease ?: false)
-    }.sortedWith(compareByDescending { ReleaseVersion.parse(it.version) })
+        parseUpdateTimeline(targetVersion, seed) +
+            history.flatMap { parseUpdateTimeline(it.version, it.info) }
+    return entries
+        .filter { entry ->
+            val numeric = ReleaseVersion.parse(entry.version)
+            installed == null ||
+                target == null ||
+                numeric == null ||
+                (numeric > installed && numeric <= target)
+        }
+        .distinctBy { it.version }
+        .map {
+            it.copy(prerelease = metadata[it.version]?.prerelease ?: false)
+        }
+        .sortedWith(compareByDescending { ReleaseVersion.parse(it.version) })
 }
 
 /** All documented changes, including historical revisions whose APK is no longer published. */
@@ -178,11 +208,13 @@ internal fun parseUpdateArchive(markdown: String): List<UpdateVersionNotes> {
     val blocks = Regex("(?m)^## (.+)$").findAll(markdown).toList()
     return blocks.mapIndexedNotNull { index, match ->
         val heading = match.groupValues[1].trim()
-        val body = markdown.substring(
-            match.range.last + 1,
-            blocks.getOrNull(index + 1)?.range?.first ?: markdown.length,
-        )
-        if (!heading.any(Char::isDigit) &&
+        val body =
+            markdown.substring(
+                match.range.last + 1,
+                blocks.getOrNull(index + 1)?.range?.first ?: markdown.length,
+            )
+        if (
+            !heading.any(Char::isDigit) &&
             body.lineSequence().none {
                 it.startsWith("### ") && noteCategory(it.removePrefix("### ").trim()) != null
             }
@@ -192,13 +224,20 @@ internal fun parseUpdateArchive(markdown: String): List<UpdateVersionNotes> {
         val numeric = versionInHeading(heading)
         val label = numeric ?: heading.substringBefore(":")
         val formatted = body.replace(Regex("(?m)^### "), "#### ")
-        val parsed = parseUpdateTimeline(
-            numeric ?: "0.0.0.0",
-            "$UPDATE_NOTES_FORMAT\n### ${numeric ?: "0.0.0.0"}: $heading\n$formatted",
-        ).singleOrNull() ?: return@mapIndexedNotNull null
+        val parsed =
+            parseUpdateTimeline(
+                numeric ?: "0.0.0.0",
+                "$UPDATE_NOTES_FORMAT\n### ${numeric ?: "0.0.0.0"}: $heading\n$formatted",
+            )
+                .singleOrNull() ?: return@mapIndexedNotNull null
         parsed.copy(
             version = label,
-            title = if (numeric != null) heading.substringAfter(":", "").trim().takeIf(String::isNotBlank) else null,
+            title =
+            if (numeric != null) {
+                heading.substringAfter(":", "").trim().takeIf(String::isNotBlank)
+            } else {
+                null
+            },
             key = "archive-$index-$heading",
         )
     }

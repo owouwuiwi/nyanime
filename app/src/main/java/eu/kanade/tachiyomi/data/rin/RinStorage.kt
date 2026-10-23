@@ -138,8 +138,9 @@ class RinStorage(private val context: Context) {
         write(records().map { it.copy(trusted = false, catalogueConsent = null) })
     }
 
-    fun setEnabled(packageName: String, enabled: Boolean): RinRecord = synchronized(lock) {
+    fun setEnabled(packageName: String, enabled: Boolean, expected: RinRecord? = null): RinRecord = synchronized(lock) {
         val current = requireNotNull(record(packageName))
+        check(expected == null || current == expected) { "Extension changed before activation" }
         val changed = current.copy(enabled = enabled)
         write(records().map { if (it.manifest.packageName == packageName) changed else it })
         changed
