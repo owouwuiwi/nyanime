@@ -56,7 +56,6 @@ import eu.kanade.tachiyomi.ui.player.PlayerUpdates
 import eu.kanade.tachiyomi.ui.player.Sheets
 import eu.kanade.tachiyomi.ui.player.VideoAspect
 import eu.kanade.tachiyomi.ui.player.controls.components.TogetherLoadingGlyph
-import eu.kanade.tachiyomi.ui.player.execute
 import eu.kanade.tachiyomi.ui.player.playbackChromeVisibility
 import eu.kanade.tachiyomi.ui.player.session.PlaybackPresentation
 import eu.kanade.tachiyomi.ui.player.settings.AdvancedPlayerPreferences
@@ -111,7 +110,7 @@ internal fun MpvPlaybackChrome(session: PlayerSession, fullscreen: Boolean, onBa
     val remaining by model.remainingTime.collectAsState()
     val endTimer by model.sleepTimerEndEpisode.collectAsState()
     val skip by model.skipIntroText.collectAsState()
-    val primary by model.primaryButton.collectAsState()
+    val primary by model.primaryActionButton.collectAsState()
     val primaryTitle by model.primaryButtonTitle.collectAsState()
     val preferences = remember { Injekt.get<PlayerPreferences>() }
     val gestures = remember { Injekt.get<GesturePreferences>() }
@@ -409,8 +408,8 @@ internal fun MpvPlaybackChrome(session: PlayerSession, fullscreen: Boolean, onBa
                 skip?.takeIf { it.isNotBlank() }?.let {
                     VideoActionChip(Icons.Filled.SkipNext, it, model::onSkipIntro)
                 }
-                primary?.let { button ->
-                    VideoActionChip(Icons.Filled.Extension, primaryTitle) { button.execute() }
+                primary?.let {
+                    VideoActionChip(Icons.Filled.Extension, primaryTitle, model::onPrimaryCustomButton)
                 }
             }
         }

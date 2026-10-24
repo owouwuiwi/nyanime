@@ -650,7 +650,12 @@ object HomeScreen : Screen() {
         Box(
             Modifier.fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = 12.dp, vertical = FloatingNavigationLayout.verticalMargin),
+                .padding(
+                    start = 12.dp,
+                    end = 12.dp,
+                    top = FloatingNavigationLayout.topMargin,
+                    bottom = FloatingNavigationLayout.bottomMargin,
+                ),
         ) {
             NyanimeFloatingSurface(
                 modifier =

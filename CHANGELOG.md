@@ -9,6 +9,16 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 24 ottobre 2026 — 0.80.0.2: barra inferiore e scorciatoia della sigla
+
+### Interfaccia
+
+- Barra inferiore avvicinata al bordo basso, mantenendo l’altezza compatta e lo spazio di sicurezza per i gesti e i pulsanti Android. La ricerca e i contenuti riservano lo stesso spazio della barra.
+
+### Player
+
+- La scorciatoia della sigla, normalmente «+85 s», scompare dopo l’uso e oltre la fine di un’apertura identificata da AniSkip o dai capitoli del video. Tornando indietro alla sigla torna disponibile; il cambio di qualità non la fa ricomparire e un nuovo episodio riparte dal proprio stato. I pulsanti personalizzati restano invariati.
+
 
 ## 23 ottobre 2026 — 0.80.0.1: avvio del prossimo episodio e comandi più compatti
 

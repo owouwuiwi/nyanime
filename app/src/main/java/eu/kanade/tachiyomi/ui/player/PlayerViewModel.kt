@@ -109,6 +109,7 @@ import eu.kanade.tachiyomi.util.storage.cacheImageDir
 import eu.kanade.tachiyomi.util.system.toast
 import `is`.xyz.mpv.MPVLib
 import `is`.xyz.mpv.Utils
+import it.lorelore.nyanime.player.IntroSkipShortcut
 import it.lorelore.nyanime.syncplay.SyncplayManager
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.Dispatchers
@@ -122,10 +123,12 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -214,6 +217,7 @@ class PlayerViewModel @JvmOverloads constructor(
     val hasNextEpisode = _hasNextEpisode.asStateFlow()
 
     private val _currentEpisode = MutableStateFlow<Episode?>(null)
+    private val skippedIntro = MutableStateFlow<IntroSkipShortcut.Skipped?>(null)
 
     // Survives a remote disconnect until a fresh local file is loaded. onCleared must not save stale MPV progress.
     @Volatile var remoteProgressOwned = false
@@ -682,6 +686,7 @@ class PlayerViewModel @JvmOverloads constructor(
     }
 
     fun prepareMediaChange(episodeId: Long?) {
+        skippedIntro.update { it?.preparing(episodeId) }
         qualityGeneration++
         qualityJob?.cancel()
         seekFeedback.reset()
@@ -699,6 +704,34 @@ class PlayerViewModel @JvmOverloads constructor(
 
     private val _primaryButton = MutableStateFlow<CustomButton?>(null)
     val primaryButton = _primaryButton.asStateFlow()
+    val primaryActionButton = combine(primaryButton, currentEpisode, pos, chapters, skippedIntro) {
+            button,
+            episode,
+            position,
+            segments,
+            skipped,
+        ->
+        IntroSkipShortcut.visible(button, episode?.id, position, segments, skipped)
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    fun onPrimaryCustomButton() {
+        val button = IntroSkipShortcut.visible(
+            primaryButton.value,
+            currentEpisode.value?.id,
+            pos.value,
+            chapters.value,
+            skippedIntro.value,
+        ) ?: return
+        if (IntroSkipShortcut.isDefault(button) && !watchTogether.active) {
+            skippedIntro.value = IntroSkipShortcut.skipped(
+                currentEpisode.value?.id,
+                pos.value,
+                getAnimeSkipIntroLength(),
+                duration.value,
+            )
+        }
+        button.execute()
+    }
 
     init {
         viewModelScope.launchIO {
@@ -1032,6 +1065,7 @@ class PlayerViewModel @JvmOverloads constructor(
 
     fun updatePlayBackPos(pos: Float) {
         onSecondReached(pos.toInt(), duration.value.toInt())
+        skippedIntro.update { it?.observe(currentEpisode.value?.id, pos) }
         _pos.update { pos }
         seekFeedback.observe(pos)
     }
