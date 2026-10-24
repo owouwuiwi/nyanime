@@ -6,6 +6,9 @@ I documenti tecnici in inglese conservano i nomi delle API e dei componenti.
 
 ## Novità recenti
 
+Con la versione 0.80.0.3 [termina il supporto a Nyanime](support-status.md).
+L’avviso nell’app è riservato agli aggiornamenti ed escluso dalle prime installazioni.
+
 La versione 0.55 rinnova [Libreria e schede anime/manga](library-and-details.md),
 con ripresa, tracking personale, categorie e indice dei contenuti, e il
 [lettore manga](reader-renewal.md), con controlli compatti e miglioramento

@@ -49,20 +49,20 @@ import uy.kohesive.injekt.api.get
 
 /** Owns the page before navigation consumes a launch intent or opens other upgrade notices. */
 @Composable
-fun InitialRoadmapUpdateGate(onReady: () -> Unit, content: @Composable () -> Unit) {
-    val notice = remember { RoadmapUpgradeNotice(Injekt.get()) }
+fun InitialSupportEndUpdateGate(onReady: () -> Unit, content: @Composable () -> Unit) {
+    val notice = remember { SupportEndUpgradeNotice(Injekt.get()) }
     val state by notice.state.collectAsState()
     val motion = appMotionEnabled()
     AnimatedContent(
-        targetState = state == RoadmapUpgradeNotice.PENDING,
+        targetState = state == SupportEndUpgradeNotice.PENDING,
         modifier = Modifier.fillMaxSize(),
         transitionSpec = { ModernMotion.transform(motion) },
-        label = "roadmapUpgrade",
+        label = "supportEndUpgrade",
     ) { pending ->
         if (pending) {
             LaunchedEffect(Unit) { onReady() }
             BackHandler(onBack = notice::acknowledge)
-            RoadmapUpdatePage(onContinue = notice::acknowledge)
+            SupportEndUpdatePage(onContinue = notice::acknowledge)
         } else {
             content()
         }
@@ -71,7 +71,7 @@ fun InitialRoadmapUpdateGate(onReady: () -> Unit, content: @Composable () -> Uni
 
 /** A single message, with a shorter equivalent only when the viewport cannot fit the full copy. */
 @Composable
-internal fun RoadmapUpdatePage(onContinue: () -> Unit) {
+internal fun SupportEndUpdatePage(onContinue: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     Scaffold(containerColor = colors.background, contentWindowInsets = WindowInsets.safeDrawing) { insets ->
         Box(
@@ -90,37 +90,21 @@ internal fun RoadmapUpdatePage(onContinue: () -> Unit) {
                 val compact = maxHeight < 600.dp || fontScale > 1.15f
                 val concise = maxHeight < 400.dp || fontScale >= 1.6f
                 val tight = maxHeight < 360.dp
-                val showThanks = !tight
+                val showThanks = !tight && !(concise && maxHeight < 600.dp)
                 val bodyStyle =
                     when {
-                        tight && fontScale > 1.5f -> MaterialTheme.typography.bodySmall
+                        concise && fontScale > 1.5f -> MaterialTheme.typography.bodySmall
                         compact -> MaterialTheme.typography.bodyMedium
                         else -> MaterialTheme.typography.bodyLarge
                     }
                 val message =
                     stringResource(
                         if (concise) {
-                            R.string.roadmap_080_compact_body
+                            R.string.support_end_compact_body
                         } else {
-                            R.string.roadmap_080_body
+                            R.string.support_end_body
                         },
                     )
-                val formatted =
-                    androidx.compose.ui.text.buildAnnotatedString {
-                        append(message)
-                        val version = "1.0.0.0"
-                        val start = message.indexOf(version)
-                        if (start >= 0) {
-                            addStyle(
-                                androidx.compose.ui.text.SpanStyle(
-                                    color = colors.primary,
-                                    fontWeight = FontWeight.SemiBold,
-                                ),
-                                start,
-                                start + version.length,
-                            )
-                        }
-                    }
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     shape = RoundedCornerShape(28.dp),
@@ -141,9 +125,9 @@ internal fun RoadmapUpdatePage(onContinue: () -> Unit) {
                             Arrangement.spacedBy(if (compact) 12.dp else 16.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            RoadmapHeart(if (compact) 36 else 56)
+                            SupportEndHeart(if (compact) 36 else 56)
                             Text(
-                                stringResource(R.string.roadmap_080_title),
+                                stringResource(R.string.support_end_title),
                                 Modifier.weight(1f).semantics { heading() },
                                 style =
                                 if (compact) {
@@ -155,7 +139,7 @@ internal fun RoadmapUpdatePage(onContinue: () -> Unit) {
                             )
                         }
                         Text(
-                            formatted,
+                            message,
                             modifier =
                             Modifier.fillMaxWidth()
                                 .padding(vertical = if (tight) 4.dp else 16.dp),
@@ -168,7 +152,7 @@ internal fun RoadmapUpdatePage(onContinue: () -> Unit) {
                         ) {
                             if (showThanks) {
                                 Text(
-                                    stringResource(R.string.roadmap_080_thanks),
+                                    stringResource(R.string.support_end_thanks),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = colors.onSurfaceVariant,
                                 )
@@ -178,7 +162,7 @@ internal fun RoadmapUpdatePage(onContinue: () -> Unit) {
                                 modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
                                 shape = RoundedCornerShape(18.dp),
                             ) {
-                                Text(stringResource(R.string.roadmap_080_continue))
+                                Text(stringResource(R.string.support_end_continue))
                             }
                         }
                     }
@@ -189,7 +173,7 @@ internal fun RoadmapUpdatePage(onContinue: () -> Unit) {
 }
 
 @Composable
-private fun RoadmapHeart(size: Int) {
+private fun SupportEndHeart(size: Int) {
     val colors = MaterialTheme.colorScheme
     Box(
         Modifier.size(size.dp)

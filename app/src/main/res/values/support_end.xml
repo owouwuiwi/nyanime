@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="support_end_title">Support ends here</string>
+    <string name="support_end_body">Support for Nyanime ends with this update. There will be no further updates.\n\nKeeping the project going takes more time than I can give it, so I’ve decided to stop development.</string>
+    <string name="support_end_compact_body">Support for Nyanime ends with this update. There will be no more updates: the project needs more time than I can give it.</string>
+    <string name="support_end_thanks">Thank you to everyone who used Nyanime and helped make it better.</string>
+    <string name="support_end_continue">I understand</string>
+</resources>

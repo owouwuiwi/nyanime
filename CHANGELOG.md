@@ -9,6 +9,14 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 24 ottobre 2026 — 0.80.0.3: fine del supporto a Nyanime
+
+### Interfaccia
+
+- Avviso sulla conclusione del supporto a Nyanime e sull’assenza di ulteriori aggiornamenti: portare avanti il progetto richiede più tempo di quanto sia possibile dedicargli. Compare una sola volta per chi aggiorna, anche da versioni molto vecchie, ed è escluso dalle prime installazioni. Testi italiani e inglesi, cuoricino e disposizione compatta.
+- Ritirato il precedente avviso sulla roadmap verso la versione 1.0, anche quando non era ancora stato confermato. L’avviso finale precede gli altri passaggi iniziali senza consumare i collegamenti di apertura.
+
+
 ## 24 ottobre 2026 — 0.80.0.2: barra inferiore e scorciatoia della sigla
 
 ### Interfaccia

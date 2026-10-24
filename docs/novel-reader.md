@@ -134,6 +134,6 @@ Sette controlli aggiuntivi verificano timeout interno, annullamento della fonte,
 
 Sette controlli dell’adattatore Cloud fra archivi SQLite fittizi verificano roundtrip senza eco, tombstone, journal, incognito, preferenze, modifiche offline concorrenti e assenza di percorsi locali. Non equivalgono a una sincronizzazione reale fra due telefoni. I file originali e la cache restano esclusi dal trasferimento dei metadati.
 
-La pagina sulla roadmap della0.80 appare una sola volta negli aggiornamenti, anche da revisioni legacy; le installazioni nuove vengono escluse prima dell’onboarding o del ripristino. La conferma è locale all’installazione ed esclusa da backup/Cloud. Dalla1.0 il messaggio non viene più proposto. Testi IT/EN e variante compatta mantengono lo stesso significato senza introdurre scorrimento.
+La pagina sulla roadmap della0.80 è stata sostituita nella0.80.0.3 dall’[avviso di fine supporto](support-status.md), proposto soltanto negli aggiornamenti. Le prime installazioni vengono escluse prima dell’onboarding o del ripristino; la conferma rimane locale ed esclusa da backup/Cloud.
 
 PDF, TTS, OCR, traduzione e importazione Legado non fanno parte di questa consegna. Nessun catalogo o regola di sito viene distribuito nell’app.

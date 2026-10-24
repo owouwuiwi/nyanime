@@ -296,9 +296,8 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
             }
         }
         eu.kanade.tachiyomi.ui.search.UnifiedSearchUpgradeNotice(preferenceStore).initialize(preference.get())
-        it.lorelore.nyanime.updates.RoadmapUpgradeNotice(preferenceStore).initialize(
+        it.lorelore.nyanime.updates.SupportEndUpgradeNotice(preferenceStore).initialize(
             previousVersion = preference.get(),
-            beforeStableRelease = BuildConfig.VERSION_NAME.substringBefore('.').toIntOrNull() == 0,
         )
         logcat { "Migration from ${preference.get()} to ${BuildConfig.VERSION_CODE}" }
         Migrator.initialize(

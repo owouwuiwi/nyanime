@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="roadmap_080_title">Nyanime’s roadmap</string>
-    <string name="roadmap_080_body">After this update, Nyanime’s roadmap will change: instead of adding new features, we’ll focus on improving the ones already here, fixing bugs and making the app more stable.\n\nOnce this work is complete, Nyanime 1.0.0.0 will be released.\n\nFrom then on, very frequent updates will resume, with something new almost every day.</string>
-    <string name="roadmap_080_compact_body">After this update, new features will pause while we improve existing ones, fix bugs and focus on stability. Next comes Nyanime 1.0.0.0, then very frequent updates with something new almost every day.</string>
-    <string name="roadmap_080_thanks">Thank you for being here!</string>
-    <string name="roadmap_080_continue">Continue</string>
-</resources>

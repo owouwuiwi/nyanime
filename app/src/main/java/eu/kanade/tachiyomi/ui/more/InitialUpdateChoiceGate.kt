@@ -67,6 +67,13 @@ import uy.kohesive.injekt.api.get
 /** Complete first-launch explanations before the navigator consumes the launch intent. */
 @Composable
 fun InitialAppSetupGate(onReady: () -> Unit, content: @Composable () -> Unit) {
+    it.lorelore.nyanime.updates.InitialSupportEndUpdateGate(onReady) {
+        InitialAppSetupContent(onReady, content)
+    }
+}
+
+@Composable
+private fun InitialAppSetupContent(onReady: () -> Unit, content: @Composable () -> Unit) {
     val base = remember { Injekt.get<eu.kanade.domain.base.BasePreferences>() }
     val complete by base.shownOnboardingFlow().collectAsState()
     if (!complete) {
@@ -80,7 +87,7 @@ fun InitialAppSetupGate(onReady: () -> Unit, content: @Composable () -> Unit) {
         InitialThemeChoiceGate(onReady) {
             InitialUpdateChoiceGate(onReady) {
                 InitialAddonIntroductionGate(onReady) {
-                    it.lorelore.nyanime.updates.InitialRoadmapUpdateGate(onReady, content)
+                    content()
                 }
             }
         }
