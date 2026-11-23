@@ -12,15 +12,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import it.lorelore.nyanime.presentation.player.LocalHostSeekCancelled
-import it.lorelore.nyanime.presentation.player.flow.data.model.PlayerChapter
-import it.lorelore.nyanime.presentation.player.flow.data.model.TimelineSegment
 import kotlin.math.abs
 
 /**
@@ -34,14 +31,9 @@ import kotlin.math.abs
 internal fun EdgeAlignedSeekbar(
     displayValueProvider: () -> Float,
     enabled: Boolean,
-    chapters: List<PlayerChapter>,
-    sponsorSegments: List<TimelineSegment>,
-    sponsorColors: Map<String, Color>,
-    duration: Long,
-    bufferedValue: Float,
+    track: Modifier,
     colors: SeekTrackColors,
     expansionProvider: () -> Float,
-    thumbScaleProvider: () -> Float,
     onScrub: (Float) -> Unit,
     onPointerActiveChange: (Boolean) -> Unit,
 ) {
@@ -53,6 +45,7 @@ internal fun EdgeAlignedSeekbar(
         modifier =
         Modifier
             .fillMaxSize()
+            .then(track)
             .pointerInput(enabled) {
                 if (!enabled) return@pointerInput
 
@@ -103,19 +96,7 @@ internal fun EdgeAlignedSeekbar(
     ) {
         val displayValue = displayValueProvider()
         val expansion = expansionProvider()
-        drawSeekTrack(
-            fraction = displayValue,
-            expansion = expansion,
-            chapters = chapters,
-            sponsorSegments = sponsorSegments,
-            sponsorColors = sponsorColors,
-            duration = duration,
-            bufferedValue = bufferedValue,
-            colors = colors,
-            bottomAligned = true,
-        )
-
-        val scale = thumbScaleProvider()
+        val scale = expansion
         if (scale > 0f) {
             val trackHeightPx = lerp(RestTrackHeight.toPx(), ActiveTrackHeight.toPx(), expansion)
             val trackCenterY = size.height - trackHeightPx / 2f

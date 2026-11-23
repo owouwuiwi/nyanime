@@ -66,6 +66,7 @@
     <string name="home_more">Mostra altri</string>
     <string name="home_reload_cover">Ricarica copertina</string>
     <string name="home_featured_position">%1$s · %2$d di %3$d</string>
+    <string name="home_featured_count">%1$d / %2$d</string>
     <string name="home_show_section">Mostra tutti: %1$s</string>
     <string name="home_open_named_title">Apri %1$s</string>
     <string name="home_title_information">Informazioni su %1$s</string>

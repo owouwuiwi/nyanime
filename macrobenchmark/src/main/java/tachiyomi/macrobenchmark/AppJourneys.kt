@@ -1,7 +1,6 @@
 package tachiyomi.macrobenchmark
 
 import android.annotation.SuppressLint
-import android.content.Intent
 import android.os.Build
 import android.os.SystemClock
 import androidx.benchmark.Outputs
@@ -12,13 +11,16 @@ import androidx.test.uiautomator.BySelector
 import androidx.test.uiautomator.StaleObjectException
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
+import java.util.regex.Pattern
 
-const val TARGET_PACKAGE = "xyz.jmir.tachiyomi.mi.anime4k.benchmark"
+const val TARGET_PACKAGE = BuildConfig.TARGET_APP_ID
 const val FIXTURE_ACTIVITY = "eu.kanade.tachiyomi.benchmark.BenchmarkSetupActivity"
 
 // Interaction timings exclude activity launch. Recreate the content activity in its warm process
 // and let openTab await the actual visible content rather than a forwarding launcher window.
-fun MacrobenchmarkScope.startMainActivity() {
+fun MacrobenchmarkScope.startMainActivity() = startMainActivity(device)
+
+fun startMainActivity(device: UiDevice) {
     device.executeShellCommand(
         "am start -W -f 0x10008000 -n $TARGET_PACKAGE/eu.kanade.tachiyomi.ui.main.MainActivity",
     )
@@ -67,14 +69,15 @@ fun openTab(device: UiDevice, tag: String) {
         "more" -> "More|Altro"
         else -> error("Unknown benchmark destination: $destination")
     }
-    clickFresh(device, By.text(java.util.regex.Pattern.compile(navigation)))
+    val taggedTab = By.res(destination)
+    clickFresh(device, if (device.hasObject(taggedTab)) taggedTab else By.text(Pattern.compile(navigation)))
     if (library) {
         val label = when (tag) {
             "library_anime" -> "Anime"
             "library_manga" -> "Manga"
-            else -> if (device.hasObject(By.text("All"))) "All" else "Tutti"
+            else -> "All|Tutti"
         }
-        clickFresh(device, By.text(label))
+        clickFresh(device, By.text(Pattern.compile(label)).hasAncestor(By.res("content_libraries")))
     }
     awaitTabContent(device, destination)
 }
@@ -151,14 +154,16 @@ fun MacrobenchmarkScope.openReader() {
     device.waitForIdle()
 }
 
-fun MacrobenchmarkScope.librarySearch() {
-    val search = device.wait(Until.findObject(By.desc("Search")), 10_000)
-        ?: device.findObject(By.desc("Cerca")) ?: error("Library search button missing")
-    search.click()
-    val field = device.wait(Until.findObject(By.clazz("android.widget.EditText")), 5_000)
-        ?: error("Search field missing")
-    field.text = "Benchmark 002"
-    device.waitForIdle()
+fun librarySearch(device: UiDevice) {
+    val library = By.res("content_libraries")
+    val action = By.desc(Pattern.compile("Search your library|Cerca nella libreria")).hasAncestor(library)
+    clickFresh(device, action)
+    val field = By.clazz("android.widget.EditText").hasAncestor(library)
+    if (!device.waitForFresh(field, 5_000)) failJourney(device, "Library search field missing")
+    device.findObject(field).text = "Benchmark 002"
+    if (!device.waitForFresh(By.textStartsWith("Benchmark 0020").hasAncestor(library), 15_000)) {
+        failJourney(device, "Library search did not show the matching fixture title")
+    }
 }
 
 fun MacrobenchmarkScope.coreJourneys() {
@@ -166,7 +171,7 @@ fun MacrobenchmarkScope.coreJourneys() {
     scrollContent()
     openTab("library_anime")
     scrollContent()
-    librarySearch()
+    librarySearch(device)
     device.pressBack()
     device.pressBack()
     openTab("library_manga")

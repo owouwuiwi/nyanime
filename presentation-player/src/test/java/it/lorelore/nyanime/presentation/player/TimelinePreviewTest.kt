@@ -4,10 +4,20 @@
 
 package it.lorelore.nyanime.presentation.player
 
+import it.lorelore.nyanime.presentation.player.flow.data.model.PlayerChapter
+import it.lorelore.nyanime.presentation.player.flow.ui.components.shared.chapterFractions
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 class TimelinePreviewTest {
+    @Test
+    fun `chapter marks use media duration and ignore positions outside the track`() {
+        val chapters = listOf(20, 10, -1, 0, 30).map { PlayerChapter("Chapter $it", it) }
+        assertEquals(listOf(.5f, 1f), chapterFractions(chapters, 20_000L))
+        assertEquals(listOf(1f), chapterFractions(chapters, 10_000L))
+        assertEquals(emptyList<Float>(), chapterFractions(chapters, 0L))
+    }
+
     private val events = mutableListOf<String>()
     private val actions = VideoChromeActions(
         {},

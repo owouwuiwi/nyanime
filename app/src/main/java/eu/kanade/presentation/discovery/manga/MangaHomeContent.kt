@@ -128,21 +128,19 @@ fun MangaHomeContent(
 ) {
     val motionDuration = if (appMotionEnabled()) HomeMotion.CONTENT_MILLIS else 0
     val home = state.selected
-    val sections = if (state.mixed) {
-        state.homes.flatMap {
-            it.sections
-        }.distinctBy { it.id }
-    } else {
-        home?.sections.orEmpty()
+    val featuredSections = remember(state.mixed, state.homes, home) {
+        if (state.mixed) state.homes.flatMap { it.sections } else home?.sections.orEmpty()
     }
-    val featuredSections = if (state.mixed) state.homes.flatMap { it.sections } else sections
+    val sections = remember(featuredSections, state.mixed) {
+        if (state.mixed) featuredSections.distinctBy { it.id } else featuredSections
+    }
     val featured = remember(featuredSections, state.rows) {
         MangaHomeFeatured.collect(featuredSections, state.rows)
     }
     val featuredItems = featured.items
     var sourceSheetOpen by remember { mutableStateOf(false) }
-    val rotateFeatured =
-        featuredCarouselAutoplay(listState, "hero") && !sourceSheetOpen && state.rows.values.none { it.loading }
+    val refreshing = remember(state.rows) { state.rows.values.any { it.loading } }
+    val rotateFeatured = featuredCarouselAutoplay(listState, "hero") && !sourceSheetOpen && !refreshing
     val awaitingFeatured = featured.loading
     val personalUpdates = state.updates
     var displayedSourceKey by rememberSaveable { mutableStateOf(home?.key) }
@@ -152,7 +150,6 @@ fun MangaHomeContent(
             displayedSourceKey = home?.key
         }
     }
-    val refreshing = state.rows.values.any { it.loading }
     BoxWithConstraints(modifier.fillMaxSize()) {
         val viewportWidth = maxWidth
         val columns = when {
@@ -179,7 +176,7 @@ fun MangaHomeContent(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 if (home != null && !state.offline) {
-                    item("hero") {
+                    item("hero", contentType = "featured") {
                         HomeLoadingTransition(
                             loading = awaitingFeatured,
                             placeholder = { FeaturedCoverSkeleton() },
@@ -209,7 +206,7 @@ fun MangaHomeContent(
                     }
                 }
                 if (!state.initializing && state.homes.isEmpty()) {
-                    item("missing-source") {
+                    item("missing-source", contentType = "notice") {
                         Text(
                             "Installa e abilita un’estensione manga per esplorare la Home. " +
                                 "La tua biblioteca resta disponibile qui sopra.",
@@ -219,15 +216,15 @@ fun MangaHomeContent(
                     }
                 }
                 if (state.homes.size > 1) {
-                    item("sources") {
+                    item("sources", contentType = "sources") {
                         LazyRow(
                             contentPadding = PaddingValues(horizontal = 20.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            item(key = "all") {
+                            item(key = "all", contentType = "source_chip") {
                                 HomeSelectionChip("Per te", state.mixed, onSelectAll)
                             }
-                            items(state.homes, key = { it.key }) {
+                            items(state.homes, key = { it.key }, contentType = { "source_chip" }) {
                                 HomeSelectionChip(it.sourceName, !state.mixed && it.key == home?.key) {
                                     onSelectHome(it.key)
                                 }
@@ -236,15 +233,16 @@ fun MangaHomeContent(
                     }
                 }
                 if (state.history.isNotEmpty()) {
-                    item("continue") {
+                    item("continue", contentType = "resume") {
                         Column(Modifier.privacyRegion(PrivacyArea.RESUME)) {
                             SectionHeader(androidStringResource(R.string.home_continue_reading))
-                            val pageWidth = viewportWidth - 40.dp
+                            val pageWidth = (viewportWidth - 40.dp).coerceAtLeast(0.dp)
+                            val pages = remember(state.history) { state.history.chunked(3) }
                             LazyRow(
                                 contentPadding = PaddingValues(horizontal = 20.dp),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                items(state.history.chunked(3), key = { it.first().mangaId }) { group ->
+                                items(pages, key = { it.first().mangaId }, contentType = { "resume_page" }) { group ->
                                     Column(
                                         Modifier.width(pageWidth),
                                         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -311,7 +309,7 @@ fun MangaHomeContent(
                     }
                 }
                 if (personalUpdates.isNotEmpty()) {
-                    item("personal-updates") {
+                    item("personal-updates", contentType = "personal_updates") {
                         Column {
                             SectionHeader(androidStringResource(R.string.home_your_updates), onUpdates)
                             val cardWidth = ((viewportWidth - 52.dp) / 2).coerceAtLeast(
@@ -321,7 +319,9 @@ fun MangaHomeContent(
                                 contentPadding = PaddingValues(horizontal = 20.dp),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                items(personalUpdates, key = { it.chapterId }) { update ->
+                                items(personalUpdates, key = {
+                                    it.chapterId
+                                }, contentType = { "personal_update" }) { update ->
                                     HomeUpdateCard(
                                         title = update.mangaTitle,
                                         subtitle = update.chapterName,
@@ -335,7 +335,7 @@ fun MangaHomeContent(
                     }
                 }
                 if (state.offline) {
-                    item("offline") {
+                    item("offline", contentType = "notice") {
                         Text(
                             androidStringResource(R.string.home_downloaded_manga_hint),
                             Modifier.padding(20.dp),
@@ -344,9 +344,10 @@ fun MangaHomeContent(
                 } else if (home != null) {
                     sections.forEach { section ->
                         val row = state.rows[section.id]
-                        val rail = section.layout in listOf("chapters", "featured", "posters")
+                        val rail =
+                            section.layout == "chapters" || section.layout == "featured" || section.layout == "posters"
                         val awaitingContent = row?.page == null && row?.error == null && row?.loading != false
-                        item("heading:" + section.id) {
+                        item("heading:" + section.id, contentType = "heading") {
                             Row(
                                 Modifier.fillMaxWidth().padding(top = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -363,7 +364,7 @@ fun MangaHomeContent(
                             }
                         }
                         if (!rail && awaitingContent) {
-                            item("loading:" + section.id) {
+                            item("loading:" + section.id, contentType = "loading") {
                                 HomePosterRowSkeleton(
                                     modifier = Modifier.animateItem(
                                         fadeInSpec = tween(motionDuration),
@@ -374,7 +375,7 @@ fun MangaHomeContent(
                             }
                         }
                         if (row?.error != null) {
-                            item("error:" + section.id) {
+                            item("error:" + section.id, contentType = "error") {
                                 Column(Modifier.padding(horizontal = 20.dp)) {
                                     Text(row.error, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     OutlinedButton(onClick = {
@@ -385,7 +386,7 @@ fun MangaHomeContent(
                         }
                         val entries = row?.page?.items.orEmpty()
                         if (entries.isEmpty() && row?.page != null && row.error == null) {
-                            item("empty:" + section.id) {
+                            item("empty:" + section.id, contentType = "notice") {
                                 Text(
                                     androidStringResource(R.string.home_section_empty),
                                     Modifier.padding(horizontal = 20.dp),
@@ -393,7 +394,7 @@ fun MangaHomeContent(
                             }
                         }
                         if (rail) {
-                            item("rail:" + section.id) {
+                            item("rail:" + section.id, contentType = "rail") {
                                 HomeLoadingTransition(
                                     loading = awaitingContent,
                                     placeholder = { HomePosterRowSkeleton() },
@@ -402,7 +403,7 @@ fun MangaHomeContent(
                                         contentPadding = PaddingValues(horizontal = 20.dp),
                                         horizontalArrangement = Arrangement.spacedBy(14.dp),
                                     ) {
-                                        items(entries, key = { it.key }) { entry ->
+                                        items(entries, key = { it.key }, contentType = { "manga_card" }) { entry ->
                                             Column(
                                                 Modifier.width(152.dp).nsfwPrivacy(entry.manga),
                                                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -469,7 +470,7 @@ fun MangaHomeContent(
                             }
                         }
                         if (row?.page?.hasNextPage == true && entries.isNotEmpty()) {
-                            item("next:" + section.id) {
+                            item("next:" + section.id, contentType = "pagination") {
                                 TextButton(
                                     onClick = { onMore(section) },
                                     enabled = !row.loading,

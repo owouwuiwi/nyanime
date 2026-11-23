@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -66,12 +68,40 @@ internal fun MangaLibraryShelf(
         acknowledgeShelfNotices(viewedNotices, item.shelfStatus)
         onContinue(item.libraryManga)
     }
-    val newsItems = remember(items) { items.filter { it.shelfStatus.newReleaseCount > 0 } }
-    val shelfItems = remember(items) { items.filterNot { it.shelfStatus.newReleaseCount > 0 } }
+    val (newsItems, shelfItems) = remember(items) { items.partition { it.shelfStatus.newReleaseCount > 0 } }
+    val selectedIds = remember(selection) { selection.mapTo(hashSetOf()) { it.id } }
     LaunchedEffect(Unit) {
         while (isActive) {
             delay(60_000L - (System.currentTimeMillis() % 60_000L))
             now = System.currentTimeMillis()
+        }
+    }
+
+    fun LazyListScope.shelfRows(group: List<MangaLibraryItem>) {
+        itemsIndexed(
+            items = group,
+            key = { _, item -> "manga_entry_${item.libraryManga.id}" },
+            contentType = { _, _ -> "manga_library_shelf_item" },
+        ) { index, item ->
+            MangaShelfRow(
+                modifier = Modifier.then(if (motion) Modifier.animateItemFastScroll() else Modifier),
+                item = item,
+                index = index,
+                groupSize = group.size,
+                selected = item.libraryManga.id in selectedIds,
+                downloading = item.libraryManga.id in downloading,
+                now = if (item.shelfStatus.nextReleaseAt != null) now else 0L,
+                onClick = { open(item) },
+                onContinue = { continueReading(item) },
+                onDownload = { libraryManga ->
+                    downloading = downloading + libraryManga.id
+                    onDownload(libraryManga)
+                },
+                onLongClick = { selectedItem, libraryManga ->
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    if (selection.isEmpty()) menuItem = selectedItem else onSelect(libraryManga)
+                },
+            )
         }
     }
 
@@ -97,29 +127,7 @@ internal fun MangaLibraryShelf(
                 )
             }
         }
-        newsItems.forEachIndexed { index, item ->
-            item(key = "manga_entry_${item.libraryManga.id}", contentType = "manga_library_shelf_item") {
-                MangaShelfRow(
-                    modifier = Modifier.then(if (motion) Modifier.animateItemFastScroll() else Modifier),
-                    item = item,
-                    index = index,
-                    groupSize = newsItems.size,
-                    selection = selection,
-                    downloading = downloading,
-                    now = now,
-                    onClick = { open(item) },
-                    onContinue = { continueReading(item) },
-                    onDownload = { libraryManga ->
-                        downloading = downloading + libraryManga.id
-                        onDownload(libraryManga)
-                    },
-                    onLongClick = { selectedItem, libraryManga ->
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        if (selection.isEmpty()) menuItem = selectedItem else onSelect(libraryManga)
-                    },
-                )
-            }
-        }
+        shelfRows(newsItems)
         if (newsItems.isNotEmpty() && shelfItems.isNotEmpty()) {
             item(key = "manga_shelf_header", contentType = "library_shelf_header") {
                 LibraryShelfSectionHeader(
@@ -129,29 +137,7 @@ internal fun MangaLibraryShelf(
                 )
             }
         }
-        shelfItems.forEachIndexed { index, item ->
-            item(key = "manga_entry_${item.libraryManga.id}", contentType = "manga_library_shelf_item") {
-                MangaShelfRow(
-                    modifier = Modifier.then(if (motion) Modifier.animateItemFastScroll() else Modifier),
-                    item = item,
-                    index = index,
-                    groupSize = shelfItems.size,
-                    selection = selection,
-                    downloading = downloading,
-                    now = now,
-                    onClick = { open(item) },
-                    onContinue = { continueReading(item) },
-                    onDownload = { libraryManga ->
-                        downloading = downloading + libraryManga.id
-                        onDownload(libraryManga)
-                    },
-                    onLongClick = { selectedItem, libraryManga ->
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        if (selection.isEmpty()) menuItem = selectedItem else onSelect(libraryManga)
-                    },
-                )
-            }
-        }
+        shelfRows(shelfItems)
     }
 
     LaunchedEffect(downloading) {
@@ -193,8 +179,8 @@ private fun MangaShelfRow(
     item: MangaLibraryItem,
     index: Int,
     groupSize: Int,
-    selection: List<LibraryManga>,
-    downloading: Set<Long>,
+    selected: Boolean,
+    downloading: Boolean,
     now: Long,
     onClick: (LibraryManga) -> Unit,
     onContinue: (LibraryManga) -> Unit,
@@ -231,9 +217,9 @@ private fun MangaShelfRow(
         downloadCount = item.downloadCount,
         isAnime = false,
         isLocal = libraryManga.manga.isLocal(),
-        selected = selection.any { it.id == libraryManga.id },
+        selected = selected,
         now = now,
-        downloading = libraryManga.id in downloading,
+        downloading = downloading,
         position = position,
         onClick = { onClick(libraryManga) },
         onLongClick = { onLongClick(item, libraryManga) },

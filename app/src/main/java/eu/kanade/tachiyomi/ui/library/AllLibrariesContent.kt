@@ -1,6 +1,7 @@
 package eu.kanade.tachiyomi.ui.library
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,13 +11,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.CollectionsBookmark
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.ViewModule
@@ -36,6 +40,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -97,6 +102,7 @@ import it.lorelore.nyanime.presentation.library.LibraryQuickFilter
 import it.lorelore.nyanime.presentation.library.LibraryQuickFilters
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -148,62 +154,91 @@ internal fun LibrariesTab.AllLibrariesContent() {
         animeState.categories.map { "anime:${it.id}" to "Anime · ${it.visualName}" } +
             mangaState.categories.map { "manga:${it.id}" to "Manga · ${it.visualName}" } +
             listOf("novel" to stringResource(R.string.novel_library))
-    LaunchedEffect(collections.map { it.first }) {
-        if (collection != null && collections.none { it.first == collection }) collection = null
+    LaunchedEffect(animeState.isLoading, mangaState.isLoading, collections.map { it.first }) {
+        if (!animeState.isLoading &&
+            !mangaState.isLoading &&
+            collection != null &&
+            collections.none { it.first == collection }
+        ) {
+            collection = null
+        }
     }
     val displayPreference = remember { Injekt.get<LibraryPreferences>().allDisplayMode() }
     val displayMode by displayPreference.collectAsState()
     val viewedNotices = remember { Injekt.get<UiPreferences>().viewedLibraryShelfNotices() }
 
     var aliasesReady by remember { mutableStateOf(false) }
-    LaunchedEffect(query) {
+    LaunchedEffect(query != null) {
         if (query != null && !aliasesReady) {
             Injekt.get<eu.kanade.tachiyomi.data.search.SmartTitleSearch>().prepareLibrary()
             aliasesReady = true
         }
     }
 
-    // Keep the current list while the replacement is prepared. produceState cancels a superseded
-    // query, so a slower previous search cannot overwrite the latest result or block a gesture.
-    val preparedEntries by
+    // Reuse the sorted catalogue while the query changes. Novel pages already arrive filtered.
+    val animeLibrary = animeState.library
+    val mangaLibrary = mangaState.library
+    val selectedCollection = collection
+    val catalogue by key(selectedCollection) {
+        produceState<List<Pair<String, UnifiedLibraryEntry>>?>(null, animeLibrary, mangaLibrary) {
+            value = withContext(Dispatchers.Default) {
+                val anime = animeLibrary.asSequence()
+                    .filter { (category, _) ->
+                        selectedCollection == null ||
+                            selectedCollection == "anime:${category.id}"
+                    }
+                    .flatMap { (_, items) -> items }
+                    .distinctBy { it.libraryAnime.id }
+                    .map(UnifiedLibraryEntry::Anime)
+                val manga = mangaLibrary.asSequence()
+                    .filter { (category, _) ->
+                        selectedCollection == null ||
+                            selectedCollection == "manga:${category.id}"
+                    }
+                    .flatMap { (_, items) -> items }
+                    .distinctBy { it.libraryManga.id }
+                    .map(UnifiedLibraryEntry::Manga)
+                (anime + manga).map { entry ->
+                    coroutineContext.ensureActive()
+                    entry.title.lowercase() to entry
+                }.sortedBy { it.first }.toList()
+            }
+        }
+    }
+    val sortedCatalogue = catalogue
+    val searchQuery = query.orEmpty()
+    val novels = novelShelf.entries
+    val preparedEntries by key(selectedCollection, novelShelf.request) {
         produceState<List<UnifiedLibraryEntry>?>(
             null,
-            animeState.library,
-            mangaState.library,
-            query,
+            sortedCatalogue,
+            searchQuery,
             aliasesReady,
-            collection,
-            novelShelf.entries,
+            novels,
         ) {
-            value =
-                withContext(Dispatchers.Default) {
-                    val animeItems =
-                        animeState.library
-                            .filterKeys {
-                                collection == null || collection == "anime:${it.id}"
+            if (sortedCatalogue != null) {
+                value = withContext(Dispatchers.Default) {
+                    val novelEntries = novels.map {
+                        val entry = UnifiedLibraryEntry.Novel(it)
+                        entry.title.lowercase() to entry
+                    }
+                    mergeLibraryTitles(sortedCatalogue, novelEntries) { entry ->
+                        coroutineContext.ensureActive()
+                        searchQuery.isBlank() ||
+                            when (entry) {
+                                is UnifiedLibraryEntry.Anime -> entry.item.matches(searchQuery)
+                                is UnifiedLibraryEntry.Manga -> entry.item.matches(searchQuery)
+                                is UnifiedLibraryEntry.Novel -> true
                             }
-                            .values
-                            .flatten()
-                            .distinctBy { it.libraryAnime.id }
-                            .filter { query.isNullOrBlank() || it.matches(query.orEmpty()) }
-                            .map(UnifiedLibraryEntry::Anime)
-                    val mangaItems =
-                        mangaState.library
-                            .filterKeys {
-                                collection == null || collection == "manga:${it.id}"
-                            }
-                            .values
-                            .flatten()
-                            .distinctBy { it.libraryManga.id }
-                            .filter { query.isNullOrBlank() || it.matches(query.orEmpty()) }
-                            .map(UnifiedLibraryEntry::Manga)
-                    val novelItems = novelShelf.entries.map(UnifiedLibraryEntry::Novel)
-                    (animeItems + mangaItems + novelItems).sortedBy { it.title.lowercase() }
+                    }
                 }
+            }
         }
+    }
     val entries = preparedEntries.orEmpty()
     val filteredEntries =
         remember(entries, quickFilter) {
+            if (quickFilter == LibraryQuickFilter.ALL) return@remember entries
             entries.filter {
                 if (it is UnifiedLibraryEntry.Novel) {
                     when (quickFilter) {
@@ -243,7 +278,7 @@ internal fun LibrariesTab.AllLibrariesContent() {
         snackbarHost = { SnackbarHost(snackbar) },
     ) { contentPadding ->
         when {
-            preparedEntries == null || animeState.isLoading && mangaState.isLoading -> {
+            animeState.isLoading && mangaState.isLoading -> {
                 Box(
                     Modifier.fillMaxSize().padding(contentPadding),
                     contentAlignment = Alignment.Center,
@@ -254,6 +289,10 @@ internal fun LibrariesTab.AllLibrariesContent() {
             entries.isEmpty() &&
                 query == null &&
                 collection == null &&
+                quickFilter == LibraryQuickFilter.ALL &&
+                preparedEntries != null &&
+                !animeState.isLoading &&
+                !mangaState.isLoading &&
                 !novelShelf.loading &&
                 !novelShelf.error -> {
                 Column(
@@ -297,7 +336,11 @@ internal fun LibrariesTab.AllLibrariesContent() {
                         onCollection = { collection = it },
                     )
                     LibraryQuickFilters(quickFilter) { quickFilter = it }
-                    if (filteredEntries.isEmpty()) {
+                    if (filteredEntries.isEmpty() && (preparedEntries == null || novelShelf.loading)) {
+                        Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+                        }
+                    } else if (filteredEntries.isEmpty()) {
                         Text(
                             stringResource(R.string.library_quick_filter_empty),
                             Modifier.padding(24.dp),
@@ -444,8 +487,9 @@ private fun AllLibraryControls(
     var collectionMenu by remember { mutableStateOf(false) }
     Surface(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp),
-        shape = RoundedCornerShape(15.dp),
-        color = androidx.compose.ui.graphics.Color.Transparent,
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         if (query == null) {
             Row(
@@ -462,9 +506,11 @@ private fun AllLibraryControls(
                         Text(
                             collections.find { it.first == collection }?.second
                                 ?: stringResource(R.string.library_filter_all_titles),
+                            modifier = Modifier.weight(1f, fill = false),
                             maxLines = 2,
                             style = MaterialTheme.typography.titleSmall,
                         )
+                        Icon(Icons.Outlined.ExpandMore, contentDescription = null, modifier = Modifier.size(16.dp))
                     }
                     DropdownMenu(
                         expanded = collectionMenu,
@@ -587,8 +633,7 @@ private fun AllLibraryShelf(
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     val haptic = LocalHapticFeedback.current
     val motion = appMotionEnabled()
-    val news = remember(entries) { entries.filter { it.status.newReleaseCount > 0 } }
-    val library = remember(entries) { entries.filterNot { it.status.newReleaseCount > 0 } }
+    val (news, library) = remember(entries) { entries.partition { it.status.newReleaseCount > 0 } }
 
     LaunchedEffect(Unit) {
         while (isActive) {
@@ -600,6 +645,36 @@ private fun AllLibraryShelf(
         if (downloading.isNotEmpty()) {
             delay(1_200)
             downloading = emptySet()
+        }
+    }
+
+    fun LazyListScope.shelfRows(group: List<UnifiedLibraryEntry>) {
+        itemsIndexed(
+            items = group,
+            key = { _, entry -> "all_entry_${entry.key}" },
+            contentType = { _, _ -> "all_library_shelf_item" },
+        ) { index, entry ->
+            UnifiedShelfRow(
+                modifier =
+                Modifier.then(
+                    if (motion) Modifier.animateItemFastScroll() else Modifier,
+                ),
+                entry = entry,
+                index = index,
+                groupSize = group.size,
+                now = if (entry.status.nextReleaseAt != null) now else 0L,
+                downloading = entry.key in downloading,
+                onOpen = { onOpen(entry) },
+                onContinue = { onContinue(entry) },
+                onDownload = {
+                    downloading = downloading + entry.key
+                    onDownload(entry)
+                },
+                onLongClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    menuEntry = entry
+                },
+            )
         }
     }
 
@@ -617,31 +692,7 @@ private fun AllLibraryShelf(
                     )
                 }
             }
-            news.forEachIndexed { index, entry ->
-                item(key = "all_entry_${entry.key}", contentType = "all_library_shelf_item") {
-                    UnifiedShelfRow(
-                        modifier =
-                        Modifier.then(
-                            if (motion) Modifier.animateItemFastScroll() else Modifier,
-                        ),
-                        entry = entry,
-                        index = index,
-                        groupSize = news.size,
-                        now = now,
-                        downloading = entry.key in downloading,
-                        onOpen = { onOpen(entry) },
-                        onContinue = { onContinue(entry) },
-                        onDownload = {
-                            downloading = downloading + entry.key
-                            onDownload(entry)
-                        },
-                        onLongClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            menuEntry = entry
-                        },
-                    )
-                }
-            }
+            shelfRows(news)
             if (news.isNotEmpty() && library.isNotEmpty()) {
                 item(key = "all_library_header", contentType = "library_shelf_header") {
                     LibraryShelfSectionHeader(
@@ -651,31 +702,7 @@ private fun AllLibraryShelf(
                     )
                 }
             }
-            library.forEachIndexed { index, entry ->
-                item(key = "all_library_${entry.key}", contentType = "all_library_shelf_item") {
-                    UnifiedShelfRow(
-                        modifier =
-                        Modifier.then(
-                            if (motion) Modifier.animateItemFastScroll() else Modifier,
-                        ),
-                        entry = entry,
-                        index = index,
-                        groupSize = library.size,
-                        now = now,
-                        downloading = entry.key in downloading,
-                        onOpen = { onOpen(entry) },
-                        onContinue = { onContinue(entry) },
-                        onDownload = {
-                            downloading = downloading + entry.key
-                            onDownload(entry)
-                        },
-                        onLongClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            menuEntry = entry
-                        },
-                    )
-                }
-            }
+            shelfRows(library)
             novelFooter?.let { footer ->
                 item(key = "all_novel_more", contentType = "novel_more") { footer() }
             }

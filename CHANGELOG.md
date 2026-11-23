@@ -9,6 +9,22 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 23 novembre 2026 — 0.80.1.1
+
+### Interfaccia
+
+- Home più compatta, con titolo e posizione sempre visibili nel carosello. La rotazione automatica aspetta dopo uno swipe e si ferma con TalkBack.
+- La barra inferiore ha un indicatore che segue la scheda attiva. La libreria riunisce anime, manga e romanzi con filtri e controlli coerenti.
+
+### Prestazioni
+
+- La ricerca nella libreria riutilizza l’ordinamento dei titoli e annulla quelle superate mentre si digita. Gli scaffali preparano solo le righe necessarie allo scorrimento.
+- La barra di avanzamento del player riutilizza la geometria dei capitoli e dei segmenti durante la riproduzione e il trascinamento.
+
+### Distribuzione
+
+- La distribuzione pubblica riprende sul canale Consigliato. L’app cerca gli aggiornamenti e la cronologia su `owouwuiwi/nyanime`. Gli APK completi sono disponibili per tutte le architetture supportate e l’avviso di fine supporto è stato rimosso.
+
 ## 24 ottobre 2026 — 0.80.0.3: fine del supporto a Nyanime
 
 ### Interfaccia

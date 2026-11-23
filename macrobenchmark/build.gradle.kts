@@ -1,12 +1,25 @@
+import java.util.Properties
+
 plugins {
     id("mihon.benchmark")
 }
 
+// The runner is self-instrumenting, so its instrumentation target is the runner itself.
+val appIdentity = Properties().apply { rootProject.file("app-identity.properties").inputStream().use(::load) }
+val productionIdentity = providers.gradleProperty("productionIdentity").orElse("true").get().toBooleanStrict()
+val targetAppId = if (productionIdentity) {
+    appIdentity.getProperty("applicationId")
+} else {
+    appIdentity.getProperty("legacyApplicationId").removeSuffix(".debug")
+}
+
 extensions.configure<com.android.build.api.dsl.TestExtension>("android") {
     namespace = "tachiyomi.macrobenchmark"
+    buildFeatures.buildConfig = true
 
     defaultConfig {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "TARGET_APP_ID", "\"$targetAppId.benchmark\"")
     }
 
     buildTypes {

@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -66,13 +68,41 @@ internal fun AnimeLibraryShelf(
         acknowledgeShelfNotices(viewedNotices, item.shelfStatus)
         onContinue(item.libraryAnime)
     }
-    val newsItems = remember(items) { items.filter { it.shelfStatus.newReleaseCount > 0 } }
-    val shelfItems = remember(items) { items.filterNot { it.shelfStatus.newReleaseCount > 0 } }
+    val (newsItems, shelfItems) = remember(items) { items.partition { it.shelfStatus.newReleaseCount > 0 } }
+    val selectedIds = remember(selection) { selection.mapTo(hashSetOf()) { it.id } }
     LaunchedEffect(Unit) {
         while (isActive) {
             val delayMillis = 60_000L - (System.currentTimeMillis() % 60_000L)
             delay(delayMillis)
             now = System.currentTimeMillis()
+        }
+    }
+
+    fun LazyListScope.shelfRows(group: List<AnimeLibraryItem>) {
+        itemsIndexed(
+            items = group,
+            key = { _, item -> "anime_entry_${item.libraryAnime.id}" },
+            contentType = { _, _ -> "anime_library_shelf_item" },
+        ) { index, item ->
+            AnimeShelfRow(
+                modifier = Modifier.then(if (motion) Modifier.animateItemFastScroll() else Modifier),
+                item = item,
+                index = index,
+                groupSize = group.size,
+                selected = item.libraryAnime.id in selectedIds,
+                downloading = item.libraryAnime.id in downloading,
+                now = if (item.shelfStatus.nextReleaseAt != null) now else 0L,
+                onClick = { open(item) },
+                onContinue = { continueWatching(item) },
+                onDownload = { libraryAnime ->
+                    downloading = downloading + libraryAnime.id
+                    onDownload(libraryAnime)
+                },
+                onLongClick = { selectedItem, libraryAnime ->
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    if (selection.isEmpty()) menuItem = selectedItem else onSelect(libraryAnime)
+                },
+            )
         }
     }
 
@@ -98,29 +128,7 @@ internal fun AnimeLibraryShelf(
                 )
             }
         }
-        newsItems.forEachIndexed { index, item ->
-            item(key = "anime_entry_${item.libraryAnime.id}", contentType = "anime_library_shelf_item") {
-                AnimeShelfRow(
-                    modifier = Modifier.then(if (motion) Modifier.animateItemFastScroll() else Modifier),
-                    item = item,
-                    index = index,
-                    groupSize = newsItems.size,
-                    selection = selection,
-                    downloading = downloading,
-                    now = now,
-                    onClick = { open(item) },
-                    onContinue = { continueWatching(item) },
-                    onDownload = { libraryAnime ->
-                        downloading = downloading + libraryAnime.id
-                        onDownload(libraryAnime)
-                    },
-                    onLongClick = { selectedItem, libraryAnime ->
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        if (selection.isEmpty()) menuItem = selectedItem else onSelect(libraryAnime)
-                    },
-                )
-            }
-        }
+        shelfRows(newsItems)
         if (newsItems.isNotEmpty() && shelfItems.isNotEmpty()) {
             item(key = "anime_shelf_header", contentType = "library_shelf_header") {
                 LibraryShelfSectionHeader(
@@ -130,29 +138,7 @@ internal fun AnimeLibraryShelf(
                 )
             }
         }
-        shelfItems.forEachIndexed { index, item ->
-            item(key = "anime_entry_${item.libraryAnime.id}", contentType = "anime_library_shelf_item") {
-                AnimeShelfRow(
-                    modifier = Modifier.then(if (motion) Modifier.animateItemFastScroll() else Modifier),
-                    item = item,
-                    index = index,
-                    groupSize = shelfItems.size,
-                    selection = selection,
-                    downloading = downloading,
-                    now = now,
-                    onClick = { open(item) },
-                    onContinue = { continueWatching(item) },
-                    onDownload = { libraryAnime ->
-                        downloading = downloading + libraryAnime.id
-                        onDownload(libraryAnime)
-                    },
-                    onLongClick = { selectedItem, libraryAnime ->
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        if (selection.isEmpty()) menuItem = selectedItem else onSelect(libraryAnime)
-                    },
-                )
-            }
-        }
+        shelfRows(shelfItems)
     }
 
     LaunchedEffect(downloading) {
@@ -194,8 +180,8 @@ private fun AnimeShelfRow(
     item: AnimeLibraryItem,
     index: Int,
     groupSize: Int,
-    selection: List<LibraryAnime>,
-    downloading: Set<Long>,
+    selected: Boolean,
+    downloading: Boolean,
     now: Long,
     onClick: (LibraryAnime) -> Unit,
     onContinue: (LibraryAnime) -> Unit,
@@ -232,9 +218,9 @@ private fun AnimeShelfRow(
         downloadCount = item.downloadCount,
         isAnime = true,
         isLocal = libraryAnime.anime.isLocal(),
-        selected = selection.any { it.id == libraryAnime.id },
+        selected = selected,
         now = now,
-        downloading = libraryAnime.id in downloading,
+        downloading = downloading,
         position = position,
         onClick = { onClick(libraryAnime) },
         onLongClick = { onLongClick(item, libraryAnime) },

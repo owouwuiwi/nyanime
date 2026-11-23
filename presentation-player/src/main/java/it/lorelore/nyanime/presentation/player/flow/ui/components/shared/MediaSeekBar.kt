@@ -8,7 +8,6 @@ package it.lorelore.nyanime.presentation.player.flow.ui.components.shared
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -157,7 +156,6 @@ fun MediaSeekBar(
     // animating a layout constraint, which forced a layout pass on every frame of the touch
     // response. The Canvas is a fixed box and only the painted band changes size.
     val trackExpansion = remember { Animatable(0f) }
-    val thumbScale = remember { Animatable(0f) }
 
     LaunchedEffect(isInteracting) {
         trackExpansion.animateTo(
@@ -170,16 +168,19 @@ fun MediaSeekBar(
         )
     }
 
-    LaunchedEffect(isInteracting) {
-        thumbScale.animateTo(
-            targetValue = if (isInteracting) 1f else 0f,
-            animationSpec =
-            spring(
-                dampingRatio = Spring.DampingRatioNoBouncy,
-                stiffness = Spring.StiffnessMediumLow,
-            ),
-        )
-    }
+    val boundaries = remember(chapters, duration) { chapterFractions(chapters, duration) }
+    val buffer = rememberUpdatedState(bufferedValue)
+    val track = Modifier.seekTrack(
+        fraction = { sliderState.value },
+        expansion = { trackExpansion.value },
+        chapterFractions = boundaries,
+        sponsorSegments = sponsorSegments,
+        sponsorColors = sponsorColors,
+        duration = duration,
+        bufferedValue = { buffer.value },
+        colors = trackColors,
+        bottomAligned = edgeAligned,
+    )
 
     Box(
         modifier = modifier.fillMaxWidth(),
@@ -196,14 +197,9 @@ fun MediaSeekBar(
                 EdgeAlignedSeekbar(
                     displayValueProvider = { sliderState.value },
                     enabled = enabled,
-                    chapters = chapters,
-                    sponsorSegments = sponsorSegments,
-                    sponsorColors = sponsorColors,
-                    duration = duration,
-                    bufferedValue = bufferedValue,
+                    track = track,
                     colors = trackColors,
                     expansionProvider = { trackExpansion.value },
-                    thumbScaleProvider = { thumbScale.value },
                     onScrub = onScrub,
                     onPointerActiveChange = { active ->
                         edgePointerActive = active
@@ -220,25 +216,8 @@ fun MediaSeekBar(
                     enabled = enabled,
                     interactionSource = interactionSource,
                     colors = SliderDefaults.colors(thumbColor = thumbFillColor),
-                    track = { state ->
-                        Canvas(
-                            modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .height(ActiveTrackHeight),
-                        ) {
-                            drawSeekTrack(
-                                fraction = state.coercedValueAsFraction,
-                                expansion = trackExpansion.value,
-                                chapters = chapters,
-                                sponsorSegments = sponsorSegments,
-                                sponsorColors = sponsorColors,
-                                duration = duration,
-                                bufferedValue = bufferedValue,
-                                colors = trackColors,
-                                bottomAligned = false,
-                            )
-                        }
+                    track = {
+                        Box(Modifier.fillMaxWidth().height(ActiveTrackHeight).then(track))
                     },
                     thumb = {
                         Box(
@@ -246,7 +225,7 @@ fun MediaSeekBar(
                             Modifier
                                 .size(16.dp)
                                 .graphicsLayer {
-                                    val scale = thumbScale.value
+                                    val scale = trackExpansion.value
                                     scaleX = scale
                                     scaleY = scale
                                 }.drawBehind {

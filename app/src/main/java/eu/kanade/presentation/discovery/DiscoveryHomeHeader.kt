@@ -1,10 +1,8 @@
 package eu.kanade.presentation.discovery
 
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -13,7 +11,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -23,6 +20,7 @@ import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Adjust
@@ -39,6 +37,8 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
@@ -177,29 +177,28 @@ private fun HomeContentSwitch(
     nativeFallback: Boolean,
 ) {
     val motion = modernMotionEnabled()
-    val choices = HomeCategories.choices(homes, savedOrder, nativeFallback)
+    val choices = remember(homes, savedOrder, nativeFallback) {
+        HomeCategories.choices(homes, savedOrder, nativeFallback)
+    }
     if (choices.isEmpty()) return
     val textMeasurer = rememberTextMeasurer()
     val density = LocalDensity.current
     val haptics = LocalHapticFeedback.current
     val labelStyle = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
+    val selectedBackground = MaterialTheme.colorScheme.secondaryContainer
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val pageWidth = (maxWidth - 32.dp).coerceAtLeast(1.dp)
-        val widths = choices.map { category ->
-            (
-                with(density) {
-                    textMeasurer
-                        .measure(AnnotatedString(category.title), style = labelStyle)
-                        .size
-                        .width
-                        .toDp()
-                } +
-                    24.dp
-                )
-                .coerceIn(64.dp, 220.dp)
-                .coerceAtMost(pageWidth)
+        val widths = remember(choices, pageWidth, density, labelStyle, textMeasurer) {
+            choices.map { category ->
+                val labelWidth = with(density) {
+                    textMeasurer.measure(AnnotatedString(category.title), style = labelStyle).size.width.toDp()
+                }
+                (labelWidth + 24.dp).coerceIn(64.dp, 220.dp).coerceAtMost(pageWidth)
+            }
         }
-        val pages = categoryPages(widths.map { it.value }, pageWidth.value, 12f)
+        val pages = remember(widths, pageWidth) {
+            categoryPages(widths.map { it.value }, pageWidth.value, 8f)
+        }
         Row(
             Modifier.fillMaxWidth()
                 .horizontalScroll(rememberScrollState())
@@ -215,35 +214,27 @@ private fun HomeContentSwitch(
                         Row(
                             Modifier.fillMaxWidth(),
                             horizontalArrangement =
-                            Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+                            Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                         ) {
                             row.forEach { index ->
                                 val category = choices[index]
                                 key(category.orderKey) {
                                     val bringIntoView = remember { BringIntoViewRequester() }
                                     val isSelected = selectedHome == category.id
-                                    val indicatorWidth by
-                                        animateDpAsState(
-                                            if (isSelected) 32.dp else 0.dp,
-                                            tween(if (motion) 220 else 0),
-                                            label = "homeIndicator",
-                                        )
-                                    val labelColor by
-                                        animateColorAsState(
-                                            if (isSelected) {
-                                                MaterialTheme.colorScheme.onSurface
-                                            } else {
-                                                MaterialTheme.colorScheme.onSurfaceVariant
-                                            },
-                                            tween(if (motion) 180 else 0),
-                                            label = "homeLabel",
-                                        )
+                                    val selectedAlpha by animateFloatAsState(
+                                        if (isSelected) 1f else 0f,
+                                        tween(if (motion) 180 else 0),
+                                        label = "homeCategorySelection",
+                                    )
                                     LaunchedEffect(isSelected, pageWidth) {
                                         if (isSelected) bringIntoView.bringIntoView()
                                     }
-                                    Column(
+                                    Box(
                                         Modifier.width(widths[index])
+                                            .heightIn(min = 48.dp)
                                             .bringIntoViewRequester(bringIntoView)
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .drawBehind { drawRect(selectedBackground, alpha = selectedAlpha) }
                                             .combinedClickable(
                                                 onClick = { onSelect(category.id) },
                                                 onLongClick = {
@@ -265,24 +256,19 @@ private fun HomeContentSwitch(
                                                 selected = isSelected
                                                 contentDescription = "Home ${category.title}"
                                             },
-                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        contentAlignment = Alignment.Center,
                                     ) {
-                                        Box(
-                                            Modifier.heightIn(min = 36.dp),
-                                            contentAlignment = Alignment.Center,
-                                        ) {
-                                            Text(
-                                                category.title,
-                                                color = labelColor,
-                                                style = labelStyle,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
-                                            )
-                                        }
-                                        Box(
-                                            Modifier.width(indicatorWidth)
-                                                .height(3.dp)
-                                                .background(MaterialTheme.colorScheme.primary),
+                                        Text(
+                                            category.title,
+                                            modifier = Modifier.padding(horizontal = 8.dp),
+                                            color = if (isSelected) {
+                                                MaterialTheme.colorScheme.onSecondaryContainer
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                            },
+                                            style = labelStyle,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
                                         )
                                     }
                                 }

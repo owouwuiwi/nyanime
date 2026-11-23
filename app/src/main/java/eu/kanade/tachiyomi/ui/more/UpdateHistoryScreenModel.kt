@@ -4,7 +4,6 @@ import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import eu.kanade.tachiyomi.BuildConfig
 import eu.kanade.tachiyomi.data.updater.GITHUB_REPO
-import eu.kanade.tachiyomi.data.updater.LEGACY_GITHUB_REPO
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,11 +33,8 @@ internal class UpdateHistoryScreenModel : ScreenModel {
         if (requested) return
         requested = true
         screenModelScope.launch {
-            // Only the configured publishers can enrich this page; an incoming link cannot redirect the API client.
-            val repository = listOf(GITHUB_REPO, LEGACY_GITHUB_REPO).firstOrNull {
-                releaseLink.startsWith("https://github.com/$it/releases/")
-            }
-            if (repository == null) {
+            // Release history comes from the same repository as the updater.
+            if (!releaseLink.startsWith("https://github.com/$GITHUB_REPO/releases/")) {
                 mutableState.value = State(loading = false)
                 return@launch
             }
@@ -50,7 +46,7 @@ internal class UpdateHistoryScreenModel : ScreenModel {
                                 isPreview = false,
                                 commitCount = BuildConfig.COMMIT_COUNT.toInt(),
                                 versionName = BuildConfig.VERSION_NAME,
-                                repository = repository,
+                                repository = GITHUB_REPO,
                                 channel = AppUpdatePreferences(Injekt.get()).channel(),
                                 assetPrefix = BuildConfig.RELEASE_ASSET_PREFIX,
                             ),

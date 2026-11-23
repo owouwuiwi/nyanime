@@ -3,7 +3,6 @@ package eu.kanade.tachiyomi.ui.home
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -11,6 +10,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Adjust
@@ -46,6 +47,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.NavigationRailItemDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -62,10 +64,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -78,6 +82,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import cafe.adriel.voyager.core.model.rememberScreenModel
@@ -97,10 +102,8 @@ import eu.kanade.presentation.discovery.SourceHomeWordmark
 import eu.kanade.presentation.motion.ModernMotion
 import eu.kanade.presentation.motion.modernMotionEnabled
 import eu.kanade.presentation.motion.posterForeground
-import eu.kanade.presentation.theme.LocalDarkTheme
 import eu.kanade.presentation.theme.LocalNyanimeStyle
 import eu.kanade.presentation.theme.MangaSectionTheme
-import eu.kanade.presentation.theme.NyanimeFloatingSurface
 import eu.kanade.presentation.util.Screen
 import eu.kanade.presentation.util.isTabletUi
 import eu.kanade.tachiyomi.R
@@ -644,7 +647,7 @@ object HomeScreen : Screen() {
 
     @Composable
     private fun FloatingNavigationBar(tabs: List<eu.kanade.presentation.util.Tab>) {
-        val shape = RoundedCornerShape(32.dp)
+        val colorScheme = MaterialTheme.colorScheme
         val motion = modernMotionEnabled()
         val selectTab = LocalSelectHomeTab.current
         Box(
@@ -657,16 +660,12 @@ object HomeScreen : Screen() {
                     bottom = FloatingNavigationLayout.bottomMargin,
                 ),
         ) {
-            NyanimeFloatingSurface(
-                modifier =
-                Modifier.fillMaxWidth()
-                    .shadow(
-                        elevation = 12.dp,
-                        shape = shape,
-                        ambientColor = Color.Black.copy(alpha = 0.32f),
-                        spotColor = Color.Black.copy(alpha = 0.22f),
-                    ),
-                shape = shape,
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(26.dp),
+                color = colorScheme.surfaceContainerHigh,
+                border = BorderStroke(1.dp, colorScheme.outlineVariant),
+                shadowElevation = 6.dp,
             ) {
                 BoxWithConstraints {
                     val compact = maxWidth < 350.dp || LocalDensity.current.fontScale > 1.3f
@@ -705,12 +704,7 @@ object HomeScreen : Screen() {
                                     )
                                 }
                             } else {
-                                Row(
-                                    Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(2.dp),
-                                ) {
-                                    tabs.fastForEach { FloatingNavigationItem(it, compact) }
-                                }
+                                FloatingNavigationTabs(tabs, compact)
                             }
                         }
                     }
@@ -720,40 +714,74 @@ object HomeScreen : Screen() {
     }
 
     @Composable
+    private fun FloatingNavigationTabs(tabs: List<eu.kanade.presentation.util.Tab>, compact: Boolean) {
+        if (tabs.isEmpty()) return
+        val current = LocalTabNavigator.current.current
+        val selectedTab = if (current == BrowseTab) MoreTab else current
+        val selectedIndex = tabs.indexOfFirst { it::class == selectedTab::class }
+        val motion = modernMotionEnabled()
+        val indicatorPosition by animateFloatAsState(
+            targetValue = selectedIndex.coerceAtLeast(0).toFloat(),
+            animationSpec = tween(if (motion) ModernMotion.PAGE_MILLIS else 0),
+            label = "navigationIndicator",
+        )
+        val indicatorColor = MaterialTheme.colorScheme.primaryContainer
+        val spacing = 2.dp
+        Row(
+            Modifier.fillMaxWidth()
+                .selectableGroup()
+                .drawWithCache {
+                    val gap = spacing.toPx()
+                    val cellWidth = ((size.width - gap * (tabs.size - 1)) / tabs.size).coerceAtLeast(0f)
+                    val radius = CornerRadius(20.dp.toPx())
+                    onDrawBehind {
+                        if (selectedIndex >= 0) {
+                            val fromStart = indicatorPosition * (cellWidth + gap)
+                            val left = if (layoutDirection == LayoutDirection.Ltr) {
+                                fromStart
+                            } else {
+                                size.width - cellWidth - fromStart
+                            }
+                            drawRoundRect(
+                                color = indicatorColor,
+                                topLeft = Offset(left, 0f),
+                                size = Size(cellWidth, size.height),
+                                cornerRadius = radius,
+                            )
+                        }
+                    }
+                },
+            horizontalArrangement = Arrangement.spacedBy(spacing),
+        ) {
+            tabs.forEachIndexed { index, tab ->
+                FloatingNavigationItem(
+                    tab = tab,
+                    compact = compact,
+                    selected = selectedIndex == index,
+                    currentSelected = current::class == tab::class,
+                )
+            }
+        }
+    }
+
+    @Composable
     private fun RowScope.FloatingNavigationItem(
         tab: eu.kanade.presentation.util.Tab,
         compact: Boolean,
+        selected: Boolean,
+        currentSelected: Boolean,
     ) {
-        val tabNavigator = LocalTabNavigator.current
         val navigator = LocalNavigator.currentOrThrow
         val scope = rememberCoroutineScope()
         val selectTab = LocalSelectHomeTab.current
-        val currentSelected = tabNavigator.current::class == tab::class
-        val selected = currentSelected || (tab == MoreTab && tabNavigator.current == BrowseTab)
         val title = tab.options.title
         val browseTitle = BrowseTab.options.title
-        val motion = modernMotionEnabled()
-        val dark = LocalDarkTheme.current
-        val scale by
-            animateFloatAsState(
-                if (selected) 1.1f else 1f,
-                tween(if (motion) 180 else 0),
-                label = "floatingTabScale",
-            )
-        val contentColor by
-            animateColorAsState(
-                if (dark) {
-                    if (selected) Color.White else Color.White.copy(alpha = 0.68f)
-                } else {
-                    if (selected) Color(0xFFB64008) else Color(0xFF44352D)
-                },
-                tween(if (motion) 180 else 0),
-                label = "floatingTabColor",
-            )
+        val colorScheme = MaterialTheme.colorScheme
+        val contentColor = if (selected) colorScheme.onPrimaryContainer else colorScheme.onSurfaceVariant
         Column(
             Modifier.weight(1f)
                 .heightIn(min = FloatingNavigationLayout.itemMinHeight(compact))
-                .clip(RoundedCornerShape(27.dp))
+                .clip(RoundedCornerShape(20.dp))
                 .combinedClickable(
                     onLongClick = if (tab == UnifiedSearchTab) ({ selectTab(BrowseTab) }) else null,
                     onLongClickLabel = browseTitle.takeIf { tab == UnifiedSearchTab },
@@ -775,24 +803,13 @@ object HomeScreen : Screen() {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             CompositionLocalProvider(LocalContentColor provides contentColor) {
-                Box(Modifier.size(32.dp), contentAlignment = Alignment.Center) {
-                    Box(
-                        Modifier.graphicsLayer {
-                            scaleX = scale
-                            scaleY = scale
-                        },
-                    ) {
-                        NavigationIconItem(tab)
-                    }
+                Box(Modifier.size(30.dp), contentAlignment = Alignment.Center) {
+                    NavigationIconItem(tab)
                 }
             }
             Text(
                 title,
-                modifier =
-                Modifier.padding(horizontal = 6.dp).graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                },
+                modifier = Modifier.padding(horizontal = 3.dp),
                 color = contentColor,
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,

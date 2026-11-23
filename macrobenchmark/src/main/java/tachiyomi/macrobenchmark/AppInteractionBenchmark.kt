@@ -43,7 +43,7 @@ class AppInteractionBenchmark {
             startMainActivity()
             openTab("library_anime")
         },
-    ) { librarySearch() }
+    ) { librarySearch(device) }
 
     @Test fun openLocalMangaReader() = rule.measureRepeated(
         packageName = TARGET_PACKAGE,

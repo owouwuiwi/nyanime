@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,6 +25,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,7 +37,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -58,7 +59,6 @@ import androidx.compose.ui.semantics.horizontalScrollAxisRange
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -73,10 +73,13 @@ import eu.kanade.presentation.motion.posterOpen
 import eu.kanade.presentation.motion.rememberPosterSource
 import eu.kanade.tachiyomi.R
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.absoluteValue
 import androidx.compose.ui.res.stringResource as androidStringResource
 
@@ -84,14 +87,34 @@ import androidx.compose.ui.res.stringResource as androidStringResource
 internal object FeaturedCarouselPages {
     const val WINDOW = 1_000_000
     const val INTERVAL_MILLIS = 6_000L
+    val pageSpacing = 10.dp
+    val stagePadding = 12.dp
     fun index(page: Int, count: Int): Int = Math.floorMod(page, count.coerceAtLeast(1))
     fun initial(count: Int, selected: Int = 0): Int = if (count <= 1) {
         0
     } else {
         WINDOW / 2 - WINDOW / 2 % count + selected.coerceIn(0, count - 1)
     }
-    fun coverWidth(width: Dp): Dp = (width * .76f).coerceAtMost(340.dp)
-    fun stageHeight(width: Dp): Dp = coverWidth(width) / .72f + 32.dp
+    fun coverWidth(width: Dp): Dp = (width * .66f).coerceAtMost(280.dp)
+    fun coverHeight(width: Dp): Dp = coverWidth(width) / .72f
+    fun stageHeight(width: Dp): Dp = coverHeight(width) + stagePadding * 2
+}
+
+/** Wait for a full idle interval. A gesture can interrupt one advance while the timer survives. */
+internal suspend fun runFeaturedAutoplay(scrolling: Flow<Boolean>, advance: suspend () -> Unit) {
+    while (true) {
+        scrolling.first { !it }
+        val interrupted = withTimeoutOrNull(FeaturedCarouselPages.INTERVAL_MILLIS) {
+            scrolling.first { it }
+        }
+        if (interrupted == true) continue
+        try {
+            // MutatorMutex cancels its caller's Job when a user scroll takes over.
+            coroutineScope { advance() }
+        } catch (_: CancellationException) {
+            currentCoroutineContext().ensureActive()
+        }
+    }
 }
 
 /** The body decides visibility; scrolling never launches or restarts a network request. */
@@ -131,7 +154,7 @@ internal fun <T : Any> FeaturedCoverCarousel(
     artwork: @Composable (T, Modifier, PosterSource) -> Unit,
 ) {
     if (items.isEmpty()) return
-    val keys = items.map(itemKey)
+    val keys = remember(items, itemKey) { items.map(itemKey) }
     var selectedKey by rememberSaveable { mutableStateOf(keys.first()) }
     // Preserve the selected work when an extension refreshes, adds or reorders its featured titles.
     key(keys) {
@@ -155,7 +178,6 @@ internal fun <T : Any> FeaturedCoverCarousel(
             !navigating &&
             !touching &&
             !touchExploration &&
-            !scrolling &&
             items.size > 1 &&
             lifecycle.isAtLeast(Lifecycle.State.RESUMED)
         LaunchedEffect(pager) {
@@ -163,16 +185,9 @@ internal fun <T : Any> FeaturedCoverCarousel(
                 selectedKey = keys[FeaturedCarouselPages.index(it, items.size)]
             }
         }
-        val readyToRotate by rememberUpdatedState(canRotate)
-        LaunchedEffect(pager, lifecycle, motion, active) {
-            if (!motion || !active || !lifecycle.isAtLeast(Lifecycle.State.RESUMED)) return@LaunchedEffect
-            var idleMillis = 0L
-            while (true) {
-                delay(250)
-                idleMillis = if (readyToRotate) idleMillis + 250 else 0
-                if (idleMillis < FeaturedCarouselPages.INTERVAL_MILLIS) continue
-                idleMillis = 0
-                try {
+        LaunchedEffect(pager, canRotate) {
+            if (canRotate) {
+                runFeaturedAutoplay(snapshotFlow { pager.isScrollInProgress }) {
                     if (pager.currentPage >= FeaturedCarouselPages.WINDOW - items.size * 2 ||
                         pager.currentPage < items.size * 2
                     ) {
@@ -183,9 +198,6 @@ internal fun <T : Any> FeaturedCoverCarousel(
                         pager.currentPage + 1,
                         animationSpec = tween(460, easing = FastOutSlowInEasing),
                     )
-                } catch (cancelled: CancellationException) {
-                    // A swipe may take over the pager; disposal must still cancel this coroutine.
-                    currentCoroutineContext().ensureActive()
                 }
             }
         }
@@ -197,8 +209,8 @@ internal fun <T : Any> FeaturedCoverCarousel(
                 HorizontalPager(
                     state = pager,
                     pageSize = PageSize.Fixed(coverWidth),
-                    contentPadding = PaddingValues(horizontal = inset, vertical = 16.dp),
-                    beyondViewportPageCount = if (items.size > 1) 1 else 0,
+                    contentPadding = PaddingValues(horizontal = inset, vertical = FeaturedCarouselPages.stagePadding),
+                    pageSpacing = FeaturedCarouselPages.pageSpacing,
                     userScrollEnabled = items.size > 1 && !navigating,
                     key = { it },
                     modifier = Modifier.fillMaxWidth().height(FeaturedCarouselPages.stageHeight(maxWidth))
@@ -232,11 +244,9 @@ internal fun <T : Any> FeaturedCoverCarousel(
                             val offset = ((pager.currentPage - page) + pager.currentPageOffsetFraction)
                                 .coerceIn(-2f, 2f)
                             val distance = offset.absoluteValue
-                            scaleX = 1f - .18f * distance
+                            scaleX = 1f - .15f * distance
                             scaleY = scaleX
-                            alpha = (1f - .46f * distance).coerceAtLeast(0f)
-                            rotationY = if (motion) offset.coerceIn(-1f, 1f) * 8f else 0f
-                            cameraDistance = 24f * density
+                            alpha = 1f - .42f * distance
                         }.then(if (centered) Modifier else Modifier.clearAndSetSemantics {})
                             .clip(RoundedCornerShape(24.dp))
                             .clickable(enabled = centered && !scrolling, role = Role.Button, onClick = open),
@@ -259,41 +269,42 @@ internal fun <T : Any> FeaturedCoverCarousel(
                     }
                 }
             }
-            val titleStyle = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold)
-            val metaStyle = MaterialTheme.typography.bodySmall
-            val captionHeight = with(LocalDensity.current) {
-                titleStyle.lineHeight.toDp() * 2 + metaStyle.lineHeight.toDp() + 12.dp
-            }
-            Column(
-                Modifier.widthIn(
-                    max = 600.dp,
-                ).fillMaxWidth().then(privacyModifier(items[current])).height(captionHeight)
-                    .padding(horizontal = 28.dp).graphicsLayer {
-                        alpha = if (motion) {
-                            (1f - pager.currentPageOffsetFraction.absoluteValue * 2f).coerceIn(0f, 1f)
-                        } else {
-                            1f
-                        }
-                    },
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
+            val item = items[current]
+            Row(
+                featuredCaptionModifier().then(privacyModifier(item)).padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    title(items[current]),
-                    style = titleStyle,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    metadata(items[current]),
-                    Modifier.padding(top = 6.dp),
-                    style = metaStyle,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        title(item),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    val details = metadata(item)
+                    if (details.isNotBlank()) {
+                        Text(
+                            details,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                if (items.size > 1) {
+                    Text(
+                        androidStringResource(R.string.home_featured_count, current + 1, items.size),
+                        modifier = Modifier.clearAndSetSemantics {}
+                            .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape)
+                            .padding(horizontal = 10.dp, vertical = 5.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        maxLines = 1,
+                    )
+                }
             }
         }
     }
@@ -313,7 +324,21 @@ private fun featuredCarouselTouchExploration(): Boolean {
 
 @Composable
 internal fun homeSectionHeaderHeight(): Dp = with(LocalDensity.current) {
-    (MaterialTheme.typography.titleMedium.lineHeight.toDp() * 2 + 16.dp).coerceAtLeast(64.dp)
+    (MaterialTheme.typography.titleMedium.lineHeight.toDp() * 2 + 8.dp).coerceAtLeast(56.dp)
+}
+
+@Composable
+private fun featuredCaptionModifier(): Modifier {
+    val height = with(LocalDensity.current) {
+        MaterialTheme.typography.titleMedium.lineHeight.toDp() *
+            2 +
+            MaterialTheme.typography.bodySmall.lineHeight.toDp() +
+            18.dp
+    }
+    return Modifier.widthIn(max = 600.dp).fillMaxWidth().padding(horizontal = 20.dp)
+        .height(height)
+        .clip(RoundedCornerShape(20.dp))
+        .background(MaterialTheme.colorScheme.surfaceContainer)
 }
 
 @Composable
@@ -322,36 +347,31 @@ internal fun FeaturedCoverSkeleton() {
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             BoxWithConstraints(Modifier.widthIn(max = 600.dp).fillMaxWidth()) {
                 val coverWidth = FeaturedCarouselPages.coverWidth(maxWidth)
+                val coverHeight = FeaturedCarouselPages.coverHeight(maxWidth)
                 Box(
                     Modifier.fillMaxWidth().height(FeaturedCarouselPages.stageHeight(maxWidth)).clipToBounds(),
                     contentAlignment = Alignment.Center,
                 ) {
                     listOf(-1, 1, 0).forEach { side ->
                         Box(
-                            Modifier.offset(x = coverWidth * side).width(coverWidth).height(coverWidth / .72f)
+                            Modifier.offset(x = (coverWidth + FeaturedCarouselPages.pageSpacing) * side)
+                                .width(coverWidth).height(coverHeight)
                                 .graphicsLayer {
-                                    scaleX = if (side == 0) 1f else .82f
+                                    scaleX = if (side == 0) 1f else .85f
                                     scaleY = scaleX
-                                    alpha = if (side == 0) 1f else .54f
+                                    alpha = if (side == 0) 1f else .58f
                                 }.clip(RoundedCornerShape(24.dp))
                                 .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                         )
                     }
                 }
             }
-            val captionHeight = with(LocalDensity.current) {
-                MaterialTheme.typography.titleLarge.lineHeight.toDp() *
-                    2 +
-                    MaterialTheme.typography.bodySmall.lineHeight.toDp() +
-                    12.dp
-            }
             Column(
-                Modifier.height(captionHeight),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
+                featuredCaptionModifier().padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
             ) {
-                SkeletonBlock(Modifier.width(180.dp).height(24.dp))
-                SkeletonBlock(Modifier.padding(top = 12.dp).width(120.dp).height(16.dp))
+                SkeletonBlock(Modifier.fillMaxWidth(.63f).height(16.dp))
+                SkeletonBlock(Modifier.fillMaxWidth(.39f).height(12.dp))
             }
         }
     }

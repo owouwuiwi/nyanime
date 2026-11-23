@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -79,7 +80,13 @@ internal fun DiscoveryTab.SourceHomeContent(
     active: Boolean,
     onCycleCategory: () -> Unit,
 ) {
-    val state by page.model.state.collectAsStateWithLifecycle()
+    val model = page.model
+    val screenState = remember(model) {
+        model.state.map { it.copy(sections = emptyMap()) }.distinctUntilChanged()
+    }
+    val state by screenState.collectAsStateWithLifecycle(
+        initialValue = model.state.value.copy(sections = emptyMap()),
+    )
     HomeLoadingTransition(
         loading = state.access.loading,
         modifier = Modifier.fillMaxSize(),
@@ -105,7 +112,7 @@ private fun DiscoveryTab.SourceHomeReadyContent(
     val lastSeenAt by seenNotices.changes().collectAsState(initial = seenNotices.get())
     val autoAcknowledge = remember { Injekt.get<UiPreferences>().autoAcknowledgeHomeUpdates() }
     val acknowledgeOnScroll by autoAcknowledge.changes().collectAsState(initial = autoAcknowledge.get())
-    val updateKeys = state.updates.data.orEmpty().mapNotNull { it.updateKey }.toSet()
+    val updateKeys = remember(state.updates.data) { state.updates.data.orEmpty().mapNotNull { it.updateKey }.toSet() }
     val scope = rememberCoroutineScope()
     val listState = rememberSaveable(homeKey, saver = LazyListState.Saver) { LazyListState() }
     LaunchedEffect(Unit) { (context as? MainActivity)?.ready = true }
@@ -149,11 +156,20 @@ private fun DiscoveryTab.SourceHomeReadyContent(
     val rows = remember(source) { source.rows }
     val rotateFeatured = featuredCarouselAutoplay(listState, "hero:" + source.id, active) && pendingChoice == null
     val modern = LocalNyanimeStyle.current
-    val featuredRow = rows.firstOrNull { row ->
-        row.sections.size == 1 && row.sections.first().layout == "featured" && !row.sections.first().supportsDate
-    }.takeIf { modern }
+    val featuredRow = remember(rows, modern) {
+        rows.firstOrNull { row ->
+            row.sections.size == 1 && row.sections.first().layout == "featured" && !row.sections.first().supportsDate
+        }.takeIf { modern }
+    }
     val heroSection = featuredRow?.sections?.firstOrNull()
         ?: rows.firstOrNull()?.sections?.firstOrNull()?.takeIf { modern }
+    val browseRows = remember(rows, featuredRow) { rows.filterNot { it.id == featuredRow?.id } }
+    val refreshingState = remember(model) {
+        model.state.map { state -> state.sections.values.any { it.loading } }.distinctUntilChanged()
+    }
+    val refreshing by refreshingState.collectAsStateWithLifecycle(
+        initialValue = model.state.value.sections.values.any { it.loading },
+    )
     val hasNewUpdates = hasNewLibraryUpdateNotice(updateKeys, lastSeenAt)
     val updatesSectionKey = "updates:" + source.id
     val updatesIndex = (if (!access.offline && heroSection != null) 1 else 0) +
@@ -179,7 +195,7 @@ private fun DiscoveryTab.SourceHomeReadyContent(
         PullRefresh(
             indicatorOnGestureOnly = true,
             indicatorPadding = PaddingValues(top = eu.kanade.presentation.discovery.LocalHomeContentInset.current),
-            refreshing = state.sections.values.any { it.loading },
+            refreshing = refreshing,
             enabled = !access.offline,
             onRefresh = model::refresh,
             modifier = Modifier.fillMaxSize(),
@@ -195,9 +211,9 @@ private fun DiscoveryTab.SourceHomeReadyContent(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 if (!access.offline && heroSection != null) {
-                    item(key = "hero:" + source.id) {
+                    item(key = "hero:" + source.id, contentType = "source_home_hero") {
                         LaunchedEffect(access, heroSection.id, active) { if (active) model.load(heroSection.id) }
-                        val featured = state.sections[heroSection.id] ?: SectionState()
+                        val featured = sourceHomeSectionState(model, heroSection.id)
                         SourceFeaturedSection(
                             state = featured,
                             title = heroSection.title,
@@ -211,7 +227,7 @@ private fun DiscoveryTab.SourceHomeReadyContent(
                     }
                 }
                 // Local playback never depends on a successful remote feed or a featured row.
-                item(key = "resume:" + source.id) {
+                item(key = "resume:" + source.id, contentType = "source_home_resume") {
                     SectionHeader("Continua a guardare") { navigator.push(SourceHomeHistoryScreen(homeKey)) }
                     ContinueWatchingRow(
                         state.resume,
@@ -224,7 +240,7 @@ private fun DiscoveryTab.SourceHomeReadyContent(
                     }
                 }
                 if (state.updates.data?.isNotEmpty() == true) {
-                    item(key = "updates:" + source.id) {
+                    item(key = updatesSectionKey, contentType = "source_home_updates") {
                         SectionHeader("Le tue novità", openUpdatesScreen)
                         LocalAnimeRow(
                             state.updates,
@@ -239,15 +255,13 @@ private fun DiscoveryTab.SourceHomeReadyContent(
                     }
                 }
                 if (access.offline) {
-                    item(key = "offline") {
+                    item(key = "offline", contentType = "source_home_notice") {
                         Text("Solo download · nessuna richiesta alle fonti", Modifier.padding(horizontal = 16.dp))
                     }
                 }
                 if (!access.offline) {
                     items(
-                        rows.filter {
-                            it.id != featuredRow?.id
-                        },
+                        browseRows,
                         key = { it.id },
                         contentType = { "source_home_row" },
                     ) { row ->
@@ -263,7 +277,7 @@ private fun DiscoveryTab.SourceHomeReadyContent(
                         )
                     }
                     if (source.sections.isEmpty()) {
-                        item {
+                        item(key = "empty:" + source.id, contentType = "source_home_notice") {
                             Text(
                                 "Aggiorna l’estensione per usare le sezioni della Home",
                                 Modifier.padding(16.dp),
@@ -296,12 +310,7 @@ private fun SourceHomeSectionRow(
     LaunchedEffect(source, section.id, date, active) {
         if (active) model.load(section.id, date = date)
     }
-    val sectionState = remember(model, section.id) {
-        model.state.map { it.sections[section.id] ?: SectionState<SourceHomePage>() }.distinctUntilChanged()
-    }
-    val value by sectionState.collectAsStateWithLifecycle(
-        initialValue = model.state.value.sections[section.id] ?: SectionState(),
-    )
+    val value = sourceHomeSectionState(model, section.id)
     Column {
         SectionHeader(value.data?.title?.takeIf { row.sections.size == 1 } ?: row.title) {
             navigator.push(SourceHomeListScreen(homeKey, section.id, section.title, date))
@@ -385,4 +394,17 @@ private fun SourceHomeSectionRow(
             }
         }
     }
+}
+
+@Composable
+private fun sourceHomeSectionState(
+    model: SourceHomeScreenModel,
+    id: String,
+): SectionState<SourceHomePage> = key(model, id) {
+    val state = remember(model, id) {
+        model.state.map { it.sections[id] ?: SectionState<SourceHomePage>() }.distinctUntilChanged()
+    }
+    state.collectAsStateWithLifecycle(
+        initialValue = model.state.value.sections[id] ?: SectionState(),
+    ).value
 }

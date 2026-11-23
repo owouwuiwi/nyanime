@@ -204,6 +204,9 @@ class BenchmarkSetupActivity : ComponentActivity() {
     private suspend fun prepare() {
         android.util.Log.i("BenchmarkSetup", "Waiting for migrations")
         Migrator.await()
+        // The fixture completes onboarding itself. Consume the migration result before MainActivity
+        // can interpret that synthetic setup as an upgrade of an already configured installation.
+        Migrator.release()
         android.util.Log.i("BenchmarkSetup", "Preparing storage and preferences")
         val base = Injekt.get<BasePreferences>()
         base.shownOnboardingFlow().set(true)

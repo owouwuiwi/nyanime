@@ -1,6 +1,6 @@
 # Nyanime benchmarks
 
-The isolated package is `xyz.jmir.tachiyomi.mi.anime4k.benchmark`.
+The benchmark targets `it.owouwuiwi.nyanime.benchmark` by default or `xyz.jmir.tachiyomi.mi.anime4k.benchmark` with `-PproductionIdentity=false`.
 Build with `:app:assembleBenchmark :macrobenchmark:assembleBenchmark`.
 Run `:macrobenchmark:connectedBenchmarkAndroidTest` only on a dedicated emulator
 or benchmark device. The interface smoke test temporarily changes global font size
