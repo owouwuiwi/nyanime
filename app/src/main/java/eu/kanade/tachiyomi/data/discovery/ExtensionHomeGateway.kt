@@ -9,6 +9,9 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import nyanime.extension.internal.layerAnimeUrl
+import nyanime.extension.internal.layerFilters
+import nyanime.extension.internal.layerSearch
 import tachiyomi.domain.discovery.SourceHomeAccess
 import tachiyomi.domain.discovery.SourceHomeGateway
 import tachiyomi.domain.discovery.SourceHomePage
@@ -34,7 +37,7 @@ class ExtensionHomeGateway(
     override fun preparePresentation(page: SourceHomePage): SourceHomePage = page.copy(
         items = page.items.map { card ->
             val source = manager.get(card.source) as? AnimeHttpSource
-            val url = runCatching { source?.getAnimeUrl(card.toSAnime()) }.getOrNull()
+            val url = runCatching { source?.layerAnimeUrl(card.toSAnime()) }.getOrNull()
             SourceHomeMetadata.withWorkUrl(card, url)
         },
     )
@@ -57,12 +60,12 @@ class ExtensionHomeGateway(
             } else {
                 section
             }
-            val filters = ExtensionHomeFilters.apply(source.getFilterList(), requestedSection, request.date)
+            val filters = ExtensionHomeFilters.apply(source.layerFilters(), requestedSection, request.date)
             require(request.filters.isEmpty() || request.sectionId == SourceHomeRequest.SEARCH)
             ExtensionHomeFilters.applyBrowse(filters, definition.browseFilters, section.browseValues + request.filters)
             try {
                 withTimeout(30_000) {
-                    val page = source.getSearchAnime(request.page, request.query.trim(), filters)
+                    val page = source.layerSearch(request.page, request.query.trim(), filters)
                     check(access == currentAccess()) { "La fonte è stata disabilitata" }
                     SourceHomePage(
                         page.animes.map { remote ->

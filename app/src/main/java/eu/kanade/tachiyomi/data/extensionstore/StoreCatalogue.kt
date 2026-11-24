@@ -10,7 +10,7 @@ import eu.kanade.tachiyomi.extension.anime.util.AnimeExtensionLoader
 import eu.kanade.tachiyomi.extension.manga.model.MangaExtension
 import eu.kanade.tachiyomi.extension.manga.util.MangaExtensionLoader
 
-enum class StoreMedium { ANIME, MANGA, NEWS, TV, GUIDE, ADDON, NOVEL }
+enum class StoreMedium { ANIME, MANGA, NEWS, TV, GUIDE, ADDON, NOVEL, MANGA_LAYER }
 enum class StoreAction { INSTALL, OPEN, UPDATE, TRUST, MANAGE }
 
 /** Presentation data comes exclusively from configured catalogues and inspected packages. */
@@ -47,6 +47,7 @@ data class StoreEntry(
         )
         ?.supports(eu.kanade.tachiyomi.BuildConfig.VERSION_CODE.toLong()) != false
     val isRin get() = rinRecord != null || rinCandidate != null
+    val privateOnly get() = medium == StoreMedium.MANGA_LAYER
     val enabled get() = rinRecord?.enabled ?: addon?.enabled ?: true
     val canImport get() = when {
         rinRecord != null -> true // Stored records were already verified as component-free.
@@ -69,7 +70,9 @@ data class StoreEntry(
     private val searchTerms = buildList {
         add(name)
         add(packageName)
-        (rinRecord?.manifest ?: rinCandidate?.manifest)?.sources?.forEach {
+        val manifest = rinRecord?.manifest ?: rinCandidate?.manifest
+        manifest?.mangaLayer?.targets?.forEach { add(it.packageName) }
+        manifest?.sources?.forEach {
             add(it.name)
             add(it.id.toString())
         }

@@ -36,6 +36,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import nyanime.extension.internal.layerHttpServer
+import nyanime.extension.internal.layerResolveVideo
 import okhttp3.Headers
 import okhttp3.OkHttpClient
 import tachiyomi.domain.entries.anime.interactor.GetAnime
@@ -236,7 +238,7 @@ class CastController private constructor(private val context: Context) {
                             var video = input.video
                             if (video.usesHttpServer()) {
                                 nextServer =
-                                    http?.createHttpServer() ?: error("Il server della fonte non è disponibile")
+                                    http?.layerHttpServer(video) ?: error("Il server della fonte non è disponibile")
                                 nextServer!!.start()
                                 check(nextServer!!.listeningPort > 0)
                                 video = video.copyHttpServer(nextServer!!.listeningPort)
@@ -653,7 +655,7 @@ class CastController private constructor(private val context: Context) {
             val ready = EpisodeLoader.loadHosterVideos(source, hoster, force = true) as? HosterState.Ready ?: continue
             for (candidate in ready.videoList.take(6)) {
                 try {
-                    val video = if (source is AnimeHttpSource) source.resolveVideo(candidate) ?: continue else candidate
+                    val video = if (source is AnimeHttpSource) source.layerResolveVideo(candidate) ?: continue else candidate
                     return current.copy(
                         episodeId = episodeId,
                         episodeName = episode.name,

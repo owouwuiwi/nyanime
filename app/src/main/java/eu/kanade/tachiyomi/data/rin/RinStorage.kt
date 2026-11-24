@@ -24,6 +24,7 @@ data class RinRecord(
     val automaticUpdates: Boolean = true,
     val catalogueConsent: String? = null,
     val storagePublisher: String = signer,
+    val publisherRollback: RinRecord? = null,
 ) {
     val publisherSigners get() = signers.ifEmpty { setOf(signer) }
     val publisherHistory get() = signerHistory.ifEmpty { publisherSigners }
@@ -101,9 +102,12 @@ class RinStorage(private val context: Context) {
         )
     }
 
-    fun activate(record: RinRecord) = synchronized(lock) {
+    fun activate(record: RinRecord, approveLayerScope: Boolean = false) = synchronized(lock) {
         eu.kanade.tachiyomi.extension.ExtensionPackageArchive.verify(context, file(record), record)
         val old = record(record.manifest.packageName)
+        if (record.manifest.isLayer && record.trusted && !approveLayerScope) {
+            require(old != null && record.manifest.preservesMangaLayerScope(old.manifest))
+        }
         require(
             old == null ||
                 (
@@ -116,6 +120,10 @@ class RinStorage(private val context: Context) {
                             record.publisherHistory,
                         ),
                     ) &&
+                        (
+                            old.manifest.medium == record.manifest.medium ||
+                                !old.manifest.isLayer && !record.manifest.isLayer
+                            ) &&
                         old.manifest.versionCode <= record.manifest.versionCode &&
                         (old.manifest.versionCode != record.manifest.versionCode || old.sha256 == record.sha256) &&
                         (
@@ -126,8 +134,43 @@ class RinStorage(private val context: Context) {
         )
         write(
             records().filterNot { it.manifest.packageName == record.manifest.packageName } +
-                record.copy(storagePublisher = old?.storagePublisher ?: record.storagePublisher),
+                record.copy(
+                    storagePublisher = old?.storagePublisher ?: record.storagePublisher,
+                    publisherRollback = old?.publisherRollback,
+                ),
         )
+    }
+
+    internal fun switchMangaPublisher(previous: RinRecord, next: RinRecord) = synchronized(lock) {
+        val packageName = previous.manifest.packageName
+        require(record(packageName) == previous && previous.publisherRollback == null)
+        requirePublisherSwitch(previous, next)
+        write(
+            records().filterNot { it.manifest.packageName == packageName } +
+                next.copy(publisherRollback = previous),
+        )
+    }
+
+    internal fun rollbackMangaPublisher(current: RinRecord, restored: RinRecord) = synchronized(lock) {
+        val packageName = current.manifest.packageName
+        require(record(packageName) == current && current.publisherRollback?.sha256 == restored.sha256)
+        requirePublisherSwitch(current, restored)
+        write(records().filterNot { it.manifest.packageName == packageName } + restored)
+    }
+
+    private fun requirePublisherSwitch(current: RinRecord, replacement: RinRecord) {
+        require(
+            current.manifest.packageName == replacement.manifest.packageName &&
+                current.manifest.medium == "manga" &&
+                replacement.manifest.medium == "manga" &&
+                current.format == "apk" && replacement.format == "apk" &&
+                !current.isShared && !replacement.isShared &&
+                current.manifest.validSourceIdentities() &&
+                replacement.manifest.validSourceIdentities() &&
+                current.manifest.knownSourceIds == replacement.manifest.knownSourceIds,
+        )
+        eu.kanade.tachiyomi.extension.ExtensionPackageArchive.verify(context, file(current), current)
+        eu.kanade.tachiyomi.extension.ExtensionPackageArchive.verify(context, file(replacement), replacement)
     }
 
     fun remove(packageName: String) = synchronized(lock) {
@@ -147,7 +190,7 @@ class RinStorage(private val context: Context) {
     }
 
     fun pruneOnColdStart(prepared: List<RinRecord>) = synchronized(lock) {
-        val keep = (records() + prepared).map { it.file }.toSet()
+        val keep = (records() + prepared).flatMap { listOfNotNull(it.file, it.publisherRollback?.file) }.toSet()
         val cutoff = System.currentTimeMillis() - 24 * 60 * 60 * 1000L
         root.listFiles()?.filter {
             it.isFile && it.extension in setOf("rin", "apk") && it.name !in keep && it.lastModified() < cutoff

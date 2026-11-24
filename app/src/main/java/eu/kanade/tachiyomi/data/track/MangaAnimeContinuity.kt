@@ -2,7 +2,6 @@ package eu.kanade.tachiyomi.data.track
 
 import eu.kanade.domain.entries.anime.model.toDomainAnime
 import eu.kanade.domain.entries.manga.model.toSManga
-import eu.kanade.tachiyomi.animesource.AnimeCatalogIdResolver
 import eu.kanade.tachiyomi.animesource.AnimeCatalogueSource
 import eu.kanade.tachiyomi.animesource.model.FetchType
 import eu.kanade.tachiyomi.source.MangaSource
@@ -13,6 +12,11 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.withLock
+import nyanime.extension.internal.layerByCatalogId
+import nyanime.extension.internal.layerEpisodeUpdate
+import nyanime.extension.internal.layerFilters
+import nyanime.extension.internal.layerSearch
+import nyanime.extension.internal.layerSeasonUpdate
 import tachiyomi.domain.entries.anime.interactor.NetworkToLocalAnime
 import tachiyomi.domain.entries.anime.model.Anime
 import tachiyomi.domain.entries.anime.repository.AnimeRepository
@@ -147,9 +151,9 @@ class MangaAnimeContinuity(
                         } else {
                             ContinuityRequests.optional {
                                 if (remote.fetch_type == FetchType.Seasons) {
-                                    source.getAnimeSeasonUpdate(remote, emptyList(), true, false).anime
+                                    source.layerSeasonUpdate(remote, emptyList(), true, false).anime
                                 } else {
-                                    source.getAnimeEpisodeUpdate(remote, emptyList(), true, false).anime
+                                    source.layerEpisodeUpdate(remote, emptyList(), true, false).anime
                                 }
                             } ?: return false
                         }
@@ -190,20 +194,16 @@ class MangaAnimeContinuity(
                             batch.map { source ->
                                 async {
                                     ContinuityRequests.source {
-                                        if (source is AnimeCatalogIdResolver) {
-                                            val remote = ContinuityRequests.optional(12_000) {
-                                                source.findAnimeByCatalogId("anilist", relation.id)
-                                                    ?: relation.malId?.let {
-                                                        source.findAnimeByCatalogId("myanimelist", it)
-                                                    }
-                                            }
-                                            if (remote != null && accept(remote, source)) return@source
+                                        val byId = ContinuityRequests.optional(12_000) {
+                                            source.layerByCatalogId("anilist", relation.id)
+                                                ?: relation.malId?.let { source.layerByCatalogId("myanimelist", it) }
                                         }
+                                        if (byId != null && accept(byId, source)) return@source
                                         val titles = (listOf(relation.title) + relation.titles)
                                             .filter(String::isNotBlank).distinct().take(2)
                                         for (title in titles) {
                                             val page = ContinuityRequests.optional {
-                                                source.getSearchAnime(1, title, source.getFilterList())
+                                                source.layerSearch(1, title, source.layerFilters())
                                             } ?: continue
                                             for (remote in page.animes.take(4)) {
                                                 if (accept(remote, source)) return@source

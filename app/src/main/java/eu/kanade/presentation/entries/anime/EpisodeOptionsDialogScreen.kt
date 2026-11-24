@@ -68,6 +68,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import logcat.LogPriority
+import nyanime.extension.internal.layerCopyWithVideos
 import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.core.common.util.lang.launchUI
 import tachiyomi.core.common.util.lang.withIOContext
@@ -388,13 +389,7 @@ class EpisodeOptionsDialogScreenModel(
         val hosterStateList = hosterState.value?.getOrNull() ?: return null
         return _hosterList.value.mapIndexed { index, h ->
             if (hosterStateList[index] is HosterState.Ready) {
-                Hoster(
-                    hosterName = h.hosterName,
-                    hosterUrl = h.hosterUrl,
-                    videoList = (hosterStateList[index] as HosterState.Ready).videoList,
-                    internalData = h.internalData,
-                    memo = h.memo,
-                )
+                h.layerCopyWithVideos((hosterStateList[index] as HosterState.Ready).videoList)
             } else {
                 h
             }

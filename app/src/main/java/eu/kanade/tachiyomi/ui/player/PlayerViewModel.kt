@@ -134,6 +134,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import logcat.LogPriority
+import nyanime.extension.internal.layerImageTile
+import nyanime.extension.internal.layerRestoreHosters
+import nyanime.extension.internal.layerVideoThumbnails
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.core.common.util.lang.launchNonCancellable
@@ -1092,12 +1095,13 @@ class PlayerViewModel @JvmOverloads constructor(
 
                 thumbnailFetchJob?.cancel()
                 val requestedIdentity = scrubIdentity()
+                val video = currentVideo.value
                 thumbnailFetchJob = viewModelScope.launchIO {
                     val source = currentSource.value as? AnimeHttpSource ?: return@launchIO
 
                     try {
                         val tileUrl = thumbInfo.imageTileUrls[info.imageIndex]
-                        val bitmap = source.getImageTile(tileUrl)
+                        val bitmap = source.layerImageTile(tileUrl, video)
                         if (bitmap != null) {
                             withUIContext {
                                 if (requestedIdentity != scrubIdentity()) return@withUIContext
@@ -1957,15 +1961,16 @@ class PlayerViewModel @JvmOverloads constructor(
         val episode = playlist.firstOrNull { it.id == requestedEpisodeId }
             ?: throw ExceptionWithStringResource("Episode unavailable", AYMR.strings.no_episode_loaded)
         val source = sourceManager.getOrStub(anime.source)
-        val hosters = if (hostList.isNotBlank()) {
-            hostList.toHosterList()
-        } else {
-            EpisodeLoader.getHosters(requireNotNull(episode.toDomainEpisode()), anime, source)
-        }
+        val supplied = hostList.takeIf(String::isNotBlank)?.toHosterList()
+        val restored = supplied?.let(source::layerRestoreHosters)
+        val hosters = restored ?: EpisodeLoader.getHosters(requireNotNull(episode.toDomainEpisode()), anime, source)
         if (hosters.isEmpty()) {
             throw ExceptionWithStringResource("Hoster list is empty", AYMR.strings.no_hosters)
         }
-        val resolved = resolvePreparedHosters(source, hosters, hostIndex, vidIndex)
+        val staleChoice = supplied != null && restored == null
+        val resolved = resolvePreparedHosters(
+            source, hosters, if (staleChoice) -1 else hostIndex, if (staleChoice) -1 else vidIndex,
+        )
         PreparedSelection(anime, episode, playlist, source, hosters, resolved.first, resolved.second, resolved.third)
     }
 
@@ -2330,7 +2335,7 @@ class PlayerViewModel @JvmOverloads constructor(
     suspend fun loadThumbnails(video: Video, source: AnimeSource?) {
         if (source is AnimeHttpSource) {
             try {
-                val thumbInfo = source.getVideoThumbnails(video)
+                val thumbInfo = source.layerVideoThumbnails(video)
                 if (thumbInfo != null) {
                     thumbnailInfo.update { _ ->
                         ThumbnailInfo(
@@ -2341,7 +2346,7 @@ class PlayerViewModel @JvmOverloads constructor(
 
                     // Preload first 2 tilemaps
                     thumbInfo.imageTileUrls.take(2).forEachIndexed { index, tileUrl ->
-                        val bitmap = source.getImageTile(tileUrl)
+                        val bitmap = source.layerImageTile(tileUrl, video)
                         if (bitmap != null) {
                             thumbnailTileCache[index] = bitmap
                         }

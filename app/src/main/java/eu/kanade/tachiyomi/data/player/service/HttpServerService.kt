@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import logcat.LogPriority
+import nyanime.extension.internal.layerHttpServer
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.source.anime.service.AnimeSourceManager
@@ -42,7 +43,7 @@ class HttpServerService : Service() {
         }
 
         val sourceId = intent?.getLongExtra(EXTRA_SOURCE_ID, -1L) ?: -1L
-        val server = (sourceManager.get(sourceId) as? AnimeHttpSource)?.createHttpServer()
+        val server = (sourceManager.get(sourceId) as? AnimeHttpSource)?.layerHttpServer()
 
         if (server == null) {
             stopSelf()

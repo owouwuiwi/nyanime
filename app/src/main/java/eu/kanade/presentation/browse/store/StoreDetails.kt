@@ -43,6 +43,9 @@ internal fun StoreDetails(
     onInstallMode: (eu.kanade.tachiyomi.data.extensionstore.StoreInstallMode) -> Unit,
     onAutomaticUpdates: (Boolean) -> Unit,
     onAssociateOrigin: () -> Unit,
+    onMigratePublisher: (() -> Unit)?,
+    onMigrateAndroidPublisher: (() -> Unit)?,
+    onRollbackPublisher: (() -> Unit)?,
     progress: Float? = null,
 ) {
     val c = LocalStoreColors.current
@@ -55,7 +58,8 @@ internal fun StoreDetails(
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 SheetTitle(entry.name)
                 Text(
-                    entry.version + " · " + entry.languages.joinToString(" / ").uppercase(),
+                    listOf(entry.version, entry.languages.joinToString(" / ").uppercase())
+                        .filter { it.isNotBlank() }.joinToString(" · "),
                     color = c.muted,
                     style = MaterialTheme.typography.bodySmall,
                 )
@@ -88,6 +92,7 @@ internal fun StoreDetails(
             )?.let {
             eu.kanade.tachiyomi.ui.addon.AddonCompatibilityNotice(it)
         }
+        (entry.rinRecord?.manifest ?: entry.rinCandidate?.manifest)?.mangaLayer?.let { MangaLayerScope(it) }
         if (entry.rinRecord != null) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -124,7 +129,7 @@ internal fun StoreDetails(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                if (entry.rinCandidate?.format != "rin") {
+                if (!entry.privateOnly && entry.rinCandidate?.format != "rin") {
                     StoreButton(
                         stringResource(R.string.package_install),
                         {
@@ -144,11 +149,17 @@ internal fun StoreDetails(
                 }
             }
             Text(
-                stringResource(if (entry.canImport) R.string.package_modes_hint else R.string.package_system_required),
+                stringResource(
+                    when {
+                        entry.privateOnly -> R.string.store_manga_layer_hint
+                        entry.canImport -> R.string.package_modes_hint
+                        else -> R.string.package_system_required
+                    },
+                ),
                 color = c.muted,
                 style = MaterialTheme.typography.bodySmall,
             )
-        } else {
+        } else if (!entry.privateOnly || busy || entry.action == StoreAction.TRUST) {
             EntryButton(entry, step, Modifier.fillMaxWidth(), { onAction() }, { onCancel() }, changing)
         }
         if (step == InstallStep.Error) {
@@ -211,6 +222,7 @@ internal fun StoreDetails(
                 eu.kanade.tachiyomi.data.extensionstore.StoreMedium.TV,
                 eu.kanade.tachiyomi.data.extensionstore.StoreMedium.NEWS,
                 eu.kanade.tachiyomi.data.extensionstore.StoreMedium.NOVEL,
+                eu.kanade.tachiyomi.data.extensionstore.StoreMedium.MANGA_LAYER,
             ) &&
             anime.isEmpty() &&
             manga.isEmpty()
@@ -240,8 +252,30 @@ internal fun StoreDetails(
                 )
             }
         }
+        if (onMigratePublisher != null || onMigrateAndroidPublisher != null) {
+            Text(
+                stringResource(R.string.store_manga_migration_available),
+                color = c.muted,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        onMigratePublisher?.takeUnless { busy || changing }?.let {
+            StoreButton(
+                stringResource(R.string.store_manga_migration_select), it, Modifier.fillMaxWidth(), outlined = true,
+            )
+        }
+        onMigrateAndroidPublisher?.takeUnless { busy || changing }?.let {
+            StoreButton(
+                stringResource(R.string.store_android_migration_title), it, Modifier.fillMaxWidth(), outlined = true,
+            )
+        }
+        onRollbackPublisher?.takeUnless { busy || changing }?.let {
+            StoreButton(
+                stringResource(R.string.store_manga_migration_rollback), it, Modifier.fillMaxWidth(), outlined = true,
+            )
+        }
         if (entry.installed) {
-            if (entry.enabled && entry.action != StoreAction.TRUST && !unavailableRin) {
+            if (entry.enabled && entry.action != StoreAction.TRUST && !unavailableRin && !entry.privateOnly) {
                 StoreButton(
                     stringResource(R.string.store_settings),
                     onManage,

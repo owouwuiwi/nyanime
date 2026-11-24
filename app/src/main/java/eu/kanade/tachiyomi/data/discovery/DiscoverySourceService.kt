@@ -17,6 +17,11 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import nyanime.extension.internal.layerFilters
+import nyanime.extension.internal.layerLatest
+import nyanime.extension.internal.layerPopular
+import nyanime.extension.internal.layerSearch
+import nyanime.extension.internal.layerSupportsLatest
 import tachiyomi.domain.discovery.AnimeSourceLink
 import tachiyomi.domain.discovery.AnimeSourceLinkRepository
 import tachiyomi.domain.discovery.CatalogAnime
@@ -57,7 +62,7 @@ class DiscoverySourceService(
                 { it.id.toString() !in preferences.pinnedAnimeSources().get() },
                 { it.name.lowercase() },
             ),
-        ).map { DiscoverySource(it.id, it.name, it.lang, it.supportsLatest) }
+        ).map { DiscoverySource(it.id, it.name, it.lang, it.layerSupportsLatest()) }
     }
 
     fun isEnabled(source: AnimeSource): Boolean {
@@ -111,7 +116,7 @@ class DiscoverySourceService(
                         try {
                             val items = withTimeout(20_000) {
                                 val engine = manager.get(source.id) ?: error("Fonte non disponibile")
-                                val result = engine.getSearchAnime(1, query.trim(), engine.getFilterList())
+                                val result = engine.layerSearch(1, query.trim(), engine.layerFilters())
                                 result.animes.take(30).map { toLocal.await(it.toDomainAnime(source.id)) }
                             }
                             send(SourceSearchResult(source, items))
@@ -131,10 +136,10 @@ class DiscoverySourceService(
     suspend fun sourceFeed(sourceId: Long, latest: Boolean): List<Anime> = withContext(Dispatchers.IO) {
         if (base.downloadedOnly().get()) return@withContext emptyList()
         val source = manager.get(sourceId)?.takeIf(::isEnabled) ?: error("Fonte non disponibile")
-        if (latest && !source.supportsLatest) return@withContext emptyList()
+        if (latest && !source.layerSupportsLatest()) return@withContext emptyList()
         semaphore.withPermit {
             withTimeout(20_000) {
-                val page = if (latest) source.getLatestUpdates(1) else source.getPopularAnime(1)
+                val page = if (latest) source.layerLatest(1) else source.layerPopular(1)
                 page.animes.take(20).map { toLocal.await(it.toDomainAnime(source.id)) }
             }
         }

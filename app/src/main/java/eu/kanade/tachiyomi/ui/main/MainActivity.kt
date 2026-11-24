@@ -735,13 +735,7 @@ class MainActivity : BaseActivity() {
             }
             Intent.ACTION_VIEW -> {
                 // Versioned content links always resolve through an installed extension.
-                if (intent.scheme == "nyanime" && intent.data?.host == "sources" && intent.data?.path == "/v1") {
-                    navigator.push(
-                        it.lorelore.nyanime.exchange.SourceExchangeScreen(
-                            initialTicket = intent.data?.fragment?.take(65536),
-                        ),
-                    )
-                } else if (ContentLinks.isContentUri(intent.data.toString())) {
+                if (ContentLinks.isContentUri(intent.data.toString())) {
                     navigator.popUntilRoot()
                     navigator.push(SharedContentScreen(intent.data.toString()))
                 }

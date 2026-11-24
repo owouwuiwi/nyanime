@@ -217,16 +217,6 @@ class StudioLibraryScreen : Screen() {
                 if (loadError != null) {
                     item { Text(loadError.orEmpty(), color = MaterialTheme.colorScheme.error) }
                 }
-                item {
-                    OutlinedButton(
-                        {
-                            navigator.push(it.lorelore.nyanime.exchange.SourceExchangeScreen())
-                        },
-                        Modifier.fillMaxWidth(),
-                    ) {
-                        Text(stringResource(R.string.exchange_title))
-                    }
-                }
                 if (records.isEmpty()) {
                     item {
                         Text(
@@ -338,17 +328,6 @@ class StudioLibraryScreen : Screen() {
                                                     onError(error)
                                                 }
                                             }
-                                        },
-                                    )
-                                    DropdownMenuItem(
-                                        { Text(stringResource(R.string.exchange_send)) },
-                                        {
-                                            menu = false
-                                            navigator.push(
-                                                it.lorelore.nyanime.exchange.SourceExchangeScreen(
-                                                    studioUuid = record.draft.uuid,
-                                                ),
-                                            )
                                         },
                                     )
                                     if (record.enabled) {

@@ -31,6 +31,7 @@ import eu.kanade.tachiyomi.ui.home.HomeScreen
 import eu.kanade.tachiyomi.ui.webview.WebViewScreen
 import kotlinx.coroutines.launch
 import mihon.presentation.core.util.collectAsLazyPagingItems
+import nyanime.extension.internal.layerHomeUrl
 import tachiyomi.domain.entries.anime.model.Anime
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.components.material.ExtendedFloatingActionButton
@@ -96,7 +97,7 @@ data class AnimeSourceSearchScreen(
                     val source = screenModel.source as? AnimeHttpSource ?: return@BrowseAnimeSourceContent
                     navigator.push(
                         WebViewScreen(
-                            url = source.getHomeUrl(),
+                            url = source.layerHomeUrl(),
                             initialTitle = source.name,
                             sourceId = source.id,
                         ),

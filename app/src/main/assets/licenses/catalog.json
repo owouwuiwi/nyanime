@@ -121,30 +121,6 @@
     "notice": "licenses/telegram-NOTICE.txt"
   },
   {
-    "name": "Sandspiel — offline secret game",
-    "website": "https://github.com/MaxBittker/sandspiel/tree/9936e06b07a583aedfba9589c0cead2917f405fb",
-    "licenseName": "MIT",
-    "asset": "secret-game/sandspiel/Sandspiel-LICENSE.txt"
-  },
-  {
-    "name": "WebGL Fluid Simulation — secret game fluid solver",
-    "website": "https://github.com/PavelDoGreat/WebGL-Fluid-Simulation",
-    "licenseName": "MIT",
-    "asset": "secret-game/sandspiel/Fluid-LICENSE.txt"
-  },
-  {
-    "name": "Sandspiel rendering dependencies — regl, GLSL noise and random",
-    "website": "https://github.com/regl-project/regl",
-    "licenseName": "MIT / BSD-3-Clause",
-    "asset": "secret-game/sandspiel/DEPENDENCIES.txt"
-  },
-  {
-    "name": "Sandspiel WebAssembly — Rust and dependency notices",
-    "website": "https://github.com/rust-lang/rust/tree/1.85.1",
-    "licenseName": "MIT / Apache-2.0 and individual component terms",
-    "asset": "secret-game/sandspiel/RUST-NOTICES.txt"
-  },
-  {
     "name": "Nyanime Player Presentation",
     "website": "https://github.com/owouwuiwi/nyanime",
     "licenseName": "Apache-2.0",
@@ -169,27 +145,6 @@
     ],
     "coordinate": "com.google.re2j:re2j",
     "version": "1.7"
-  },
-  {
-    "name": "Lightning P2P — source exchange ticket compatibility",
-    "website": "https://github.com/Kerim-Sabic/lightning-p2p/tree/6960642a46f549c53d53abef3f2db7327857e488",
-    "licenseName": "Apache-2.0",
-    "asset": "source-exchange/Lightning-LICENSE.txt",
-    "notice": "source-exchange/NOTICE.txt"
-  },
-  {
-    "name": "Source exchange — iroh and native dependency notices",
-    "website": "https://github.com/n0-computer/iroh/tree/v1.0.0",
-    "licenseName": "MIT / Apache-2.0 and individual component terms",
-    "asset": "source-exchange/THIRD-PARTY-LICENSES.txt",
-    "notice": "source-exchange/NOTICE.txt"
-  },
-  {
-    "name": "Rust standard library — source exchange runtime",
-    "website": "https://github.com/rust-lang/rust/tree/58cf8f9c35b355199727627d07ae34a4e2846d67/library",
-    "licenseName": "MIT / Apache-2.0 and embedded component notices",
-    "asset": "source-exchange/rust/licenses/MIT.txt",
-    "notice": "source-exchange/rust/COPYRIGHT-library.html"
   },
   {
     "name": "FLOW player UI subset",

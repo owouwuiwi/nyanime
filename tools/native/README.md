@@ -26,10 +26,6 @@ No production key or personal data is required to build your own version.
   MPL/LGPL components), archive libraries, the original player Java API,
   TorrServer and its full Go vendor closure, QuickJS, secp256k1, Zstandard,
   TDLib and OpenSSL. Upstream copyrights and full notices are retained.
-- **Source exchange (0.49):** all four Android ABIs from the reviewed Rust inputs,
-  Cargo.lock and offline vendor closure, with NDK r27c/API 26 build and packaging
-  recipes. Exact source hashes and original notices are retained in the dedicated
-  exchange archive; `tools/source-exchange/bundle_sources.py` creates the closure.
 - **Camera/inference (0.49):** unmodified CameraX and MediaPipe native Maven bytes,
   original AAR/POMs, published AndroidX sources, CameraX embedded notices and the
   associated complete MediaPipe public release sources. Source-JAR availability

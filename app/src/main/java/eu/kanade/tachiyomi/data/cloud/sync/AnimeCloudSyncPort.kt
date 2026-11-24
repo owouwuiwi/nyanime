@@ -11,6 +11,7 @@ import kotlinx.serialization.json.longOrNull
 import nyanime.telegram.sync.SyncActiveContent
 import nyanime.telegram.sync.SyncRef
 import nyanime.telegram.sync.syncJson
+import nyanime.extension.internal.layerEpisodeUpdate
 import tachiyomi.data.handlers.anime.AnimeDatabaseHandler
 import tachiyomi.domain.category.anime.repository.AnimeCategoryRepository
 import tachiyomi.domain.category.model.Category
@@ -476,7 +477,7 @@ internal class AnimeCloudSyncPort(
         } else {
             val engine = Injekt.get<tachiyomi.domain.source.anime.service.AnimeSourceManager>().get(sourceId) ?: return
             val recovered = historyRecovery.recover(ref) {
-                engine.getAnimeEpisodeUpdate(
+                engine.layerEpisodeUpdate(
                     parent.toSAnime(),
                     emptyList(),
                     fetchDetails = false,

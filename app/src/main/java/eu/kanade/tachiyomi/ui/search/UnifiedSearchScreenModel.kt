@@ -36,6 +36,8 @@ import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import nyanime.extension.internal.layerFilters
+import nyanime.extension.internal.layerSearch
 import tachiyomi.domain.discovery.SourceHomeRequest
 import tachiyomi.domain.entries.anime.interactor.NetworkToLocalAnime
 import tachiyomi.domain.entries.manga.interactor.NetworkToLocalManga
@@ -1067,7 +1069,7 @@ class UnifiedSearchScreenModel : StateScreenModel<UnifiedSearchState>(UnifiedSea
                 }
                 if (route.medium == SearchMedium.VIDEO) {
                     val source = videos.get(route.source) ?: throw IOException("Source unavailable")
-                    val response = source.getSearchAnime(page, query, source.getFilterList())
+                    val response = source.layerSearch(page, query, source.layerFilters())
                     return SearchPage(
                         response.animes.map { remote ->
                             val local = toVideo.await(remote.toDomainAnime(source.id))
@@ -1096,7 +1098,7 @@ class UnifiedSearchScreenModel : StateScreenModel<UnifiedSearchState>(UnifiedSea
                 val source =
                     mangas.get(route.source) as? eu.kanade.tachiyomi.source.CatalogueSource
                         ?: throw IOException("Source unavailable")
-                val response = source.getSearchManga(page, query, source.getFilterList())
+                val response = source.layerSearch(page, query, source.layerFilters())
                 return SearchPage(
                     response.mangas.map { remote ->
                         val hints = SourceTrackingHints.from(remote)

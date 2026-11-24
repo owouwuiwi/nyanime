@@ -1,5 +1,7 @@
 package eu.kanade.tachiyomi.ui.browse.manga.source.globalsearch
 
+import nyanime.extension.internal.layerFilters
+import nyanime.extension.internal.layerSearch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.produceState
@@ -223,14 +225,14 @@ abstract class MangaSearchScreenModel(
     private fun fetch(source: CatalogueSource, query: String) {
         val session = requireNotNull(searchSession)
         searches.submit(source, fetch = {
-            val filters = source.getFilterList()
+            val filters = source.layerFilters()
             val page = session.search(
                 object : ExtensionSearchAdapter<SManga> {
                     override val key = source.id.toString()
                     override fun identity(item: SManga) = item.url
                     override fun title(item: SManga) = item.searchTitle(source.id)
                     override suspend fun fetch(page: Int, query: String): SearchPage<SManga> {
-                        val response = source.getSearchManga(page, query, filters)
+                        val response = source.layerSearch(page, query, filters)
                         return SearchPage(response.mangas, response.hasNextPage)
                     }
                 },

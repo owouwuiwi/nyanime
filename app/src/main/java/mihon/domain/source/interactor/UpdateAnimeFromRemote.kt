@@ -17,6 +17,8 @@ import kotlinx.coroutines.CancellationException
 import logcat.LogPriority
 import mihon.domain.source.models.RemoteAnimeEpisodeUpdate
 import mihon.domain.source.models.RemoteAnimeSeasonUpdate
+import nyanime.extension.internal.layerEpisodeUpdate
+import nyanime.extension.internal.layerSeasonUpdate
 import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.entries.anime.model.Anime
@@ -69,7 +71,7 @@ class UpdateAnimeFromRemote(
                 val episodes = episodeRepository.getEpisodeByAnimeId(anime.id)
                     .sortedBy { it.sourceOrder }
                 val update = withIOContext {
-                    source.getAnimeEpisodeUpdate(
+                    source.layerEpisodeUpdate(
                         anime = anime.toSAnime(),
                         episodes = episodes.map(Episode::toSEpisode),
                         fetchDetails = fetchDetails,
@@ -131,7 +133,7 @@ class UpdateAnimeFromRemote(
                 val seasons = animeRepository.getAnimeSeasonsById(anime.id)
                     .sortedBy { it.anime.seasonSourceOrder }
                 val update = withIOContext {
-                    source.getAnimeSeasonUpdate(
+                    source.layerSeasonUpdate(
                         anime = anime.toSAnime(),
                         seasons = seasons.map { it.anime.toSAnime() },
                         fetchDetails = fetchDetails,

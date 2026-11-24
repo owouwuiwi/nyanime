@@ -36,6 +36,10 @@ the trusted base sources have loaded. The resulting sources retain the same
 ordered medium/source identities. If an optional implementation fails, the base
 sources remain usable. Other hosts do not load the optional factory.
 
+To extend a separately installed APK, use an independently signed
+[source layer](source-layers.md). The source can continue receiving updates
+from its publisher without rebuilding the layer.
+
 For hosted TV, guide and addon APKs, place the normalized package declaration at
 `assets/nyanime/package-v1.json`: schema, package identity, version, family, API,
 entry points, source identities, optional declarations and host version bounds.

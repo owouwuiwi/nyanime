@@ -14,12 +14,24 @@ import java.util.zip.ZipFile
 
 /** Inspect authenticated Android packages without loading extension code. Legacy RIN is read-only compatibility. */
 object ExtensionPackageArchive {
+    const val MANGA_LAYER_FEATURE = "nyanime.mangalayer"
+    const val LAYER_FEATURE = "nyanime.layer"
+    private val sourceFeatures = setOf(
+        "tachiyomi.animeextension",
+        "tachiyomi.extension",
+        "nyanime.newsextension",
+        "nyanime.novelextension",
+        "nyanime.tvextension",
+        "nyanime.guideextension",
+        "nyanime.addon",
+    )
     const val ASSET = "assets/nyanime/package-v1.json"
     const val MAX_BYTES = 512L * 1024 * 1024
 
     @Suppress("DEPRECATION")
     val FLAGS = PackageManager.GET_CONFIGURATIONS or PackageManager.GET_META_DATA or
         PackageManager.GET_SIGNATURES or PackageManager.GET_ACTIVITIES or PackageManager.GET_SERVICES or
+        PackageManager.GET_INSTRUMENTATION or
         PackageManager.GET_PROVIDERS or PackageManager.GET_RECEIVERS or PackageManager.MATCH_DISABLED_COMPONENTS or
         (if (Build.VERSION.SDK_INT >= 28) PackageManager.GET_SIGNING_CERTIFICATES else 0)
 
@@ -42,7 +54,16 @@ object ExtensionPackageArchive {
         val metadata = ExtensionPackageInspector.inspect(info) { 0 }
         require(metadata.signers.isNotEmpty() && !metadata.invalidDistribution)
         val features = info.reqFeatures.orEmpty().map { it.name }.toSet()
+        val layerFeature = when {
+            LAYER_FEATURE in features && MANGA_LAYER_FEATURE in features -> error("Conflicting layer declarations")
+            LAYER_FEATURE in features -> RinManifest.LAYER
+            MANGA_LAYER_FEATURE in features -> RinManifest.MANGA_LAYER
+            else -> null
+        }
+        val isLayer = layerFeature != null
+        require(!isLayer || features.none(sourceFeatures::contains)) { "A manga layer must be an independent package" }
         val medium = when {
+            layerFeature != null -> layerFeature
             "tachiyomi.animeextension" in features -> "anime"
             "tachiyomi.extension" in features -> "manga"
             "nyanime.newsextension" in features -> "news"
@@ -61,8 +82,12 @@ object ExtensionPackageArchive {
             "addon" -> "nyanime.addon.api"
             else -> "nyanime.extension.api"
         }
-        val api = app.metaData?.getInt(apiKey, 0)?.takeIf { it > 0 }?.toDouble()
-            ?: info.versionName?.substringBeforeLast('.')?.toDoubleOrNull()
+        val api = if (isLayer) {
+            app.metaData?.getInt("nyanime.$medium.api", 0)?.toDouble()
+        } else {
+            app.metaData?.getInt(apiKey, 0)?.takeIf { it > 0 }?.toDouble()
+                ?: info.versionName?.substringBeforeLast('.')?.toDoubleOrNull()
+        }
         val factoryKey = when (medium) {
             "anime" -> "tachiyomi.animeextension.class"
             "manga" -> "tachiyomi.extension.class"
@@ -72,6 +97,8 @@ object ExtensionPackageArchive {
             name.trim().let { if (it.startsWith('.')) info.packageName + it else it }
         }.orEmpty()
         val declared = declaration(file)
+        require(!isLayer || declared?.validMangaLayer() == true) { "Missing or invalid manga layer declaration" }
+        require(isLayer || declared?.mangaLayer == null)
         val manifest = declared ?: RinManifest(
             if (medium in setOf("anime", "manga")) 1 else 2,
             info.packageName,
@@ -145,7 +172,14 @@ object ExtensionPackageArchive {
             info.providers.orEmpty().isNotEmpty() ||
             info.receivers.orEmpty().isNotEmpty() ||
             app.className?.let { it != "android.app.Application" } == true
-        require(requiresAndroid || manifest.entryPoints.isNotEmpty())
+        if (isLayer) {
+            require(!requiresAndroid && info.instrumentation.orEmpty().isEmpty()) {
+                "Layers cannot declare Android components"
+            }
+            require(app.metaData?.getString("nyanime.optional.factory") == null)
+        } else {
+            require(requiresAndroid || manifest.entryPoints.isNotEmpty())
+        }
         return Inspected(info, manifest, requiresAndroid)
     }
 

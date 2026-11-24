@@ -67,9 +67,6 @@
         android:theme="@style/Theme.Tachiyomi">
 
         <meta-data android:name="nyanime.recovery.backup_format" android:value="1" />
-        <service android:name="it.lorelore.nyanime.exchange.SourceExchangeService"
-            android:exported="false" android:process=":source_exchange"
-            android:foregroundServiceType="dataSync" />
         <provider android:name=".data.migration.MigrationBridgeProvider" android:authorities="${applicationId}.migration" android:exported="true" android:process=":migration" />
         <provider android:name=".data.migration.MigrationSnapshotProvider" android:authorities="${applicationId}.migration.snapshot" android:exported="false" android:process=":migration_snapshot" />
         <provider android:name=".data.migration.MigrationVerifyProvider" android:authorities="${applicationId}.migration.verify" android:exported="false" android:process=":migration_verify" />
@@ -193,12 +190,6 @@
             </intent-filter>
 
             <!-- Import extension catalogues -->
-            <intent-filter android:label="@string/exchange_title">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="nyanime" android:host="sources" android:path="/v1" />
-            </intent-filter>
             <intent-filter android:label="@string/action_add_repo">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />

@@ -366,10 +366,21 @@ class AppModule(
         addSingletonFactory { NetworkHelper(app, get()) }
         addSingletonFactory { JavaScriptEngine(app) }
 
-        addSingletonFactory<MangaSourceManager> { AndroidMangaSourceManager(app, get(), get()) }
-        addSingletonFactory<AnimeSourceManager> { AndroidAnimeSourceManager(app, get(), get()) }
+        addSingletonFactory<MangaSourceManager> {
+            get<eu.kanade.tachiyomi.data.layer.MangaLayerRegistry>()
+            AndroidMangaSourceManager(app, get(), get())
+        }
+        addSingletonFactory<AnimeSourceManager> {
+            get<eu.kanade.tachiyomi.data.layer.MangaLayerRegistry>()
+            AndroidAnimeSourceManager(app, get(), get())
+        }
 
         addSingletonFactory { MangaExtensionManager(app) }
+        addSingletonFactory {
+            eu.kanade.tachiyomi.data.layer.MangaLayerRegistry(
+                app, get(), get(), get<eu.kanade.tachiyomi.data.news.NewsRepository>().registry, get(),
+            )
+        }
         addSingletonFactory { AnimeExtensionManager(app) }
 
         addSingletonFactory { MangaDownloadProvider(app) }

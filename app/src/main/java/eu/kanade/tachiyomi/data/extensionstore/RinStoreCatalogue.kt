@@ -1,6 +1,7 @@
 package eu.kanade.tachiyomi.data.extensionstore
 
 import eu.kanade.tachiyomi.data.rin.RinEntry
+import eu.kanade.tachiyomi.data.rin.RinManifest
 import eu.kanade.tachiyomi.data.rin.RinRecord
 import eu.kanade.tachiyomi.data.rin.RinUpdatePolicy
 import eu.kanade.tachiyomi.extension.anime.model.AnimeExtension
@@ -19,7 +20,11 @@ internal object RinStoreCatalogue {
         val available = candidates.groupBy { it.manifest.packageName }
         val owned = installed.map { record ->
             val candidate = available[record.manifest.packageName].orEmpty().filter {
-                it.repository == record.repository && it.signer == record.signer
+                if (record.manifest.isLayer) {
+                    RinUpdatePolicy.accepts(it, record)
+                } else {
+                    it.repository == record.repository && it.signer == record.signer
+                }
             }.maxByOrNull { it.manifest.versionCode }
             entry(candidate, record, a[record.manifest.packageName], m[record.manifest.packageName])
         }
@@ -51,6 +56,7 @@ internal object RinStoreCatalogue {
                 "addon" -> StoreMedium.ADDON
                 "anime" -> StoreMedium.ANIME
                 "manga" -> StoreMedium.MANGA
+                RinManifest.MANGA_LAYER, RinManifest.LAYER -> StoreMedium.MANGA_LAYER
                 "news" -> StoreMedium.NEWS
                 "novel" -> StoreMedium.NOVEL
                 else -> error("Unknown RIN medium")

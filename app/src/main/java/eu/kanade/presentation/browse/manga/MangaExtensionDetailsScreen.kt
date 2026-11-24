@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource as androidStringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -80,6 +81,7 @@ fun MangaExtensionDetailsScreen(
     onClickSource: (sourceId: Long) -> Unit,
     onClickIncognito: (Boolean) -> Unit,
     onUpdateRepository: (String) -> Unit = {},
+    onManageLayers: (() -> Unit)? = null,
 ) {
     val uriHandler = LocalUriHandler.current
     val url = remember(state.extension) {
@@ -101,6 +103,14 @@ fun MangaExtensionDetailsScreen(
                     AppBarActions(
                         actions = persistentListOf<AppBar.AppBarAction>().builder()
                             .apply {
+                                if (onManageLayers != null) {
+                                    add(
+                                        AppBar.OverflowAction(
+                                            title = androidStringResource(R.string.store_manga_layer),
+                                            onClick = onManageLayers,
+                                        ),
+                                    )
+                                }
                                 if (url != null) {
                                     add(
                                         AppBar.Action(

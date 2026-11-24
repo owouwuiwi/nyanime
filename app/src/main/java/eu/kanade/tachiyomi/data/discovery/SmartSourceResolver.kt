@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
+import nyanime.extension.internal.layerEpisodeUpdate
+import nyanime.extension.internal.layerSeasonUpdate
 import tachiyomi.domain.discovery.CatalogAnime
 import tachiyomi.domain.discovery.CatalogSeriesEvidence
 import tachiyomi.domain.discovery.SmartTitleMatcher
@@ -98,16 +100,16 @@ class SmartSourceResolver(
         val source = manager.get(candidate.source)?.takeIf(sources::isEnabled) ?: return null
         val requested = candidate.toSAnime()
         val details = if (candidate.fetchType == FetchType.Seasons) {
-            source.getAnimeSeasonUpdate(requested, emptyList(), fetchDetails = true, fetchSeasons = false).anime
+            source.layerSeasonUpdate(requested, emptyList(), fetchDetails = true, fetchSeasons = false).anime
         } else {
-            source.getAnimeEpisodeUpdate(requested, emptyList(), fetchDetails = true, fetchEpisodes = false).anime
+            source.layerEpisodeUpdate(requested, emptyList(), fetchDetails = true, fetchEpisodes = false).anime
         }.apply {
             url = candidate.url
             if (title.isBlank()) title = candidate.title
         }
         var target = candidate
         if (details.fetch_type == FetchType.Seasons) {
-            val seasons = source.getAnimeSeasonUpdate(
+            val seasons = source.layerSeasonUpdate(
                 details,
                 emptyList(),
                 fetchDetails = false,
@@ -125,7 +127,7 @@ class SmartSourceResolver(
             target = toLocal.await(season.toDomainAnime(candidate.source))
         }
         val resolvedDetails = if (target.id == candidate.id) details else target.toSAnime()
-        val episodes = source.getAnimeEpisodeUpdate(
+        val episodes = source.layerEpisodeUpdate(
             resolvedDetails,
             emptyList(),
             fetchDetails = false,

@@ -47,7 +47,9 @@ class ExtensionStoreRepository private constructor(private val context: Context)
     val progress = mutableProgress.asStateFlow()
     private val packageInstaller = ExtensionPackageInstaller(context, rin)
     private val modes = context.getSharedPreferences("extension_install_modes_v1", Context.MODE_PRIVATE)
-    fun preferredMode(entry: StoreEntry): StoreInstallMode = if (entry.rinRecord != null) {
+    fun preferredMode(entry: StoreEntry): StoreInstallMode = if (entry.privateOnly) {
+        StoreInstallMode.PRIVATE
+    } else if (entry.rinRecord != null) {
         if (entry.rinRecord.isShared) StoreInstallMode.SYSTEM else StoreInstallMode.PRIVATE
     } else if (entry.privatelyInstalled || modes.getString("mode", "SYSTEM") == "PRIVATE") {
         if (entry.canImport) StoreInstallMode.PRIVATE else StoreInstallMode.SYSTEM
@@ -153,8 +155,9 @@ class ExtensionStoreRepository private constructor(private val context: Context)
             r,
         ->
         val local = (a + m + n + d).groupBy { it.packageName }
-        val hosted = r.map { record ->
+        val hosted = r.mapNotNull { record ->
             val other = local[record.packageName].orEmpty().firstOrNull()
+            if (record.privateOnly) return@mapNotNull record.takeIf { other == null || record.installed }
             if (other != null &&
                 (other.installedVersion ?: 0) > (record.installedVersion ?: 0) &&
                 other.installedMetadata?.let { metadata ->
@@ -190,7 +193,8 @@ class ExtensionStoreRepository private constructor(private val context: Context)
                 record
             }
         }
-        ((a + m + n + d).filterNot { it.packageName in hosted.map { it.packageName }.toSet() } + hosted)
+        val hostedSources = hosted.filterNot { it.privateOnly }.map { it.packageName }.toSet()
+        ((a + m + n + d).filterNot { it.packageName in hostedSources } + hosted)
             .sortedWith(compareBy<StoreEntry> { !it.ready }.thenBy { it.name.lowercase() }.thenBy { it.id })
     }.flowOn(Dispatchers.Default)
     val entries = inventory.stateIn(scope, SharingStarted.Eagerly, emptyList())
@@ -222,17 +226,23 @@ class ExtensionStoreRepository private constructor(private val context: Context)
         refreshJob?.join()
         if (failed.value) return@withLock false
         val snapshot = inventory.first()
+        var complete = true
         for (entry in snapshot.filter {
             it.installed &&
                 it.imported &&
                 it.automaticUpdates &&
                 !it.repository.isNullOrBlank() &&
                 it.action == StoreAction.UPDATE
-        }) {
-            val operation = install(entry, StoreInstallMode.PRIVATE) ?: return@withLock false
+        }.sortedBy { it.privateOnly }) {
+            val operation = install(entry, StoreInstallMode.PRIVATE)
+            if (operation == null) {
+                complete = false
+                continue
+            }
             operation.join()
-            if (steps.value[entry.packageName] != InstallStep.Installed) return@withLock false
+            if (steps.value[entry.packageName] != InstallStep.Installed) complete = false
         }
+        if (!complete) return@withLock false
         preferences.edit().putLong("checked", now).apply()
         true
     }
@@ -367,10 +377,13 @@ class ExtensionStoreRepository private constructor(private val context: Context)
         }
     }
 
-    fun catalogueConsent(entry: StoreEntry): String? =
+    fun catalogueConsent(entry: StoreEntry): String? = if (entry.privateOnly) {
+        null
+    } else {
         eu.kanade.domain.extension.ExtensionCatalogueTrust(Injekt.get()).get().firstOrNull {
             it.url == entry.repository
         }?.signer
+    }
 
     fun install(
         entry: StoreEntry,
@@ -383,6 +396,9 @@ class ExtensionStoreRepository private constructor(private val context: Context)
         if (steps.value[packageName] == InstallStep.Installing) return null
         // Resolve again from live state; a stale card cannot bypass update/repository policy.
         val current = entries.value.firstOrNull { it.id == entry.id } ?: return null
+        if (current.privateOnly && (mode != StoreInstallMode.PRIVATE || !current.installed && !individualConsent)) {
+            return null
+        }
         val modeChange = current.installed &&
             current.candidateVersion == current.installedVersion &&
             mode != preferredMode(current) &&
@@ -415,7 +431,7 @@ class ExtensionStoreRepository private constructor(private val context: Context)
                         val done = packageInstaller.install(current, mode, { value ->
                             mutableProgress.update { it + (packageName to value) }
                         }, consent)
-                        modes.edit().putString("mode", mode.name).apply()
+                        if (!current.privateOnly) modes.edit().putString("mode", mode.name).apply()
                         if (!done) {
                             awaitingNews.update {
                                 it +
@@ -449,7 +465,10 @@ class ExtensionStoreRepository private constructor(private val context: Context)
     }
 
     /** Shares the Store coordinator; leaving the import screen does not interrupt activation. */
-    fun installLocal(candidate: eu.kanade.tachiyomi.data.rin.RinLocalImport): Job =
+    fun installLocal(
+        candidate: eu.kanade.tachiyomi.data.rin.RinLocalImport,
+        migratePublisher: Boolean = false,
+    ): Job =
         operations.submit(candidate.record.manifest.packageName) {
             val name = candidate.record.manifest.packageName
             val operation = currentCoroutineContext()[Job]!!
@@ -461,7 +480,7 @@ class ExtensionStoreRepository private constructor(private val context: Context)
             }
             emit(InstallStep.Installing)
             try {
-                rin.activateLocal(candidate)
+                if (migratePublisher) rin.activateMangaPublisherMigration(candidate) else rin.activateLocal(candidate)
                 emit(InstallStep.Installed)
             } catch (cancel: CancellationException) {
                 emit(InstallStep.Idle)

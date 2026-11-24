@@ -24,6 +24,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import logcat.LogPriority
+import nyanime.extension.internal.layerEpisodeUpdate
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.entries.anime.model.Anime
 import tachiyomi.domain.entries.manga.model.Manga
@@ -47,7 +48,12 @@ internal object AutoTrackOnStart {
             val cached = animeHintsCache[anime.id]
             if (cached != null && cached.first > System.currentTimeMillis()) return@withLock cached.second
             val hints = try {
-                withContext(Dispatchers.IO) { SourceTrackingHints.from(source.getAnimeDetails(anime.toSAnime())) }
+                withContext(Dispatchers.IO) {
+                    val details = source.layerEpisodeUpdate(
+                        anime.toSAnime(), emptyList(), fetchDetails = true, fetchEpisodes = false,
+                    ).anime
+                    SourceTrackingHints.from(details)
+                }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {

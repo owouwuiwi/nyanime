@@ -22,9 +22,14 @@ import it.lorelore.nyanime.source.novel.NovelSource
 import it.lorelore.nyanime.source.novel.NovelSourceFactory
 import kotlinx.coroutines.CancellationException
 import logcat.LogPriority
+import nyanime.extension.api.layer.AnimeLayerFactoryV1
+import nyanime.extension.api.layer.MangaLayerFactoryV1
+import nyanime.news.api.layer.NewsLayerFactoryV1
+import nyanime.tv.api.layer.TvLayerFactoryV1
 import tachiyomi.core.common.util.system.logcat
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
+import java.lang.reflect.Modifier
 import java.util.zip.ZipFile
 
 object RinLoader {
@@ -42,6 +47,10 @@ object RinLoader {
             record,
         )
         require(manifest == record.manifest && RinRepository.compatible(manifest, record.format))
+        if (manifest.isLayer) {
+            validateLayer(context, storage.file(record).absolutePath, manifest)
+            return@guard emptyList()
+        }
         val loader = ChildFirstPathClassLoader(
             storage.file(record).absolutePath,
             null,
@@ -132,6 +141,34 @@ object RinLoader {
                     ),
         )
         sources
+    }
+
+    private fun validateLayer(context: Context, path: String, manifest: RinManifest) {
+        val targets = requireNotNull(manifest.mangaLayer).targets
+        if (targets.any { "home" in it.capabilities }) {
+            require(ExtensionPackageInspector.homes(path).isNotEmpty()) { "Layer Home is missing or invalid" }
+        }
+        val factories = targets.filter { it.capabilities.any { capability -> capability != "home" } }
+            .map { it.medium }.distinct()
+        val entryPoint = manifest.entryPoints.singleOrNull()
+        if (entryPoint == null) {
+            require(factories.isEmpty()) { "This layer requires a factory" }
+            return
+        }
+        val loader = ChildFirstPathClassLoader(path, null, context.classLoader)
+        val factory = Class.forName(entryPoint, false, loader)
+        require(Modifier.isPublic(factory.modifiers) && !Modifier.isAbstract(factory.modifiers))
+        factory.getConstructor()
+        for (medium in factories) {
+            val expected = when (medium) {
+                "manga" -> MangaLayerFactoryV1::class.java
+                "anime" -> AnimeLayerFactoryV1::class.java
+                "news" -> NewsLayerFactoryV1::class.java
+                "tv" -> TvLayerFactoryV1::class.java
+                else -> error("Unsupported layer medium")
+            }
+            require(expected.isAssignableFrom(factory)) { "Incompatible layer factory" }
+        }
     }
 
     fun anime(context: Context, record: RinRecord): AnimeLoadResult = loadOrDefault(AnimeLoadResult.Error) {

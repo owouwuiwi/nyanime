@@ -10,6 +10,8 @@ import eu.kanade.tachiyomi.data.track.ContinuityIdentityCache
 import eu.kanade.tachiyomi.data.track.ContinuitySourcePolicy
 import eu.kanade.tachiyomi.data.track.MangaAnimeContinuity
 import eu.kanade.tachiyomi.network.NetworkHelper
+import nyanime.extension.internal.layerEpisodeUpdate
+import nyanime.extension.internal.layerSeasonUpdate
 import tachiyomi.data.discovery.CachedAnimeCatalogRepository
 import tachiyomi.data.discovery.DiscoveryDatabase
 import tachiyomi.data.discovery.SqlDiscoveryStore
@@ -45,13 +47,13 @@ class DiscoveryModule(private val app: Application) : InjektModule {
         addSingletonFactory<AnimeCatalogRepository> { CachedAnimeCatalogRepository(get(), get(), get()) }
         addSingletonFactory<ExtensionHomeManifestReader> { ApkExtensionHomeManifestReader(app) }
         addSingletonFactory<MangaHomeManifestReader> { ApkMangaHomeManifestReader(app) }
-        addSingletonFactory { MangaHomeRegistry(get(), get(), get(), get(), get(), get(), get()) }
+        addSingletonFactory { MangaHomeRegistry(get(), get(), get(), get(), get(), get(), get(), get()) }
         addSingletonFactory { MangaHomeService(get(), get(), get()) }
         addSingletonFactory { ContinuityIdentityCache(get()) }
         addSingletonFactory { ContinuitySourcePolicy(get(), get(), get(), get()) }
         addSingletonFactory { AnimeMangaContinuity(get(), get(), get(), get(), get(), get()) }
         addSingletonFactory { MangaAnimeContinuity(get(), get(), get(), get(), get(), get()) }
-        addSingletonFactory { ExtensionHomeRegistry(get(), get(), get(), get(), get(), get(), get()) }
+        addSingletonFactory { ExtensionHomeRegistry(get(), get(), get(), get(), get(), get(), get(), get()) }
         addSingletonFactory<tachiyomi.domain.discovery.SourceHomeCache> {
             tachiyomi.data.discovery.SqlSourceHomeCache(get(), get())
         }
@@ -62,9 +64,9 @@ class DiscoveryModule(private val app: Application) : InjektModule {
                 val source = requireNotNull(manager.get(anime.source))
                 val requested = anime.toSAnime()
                 val details = if (anime.fetchType == FetchType.Seasons) {
-                    source.getAnimeSeasonUpdate(requested, emptyList(), fetchDetails = true, fetchSeasons = false).anime
+                    source.layerSeasonUpdate(requested, emptyList(), fetchDetails = true, fetchSeasons = false).anime
                 } else {
-                    source.getAnimeEpisodeUpdate(
+                    source.layerEpisodeUpdate(
                         requested,
                         emptyList(),
                         fetchDetails = true,

@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.data.rin
 
+import eu.kanade.tachiyomi.data.layer.MangaLayerDeclaration
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -34,9 +35,13 @@ data class RinManifest(
     val minHostVersionName: String? = null,
     val maxHostVersionName: String? = null,
     val optionalFactories: List<String> = emptyList(),
+    val mangaLayer: MangaLayerDeclaration? = null,
 ) {
     companion object {
-        val supportedMedia: Set<String> = setOf("anime", "manga", "addon", "guide", "tv", "news", "novel")
+        const val MANGA_LAYER = "manga-layer"
+        const val LAYER = "layer"
+        val supportedMedia: Set<String> = setOf("anime", "manga", "addon", "guide", "tv", "news", "novel", MANGA_LAYER, LAYER)
+        private val factoryName = Regex("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_$]*)+")
     }
 
     val hostVersions get() = eu.kanade.domain.extension.AddonHostVersions(
@@ -47,7 +52,51 @@ data class RinManifest(
     )
     val knownSourceIds: Set<Long> get() = (sources + dormantSources).map { it.id }.toSet()
 
+    val isLayer get() = medium == MANGA_LAYER || medium == LAYER
+
+    fun validMangaLayer(): Boolean = isLayer &&
+        schema == 2 &&
+        extensionLib == 1.0 &&
+        hostVersions.valid &&
+        mangaLayer?.let { declaration ->
+            declaration.api == 1 &&
+                declaration.valid() &&
+                declaration.targets.none { it.packageName == packageName } &&
+                (medium != MANGA_LAYER || declaration.targets.all { it.medium == "manga" })
+        } == true &&
+        sources.isEmpty() &&
+        dormantSources.isEmpty() &&
+        optionalFactories.isEmpty() &&
+        hashes.isEmpty() &&
+        addon == null &&
+        guide == null &&
+        !torrent &&
+        entryPoints.size <= 1 &&
+        entryPoints.all { it.matches(factoryName) }
+
+    fun preservesMangaLayerScope(previous: RinManifest): Boolean = validMangaLayer() &&
+        previous.validMangaLayer() &&
+        medium == previous.medium &&
+        isWithinLayerPermissions(previous) &&
+        (entryPoints.isEmpty() || previous.entryPoints.isNotEmpty()) &&
+        nsfw == previous.nsfw
+
+    private fun isWithinLayerPermissions(previous: RinManifest): Boolean {
+        val current = layerPermissions()
+        val approved = previous.layerPermissions()
+        return current.keys == approved.keys && current.all { (base, capabilities) ->
+            approved.getValue(base).containsAll(capabilities)
+        }
+    }
+
+    private data class LayerBase(val medium: String, val packageName: String, val sourceId: Long, val signer: String)
+
+    private fun layerPermissions(): Map<LayerBase, Set<String>> = requireNotNull(mangaLayer).targets.associate {
+        LayerBase(it.medium, it.packageName, it.sourceId, it.signer) to it.capabilities
+    }
+
     fun validSourceIdentities(): Boolean {
+        if (isLayer) return validMangaLayer()
         if (medium == "news") return sources.isEmpty() && dormantSources.isEmpty()
         if (medium == "guide") return sources.isEmpty() && dormantSources.isEmpty() && guide?.valid() == true
         if (medium == "addon") return sources.isEmpty() && dormantSources.isEmpty() && addon?.valid() == true
@@ -62,7 +111,7 @@ data class RinManifest(
         validSourceIdentities() &&
             (
                 if (medium in
-                    setOf("addon", "guide", "news")
+                    setOf("addon", "guide", "news", MANGA_LAYER, LAYER)
                 ) {
                     ids.isEmpty()
                 } else {
@@ -187,6 +236,7 @@ object RinArchive {
             )
             require(manifest.versionCode > 0 && manifest.versionName.length in 1..80 && manifest.name.length in 1..200)
             require(manifest.medium in RinManifest.supportedMedia && manifest.hostVersions.valid)
+            require(manifest.mangaLayer == null)
             require(manifest.medium !in setOf("addon", "guide", "tv") || manifest.entryPoints.size == 1)
             require(manifest.entryPoints.isNotEmpty() && manifest.entryPoints.size <= 32)
             require(manifest.entryPoints.all { packagePattern.matches(it) })

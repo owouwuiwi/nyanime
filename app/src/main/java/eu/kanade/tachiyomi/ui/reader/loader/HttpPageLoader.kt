@@ -1,5 +1,7 @@
 package eu.kanade.tachiyomi.ui.reader.loader
 
+import nyanime.extension.internal.MangaLayerReading
+
 import aniyomi.util.DataSaver
 import aniyomi.util.DataSaver.Companion.getImage
 import eu.kanade.domain.source.service.SourcePreferences
@@ -50,15 +52,18 @@ internal class HttpPageLoader(
     private var activePage = chapter.requestedPage
     private val visible = mutableMapOf<Int, Int>()
     private val dataSaver = DataSaver(source, sourcePreferences)
+    private val reading = MangaLayerReading(source)
 
     override var isLocal = false
 
     override suspend fun getPages(): List<ReaderPage> {
-        val pages = try {
-            chapterCache.getPageListFromCache(chapter.chapter.toDomainChapter()!!)
-        } catch (error: Exception) {
-            if (error is CancellationException) throw error
-            source.getPageList(chapter.chapter)
+        val pages = reading.pages(chapter.chapter) {
+            try {
+                chapterCache.getPageListFromCache(chapter.chapter.toDomainChapter()!!)
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                source.getPageList(chapter.chapter)
+            }
         }
         return pages.mapIndexed { index, page ->
             ReaderPage(index, page.url, page.imageUrl).also { it.chapter = chapter }
@@ -172,13 +177,13 @@ internal class HttpPageLoader(
         try {
             if (page.imageUrl.isNullOrEmpty()) {
                 page.status = Page.State.LOAD_PAGE
-                page.imageUrl = source.getImageUrl(page)
+                page.imageUrl = reading.imageUrl(page)
             }
             val imageUrl = requireNotNull(page.imageUrl)
             budget.image(imageUrl) {
                 if (force || !chapterCache.isImageInCache(imageUrl)) {
                     page.status = Page.State.DOWNLOAD_IMAGE
-                    source.getImage(page, dataSaver).use { response ->
+                    source.getImage(page, dataSaver, reading).use { response ->
                         cacheImage(imageUrl, response)
                     }
                 }
@@ -224,6 +229,7 @@ internal class HttpPageLoader(
             downloads.clear()
             visible.clear()
         }
+        if (!reading.usesOriginalPages) return
         chapter.pages?.let { pages ->
             launchIO {
                 try {

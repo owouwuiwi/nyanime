@@ -357,7 +357,6 @@ extensions.configure<com.android.build.api.dsl.ApplicationExtension>("android") 
                 "libswscale",
                 "libtorrserver",
                 "libxml2",
-                "libnyanime_source_exchange",
                 "libmediapipe_tasks_jni",
                 "libimage_processing_util_jni",
                 "libsurface_util_jni",
@@ -462,13 +461,11 @@ val nyanimePreviewArtwork by tasks.registering(Jar::class) {
 dependencies {
     implementation(projects.core.attention)
     implementation(projects.core.sourceStudio)
-    implementation(projects.core.sourceExchange)
     implementation(projects.core.syncplay)
     implementation("com.google.android.gms:play-services-auth:22.0.0")
     implementation(libs.androidx.webkit)
     implementation(androidx.camera.view)
     implementation(project(":presentation-player"))
-    implementation(project(":feature:secret-game"))
     add("screenshotTestImplementation", files(nyanimePreviewArtwork))
     add("screenshotTestImplementation", "com.android.tools.screenshot:screenshot-validation-api:0.0.1-alpha15")
     add("screenshotTestImplementation", "io.coil-kt.coil3:coil-test:3.1.0")

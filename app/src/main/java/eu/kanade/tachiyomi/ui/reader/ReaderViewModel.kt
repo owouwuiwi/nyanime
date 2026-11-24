@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.ui.reader
 
+import nyanime.extension.internal.layerChapterUrl
 import android.app.Application
 import android.net.Uri
 import androidx.annotation.IntRange
@@ -792,7 +793,7 @@ class ReaderViewModel @JvmOverloads constructor(
         val source = getSource() ?: return null
 
         return try {
-            source.getChapterUrl(sChapter)
+            source.layerChapterUrl(sChapter)
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, e)
             null

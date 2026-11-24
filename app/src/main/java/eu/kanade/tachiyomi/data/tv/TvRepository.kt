@@ -27,20 +27,70 @@ import nyanime.tv.api.TvRules
 import nyanime.tv.api.TvSource
 import nyanime.tv.api.TvSourceCache
 import java.io.IOException
+import java.util.IdentityHashMap
 import java.util.UUID
 
-data class TvRegistration(val source: TvSource, val cache: TvSourceCache, val packageName: String = "")
+data class TvRegistration(
+    val source: TvSource,
+    val cache: TvSourceCache,
+    val packageName: String = "",
+    val versionCode: Long = 0,
+    val signers: Set<String> = emptySet(),
+    val signerHistory: Set<String> = emptySet(),
+    internal val layerRevisions: Map<String, String> = emptyMap(),
+) {
+    internal val catalogueCache = hostCache("catalog")
+    internal val guideCache = hostCache("guide")
+
+    private fun hostCache(capability: String): TvSourceCache = layerRevisions[capability]?.let { revision ->
+        TvLayerCache(cache, "$packageName:$versionCode:${source.id}:$capability:$revision")
+    } ?: cache
+}
 
 class TvRegistry {
+    private data class Rendered(val base: TvRegistration, val effective: TvRegistration)
+    private val mutableOriginals = MutableStateFlow<Map<Long, TvRegistration>>(emptyMap())
+    val originals = mutableOriginals.asStateFlow()
     private val mutable = MutableStateFlow<Map<Long, TvRegistration>>(emptyMap())
     private val mutableFailures = MutableStateFlow<Set<String>>(emptySet())
     val state = mutable.asStateFlow()
     val failures = mutableFailures.asStateFlow()
+    private var layerBindings: Map<TvSource, Map<String, TvLayerBinding>> = emptyMap()
+    private var rendered = emptyMap<Long, Rendered>()
 
+    @Synchronized
     fun replace(sources: List<TvRegistration>, failures: Set<String> = emptySet()) {
         validate(sources)
         mutableFailures.value = failures
-        mutable.value = sources.associateBy { it.source.id }
+        mutableOriginals.value = sources.associateBy { it.source.id }
+        publishEffective()
+    }
+
+    @Synchronized
+    internal fun publishLayers(bindings: Map<TvSource, Map<String, TvLayerBinding>>) {
+        layerBindings = IdentityHashMap<TvSource, Map<String, TvLayerBinding>>().apply {
+            mutableOriginals.value.values.forEach { base ->
+                bindings[base.source]?.let { put(base.source, it) }
+            }
+        }
+        publishEffective()
+    }
+
+    private fun publishEffective() {
+        rendered = mutableOriginals.value.mapValues { (id, base) ->
+            val bindings = layerBindings[base.source].orEmpty().filterValues { !it.incompatible }
+            val revisions = bindings.mapValues { it.value.revision }
+            val previous = rendered[id]
+            when {
+                bindings.isEmpty() -> Rendered(base, base)
+                previous != null && previous.base === base && previous.effective.layerRevisions == revisions -> previous
+                else -> Rendered(
+                    base,
+                    base.copy(source = LayeredTvSource(base.source, bindings), layerRevisions = revisions),
+                )
+            }
+        }
+        mutable.value = rendered.mapValues { it.value.effective }
     }
 
     fun validate(sources: List<TvRegistration>) {
@@ -86,7 +136,7 @@ class TvRepository(
     /** Used by empty search exploration: read local data without starting a catalogue request. */
     suspend fun cachedCatalogue(sourceId: Long, request: TvCatalogueRequest): TvResult<TvCatalogue> = withContext(io) {
         val registration = registry.state.value[sourceId] ?: return@withContext TvResult(error = true)
-        val cached = readCatalogue(registration.cache, catalogueKey(request), sourceId)
+        val cached = readCatalogue(registration.catalogueCache, catalogueKey(request), sourceId)
         checkCurrent(sourceId, registration)
         TvResult(
             cached?.value,
@@ -106,7 +156,8 @@ class TvRepository(
             return@flow
         }
         val key = catalogueKey(request)
-        val cached = withContext(io) { readCatalogue(registration.cache, key, sourceId) }
+        val cache = registration.catalogueCache
+        val cached = withContext(io) { readCatalogue(cache, key, sourceId) }
         checkCurrent(sourceId, registration)
         val fresh = !request.refresh && cached != null && now() - cached.checkedAt in 0 until TvRules.DAY
         emit(
@@ -122,14 +173,15 @@ class TvRepository(
         val result = try {
             val next = withContext(io) {
                 gate.run("$sourceId:$key") {
-                    val latest = readCatalogue(registration.cache, key, sourceId)
+                    checkCurrent(sourceId, registration)
+                    val latest = readCatalogue(cache, key, sourceId)
                     if (latest != null && latest.revision != cached?.revision) return@run latest
                     val page = withTimeout(45_000) { registration.source.catalogue(request) }
                     validateCatalogue(page, sourceId)
                     require(TvRules.valid(registration.source.capabilities))
                     checkCurrent(sourceId, registration)
                     CachedCatalogue(page, now(), UUID.randomUUID().toString()).also {
-                        registration.cache.put(key, TvCacheEntry(json.encodeToString(it), it.checkedAt))
+                        cache.put(key, TvCacheEntry(json.encodeToString(it), it.checkedAt))
                     }
                 }
             }
@@ -161,9 +213,10 @@ class TvRepository(
             emit(TvGuideResult(TvGuide(emptyList(), failed = refs.toSet())))
             return@flow
         }
+        val cache = registration.guideCache
         val cached = withContext(io) {
             refs.mapNotNull { ref ->
-                readGuide(registration.cache, request, ref)?.let {
+                readGuide(cache, request, ref)?.let {
                     ref to
                         it
                 }
@@ -196,7 +249,7 @@ class TvRepository(
                     gate.run("$sourceId:guide:${request.startUtc}:${request.endUtc}") {
                         checkCurrent(sourceId, registration)
                         val latest = batch.mapNotNull { ref ->
-                            readGuide(registration.cache, request, ref)?.let {
+                            readGuide(cache, request, ref)?.let {
                                 ref to
                                     it
                             }
@@ -223,7 +276,7 @@ class TvRepository(
                             )
                         }
                         successful.forEach { (ref, value) ->
-                            registration.cache.put(
+                            cache.put(
                                 guideKey(request, ref),
                                 TvCacheEntry(json.encodeToString(value), completedAt),
                             )
@@ -264,9 +317,11 @@ class TvRepository(
                 unavailable += selected
                 continue
             }
+            val cache = registration.catalogueCache
             gate.run("$sourceId:personal-channels") {
+                checkCurrent(sourceId, registration)
                 val cached = selected.mapNotNull { ref ->
-                    registration.cache.get(channelKey(ref))?.let { entry ->
+                    cache.get(channelKey(ref))?.let { entry ->
                         runCatching { json.decodeFromString<CachedChannel>(entry.content) }
                             .getOrNull()?.takeIf { it.value.ref == ref && TvRules.valid(it.value) && it.checkedAt > 0 }
                             ?.let { ref to it }
@@ -285,7 +340,7 @@ class TvRepository(
                         val checkedAt = now()
                         lookup.channels.forEach { channel ->
                             found[channel.ref] = channel
-                            registration.cache.put(
+                            cache.put(
                                 channelKey(channel.ref),
                                 TvCacheEntry(json.encodeToString(CachedChannel(channel, checkedAt)), checkedAt),
                             )

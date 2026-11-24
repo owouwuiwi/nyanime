@@ -63,6 +63,8 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import mihon.presentation.core.util.collectAsLazyPagingItems
+import nyanime.extension.internal.layerHomeUrl
+import nyanime.extension.internal.layerSupportsLatest
 import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.domain.source.anime.model.StubAnimeSource
 import tachiyomi.i18n.MR
@@ -144,7 +146,7 @@ data class BrowseAnimeSourceScreen(
             val source = screenModel.source as? AnimeHttpSource ?: return@f
             navigator.push(
                 WebViewScreen(
-                    url = source.getHomeUrl(),
+                    url = source.layerHomeUrl(),
                     initialTitle = source.name,
                     sourceId = source.id,
                 ),
@@ -152,7 +154,7 @@ data class BrowseAnimeSourceScreen(
         }
 
         LaunchedEffect(screenModel.source) {
-            assistUrl = (screenModel.source as? AnimeHttpSource)?.getHomeUrl()
+            assistUrl = (screenModel.source as? AnimeHttpSource)?.layerHomeUrl()
         }
 
         var topBarHeight by remember { mutableIntStateOf(0) }
@@ -211,7 +213,7 @@ data class BrowseAnimeSourceScreen(
                                 Text(text = stringResource(MR.strings.popular))
                             },
                         )
-                        if (screenModel.source.supportsLatest) {
+                        if (screenModel.source.layerSupportsLatest()) {
                             FilterChip(
                                 selected = state.listing == Listing.Latest,
                                 onClick = {

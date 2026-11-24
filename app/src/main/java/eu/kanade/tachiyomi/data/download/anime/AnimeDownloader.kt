@@ -58,6 +58,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withTimeoutOrNull
 import logcat.LogPriority
+import nyanime.extension.internal.layerHttpServer
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.storage.extension
@@ -515,7 +516,7 @@ class AnimeDownloader(
 
                         // Start and set http server if needed
                         if (video.usesHttpServer()) {
-                            httpServer = download.source.createHttpServer()
+                            httpServer = download.source.layerHttpServer(video)
                             httpServer?.start()
                             download.video = download.video?.copyHttpServer(httpServer?.listeningPort ?: 0)
                         }

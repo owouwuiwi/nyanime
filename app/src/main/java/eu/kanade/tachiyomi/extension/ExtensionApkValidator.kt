@@ -17,6 +17,7 @@ object ExtensionApkValidator {
     enum class Kind(val feature: String) {
         ANIME("tachiyomi.animeextension"),
         MANGA("tachiyomi.extension"),
+        MANGA_LAYER(ExtensionPackageArchive.MANGA_LAYER_FEATURE),
         NEWS("nyanime.newsextension"),
         NOVEL("nyanime.novelextension"),
         TV("nyanime.tvextension"),
@@ -56,13 +57,17 @@ object ExtensionApkValidator {
         require(info.packageName == expected.packageName)
         require(PackageInfoCompat.getLongVersionCode(info) == expected.versionCode)
         val feature = expected.kind.feature
-        require(info.reqFeatures?.any { it.name == feature } == true)
+        require(info.reqFeatures?.any {
+            it.name == feature || expected.kind == Kind.MANGA_LAYER && it.name == ExtensionPackageArchive.LAYER_FEATURE
+        } == true)
         val api = if (expected.kind == Kind.ADDON) {
             info.applicationInfo?.metaData?.getInt("nyanime.addon.api")?.takeIf { it > 0 }?.toDouble()
         } else if (expected.kind in setOf(Kind.TV, Kind.GUIDE, Kind.NOVEL)) {
             info.applicationInfo?.metaData?.getInt("nyanime.${expected.kind.name.lowercase()}.api")?.takeIf {
                 it > 0
             }?.toDouble()
+        } else if (expected.kind == Kind.MANGA_LAYER) {
+            ExtensionPackageArchive.inspect(context, file).manifest.extensionLib
         } else if (expected.kind == Kind.NEWS) {
             info.applicationInfo?.metaData?.getInt("nyanime.news.api")?.takeIf { it > 0 }?.toDouble()
         } else if (expected.kind == Kind.ANIME) {

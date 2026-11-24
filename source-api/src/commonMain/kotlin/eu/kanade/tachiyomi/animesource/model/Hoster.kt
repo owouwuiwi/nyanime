@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import mihon.core.common.extensions.EMPTY
+import nyanime.extension.internal.AnimeLayerPlayback
 
 open class Hoster(
     val hosterUrl: String = "",
@@ -15,6 +16,12 @@ open class Hoster(
     val lazy: Boolean = false,
     val memo: JsonObject = JsonObject.EMPTY,
 ) {
+    @Transient
+    internal var layerPlayback: AnimeLayerPlayback? = null
+
+    @Transient
+    internal var layerTransfer: String? = null
+
     @Transient
     @Volatile
     var status: State = State.IDLE
@@ -94,6 +101,8 @@ data class SerializableHoster(
     val lazy: Boolean = false,
     val memo: JsonObject = JsonObject.EMPTY,
 ) {
+    internal var layerTransfer: String? = null
+
     companion object {
         fun List<Hoster>.serialize(): String =
             Json.encodeToString(
@@ -105,7 +114,10 @@ data class SerializableHoster(
                         host.internalData,
                         host.lazy,
                         host.memo,
-                    )
+                    ).apply {
+                        layerTransfer = host.layerPlayback?.binding?.playbackToken
+                            ?: host.videoList?.firstNotNullOfOrNull { it.layerPlayback?.binding?.playbackToken }
+                    }
                 },
             )
 
@@ -119,7 +131,7 @@ data class SerializableHoster(
                         sHost.internalData,
                         sHost.lazy,
                         sHost.memo,
-                    )
+                    ).also { it.layerTransfer = sHost.layerTransfer }
                 }
     }
 }

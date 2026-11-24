@@ -13,11 +13,6 @@
       "sha256": "1b3cb47f9c287b8b7b88eda45bb733c2f8c829410b146a25f42d80bd19900139",
       "url": "https://github.com/owouwuiwi/nyanime/releases/download/v0.47.0.2/Nyanime-Native-0.47.0.2-webrtc.tar.gz"
     },
-    "Nyanime-Native-0.49.0.0-exchange.tar.gz": {
-      "sha256": "9ec78db7be90728de5614f1462e9a002e9f33c3c06a271db32280a654cb404f3",
-      "url": "https://github.com/owouwuiwi/nyanime/releases/download/v0.49.0.0/Nyanime-Native-0.49.0.0-exchange.tar.gz",
-      "privateMirrorRelease": "native-materials-0.49.0.0"
-    },
     "Nyanime-Native-0.49.0.0-camera-inference.tar.gz": {
       "sha256": "6c84f9c3cf5aa6e0f2ce434404f04520d51f606dfe1075fadb66b87cb195d3da",
       "url": "https://github.com/owouwuiwi/nyanime/releases/download/v0.49.0.0/Nyanime-Native-0.49.0.0-camera-inference.tar.gz",
@@ -344,23 +339,6 @@
       "requiredJavaClasses": [
         "com.google.mediapipe.framework.Packet",
         "com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarker"
-      ]
-    },
-    "source-exchange": {
-      "license": "Apache-2.0 / MIT with component-specific Cargo dependency terms retained",
-      "sourceIdentity": "core/source-exchange/native/android/provenance.json; exact source input hashes, Cargo.lock and vendored closure; Lightning revision 6960642a46f549c53d53abef3f2db7327857e488",
-      "buildRecipe": "tools/source-exchange/build-android.sh; NDK r27c 27.2.12479018, Rust 1.99.1, API 26, four ABIs; package_android.py verifies ELF and 16 KiB alignment.",
-      "sourcePackages": [
-        "Nyanime-Native-0.49.0.0-exchange.tar.gz"
-      ],
-      "libraries": {
-        "lib/arm64-v8a/libnyanime_source_exchange.so": "b2927eb48f894d9b374f7c2a33e3a5206d8e9dcece2dcb6d9294f36940de2966",
-        "lib/armeabi-v7a/libnyanime_source_exchange.so": "83a4eb6df98bc00371e6e1c10dde6cf31138b1fe02f74f7689050c22df465690",
-        "lib/x86/libnyanime_source_exchange.so": "9dddd2498782e15bbbc3b5969dbf531daa1898c3c0d568621af2b70a914b0bbe",
-        "lib/x86_64/libnyanime_source_exchange.so": "3e4cc14ca95d95b45f861d47e8b03ffdb7f00e94b8b08a0a60ec57337f1f025b"
-      },
-      "requiredJavaClasses": [
-        "org.rustls.platformverifier.CertificateVerifier"
       ]
     },
     "reader-quality": {

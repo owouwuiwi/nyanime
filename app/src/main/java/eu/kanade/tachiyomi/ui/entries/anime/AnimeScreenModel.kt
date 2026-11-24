@@ -82,6 +82,7 @@ import kotlinx.serialization.json.JsonObject
 import logcat.LogPriority
 import mihon.domain.items.episode.interactor.FilterEpisodesForDownload
 import mihon.domain.source.interactor.UpdateAnimeFromRemote
+import nyanime.extension.internal.layerSupportsRelated
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.preference.CheckboxState
 import tachiyomi.core.common.preference.TriState
@@ -1769,7 +1770,7 @@ class AnimeScreenModel(
 
     fun syncRelatedAnime(forceRefresh: Boolean = false) {
         val state = successState ?: return
-        if (!state.source.supportsRelatedAnime) return
+        if (!state.source.layerSupportsRelated()) return
 
         screenModelScope.launchIO {
             updateSuccessState { it.copy(isLoadingRelatedAnime = true) }

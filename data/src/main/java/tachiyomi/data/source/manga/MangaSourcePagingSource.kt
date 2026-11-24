@@ -1,5 +1,8 @@
 package tachiyomi.data.source.manga
 
+import nyanime.extension.internal.layerLatest
+import nyanime.extension.internal.layerPopular
+import nyanime.extension.internal.layerSearch
 import androidx.paging.PagingState
 import eu.kanade.tachiyomi.source.CatalogueSource
 import eu.kanade.tachiyomi.source.model.FilterList
@@ -21,14 +24,14 @@ class SourceSearchPagingSource(
         source,
     ) {
     override suspend fun requestNextPage(currentPage: Int): MangasPage {
-        val active = session ?: return source.getSearchManga(currentPage, query, filters)
+        val active = session ?: return source.layerSearch(currentPage, query, filters)
         val page = active.search(
             object : tachiyomi.domain.search.ExtensionSearchAdapter<SManga> {
                 override val key = source.id.toString()
                 override fun identity(item: SManga) = item.url
                 override fun title(item: SManga) = item.searchTitle(source.id)
                 override suspend fun fetch(page: Int, query: String): tachiyomi.domain.search.SearchPage<SManga> {
-                    val result = source.getSearchManga(page, query, filters)
+                    val result = source.layerSearch(page, query, filters)
                     return tachiyomi.domain.search.SearchPage(result.mangas, result.hasNextPage)
                 }
             },
@@ -40,13 +43,13 @@ class SourceSearchPagingSource(
 
 class SourcePopularPagingSource(source: CatalogueSource) : SourcePagingSource(source) {
     override suspend fun requestNextPage(currentPage: Int): MangasPage {
-        return source.getPopularManga(currentPage)
+        return source.layerPopular(currentPage)
     }
 }
 
 class SourceLatestPagingSource(source: CatalogueSource) : SourcePagingSource(source) {
     override suspend fun requestNextPage(currentPage: Int): MangasPage {
-        return source.getLatestUpdates(currentPage)
+        return source.layerLatest(currentPage)
     }
 }
 

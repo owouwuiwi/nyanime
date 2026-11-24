@@ -2,6 +2,8 @@ package eu.kanade.domain.entries.anime.interactor
 
 import eu.kanade.domain.entries.anime.model.toDomainAnime
 import eu.kanade.domain.entries.anime.model.toSAnime
+import nyanime.extension.internal.layerRelated
+import nyanime.extension.internal.layerSupportsRelated
 import tachiyomi.domain.entries.anime.interactor.NetworkToLocalAnime
 import tachiyomi.domain.entries.anime.model.Anime
 import tachiyomi.domain.entries.anime.repository.AnimeRelationRepository
@@ -16,7 +18,7 @@ class SyncRelatedAnimeWithSource(
 ) {
 
     suspend fun await(anime: Anime, forceRefresh: Boolean = false) {
-        val source = sourceManager.get(anime.source)?.takeIf { it.supportsRelatedAnime } ?: return
+        val source = sourceManager.get(anime.source)?.takeIf { it.layerSupportsRelated() } ?: return
 
         val now = Instant.now().toEpochMilli()
         if (!forceRefresh) {
@@ -26,7 +28,7 @@ class SyncRelatedAnimeWithSource(
 
         val received = mutableListOf<Pair<String, List<eu.kanade.tachiyomi.animesource.model.SAnime>>>()
         var fetchError: Throwable? = null
-        source.getRelatedAnimeList(
+        source.layerRelated(
             anime = anime.toSAnime(),
             exceptionHandler = { fetchError = it },
             pushResults = { group, _ -> received += group },

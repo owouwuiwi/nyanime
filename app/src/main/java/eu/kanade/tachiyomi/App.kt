@@ -100,7 +100,6 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
         }
         if (recoveryProcess?.startsWith("$packageName:recovery") == true) return
         if (recoveryProcess?.startsWith("$packageName:migration") == true) return
-        if (recoveryProcess == "$packageName:source_exchange") return
         if (recoveryProcess == "$packageName:reader_quality") return
         if (eu.kanade.tachiyomi.data.migration.MigrationState.frozen(this)) {
             migrationStartupDeferred = true

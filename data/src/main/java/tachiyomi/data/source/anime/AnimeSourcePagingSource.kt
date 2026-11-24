@@ -6,6 +6,9 @@ import eu.kanade.tachiyomi.animesource.model.AnimeFilterList
 import eu.kanade.tachiyomi.animesource.model.AnimesPage
 import eu.kanade.tachiyomi.animesource.model.SAnime
 import kotlinx.coroutines.CancellationException
+import nyanime.extension.internal.layerLatest
+import nyanime.extension.internal.layerPopular
+import nyanime.extension.internal.layerSearch
 import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.domain.items.episode.model.NoEpisodesException
 import tachiyomi.domain.search.searchTitle
@@ -18,14 +21,14 @@ class AnimeSourceSearchPagingSource(
     private val session: tachiyomi.domain.search.SearchSession? = null,
 ) : AnimeSourcePagingSource(source) {
     override suspend fun requestNextPage(currentPage: Int): AnimesPage {
-        val active = session ?: return source.getSearchAnime(currentPage, query, filters)
+        val active = session ?: return source.layerSearch(currentPage, query, filters)
         val page = active.search(
             object : tachiyomi.domain.search.ExtensionSearchAdapter<SAnime> {
                 override val key = source.id.toString()
                 override fun identity(item: SAnime) = item.url
                 override fun title(item: SAnime) = item.searchTitle(source.id)
                 override suspend fun fetch(page: Int, query: String): tachiyomi.domain.search.SearchPage<SAnime> {
-                    val result = source.getSearchAnime(page, query, filters)
+                    val result = source.layerSearch(page, query, filters)
                     return tachiyomi.domain.search.SearchPage(result.animes, result.hasNextPage)
                 }
             },
@@ -37,13 +40,13 @@ class AnimeSourceSearchPagingSource(
 
 class AnimeSourcePopularPagingSource(source: AnimeSource) : AnimeSourcePagingSource(source) {
     override suspend fun requestNextPage(currentPage: Int): AnimesPage {
-        return source.getPopularAnime(currentPage)
+        return source.layerPopular(currentPage)
     }
 }
 
 class AnimeSourceLatestPagingSource(source: AnimeSource) : AnimeSourcePagingSource(source) {
     override suspend fun requestNextPage(currentPage: Int): AnimesPage {
-        return source.getLatestUpdates(currentPage)
+        return source.layerLatest(currentPage)
     }
 }
 

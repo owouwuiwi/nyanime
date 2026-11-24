@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.ui.browse.manga.source.browse
 
+import nyanime.extension.internal.layerFilters
 import android.content.res.Configuration
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.runtime.Immutable
@@ -93,11 +94,11 @@ class BrowseMangaSourceScreenModel(
             mutableState.update {
                 var query: String? = null
                 var listing = it.listing
-                val displayFilters = source.getFilterList()
+                val displayFilters = source.layerFilters()
 
                 if (listing is Listing.Search) {
                     query = listing.query
-                    listing = Listing.Search(query, source.getFilterList())
+                    listing = Listing.Search(query, source.layerFilters())
                 }
 
                 if (initialSelections.isNotEmpty()) {
@@ -106,7 +107,7 @@ class BrowseMangaSourceScreenModel(
                         "Archivio",
                         initialSelections,
                     )
-                    val filters = source.getFilterList()
+                    val filters = source.layerFilters()
                     if (eu.kanade.tachiyomi.data.discovery.MangaHomeFilters.supports(filters, section)) {
                         listing =
                             Listing.Search(
@@ -186,7 +187,7 @@ class BrowseMangaSourceScreenModel(
     fun resetFilters() {
         if (source !is CatalogueSource) return
 
-        mutableState.update { it.copy(filters = source.getFilterList()) }
+        mutableState.update { it.copy(filters = source.layerFilters()) }
     }
 
     fun setListing(listing: Listing) {
@@ -208,7 +209,7 @@ class BrowseMangaSourceScreenModel(
         if (source !is CatalogueSource) return
 
         val input = state.value.listing as? Listing.Search
-            ?: Listing.Search(query = null, filters = source.getFilterList())
+            ?: Listing.Search(query = null, filters = source.layerFilters())
 
         mutableState.update {
             it.copy(
@@ -225,7 +226,7 @@ class BrowseMangaSourceScreenModel(
     fun searchGenre(genreName: String) {
         if (source !is CatalogueSource) return
 
-        val defaultFilters = source.getFilterList()
+        val defaultFilters = source.layerFilters()
         var genreExists = false
 
         filter@ for (sourceFilter in defaultFilters) {

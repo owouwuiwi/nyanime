@@ -25,6 +25,7 @@ import kotlinx.coroutines.withTimeout
 import mihon.domain.source.interactor.UpdateAnimeFromRemote
 import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.domain.entries.anime.interactor.GetAnimeByUrlAndSourceId
+import nyanime.extension.internal.layerEpisodeUpdate
 import tachiyomi.domain.entries.anime.interactor.NetworkToLocalAnime
 import tachiyomi.domain.entries.manga.interactor.GetMangaByUrlAndSourceId
 import tachiyomi.domain.entries.manga.interactor.NetworkToLocalManga
@@ -78,7 +79,9 @@ class SharedContentScreenModel(private val encoded: String) : StateScreenModel<S
                                         url = link.entryUrl
                                         title = link.title
                                     }
-                                    val details = source.getAnimeDetails(reference).apply {
+                                    val details = source.layerEpisodeUpdate(
+                                        reference, emptyList(), fetchDetails = true, fetchEpisodes = false,
+                                    ).anime.apply {
                                         url = link.entryUrl
                                         if (runCatching { title }.getOrNull().isNullOrBlank()) title = link.title
                                         initialized = true

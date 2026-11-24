@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.data.download.manga
 
+import nyanime.extension.internal.layerChapterUrl
 import android.content.Context
 import aniyomi.util.DataSaver
 import aniyomi.util.DataSaver.Companion.getImage
@@ -398,7 +399,7 @@ class MangaDownloader(
             val pageList = download.pages ?: run {
                 // Otherwise, pull page list from network and add them to download object
                 val pages = TransferCoordinator.transfer(download.source.id) {
-                    download.source.getPageList(download.chapter.toSChapter())
+                    download.reading.pages(download.chapter.toSChapter())
                 }
 
                 if (pages.isEmpty()) {
@@ -444,7 +445,7 @@ class MangaDownloader(
                             try {
                                 page.imageUrl =
                                     TransferCoordinator.transfer(download.source.id) {
-                                        download.source.getImageUrl(page)
+                                        download.reading.imageUrl(page)
                                     }
                             } catch (e: Throwable) {
                                 if (e is CancellationException) throw e
@@ -580,7 +581,7 @@ class MangaDownloader(
                 tmpDir.createFile("$filename.tmp") ?: throw VideoStorageException("Cartella download non accessibile.")
             try {
                 MangaImageTransfer(source.id, throttler).download(
-                    response = { source.getImage(page, dataSaver) },
+                    response = { source.getImage(page, dataSaver, download.reading) },
                     output = { file.openOutputStream() },
                     availableBytes = { DiskUtil.getAvailableStorageSpace(tmpDir) },
                     bytesReceived = { download.transfer.addBytes(it) },
@@ -736,7 +737,7 @@ class MangaDownloader(
             .mapNotNull { track ->
                 track.remoteUrl.takeUnless { url -> url.isBlank() }?.trim()
             }
-            .plus(source.getChapterUrl(chapter.toSChapter()).trim())
+            .plus(source.layerChapterUrl(chapter.toSChapter()).trim())
             .distinct()
 
         val comicInfo = getComicInfo(

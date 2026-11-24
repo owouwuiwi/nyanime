@@ -153,10 +153,9 @@ cambia la licenza dei singoli file: [provenienza e perimetro](player-presentatio
 Le due attribuzioni e i relativi testi sono consultabili offline. I motori FLOW,
 YouTube e MELD, i rispettivi client e submoduli non fanno parte di questa versione.
 
-L’archivio dell’app comprende il codice modificato del renderer, avvisi originali,
-ricette, sottoprogetti e sorgenti del submodulo Sandspiel. Il manifesto nativo
-aggiunge lo scambio fonti sulle quattro ABI, con sorgenti Rust, dipendenze Cargo
-vincolate e conservate offline, e materiali originali CameraX/MediaPipe con hash.
+L’archivio della versione 0.49.0.0 comprendeva il codice modificato del renderer,
+gli avvisi e i materiali di build corrispondenti. Il manifesto nativo di quella
+release comprendeva anche i materiali originali CameraX/MediaPipe con hash.
 I binari Google Maven sono dichiarati come precompilati: la versione pubblica dei
 sorgenti associati non viene presentata come prova dell’ambiente interno del fornitore.
 I componenti nativi GPL già presenti conservano i loro archivi corrispondenti.

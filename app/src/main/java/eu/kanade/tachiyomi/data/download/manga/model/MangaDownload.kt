@@ -1,5 +1,7 @@
 package eu.kanade.tachiyomi.data.download.manga.model
 
+import nyanime.extension.internal.MangaLayerReading
+
 import eu.kanade.tachiyomi.data.download.transfer.TransferPhase
 import eu.kanade.tachiyomi.data.download.transfer.TransferRuntime
 import eu.kanade.tachiyomi.source.model.Page
@@ -29,6 +31,7 @@ data class MangaDownload(
     val transfer = TransferRuntime()
 
     var pages: List<Page>? = null
+    val reading by lazy { MangaLayerReading(source) }
 
     val totalProgress: Int
         get() = pages?.sumOf(Page::progress) ?: 0

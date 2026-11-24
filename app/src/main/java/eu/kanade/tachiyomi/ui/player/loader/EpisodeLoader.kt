@@ -10,6 +10,10 @@ import eu.kanade.tachiyomi.animesource.online.ParsedAnimeHttpSource
 import eu.kanade.tachiyomi.data.download.anime.AnimeDownloadManager
 import eu.kanade.tachiyomi.ui.player.controls.components.sheets.HosterState
 import kotlinx.coroutines.CancellationException
+import nyanime.extension.internal.layerHosterVideos
+import nyanime.extension.internal.layerReplacementHosters
+import nyanime.extension.internal.layerSortVideos
+import nyanime.extension.internal.layerVideoWithUrl
 import tachiyomi.domain.entries.anime.model.Anime
 import tachiyomi.domain.items.episode.model.Episode
 import tachiyomi.source.local.entries.anime.LocalAnimeSource
@@ -84,12 +88,14 @@ class EpisodeLoader {
          * @param source the online source of the episode.
          */
         private suspend fun getHostersOnHttp(episode: Episode, source: AnimeHttpSource): List<Hoster> {
+            val remote = episode.toSEpisode()
+            source.layerReplacementHosters(remote)?.let { return it }
             // TODO(1.6): Remove else block when dropping support for ext lib <1.6
             return if (checkHasHosters(source)) {
-                source.getHosterList(episode.toSEpisode())
+                source.getHosterList(remote)
                     .let { source.run { it.sortHosters() } }
             } else {
-                source.getVideoList(episode.toSEpisode())
+                source.getVideoList(remote)
                     .let { source.run { it.sortVideos() } }
                     .toHosterList()
             }
@@ -159,7 +165,7 @@ class EpisodeLoader {
             }
 
             return if (source is AnimeHttpSource) {
-                source.run { videos.sortVideos() }
+                source.layerSortVideos(videos)
             } else {
                 videos
             }
@@ -172,7 +178,7 @@ class EpisodeLoader {
          * @param hoster the hoster.
          */
         private suspend fun getVideosOnHttp(source: AnimeHttpSource, hoster: Hoster): List<Video> {
-            return source.getVideoList(hoster)
+            return source.layerHosterVideos(hoster)
                 .parseVideoUrls(source)
         }
 
@@ -181,8 +187,7 @@ class EpisodeLoader {
             return this.map { video ->
                 if (video.videoUrl != "null") return@map video
 
-                val newVideoUrl = source.getVideoUrl(video)
-                video.copy(videoUrl = newVideoUrl)
+                source.layerVideoWithUrl(video)
             }
         }
 

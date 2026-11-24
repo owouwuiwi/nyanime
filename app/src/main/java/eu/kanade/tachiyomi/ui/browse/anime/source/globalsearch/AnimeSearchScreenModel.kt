@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import nyanime.extension.internal.layerFilters
+import nyanime.extension.internal.layerSearch
 import tachiyomi.core.common.preference.toggle
 import tachiyomi.domain.entries.anime.interactor.GetAnime
 import tachiyomi.domain.entries.anime.interactor.NetworkToLocalAnime
@@ -211,14 +213,14 @@ abstract class AnimeSearchScreenModel(
     private fun fetch(source: AnimeSource, query: String) {
         val session = requireNotNull(searchSession)
         searches.submit(source, fetch = {
-            val filters = source.getFilterList()
+            val filters = source.layerFilters()
             val page = session.search(
                 object : ExtensionSearchAdapter<SAnime> {
                     override val key = source.id.toString()
                     override fun identity(item: SAnime) = item.url
                     override fun title(item: SAnime) = item.searchTitle(source.id)
                     override suspend fun fetch(page: Int, query: String): SearchPage<SAnime> {
-                        val response = source.getSearchAnime(page, query, filters)
+                        val response = source.layerSearch(page, query, filters)
                         return SearchPage(response.animes, response.hasNextPage)
                     }
                 },

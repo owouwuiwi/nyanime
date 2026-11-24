@@ -12,7 +12,6 @@ quest'ultimo è dichiarato in `release.properties` e nei metadati pubblicati.
 | Area | Versione ordinaria |
 | --- | --- |
 | Studio delle fonti | Canvas, vista guidata, Assistita, prove, import/export e backup |
-| Scambio fonti | Sessioni esplicite locali/Internet, revisione e importazione separate |
 | Backup | Locali e Telegram conservati; WebDAV cifrato e Drive con OAuth proprio |
 | Player | MPV esistente con lo stile grafico FLOW isolato e attribuito |
 | Ricerca e Home | Contratti generici, Atlante e gestione ordinaria delle fonti |
@@ -36,13 +35,11 @@ sono conservate, senza una fusione indiscriminata del ramo sperimentale.
 
 Il codice originale del ponte grafico è Apache-2.0; la grafica adattata da FLOW
 resta GPL-3.0-only. Il player nativo mantiene le licenze GPL e i materiali già
-previsti nella distribuzione ordinaria. Il nuovo inventario comprende 152 librerie
-native su quattro ABI, contro le 136 precedenti, con hash originali del player
-invariati. Le aggiunte sono scambio fonti, MediaPipe e helper CameraX.
+previsti nella distribuzione ordinaria. L’inventario della 0.49.0.0 comprendeva
+152 librerie native su quattro ABI, con hash originali del player invariati.
 
-I cinque archivi nativi dichiarati in `tools/native/distribution.json` accompagnano
-il sorgente dell’app. Le due nuove chiusure sono già verificate per hash; la copia
-privata usata dalla CI non sostituisce i materiali consegnati al destinatario.
+Gli archivi nativi pubblicati con quella versione accompagnano il sorgente
+dell’app. Il manifesto nativo corrente si trova in `tools/native/distribution.json`.
 I limiti di provenienza dei binari Maven precompilati sono espliciti e non vengono
 nascosti da un risultato positivo del verificatore. [Licenze](licensing.md).
 

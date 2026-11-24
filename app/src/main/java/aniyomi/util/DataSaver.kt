@@ -12,6 +12,7 @@ import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.online.HttpSource
 import okhttp3.OkHttpClient
 import okhttp3.Response
+import nyanime.extension.internal.MangaLayerReading
 import tachiyomi.core.common.preference.Preference
 import uy.kohesive.injekt.injectLazy
 import java.net.URLEncoder
@@ -27,11 +28,11 @@ interface DataSaver {
             }
         }
 
-        suspend fun HttpSource.getImage(page: Page, dataSaver: DataSaver): Response {
-            val imageUrl = page.imageUrl ?: return getImage(page)
+        suspend fun HttpSource.getImage(page: Page, dataSaver: DataSaver, reading: MangaLayerReading? = null): Response {
+            val imageUrl = page.imageUrl ?: return reading?.image(page) ?: getImage(page)
             page.imageUrl = dataSaver.compress(imageUrl)
             return try {
-                getImage(page)
+                reading?.image(page) ?: getImage(page)
             } finally {
                 page.imageUrl = imageUrl
             }

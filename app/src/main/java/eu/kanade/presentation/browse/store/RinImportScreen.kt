@@ -43,8 +43,11 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import tachiyomi.presentation.core.components.material.Scaffold
 
-private class RinImportModel(private val repository: ExtensionStoreRepository, private val uri: String) :
-    StateScreenModel<RinImportModel.State>(State.Loading) {
+private class RinImportModel(
+    private val repository: ExtensionStoreRepository,
+    private val uri: String,
+    private val migrationPackage: String?,
+) : StateScreenModel<RinImportModel.State>(State.Loading) {
     sealed interface State {
         data object Loading : State
         data class Preview(val candidate: RinLocalImport, val installing: Boolean = false) : State
@@ -55,7 +58,12 @@ private class RinImportModel(private val repository: ExtensionStoreRepository, p
     init {
         screenModelScope.launch {
             try {
-                val candidate = repository.rin.prepareLocal(Uri.parse(uri))
+                val selected = Uri.parse(uri)
+                val candidate = if (migrationPackage == null) {
+                    repository.rin.prepareLocal(selected)
+                } else {
+                    repository.rin.prepareMangaPublisherMigration(migrationPackage, selected)
+                }
                 mutableState.value = if (candidate.previous?.let {
                         it.sha256 == candidate.record.sha256 &&
                             eu.kanade.tachiyomi.extension.ExtensionPackageConsent.trusted(it)
@@ -83,7 +91,7 @@ private class RinImportModel(private val repository: ExtensionStoreRepository, p
             return
         }
         mutableState.value = preview.copy(installing = true)
-        val job = repository.installLocal(preview.candidate)
+        val job = repository.installLocal(preview.candidate, migratePublisher = migrationPackage != null)
         screenModelScope.launch {
             job.join()
             val record = preview.candidate.record
@@ -97,12 +105,12 @@ private class RinImportModel(private val repository: ExtensionStoreRepository, p
     }
 }
 
-class RinImportScreen(private val uri: String) : Screen() {
+class RinImportScreen(private val uri: String, private val migrationPackage: String? = null) : Screen() {
     @Composable
     override fun Content() {
         val context = LocalContext.current
         val navigator = LocalNavigator.currentOrThrow
-        val model = rememberScreenModel { RinImportModel(ExtensionStoreRepository.get(context), uri) }
+        val model = rememberScreenModel { RinImportModel(ExtensionStoreRepository.get(context), uri, migrationPackage) }
         val state by model.state.collectAsState()
         Scaffold(topBar = { behavior ->
             AppBar(title = stringResource(R.string.rin_load), navigateUp = navigator::pop, scrollBehavior = behavior)
@@ -148,7 +156,17 @@ class RinImportScreen(private val uri: String) : Screen() {
                                 )
                             }
                         }
-                        Text(stringResource(R.string.rin_import_hint), style = MaterialTheme.typography.bodyMedium)
+                        record.manifest.mangaLayer?.let { MangaLayerScope(it) }
+                        Text(
+                            stringResource(
+                                when {
+                                    migrationPackage != null -> R.string.store_manga_migration_hint
+                                    record.manifest.mangaLayer != null -> R.string.store_manga_layer_hint
+                                    else -> R.string.rin_import_hint
+                                },
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
                         Button(
                             onClick = model::install,
                             enabled = !current.installing,
@@ -159,12 +177,10 @@ class RinImportScreen(private val uri: String) : Screen() {
                             } else {
                                 Text(
                                     stringResource(
-                                        if (current.candidate.previous ==
-                                            null
-                                        ) {
-                                            R.string.rin_install
-                                        } else {
-                                            R.string.rin_update
+                                        when {
+                                            migrationPackage != null -> R.string.store_manga_migration_confirm
+                                            current.candidate.previous == null -> R.string.rin_install
+                                            else -> R.string.rin_update
                                         },
                                     ),
                                 )
@@ -172,13 +188,17 @@ class RinImportScreen(private val uri: String) : Screen() {
                         }
                     }
                     is RinImportModel.State.Failed -> {
-                        val message = when (current.reason) {
-                            RinImportFailure.INCOMPATIBLE -> R.string.rin_incompatible
-                            RinImportFailure.LEGACY -> R.string.rin_legacy
-                            RinImportFailure.CHANGED -> R.string.rin_changed
-                            RinImportFailure.BUSY -> R.string.rin_busy
-                            RinImportFailure.INVALID -> R.string.rin_invalid
-                            RinImportFailure.SYSTEM_REQUIRED -> R.string.package_system_required
+                        val message = when {
+                            migrationPackage != null &&
+                                current.reason == RinImportFailure.CHANGED -> R.string.store_manga_migration_mismatch
+                            else -> when (current.reason) {
+                                RinImportFailure.INCOMPATIBLE -> R.string.rin_incompatible
+                                RinImportFailure.LEGACY -> R.string.rin_legacy
+                                RinImportFailure.CHANGED -> R.string.rin_changed
+                                RinImportFailure.BUSY -> R.string.rin_busy
+                                RinImportFailure.INVALID -> R.string.rin_invalid
+                                RinImportFailure.SYSTEM_REQUIRED -> R.string.package_system_required
+                            }
                         }
                         Text(stringResource(message))
                         Button(onClick = { navigator.pop() }) { Text(stringResource(R.string.action_close)) }

@@ -18,7 +18,9 @@ import kotlinx.coroutines.withContext
 import nyanime.news.api.NewsHttpClient
 import nyanime.news.api.NewsSource
 import nyanime.news.api.NewsSourceFactory
+import nyanime.news.api.layer.NewsLayerFactoryV1
 import uy.kohesive.injekt.api.get
+import java.util.IdentityHashMap
 
 data class NewsExtension(
     val packageName: String,
@@ -35,8 +37,26 @@ data class NewsExtension(
 /** Inspection never instantiates foreign code. Enablement requires a signer-bound local trust decision. */
 class NewsExtensionRegistry(private val context: Context, private val http: NewsHttpClient) {
     private val mutex = Mutex()
-    private val mutable = MutableStateFlow<List<NewsExtension>>(emptyList())
-    val state = mutable.asStateFlow()
+    private val original = MutableStateFlow<List<NewsExtension>>(emptyList())
+    val originalState = original.asStateFlow()
+    private val effective = MutableStateFlow<List<NewsExtension>>(emptyList())
+    val state = effective.asStateFlow()
+    private var layerBindings: Map<NewsSource, Map<String, NewsLayerBinding>> = emptyMap()
+
+    internal fun attachLayer(factory: NewsLayerFactoryV1, source: NewsSource) = factory.attach(source, http)
+
+    internal suspend fun publishLayers(bindings: Map<NewsSource, Map<String, NewsLayerBinding>>) = mutex.withLock {
+        layerBindings = IdentityHashMap(bindings)
+        publishEffective()
+    }
+
+    private fun publishEffective() {
+        effective.value = original.value.map { extension ->
+            val source = extension.source ?: return@map extension
+            val bindings = layerBindings[source].orEmpty()
+            if (bindings.isEmpty()) extension else extension.copy(source = LayeredNewsSource(source, bindings))
+        }
+    }
 
     @Suppress("DEPRECATION")
     suspend fun reload(settings: Map<String, NewsSourceSettings>) = withContext(Dispatchers.IO) {
@@ -80,7 +100,7 @@ class NewsExtensionRegistry(private val context: Context, private val http: News
                     versions.firstOrNull { it.applicationInfo?.sourceDir == selected?.key }
                 }
                 .filter { info -> info.reqFeatures?.any { it.name == FEATURE } == true }
-            mutable.value = installed.map { info ->
+            original.value = installed.map { info ->
                 val metadata = ExtensionPackageInspector.inspect(info) { 0 }
                 val apk = requireNotNull(info.applicationInfo)
                 val api = apk.metaData?.getInt(API, 0)
@@ -108,7 +128,7 @@ class NewsExtensionRegistry(private val context: Context, private val http: News
                                 metadata.signerHistory.containsAll(config.signers)
                             ) &&
                         config.distribution == metadata.distribution?.id
-                val old = mutable.value.firstOrNull {
+                val old = original.value.firstOrNull {
                     it.packageName == info.packageName &&
                         it.versionCode == PackageInfoCompat.getLongVersionCode(info) &&
                         it.metadata.signers == metadata.signers &&
@@ -140,6 +160,7 @@ class NewsExtensionRegistry(private val context: Context, private val http: News
                     failed = result?.isFailure == true,
                 )
             }.sortedBy { it.label }
+            publishEffective()
         }
     }
 

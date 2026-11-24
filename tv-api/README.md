@@ -18,6 +18,13 @@ Room/share payloads contain only channel identities and public labels. Stream UR
 
 Personal TV preferences use the ordinary settings backup. Cache contents and resolved playback URLs are excluded. Incognito viewing does not create recent-channel entries. Removing a source cancels its operations but retains personal references so reinstalling can restore favourites.
 
+An independently signed TV layer can attach to an authenticated base source through
+`nyanime.tv.api.layer.TvLayerFactoryV1`. Declared capabilities are `catalog`
+(catalogue and channel lookup), `guide` and `player`. Pass the original channel
+references through every operation. Return null to delegate an operation to the
+original source. Layer HTTP and disk caches are supplied by the host. Catalogue
+and guide results use separate cache keys for each selected layer version.
+
 The host tests use synthetic source IDs, channel IDs, programme data and reserved example addresses. Provider adapters and live endpoint checks belong in the extension repository.
 
 Implementation status: this module and the staged host integration are not compiled or wired into the Android app yet. Contract, repository and adapter tests are written but their execution and real-device proof remain pending the shared-build coordination release.

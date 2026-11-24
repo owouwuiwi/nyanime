@@ -34,7 +34,6 @@ consultare, rispettando copyright, licenze e condizioni di accesso.
 | **Le tue uscite** | Segui anime e manga dalla scheda, ricevi avvisi delle nuove disponibilita e consulta le date annunciate nel calendario. [Come funziona](docs/release-monitor.md). AnimeSchedule facoltativo e widget: [configurazione guidata](docs/animeschedule.md). |
 | **Riprendi da dove eri** | Ritrova “Continua a guardare” e “Continua a leggere”, con avanzamento locale e accesso all'episodio o capitolo. |
 | **Studio delle fonti** | Crea e collauda fonti personali video/manga con nodi, vista guidata o procedura Assistita; importa, esporta e revisiona senza cataloghi preconfigurati. [Guida](docs/source-studio.md). |
-| **Scambia fonti** | Condividi pacchetti tramite codice o QR su rete locale o Internet; l'importazione richiede revisione separata. |
 | **Backup remoti** | WebDAV cifrato e Google Drive facoltativo con configurazione OAuth propria, oltre ai backup locali e Telegram. [Guida](docs/remote-backups.md). |
 | **Attenzione facoltativa** | Rilevamento locale sperimentale, inizialmente spento, con pausa configurabile oppure soli intervalli stimati, senza salvare immagini. |
 | **Nyanime Cloud** | Collega Telegram per conservare backup completi in un canale privato, scegliere le copie da mantenere e ripristinarle su un altro telefono. [Configurazione e limiti](docs/telegram-cloud.md). |

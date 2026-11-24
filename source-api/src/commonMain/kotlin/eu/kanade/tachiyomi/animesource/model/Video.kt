@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import mihon.core.common.extensions.EMPTY
+import nyanime.extension.internal.AnimeLayerPlayback
 import okhttp3.Headers
 
 @Serializable
@@ -44,6 +45,9 @@ data class Video(
     val initialized: Boolean = false,
     val memo: JsonObject = JsonObject.EMPTY,
 ) {
+    @Transient
+    internal var layerPlayback: AnimeLayerPlayback? = null
+
     // TODO(1.6): Remove after ext lib bump
     @Deprecated("Use videoTitle instead", ReplaceWith("videoTitle"))
     val quality: String
@@ -174,7 +178,7 @@ data class Video(
             audioTracks = audioTracks.map {
                 it.copy(url = localUrl.replace(it.url, newHost))
             },
-        )
+        ).also { it.layerPlayback = layerPlayback }
     }
 
     enum class State {

@@ -52,6 +52,9 @@ data class MangaExtensionDetailsScreen(
             onClickSource = screenModel::toggleSource,
             onClickIncognito = screenModel::toggleIncognito,
             onUpdateRepository = screenModel::bindUpdateRepository,
+            onManageLayers = {
+                navigator.push(eu.kanade.presentation.browse.store.MangaLayerManageScreen(basePackage = pkgName))
+            },
         )
 
         LaunchedEffect(Unit) {

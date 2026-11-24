@@ -13,6 +13,8 @@ import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.source.online.ResolvableSource
 import eu.kanade.tachiyomi.source.online.UriType
 import kotlinx.coroutines.flow.update
+import nyanime.extension.internal.layerByUrl
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.domain.entries.manga.interactor.GetMangaByUrlAndSourceId
 import tachiyomi.domain.entries.manga.interactor.NetworkToLocalManga
@@ -38,7 +40,17 @@ class DeepLinkMangaScreenModel(
                 .filterIsInstance<ResolvableSource>()
                 .firstOrNull { it.getUriType(query) != UriType.Unknown }
 
-            val manga = source?.getManga(query)?.let {
+            val layered = query.toHttpUrlOrNull()?.let { url ->
+                source?.let { resolved -> resolved.layerByUrl(url)?.let { it to resolved.id } }
+                    ?: if (source == null) {
+                        sourceManager.getCatalogueSources().firstNotNullOfOrNull { candidate ->
+                            candidate.layerByUrl(url)?.let { it to candidate.id }
+                        }
+                    } else {
+                        null
+                    }
+            }
+            val manga = layered?.let { (remote, id) -> getMangaFromSManga(remote, id) } ?: source?.getManga(query)?.let {
                 getMangaFromSManga(it, source.id)
             }
 

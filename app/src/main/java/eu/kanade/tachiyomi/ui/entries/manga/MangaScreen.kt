@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.ui.entries.manga
 
+import nyanime.extension.internal.layerMangaUrl
 import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -367,7 +368,7 @@ class MangaScreen(
         val source = source_ as? HttpSource ?: return null
 
         return try {
-            source.getMangaUrl(manga.toSManga())
+            source.layerMangaUrl(manga.toSManga())
         } catch (e: Exception) {
             null
         }
@@ -457,7 +458,7 @@ class MangaScreen(
     private fun copyMangaUrl(context: Context, manga_: Manga?, source_: MangaSource?) {
         val manga = manga_ ?: return
         val source = source_ as? HttpSource ?: return
-        val url = source.getMangaUrl(manga.toSManga())
+        val url = source.layerMangaUrl(manga.toSManga())
         context.copyToClipboard(url, url)
     }
 }

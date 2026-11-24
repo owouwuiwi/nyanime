@@ -25,7 +25,10 @@ import kotlinx.coroutines.sync.withPermit
 import nyanime.tv.api.TvHttpClient
 import nyanime.tv.api.TvHttpResponse
 import nyanime.tv.api.TvRules
+import nyanime.tv.api.TvSource
 import nyanime.tv.api.TvSourceFactory
+import nyanime.tv.api.layer.TvLayerFactoryV1
+import nyanime.tv.api.layer.TvLayerV1
 import okhttp3.Request
 import okio.Buffer
 import tachiyomi.core.common.preference.PreferenceStore
@@ -37,6 +40,7 @@ import java.util.concurrent.TimeUnit
 
 /** Created on demand. Installing a TV extension does not start any catalogue/stream scan. */
 class TvServices(context: Context, network: NetworkHelper, preferences: PreferenceStore) {
+    private val appContext = context.applicationContext
     private val ready = kotlinx.coroutines.flow.MutableStateFlow(false)
     val initialized = ready.asStateFlow()
     val registry = TvRegistry()
@@ -53,6 +57,7 @@ class TvServices(context: Context, network: NetworkHelper, preferences: Preferen
     private val rin = RinRepository.get(context)
     private val client = network.client.newBuilder().callTimeout(25, TimeUnit.SECONDS).build()
     private val loaded = mutableMapOf<String, List<TvRegistration>>()
+    private val layerHttp by lazy(::extensionHttp)
 
     init {
         scope.launch {
@@ -94,6 +99,17 @@ class TvServices(context: Context, network: NetworkHelper, preferences: Preferen
         }
     }
 
+    internal fun attachLayer(
+        factory: TvLayerFactoryV1,
+        source: TvSource,
+        packageName: String,
+        revision: String,
+    ): TvLayerV1 {
+        val namespace = RinArchive.sha256("$packageName:${source.id}".toByteArray())
+        val path = File(appContext.cacheDir, "tv-layers/$namespace")
+        return factory.attach(source, layerHttp, TvLayerCache(TvDiskCache(path), revision))
+    }
+
     fun validatePackage(context: Context, record: RinRecord) {
         val registrations = load(context, record)
         registry.validate(registrations)
@@ -114,8 +130,26 @@ class TvServices(context: Context, network: NetworkHelper, preferences: Preferen
             ).getDeclaredConstructor().newInstance() as TvSourceFactory
         }
         val cache = TvDiskCache(File(context.cacheDir, "tv/${RinArchive.sha256(manifest.packageName.toByteArray())}"))
+        val sources = RinLoading.guard { factory.create(extensionHttp(), cache) }
+        require(sources.map { it.id }.toSet() == manifest.sources.map { it.id }.toSet())
+        require(sources.map { it.id }.distinct().size == sources.size)
+        return sources.map {
+            TvRegistration(
+                source = it,
+                cache = cache,
+                packageName = manifest.packageName,
+                versionCode = manifest.versionCode,
+                signers = record.publisherSigners,
+                signerHistory = record.publisherHistory,
+            )
+        }.also { registered ->
+            RinLoading.guard { registry.validate(registered) }
+        }
+    }
+
+    private fun extensionHttp(): TvHttpClient {
         val permits = Semaphore(4)
-        val http = TvHttpClient { url, headers ->
+        return TvHttpClient { url, headers ->
             permits.withPermit {
                 check(!Injekt.get<BasePreferences>().downloadedOnly().get()) { "Offline mode" }
                 require(TvRules.webUrl(url) && headers.size <= 32)
@@ -147,12 +181,6 @@ class TvServices(context: Context, network: NetworkHelper, preferences: Preferen
                     )
                 }
             }
-        }
-        val sources = RinLoading.guard { factory.create(http, cache) }
-        require(sources.map { it.id }.toSet() == manifest.sources.map { it.id }.toSet())
-        require(sources.map { it.id }.distinct().size == sources.size)
-        return sources.map { TvRegistration(it, cache, manifest.packageName) }.also { registered ->
-            RinLoading.guard { registry.validate(registered) }
         }
     }
 }

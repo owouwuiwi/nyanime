@@ -721,6 +721,7 @@ internal fun StoreMedium.label() =
     when (this) {
         StoreMedium.ANIME -> R.string.store_video
         StoreMedium.MANGA -> R.string.store_manga
+        StoreMedium.MANGA_LAYER -> R.string.store_manga_layer
         StoreMedium.TV -> R.string.tv_title
         StoreMedium.NEWS -> R.string.store_news
         StoreMedium.NOVEL -> R.string.novel_library
@@ -732,6 +733,7 @@ internal fun StoreMedium.icon(): ImageVector =
     when (this) {
         StoreMedium.ANIME -> Icons.Outlined.PlayCircleOutline
         StoreMedium.MANGA -> Icons.AutoMirrored.Outlined.MenuBook
+        StoreMedium.MANGA_LAYER -> Icons.Outlined.Extension
         StoreMedium.TV -> Icons.Outlined.LiveTv
         StoreMedium.NEWS -> Icons.Outlined.Newspaper
         StoreMedium.NOVEL -> Icons.AutoMirrored.Outlined.MenuBook

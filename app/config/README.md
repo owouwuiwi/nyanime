@@ -38,5 +38,5 @@ display the bundled license texts.
 
 Studio uses RE2/J; its full original BSD-3-Clause (Go) text is bundled separately.
 The optional viewing-attention dependencies retain their published Apache-2.0
-and annotation notices. Source exchange retains its pinned Rust/TLS metadata.
+and annotation notices.
 No metadata override or runtime from the optional video/music engines is included.

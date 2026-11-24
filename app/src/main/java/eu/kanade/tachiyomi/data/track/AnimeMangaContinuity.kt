@@ -1,12 +1,17 @@
 package eu.kanade.tachiyomi.data.track
 
+import nyanime.extension.internal.layerFilters
+import nyanime.extension.internal.layerSearch
 import eu.kanade.domain.entries.manga.model.toDomainManga
 import eu.kanade.domain.entries.manga.model.toSManga
 import eu.kanade.tachiyomi.animesource.AnimeSource
-import eu.kanade.tachiyomi.animesource.RelatedMangaLinks
 import eu.kanade.tachiyomi.source.CatalogueSource
 import eu.kanade.tachiyomi.source.MangaCatalogIdResolver
 import eu.kanade.tachiyomi.source.MangaCatalogLinkResolver
+import nyanime.extension.internal.MangaLayerDispatch
+import nyanime.extension.internal.layerByCatalogId
+import nyanime.extension.internal.layerByCatalogLink
+import nyanime.extension.internal.layerRelatedMangaLinks
 import eu.kanade.tachiyomi.source.MangaSourceUpdateGate
 import eu.kanade.tachiyomi.source.model.SManga
 import kotlinx.coroutines.Deferred
@@ -134,9 +139,7 @@ class AnimeMangaContinuity(
         val tracks = mangaTracks.getMangaTracksAsFlow().first().groupBy { it.mangaId }
         return coroutineScope {
             val links = async(Dispatchers.IO) {
-                (source as? RelatedMangaLinks)?.let { resolver ->
-                    ContinuityRequests.optional(6_000) { resolver.relatedMangaLinks(anime.url) }
-                }.orEmpty().take(3)
+                ContinuityRequests.optional(6_000) { source.layerRelatedMangaLinks(anime.url) }.orEmpty().take(3)
             }
             val progress = ContinuityProgress(
                 relations.map { relation ->
@@ -265,22 +268,23 @@ class AnimeMangaContinuity(
             batch.map { source ->
                 async {
                     ContinuityRequests.source {
-                        if (source is MangaCatalogIdResolver) {
+                        val layeredIdentity = MangaLayerDispatch.current(source, "identity") != null
+                        if (layeredIdentity || source is MangaCatalogIdResolver) {
                             val remote = ContinuityRequests.optional(12_000) {
-                                source.findMangaByCatalogId("anilist", relation.id)
-                                    ?: relation.malId?.let { source.findMangaByCatalogId("myanimelist", it) }
+                                source.layerByCatalogId("anilist", relation.id)
+                                    ?: relation.malId?.let { source.layerByCatalogId("myanimelist", it) }
                             }
                             if (remote != null && accept(remote, source)) return@source
                         }
-                        if (source is MangaCatalogLinkResolver) {
+                        if (layeredIdentity || source is MangaCatalogLinkResolver) {
                             for (link in links.await()) {
-                                val remote = ContinuityRequests.optional(6_000) { source.findMangaByCatalogLink(link) }
+                                val remote = ContinuityRequests.optional(6_000) { source.layerByCatalogLink(link) }
                                 if (remote != null && accept(remote, source)) return@source
                             }
                         }
                         for (title in relation.titles.filter(String::isNotBlank).distinct().take(2)) {
                             val page = ContinuityRequests.optional {
-                                source.getSearchManga(1, title, source.getFilterList())
+                                source.layerSearch(1, title, source.layerFilters())
                             } ?: continue
                             for (remote in page.mangas.take(4)) {
                                 if (accept(remote, source)) return@source

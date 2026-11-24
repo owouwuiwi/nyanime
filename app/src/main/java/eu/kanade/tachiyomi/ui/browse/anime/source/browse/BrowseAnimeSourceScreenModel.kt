@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import nyanime.extension.internal.layerFilters
 import tachiyomi.core.common.preference.CheckboxState
 import tachiyomi.core.common.preference.mapAsCheckboxState
 import tachiyomi.core.common.util.lang.launchIO
@@ -95,16 +96,16 @@ class BrowseAnimeSourceScreenModel(
         mutableState.update {
             var query: String? = null
             var listing = it.listing
-            val displayFilters = source.getFilterList()
+            val displayFilters = source.layerFilters()
             var initialFilterError = false
 
             if (listing is Listing.Search) {
                 query = listing.query
-                listing = Listing.Search(query, source.getFilterList())
+                listing = Listing.Search(query, source.layerFilters())
             }
 
             initialSection?.let { section ->
-                val filters = source.getFilterList()
+                val filters = source.layerFilters()
                 try {
                     eu.kanade.tachiyomi.data.discovery.ExtensionHomeFilters.apply(filters, section)
                     eu.kanade.tachiyomi.data.discovery.ExtensionHomeFilters.applyBrowse(
@@ -194,7 +195,7 @@ class BrowseAnimeSourceScreenModel(
     }
 
     fun resetFilters() {
-        mutableState.update { it.copy(filters = source.getFilterList()) }
+        mutableState.update { it.copy(filters = source.layerFilters()) }
     }
 
     fun setListing(listing: Listing) {
@@ -212,7 +213,7 @@ class BrowseAnimeSourceScreenModel(
     fun search(query: String? = null, filters: AnimeFilterList? = null) {
         searchDebounce?.cancel()
         val input = state.value.listing as? Listing.Search
-            ?: Listing.Search(query = null, filters = source.getFilterList())
+            ?: Listing.Search(query = null, filters = source.layerFilters())
 
         mutableState.update {
             it.copy(
@@ -227,7 +228,7 @@ class BrowseAnimeSourceScreenModel(
     }
 
     fun searchGenre(genreName: String) {
-        val defaultFilters = source.getFilterList()
+        val defaultFilters = source.layerFilters()
         var genreExists = false
 
         filter@ for (sourceFilter in defaultFilters) {

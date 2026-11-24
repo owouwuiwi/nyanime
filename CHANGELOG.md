@@ -9,6 +9,18 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 23 novembre 2026 — 0.81.0.0
+
+### Fonti e Store
+
+- Lo Store accetta layer facoltativi per manga, anime e video, notizie e TV. Un layer approvato si aggancia automaticamente alla fonte compatibile. La fonte può continuare a ricevere aggiornamenti dal proprio editore.
+- È possibile scegliere un layer per funzione o tornare alla fonte originale. Lettore e player mantengono la configurazione con cui è stata aperta la sessione.
+- Per le fonti manga supportate, lo Store verifica identità e percorsi salvati prima di una migrazione verso un altro editore.
+
+### App
+
+- Rimossi il gioco nascosto Sandspiel e lo scambio diretto di fonti, con le relative risorse e dipendenze.
+
 ## 23 novembre 2026 — 0.80.1.1
 
 ### Interfaccia

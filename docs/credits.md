@@ -37,8 +37,6 @@ Lo [storico AniYomi](history/aniyomi-changelog.md) rimane archiviato separatamen
 | --- | --- |
 | FLOW — solo presentazione del player | Sottoinsieme grafico GPL-3.0-only, revisione e modifiche in [PROVENANCE](../presentation-player/third-party/flow-ui/PROVENANCE.json). Motore YouTube e servizi non inclusi. |
 | CameraX e MediaPipe | Analisi locale facoltativa dell’attenzione; SDK e modello Apache-2.0, avvisi nativi originali, trasformazione locale delle statistiche documentata in [core/attention](../core/attention/README.md). |
-| Lightning P2P / iroh | Compatibilità dei ticket e trasporto per lo scambio fonti, con processi e schermata Nyanime; ricette e attribuzioni in [source-exchange](../core/source-exchange/native/UPSTREAM.md). |
-| Sandspiel | Simulazione offline, MIT; submodulo fissato e relativi sorgenti inclusi nell’archivio dell’app. |
 | mpv e integrazione Android | Player interno; bridge Android originario conservato nel rebuild `it.owouwuiwi.native:nyanime-mpv`. [AAR, sorgenti e verifiche](../tools/native/README.md). |
 | FFmpeg / FFmpegKit | Demuxing e media nel rebuild nativo GPL; wrapper Android e licenze originali conservati. [Sorgenti, patch, configurazione e licenze](../tools/native/README.md). |
 | TorrServer | Componente nativo GPL-3.0 e relativo wrapper; sorgenti Go, dipendenze vendor e ricetta nell'archivio supplementare descritto nella stessa guida nativa. |

@@ -76,14 +76,11 @@ degli articoli parte solo se si attivano gli avvisi.
 
 Il precedente sistema di profili pubblici, amicizie, chat social e sincronizzazione personale su Nostr è stato rimosso. L’app elimina gli eventuali archivi, bozze e chiavi locali appartenenti soltanto a quelle funzioni. Le stanze e il Cloud Telegram conservano i propri dati indipendenti. Download e copie Ultra restano locali.
 
-## Studio, scambio e backup remoti facoltativi
+## Studio e backup remoti facoltativi
 
 Lo Studio conserva definizioni e bozze sul dispositivo. Le prove di rete partono
 su richiesta verso gli indirizzi della fonte scelta; script e cookie sono soggetti
 ai permessi e ai limiti locali. Importare una definizione non autorizza i suoi script.
-Lo scambio fonti è temporaneo ed esplicito: destinatario, codice o QR, anteprima e
-importazione separata. La scoperta locale e i relay Internet possono conoscere
-indirizzi di rete e tempi della connessione; non è un catalogo pubblico gestito dall’app.
 
 WebDAV e Google Drive ricevono soltanto i backup configurati volontariamente.
 Il contenuto viene cifrato prima dell’invio con una chiave di recupero da conservare;

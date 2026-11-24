@@ -38,7 +38,6 @@ dependencyResolutionManagement {
                 includeVersion("com.github.arkon.FlexibleAdapter", "flexible-adapter", "c8013533")
                 includeVersion("it.owouwuiwi.native", "nyanime-ffmpeg", "1.0.0")
                 includeVersion("it.owouwuiwi.native", "nyanime-mpv", "1.0.0")
-                includeVersion("org.rustls", "rustls-platform-verifier", "0.2.0")
             }
         }
         mavenCentral()
@@ -67,7 +66,6 @@ include(":core:privacy-display")
 include(":core:room-voice")
 include(":core:smart-search")
 include(":core:source-studio")
-include(":core:source-exchange")
 include(":core:syncplay")
 include(":core:telegram")
 include(":data")
@@ -83,5 +81,3 @@ include(":news-api")
 include(":tv-api")
 include(":addon-api")
 include(":source-local")
-
-include(":feature:secret-game")

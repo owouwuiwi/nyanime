@@ -76,6 +76,7 @@ import eu.kanade.tachiyomi.util.system.copyToClipboard
 import eu.kanade.tachiyomi.util.system.toast
 import kotlinx.coroutines.launch
 import logcat.LogPriority
+import nyanime.extension.internal.layerAnimeUrl
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.core.common.util.lang.withIOContext
@@ -506,7 +507,7 @@ class AnimeScreen(
         val source = source_ as? AnimeHttpSource ?: return null
 
         return try {
-            source.getAnimeUrl(anime.toSAnime())
+            source.layerAnimeUrl(anime.toSAnime())
         } catch (e: Exception) {
             null
         }
@@ -595,7 +596,7 @@ class AnimeScreen(
     private fun copyAnimeUrl(context: Context, anime_: Anime?, source_: AnimeSource?) {
         val anime = anime_ ?: return
         val source = source_ as? AnimeHttpSource ?: return
-        val url = source.getAnimeUrl(anime.toSAnime())
+        val url = source.layerAnimeUrl(anime.toSAnime())
         context.copyToClipboard(url, url)
     }
 }

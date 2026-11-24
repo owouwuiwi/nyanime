@@ -1,10 +1,12 @@
 package eu.kanade.tachiyomi.data.discovery
 
+import nyanime.extension.internal.layerFilters
+import nyanime.extension.internal.layerSearch
 import eu.kanade.domain.entries.manga.model.toDomainManga
 import eu.kanade.domain.entries.manga.model.toSManga
 import eu.kanade.tachiyomi.data.track.SourceTrackingHints
 import eu.kanade.tachiyomi.source.CatalogueSource
-import eu.kanade.tachiyomi.source.MangaCatalogIdResolver
+import nyanime.extension.internal.layerByCatalogId
 import eu.kanade.tachiyomi.source.MangaSourceUpdateGate
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -75,7 +77,7 @@ class MangaHomeService(
             registry.current().homes.filter { it.id !in knownSources }.map { home ->
                 async {
                     identityRequests.withPermit {
-                        val source = manager.get(home.id) as? MangaCatalogIdResolver ?: return@withPermit
+                        val source = manager.get(home.id) ?: return@withPermit
                         try {
                             val remote = withTimeoutOrNull(20_000) {
                                 ids.entries.sortedBy {
@@ -87,7 +89,7 @@ class MangaHomeService(
                                         1
                                     }
                                 }.firstNotNullOfOrNull { (kind, id) ->
-                                    source.findMangaByCatalogId(kind, id)
+                                    source.layerByCatalogId(kind, id)
                                 }
                             } ?: return@withPermit
                             if (registry.current().homes.none {
@@ -181,11 +183,11 @@ class MangaHomeService(
             } else {
                 section
             }
-            val filters = MangaHomeFilters.apply(source.getFilterList(), chosen, request.date)
+            val filters = MangaHomeFilters.apply(source.layerFilters(), chosen, request.date)
             MangaHomeFilters.applyBrowse(filters, definition.browseFilters, section.browseValues + request.filters)
             try {
                 withTimeout(30_000) {
-                    val result = source.getSearchManga(request.page, request.query.trim(), filters)
+                    val result = source.layerSearch(request.page, request.query.trim(), filters)
                     check(access == registry.access(key)) { "La fonte è stata disabilitata" }
                     val items = result.mangas.take(100).map { remote ->
                         val home = MangaHomePresentation.from(remote)

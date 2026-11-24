@@ -4,13 +4,15 @@ import androidx.compose.runtime.Immutable
 import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import eu.kanade.domain.entries.anime.model.toDomainAnime
-import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.animesource.model.SAnime
 import eu.kanade.tachiyomi.animesource.model.SEpisode
+import eu.kanade.tachiyomi.animesource.online.AnimeHttpSource
 import eu.kanade.tachiyomi.animesource.online.ResolvableAnimeSource
 import eu.kanade.tachiyomi.animesource.online.UriType
 import kotlinx.coroutines.flow.update
 import mihon.domain.source.interactor.UpdateAnimeFromRemote
+import nyanime.extension.internal.layerByUrl
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.domain.entries.anime.interactor.GetAnimeByUrlAndSourceId
 import tachiyomi.domain.entries.anime.interactor.NetworkToLocalAnime
@@ -32,19 +34,32 @@ class DeepLinkAnimeScreenModel(
 
     init {
         screenModelScope.launchIO {
-            val source = sourceManager.getAll()
+            val sources = sourceManager.getAll()
+            val source = sources
                 .filterIsInstance<ResolvableAnimeSource>()
                 .firstOrNull { it.getUriType(query) != UriType.Unknown }
 
-            val anime = source?.getAnime(query)?.let {
-                getAnimeFromSAnime(it, source.id)
+            val layered = query.toHttpUrlOrNull()?.let { url ->
+                if (source != null) {
+                    source.layerByUrl(url)?.let { source.id to it }
+                } else {
+                    sources.filterIsInstance<AnimeHttpSource>()
+                        .filter { it.baseUrl.toHttpUrlOrNull()?.host == url.host }
+                        .firstNotNullOfOrNull { candidate ->
+                            candidate.layerByUrl(url)?.let { candidate.id to it }
+                        }
+                }
             }
-
-            val episode = if (source?.getUriType(query) == UriType.Episode && anime != null) {
-                source.getEpisode(query)?.let { getEpisodeFromSEpisode(it, anime, source) }
+            val anime = layered?.let { (id, link) -> getAnimeFromSAnime(link.anime, id) }
+                ?: source?.getAnime(query)?.let { getAnimeFromSAnime(it, source.id) }
+            val remoteEpisode = if (layered != null) {
+                layered.second.episode
+            } else if (source?.getUriType(query) == UriType.Episode) {
+                source.getEpisode(query)
             } else {
                 null
             }
+            val episode = if (anime != null && remoteEpisode != null) getEpisodeFromSEpisode(remoteEpisode, anime) else null
 
             mutableState.update {
                 if (anime == null) {
@@ -60,7 +75,7 @@ class DeepLinkAnimeScreenModel(
         }
     }
 
-    private suspend fun getEpisodeFromSEpisode(sEpisode: SEpisode, anime: Anime, source: AnimeSource): Episode? {
+    private suspend fun getEpisodeFromSEpisode(sEpisode: SEpisode, anime: Anime): Episode? {
         val localEpisode = getEpisodeByUrlAndAnimeId.await(sEpisode.url, anime.id)
 
         return localEpisode

@@ -1,5 +1,7 @@
 package eu.kanade.tachiyomi.data.discovery
 
+import nyanime.extension.internal.layerFilters
+
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.domain.source.manga.interactor.GetMangaIncognitoState
 import eu.kanade.domain.source.service.SourcePreferences
@@ -31,11 +33,17 @@ class MangaHomeRegistry(
     private val incognito: GetMangaIncognitoState,
     private val manifests: MangaHomeManifestReader,
     private val uiPreferences: UiPreferences,
+    private val layers: eu.kanade.tachiyomi.data.layer.MangaLayerRegistry? = null,
 ) {
     private val cached = IdentityHashMap<MangaExtension.Installed, List<ExtensionHomeManifest>>()
 
     private fun changes() = combine(
-        combine(manager.catalogueSources, manager.isInitialized, extensions.installedExtensionsFlow) { _, _, _ ->
+        combine(
+            manager.catalogueSources,
+            manager.isInitialized,
+            extensions.installedExtensionsFlow,
+            layers?.revision ?: kotlinx.coroutines.flow.flowOf(0L),
+        ) { _, _, _, _ ->
             Unit
         },
         combine(
@@ -67,17 +75,20 @@ class MangaHomeRegistry(
         cached.keys.removeAll { previous -> installed.none { it === previous } }
         val homes = installed.flatMap { extension ->
             try {
-                cached.getOrPut(extension) { manifests.read(extension) }.mapNotNull { manifest ->
-                    val source = extension.sources.filterIsInstance<CatalogueSource>().singleOrNull {
-                        it.name == manifest.source.name &&
-                            it.lang == manifest.source.lang &&
-                            manager.get(it.id) === it &&
-                            isEnabled(it.id, it.lang, extension)
-                    } ?: return@mapNotNull null
-                    val filters = source.getFilterList()
+                extension.sources.filterIsInstance<CatalogueSource>().filter { source ->
+                    manager.get(source.id) === source && isEnabled(source.id, source.lang, extension)
+                }.flatMap { source ->
+                    val native = cached.getOrPut(extension) { manifests.read(extension) }.filter {
+                        it.source.name == source.name && it.source.lang == source.lang
+                    }
+                    val overlay = layers?.homes(source).orEmpty()
+                    if (native.isEmpty() && overlay.isEmpty()) return@flatMap emptyList()
+                    val filters = source.layerFilters()
+                    val declarations = overlay.filter { MangaHomeFilters.sections(it, filters).isNotEmpty() }.ifEmpty { native }
+                    declarations.map { manifest ->
                     SourceHomeSource(
                         id = source.id,
-                        revision = "${extension.versionCode}:${extension.versionName}:${manifest.hashCode()}",
+                        revision = "${extension.versionCode}:${extension.versionName}:${manifest.hashCode()}:${layers?.homeRevision(source).orEmpty()}",
                         sections = MangaHomeFilters.sections(manifest, filters),
                         categories = MangaHomeFilters.categories(manifest, filters),
                         key = "${extension.pkgName}:${manifest.id}:${source.id}",
@@ -89,6 +100,7 @@ class MangaHomeRegistry(
                         primary = manifest.primary,
                         browseFilters = MangaHomeFilters.browseFilters(manifest, filters),
                     )
+                    }
                 }
             } catch (e: CancellationException) {
                 throw e

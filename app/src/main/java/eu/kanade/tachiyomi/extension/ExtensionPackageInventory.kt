@@ -33,6 +33,7 @@ object ExtensionPackageInventory {
                 if (inspected.requiresAndroid) return@mapNotNull null
                 val metadata = ExtensionPackageInspector.inspect(inspected.info) { 0 }
                 val previous = private.firstOrNull { it.manifest.packageName == info.packageName }
+                if (previous?.manifest?.isLayer == true) return@mapNotNull null
                 val record = storage.stage(
                     file,
                     metadata.signers.first(),

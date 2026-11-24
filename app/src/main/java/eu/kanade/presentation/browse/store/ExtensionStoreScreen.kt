@@ -59,6 +59,7 @@ import eu.kanade.presentation.more.settings.screen.browse.MangaExtensionReposScr
 import eu.kanade.presentation.more.settings.screen.browse.components.CatalogueLinkHelpDialog
 import eu.kanade.presentation.theme.LocalDarkTheme
 import eu.kanade.tachiyomi.R
+import eu.kanade.tachiyomi.data.addon.RinAddonRuntime
 import eu.kanade.tachiyomi.data.extensionstore.ExtensionStoreRepository
 import eu.kanade.tachiyomi.data.extensionstore.StoreAction
 import eu.kanade.tachiyomi.data.extensionstore.StoreActivation
@@ -68,6 +69,7 @@ import eu.kanade.tachiyomi.data.extensionstore.StoreLanguages
 import eu.kanade.tachiyomi.data.extensionstore.StoreMedium
 import eu.kanade.tachiyomi.data.extensionstore.StorePresentation
 import eu.kanade.tachiyomi.data.extensionstore.StoreShelf
+import eu.kanade.tachiyomi.data.extensionstore.SystemMangaMigration
 import eu.kanade.tachiyomi.data.rin.RinSessions
 import eu.kanade.tachiyomi.extension.InstallStep
 import eu.kanade.tachiyomi.extension.anime.AnimeExtensionManager
@@ -123,6 +125,12 @@ private data class StoreDisplay(
 fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, onBack: () -> Unit) {
     val context = LocalContext.current
     val repository = remember { ExtensionStoreRepository.get(context) }
+    val systemMigration = remember { SystemMangaMigration.get(context) }
+    val migrations by systemMigration.sessions.collectAsState()
+    val migrationLayerRecords by repository.rin.activeMangaLayers.collectAsState()
+    val mediaBusy by RinSessions.busy.collectAsState()
+    val addonBusy by RinAddonRuntime.busy.collectAsState()
+    val migrationBusy = mediaBusy || addonBusy
     val entries by repository.entries.collectAsState()
     val steps by repository.steps.collectAsState()
     val progress by repository.progress.collectAsState()
@@ -159,6 +167,13 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
     val navigator = LocalNavigator.currentOrThrow
     val rinFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let { navigator.push(RinImportScreen(it.toString())) }
+    }
+    var migratePackage by rememberSaveable { mutableStateOf<String?>(null) }
+    var rollbackPackage by remember { mutableStateOf<StoreEntry?>(null) }
+    val mangaMigrationFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        val name = migratePackage
+        migratePackage = null
+        if (uri != null && name != null) navigator.push(RinImportScreen(uri.toString(), name))
     }
     val scheme = MaterialTheme.colorScheme
     val dark = LocalDarkTheme.current
@@ -213,6 +228,7 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
         }
     LifecycleResumeEffect(repository) {
         repository.resume()
+        scope.launch { systemMigration.refreshSessions() }
         onPauseOrDispose {}
     }
     LaunchedEffect(refreshing) {
@@ -262,6 +278,7 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
             when (entry.medium) {
                 StoreMedium.ANIME -> AnimeExtensionDetailsScreen(entry.packageName)
                 StoreMedium.MANGA -> MangaExtensionDetailsScreen(entry.packageName)
+                StoreMedium.MANGA_LAYER -> MangaLayerManageScreen(layerPackage = entry.packageName)
                 StoreMedium.NEWS -> NewsSourcesScreen()
                 StoreMedium.NOVEL -> it.lorelore.nyanime.novel.source.NovelSourceSettingsScreen(entry.packageName)
                 StoreMedium.TV -> eu.kanade.tachiyomi.ui.tv.TvExtensionScreen(entry.packageName)
@@ -314,6 +331,7 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                         StoreMedium.TV,
                         StoreMedium.NEWS,
                         StoreMedium.NOVEL,
+                        StoreMedium.MANGA_LAYER,
                     ) -> manage(entry)
                     entry.medium == eu.kanade.tachiyomi.data.extensionstore.StoreMedium.ADDON &&
                         entry.rinRecord != null ->
@@ -365,17 +383,18 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                     }
                 }
                 StoreShelves(shelf, owned, discover) { shelf = it }
-                Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp)) {
-                    TextButton(onClick = {
-                        navigator.push(it.lorelore.nyanime.studio.StudioLibraryScreen())
-                    }, modifier = Modifier.weight(1f)) {
-                        Text(stringResource(R.string.studio_title))
-                    }
-                    TextButton(onClick = {
-                        navigator.push(it.lorelore.nyanime.exchange.SourceExchangeScreen())
-                    }, modifier = Modifier.weight(1f)) {
-                        Text(stringResource(R.string.exchange_title))
-                    }
+                if (migrations.isNotEmpty()) {
+                    TextButton(
+                        onClick = { navigator.push(SystemMangaMigrationScreen()) },
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
+                        enabled = !migrationBusy,
+                    ) { Text(stringResource(R.string.store_android_migration_resume)) }
+                }
+                TextButton(
+                    onClick = { navigator.push(it.lorelore.nyanime.studio.StudioLibraryScreen()) },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
+                ) {
+                    Text(stringResource(R.string.studio_title))
                 }
                 Row(
                     Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp),
@@ -592,6 +611,29 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                         }
                     },
                     onAssociateOrigin = { associateOrigin = current },
+                    onMigratePublisher = current.rinRecord?.takeIf {
+                        !migrationBusy && repository.rin.canMigrateMangaPublisher(it)
+                    }?.let {
+                        {
+                            migratePackage = current.packageName
+                            mangaMigrationFile.launch(arrayOf("*/*"))
+                        }
+                    },
+                    onMigrateAndroidPublisher = if (!migrationBusy &&
+                        (
+                            migrations.any { it.packageName == current.packageName } ||
+                                systemMigration.canStart(current, migrationLayerRecords)
+                            )
+                    ) {
+                        {
+                            detail = null
+                            navigator.push(SystemMangaMigrationScreen(current.packageName))
+                        }
+                    } else {
+                        null
+                    },
+                    onRollbackPublisher = current.rinRecord?.publisherRollback?.takeUnless { migrationBusy }
+                        ?.let { { rollbackPackage = current } },
                     onAutomaticUpdates = { enabled -> scope.launch { repository.automaticUpdates(current, enabled) } },
                     progress = progress[current.packageName],
                     onManga = {
@@ -600,6 +642,32 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                     },
                 )
             }
+        }
+        rollbackPackage?.let { entry ->
+            AlertDialog(
+                onDismissRequest = { rollbackPackage = null },
+                title = { Text(stringResource(R.string.store_manga_migration_rollback)) },
+                text = { Text(stringResource(R.string.store_manga_migration_rollback_hint)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        rollbackPackage = null
+                        scope.launch {
+                            try {
+                                repository.rin.rollbackMangaPublisher(entry.packageName)
+                            } catch (cancel: CancellationException) {
+                                throw cancel
+                            } catch (_: Exception) {
+                                report(R.string.package_update_failed)
+                            }
+                        }
+                    }) { Text(stringResource(R.string.store_manga_migration_rollback)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { rollbackPackage = null }) {
+                        Text(stringResource(R.string.store_not_now))
+                    }
+                },
+            )
         }
         associateOrigin?.let { entry ->
             StoreSheet(onDismiss = { associateOrigin = null }) {
@@ -646,7 +714,14 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                         ),
                     )
                 },
-                text = { Text(entry.name + "\n\n" + stringResource(R.string.store_trust_description)) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(entry.name)
+                        Text(stringResource(R.string.store_trust_description))
+                        entry.rinCandidate?.manifest?.mangaLayer?.let { MangaLayerScope(it) }
+                        if (entry.privateOnly) entry.candidateSigner?.let { Text(it.chunked(8).joinToString(" ")) }
+                    }
+                },
                 confirmButton = {
                     TextButton(onClick = {
                         repository.install(entry, mode, individualConsent = true)

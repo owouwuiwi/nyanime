@@ -134,6 +134,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import logcat.LogPriority
 import nyanime.tv.api.TvChannelRef
+import nyanime.extension.internal.layerEpisodeUrl
+import nyanime.extension.internal.layerHttpServer
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.core.common.util.lang.launchNonCancellable
@@ -2505,7 +2507,7 @@ class PlayerSession(
                 var videoUrl: String = video.videoUrl
                 if (video.usesHttpServer() && httpSource != null) {
                     val port = try {
-                        httpServer = httpSource.createHttpServer()
+                        httpServer = httpSource.layerHttpServer(video)
                         httpServer?.start()
                         httpServer?.listeningPort ?: 0
                     } catch (e: Exception) {
@@ -2661,7 +2663,7 @@ class PlayerSession(
             try {
                 val domainEpisode = episode.toDomainEpisode() ?: return@launch
                 val url = withContext(Dispatchers.IO) {
-                    source.getEpisodeUrl(domainEpisode.toSEpisode())
+                    source.layerEpisodeUrl(domainEpisode.toSEpisode())
                 }
                 startActivity(
                     eu.kanade.tachiyomi.ui.webview.WebViewActivity.newIntent(

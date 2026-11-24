@@ -4,7 +4,9 @@ import android.content.Context
 import android.content.Intent
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.domain.extension.ExtensionExecutionTrust
+import eu.kanade.tachiyomi.data.rin.RinLocalImport
 import eu.kanade.tachiyomi.data.rin.RinRepository
+import eu.kanade.tachiyomi.data.rin.RinUpdatePolicy
 import eu.kanade.tachiyomi.extension.ExtensionApkValidator
 import eu.kanade.tachiyomi.extension.ExtensionPackageArchive
 import eu.kanade.tachiyomi.extension.ExtensionPackageInspector
@@ -34,6 +36,7 @@ internal class ExtensionPackageInstaller(private val context: Context, private v
     ): Boolean = withContext(Dispatchers.IO) {
         check(!Injekt.get<BasePreferences>().downloadedOnly().get())
         require(mode == StoreInstallMode.SYSTEM || entry.canImport)
+        require(!entry.privateOnly || mode == StoreInstallMode.PRIVATE && catalogueConsent == null)
         val url = requireNotNull(entry.candidateUrl)
         require(eu.kanade.tachiyomi.data.rin.RinArchive.validBundleUrl(url))
         val previous = rin.storage.record(entry.packageName)
@@ -113,6 +116,23 @@ internal class ExtensionPackageInstaller(private val context: Context, private v
                 )
                 .distinct()
             require(keys.size == 1 && (catalogueConsent == null || keys.single() == catalogueConsent))
+            if (entry.privateOnly) {
+                val candidate = requireNotNull(entry.rinCandidate)
+                require(inspected.manifest == candidate.manifest)
+                if (previous != null) require(RinUpdatePolicy.accepts(candidate, previous))
+                val staged = rin.storage.stage(
+                    file,
+                    candidate.signer,
+                    candidate.sha256,
+                    candidate.repository,
+                )
+                if (previous == null) {
+                    rin.activateLocal(RinLocalImport(staged, null))
+                } else {
+                    rin.activate(staged, previous, requireUnchanged = true)
+                }
+                return@withContext true
+            }
             ExtensionExecutionTrust(Injekt.get()).approve(
                 entry.packageName,
                 metadata,
