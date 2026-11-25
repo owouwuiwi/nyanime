@@ -57,6 +57,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -88,6 +89,8 @@ import eu.kanade.presentation.theme.MangaSectionTheme
 import eu.kanade.presentation.util.Screen
 import eu.kanade.presentation.util.isTabletUi
 import eu.kanade.tachiyomi.R
+import eu.kanade.tachiyomi.data.extensionstore.ExtensionStoreRepository
+import eu.kanade.tachiyomi.data.extensionstore.StoreCatalogue
 import eu.kanade.tachiyomi.ui.browse.BrowseTab
 import eu.kanade.tachiyomi.ui.cast.CastMiniController
 import eu.kanade.tachiyomi.ui.discovery.DiscoveryTab
@@ -837,6 +840,16 @@ object HomeScreen : Screen() {
                             }
                         }
                     }
+                    tab == MoreTab -> {
+                        val context = LocalContext.current
+                        val repository = remember(context) { ExtensionStoreRepository.get(context) }
+                        val count by produceState(initialValue = 0, repository) {
+                            repository.entries.collectLatest {
+                                value = StoreCatalogue.systemUpdateCount(it)
+                            }
+                        }
+                        ExtensionUpdatesBadge(count)
+                    }
                     BrowseTab::class.isInstance(tab) -> {
                         val count by
                             produceState(initialValue = 0) {
@@ -849,20 +862,7 @@ object HomeScreen : Screen() {
                                 }
                                     .collectLatest { value = it }
                             }
-                        if (count > 0) {
-                            Badge {
-                                val desc =
-                                    pluralStringResource(
-                                        MR.plurals.update_check_notification_ext_updates,
-                                        count = count,
-                                        count,
-                                    )
-                                Text(
-                                    text = count.toString(),
-                                    modifier = Modifier.semantics { contentDescription = desc },
-                                )
-                            }
-                        }
+                        ExtensionUpdatesBadge(count)
                     }
                 }
             },
@@ -870,6 +870,18 @@ object HomeScreen : Screen() {
             Icon(
                 painter = tab.options.icon!!,
                 contentDescription = tab.options.title,
+            )
+        }
+    }
+
+    @Composable
+    private fun ExtensionUpdatesBadge(count: Int) {
+        if (count <= 0) return
+        Badge {
+            val description = pluralStringResource(MR.plurals.update_check_notification_ext_updates, count, count)
+            Text(
+                text = count.toString(),
+                modifier = Modifier.semantics { contentDescription = description },
             )
         }
     }

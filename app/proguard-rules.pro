@@ -24,6 +24,10 @@
 # including the compressor even when OkHttp only uses decompression. R8 cannot
 # see those JNI references; removing/renaming them aborts the entire process.
 -keep class com.squareup.zstd.** { *; }
+# apksig decodes APK signing records and public keys through ASN.1 reflection.
+-keep @interface com.android.apksig.internal.asn1.Asn1Class { *; }
+-keep @interface com.android.apksig.internal.asn1.Asn1Field { *; }
+-keep @com.android.apksig.internal.asn1.Asn1Class class com.android.apksig.** { *; }
 -keep,allowoptimization class org.jsoup.** { public protected *; }
 -keep,allowoptimization class rx.** { public protected *; }
 -keep,allowoptimization class app.cash.quickjs.** { public protected *; }

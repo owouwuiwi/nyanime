@@ -90,9 +90,15 @@ class RinStorage(private val context: Context) {
         record
     }
 
-    fun activate(record: RinRecord, approveLayerScope: Boolean = false) = synchronized(lock) {
+    fun activate(
+        record: RinRecord,
+        approveLayerScope: Boolean = false,
+        expected: RinRecord? = null,
+        requireUnchanged: Boolean = false,
+    ) = synchronized(lock) {
         eu.kanade.tachiyomi.extension.ExtensionPackageArchive.verify(context, file(record), record)
         val old = record(record.manifest.packageName)
+        check(!requireUnchanged || old == expected) { "Extension was removed or changed before activation" }
         if (record.manifest.isLayer && record.trusted && !approveLayerScope) {
             require(old != null && record.manifest.preservesMangaLayerScope(old.manifest))
         }
@@ -175,6 +181,12 @@ class RinStorage(private val context: Context) {
         val changed = current.copy(enabled = enabled)
         write(records().map { if (it.manifest.packageName == packageName) changed else it })
         changed
+    }
+
+    fun setAutomaticUpdates(packageName: String, enabled: Boolean) = synchronized(lock) {
+        val installed = records()
+        if (installed.none { it.manifest.packageName == packageName && it.automaticUpdates != enabled }) return@synchronized
+        write(installed.map { if (it.manifest.packageName == packageName) it.copy(automaticUpdates = enabled) else it })
     }
 
     fun pruneOnColdStart(prepared: List<RinRecord>) = synchronized(lock) {

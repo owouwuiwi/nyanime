@@ -39,6 +39,14 @@ data class StoreEntry(
     val automaticUpdatePending: Boolean = false,
     val rinRecord: eu.kanade.tachiyomi.data.rin.RinRecord? = null,
 ) {
+    val requiresBridgeScopeReview: Boolean
+        get() {
+            val candidate = rinCandidate ?: return false
+            val installed = rinRecord ?: return false
+            return action == StoreAction.UPDATE &&
+                eu.kanade.tachiyomi.data.rin.RinUpdatePolicy.requiresScopeReview(candidate, installed)
+        }
+
     val addonHostCompatible get() = (
         addonCandidate?.hostVersions ?: addon?.hostVersions
             ?: (rinRecord?.manifest ?: rinCandidate?.manifest)?.takeIf {
@@ -134,6 +142,12 @@ data class StoreEntry(
 object StoreCatalogue {
     fun supportsHome(version: Int?) = version == 1
 
+    fun systemUpdateCount(entries: List<StoreEntry>): Int = entries.asSequence()
+        .filter { it.installed && !it.imported && !it.privateOnly && it.action == StoreAction.UPDATE }
+        .filter { (it.candidateVersion ?: 0L) > (it.installedVersion ?: 0L) }
+        .distinctBy { it.packageName }
+        .count()
+
     /** Available and installed cards have different keys; an open sheet follows the actual package. */
     fun currentEntry(selected: StoreEntry, entries: List<StoreEntry>): StoreEntry? =
         entries.firstOrNull { it.id == selected.id } ?: entries.firstOrNull {
@@ -144,13 +158,18 @@ object StoreCatalogue {
         installed: List<AnimeExtension.Installed>,
         untrusted: List<AnimeExtension.Untrusted>,
         available: List<AnimeExtension.Available>,
+        importedRepositories: Map<String, String> = emptyMap(),
     ): List<StoreEntry> {
         val candidates = available.groupBy { it.pkgName }
         val result = installed.map { old ->
             val variants = candidates[old.pkgName].orEmpty().groupBy { it.store.indexUrl }
                 .values.mapNotNull { it.maxByOrNull(AnimeExtension.Available::versionCode) }
-            val updateCandidate = variants.singleOrNull()
-                ?: variants.singleOrNull { it.store.indexUrl == old.store?.indexUrl }
+            val origin = importedRepositories[old.pkgName]
+            val updateCandidate = if (origin == null) {
+                variants.singleOrNull() ?: variants.singleOrNull { it.store.indexUrl == old.store?.indexUrl }
+            } else {
+                variants.singleOrNull { it.store.indexUrl == origin }
+            }
             val ready = old.metadata.home in setOf(ExtensionHomeSupport.READY, ExtensionHomeSupport.PARTIAL)
             // Optional Home capabilities do not change the package installation mode.
             val candidate = updateCandidate
@@ -206,12 +225,18 @@ object StoreCatalogue {
         installed: List<MangaExtension.Installed>,
         untrusted: List<MangaExtension.Untrusted>,
         available: List<MangaExtension.Available>,
+        importedRepositories: Map<String, String> = emptyMap(),
     ): List<StoreEntry> {
         val candidates = available.groupBy { it.pkgName }
         return installed.map { old ->
             val variants = candidates[old.pkgName].orEmpty().groupBy { it.repoUrl }
                 .values.mapNotNull { it.maxByOrNull(MangaExtension.Available::versionCode) }
-            val updateCandidate = variants.singleOrNull() ?: variants.singleOrNull { it.repoUrl == old.repoUrl }
+            val origin = importedRepositories[old.pkgName]
+            val updateCandidate = if (origin == null) {
+                variants.singleOrNull() ?: variants.singleOrNull { it.repoUrl == old.repoUrl }
+            } else {
+                variants.singleOrNull { it.repoUrl == origin }
+            }
             val ready = old.metadata.home in setOf(ExtensionHomeSupport.READY, ExtensionHomeSupport.PARTIAL)
             // Optional Home capabilities do not change the package installation mode.
             val candidate = updateCandidate

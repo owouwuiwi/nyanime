@@ -61,6 +61,8 @@ internal fun StoreDetails(
     onConfigureBridges: (() -> Unit)? = null,
     onLayer: (StoreEntry) -> Unit = {},
     onReturnToSource: (() -> Unit)? = null,
+    androidRequired: Boolean = false,
+    lastInstallMode: StoreInstallMode? = null,
     progress: Float? = null,
 ) {
     val c = LocalStoreColors.current
@@ -147,6 +149,7 @@ internal fun StoreDetails(
         val busy = step in setOf(InstallStep.Pending, InstallStep.Downloading, InstallStep.Installing)
         val canChooseMode = !busy && entry.addonHostCompatible && entry.candidateUrl != null
         val newInstall = canChooseMode && !entry.installed && entry.action == StoreAction.INSTALL
+        val androidOnly = canChooseMode && androidRequired && entry.action in setOf(StoreAction.INSTALL, StoreAction.UPDATE)
         val needsSource = parentSource != null && !entry.installed && (!parentSource.installed || bridge?.compatible != true)
         if (needsSource && !busy) {
             Text(
@@ -165,12 +168,19 @@ internal fun StoreDetails(
                     accent = true,
                 )
             }
-        } else if (newInstall) {
-            StoreInstallChoices(entry, onInstallMode)
+        } else if (androidOnly || newInstall) {
+            if (androidOnly) {
+                Text(
+                    stringResource(R.string.store_apk_requires_android),
+                    color = c.muted,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            StoreInstallChoices(entry, onInstallMode, androidOnly = androidOnly)
         } else if (!entry.privateOnly || busy || entry.action in setOf(StoreAction.TRUST, StoreAction.UPDATE)) {
             EntryButton(entry, step, Modifier.fillMaxWidth(), { onAction() }, { onCancel() }, changing)
         }
-        if (canChooseMode && entry.installed && !entry.privateOnly &&
+        if (canChooseMode && !androidOnly && entry.installed && !entry.privateOnly &&
             (
                 entry.action == StoreAction.UPDATE ||
                     entry.candidateVersion == entry.installedVersion
@@ -199,9 +209,9 @@ internal fun StoreDetails(
                 }
             }
         }
-        if (step == InstallStep.Error) {
+        if (step == InstallStep.Error && !(androidOnly && lastInstallMode == StoreInstallMode.PRIVATE)) {
             Text(
-                stringResource(R.string.package_update_failed),
+                stringResource(if (entry.installed) R.string.package_update_failed else R.string.store_package_install_failed),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodyMedium,
             )
@@ -393,8 +403,12 @@ private fun StoreBridgeSection(
 }
 
 @Composable
-private fun StoreInstallChoices(entry: StoreEntry, onInstallMode: (StoreInstallMode) -> Unit) {
-    val importable = entry.canImport
+private fun StoreInstallChoices(
+    entry: StoreEntry,
+    onInstallMode: (StoreInstallMode) -> Unit,
+    androidOnly: Boolean = false,
+) {
+    val importable = entry.canImport && !androidOnly
     if (importable) {
         StoreButton(
             stringResource(R.string.store_add_to_nyanime),

@@ -142,9 +142,11 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
     val migrationBusy = mediaBusy || addonBusy
     val entries by repository.entries.collectAsState()
     val steps by repository.steps.collectAsState()
+    val androidRequired by repository.androidRequired.collectAsState()
     val progress by repository.progress.collectAsState()
     var associateOrigin by remember { mutableStateOf<StoreEntry?>(null) }
     var installConfirmation by remember { mutableStateOf<StoreInstallConfirmation?>(null) }
+    var bridgeScopeReview by remember { mutableStateOf<StoreEntry?>(null) }
     val refreshing by repository.refreshing.collectAsState()
     val failed by repository.failed.collectAsState()
     val inventoryUnavailable by eu.kanade.tachiyomi.extension.ExtensionPackageDiscovery.unavailable.collectAsState()
@@ -297,6 +299,10 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
         )
     }
     fun requiresInstallConfirmation(entry: StoreEntry, mode: StoreInstallMode): Boolean {
+        if (entry.requiresBridgeScopeReview) {
+            bridgeScopeReview = entry
+            return true
+        }
         val bridges = if (entry.action == StoreAction.INSTALL && !entry.privateOnly) {
             StoreBridges.forInstallation(visible.bridges[entry.id].orEmpty())
         } else {
@@ -312,7 +318,12 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
     }
     val action: (StoreEntry) -> Unit = { entry ->
         when {
-            entry.rinRecord != null && !entry.enabled && entry.action != StoreAction.TRUST -> toggle(entry)
+            (entry.action == StoreAction.INSTALL || entry.action == StoreAction.UPDATE) &&
+                androidRequired[entry.packageName]?.matches(entry) == true -> detail = entry
+            !entry.installed && entry.action == StoreAction.INSTALL &&
+                steps[entry.packageName] == InstallStep.Error -> detail = entry
+            entry.rinRecord != null && !entry.enabled && entry.action != StoreAction.TRUST &&
+                !entry.requiresBridgeScopeReview -> toggle(entry)
             entry.action in setOf(StoreAction.INSTALL, StoreAction.UPDATE) -> {
                 val mode = repository.preferredMode(entry)
                 if (!requiresInstallConfirmation(entry, mode)) {
@@ -576,6 +587,8 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                     onRollbackPublisher = current.rinRecord?.publisherRollback?.takeUnless { migrationBusy }
                         ?.let { { rollbackPackage = current } },
                     onAutomaticUpdates = { enabled -> scope.launch { repository.automaticUpdates(current, enabled) } },
+                    androidRequired = androidRequired[current.packageName]?.matches(current) == true,
+                    lastInstallMode = repository.lastInstallMode(current.packageName),
                     progress = progress[current.packageName],
                     onManga = {
                         detail = null
@@ -638,6 +651,64 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                     }, Modifier.fillMaxWidth(), outlined = true)
                 }
             }
+        }
+        bridgeScopeReview?.let { entry ->
+            val candidate = requireNotNull(entry.rinCandidate)
+            val installed = requireNotNull(entry.rinRecord)
+            val requested = requireNotNull(candidate.manifest.mangaLayer)
+            val additions = candidate.manifest.addedLayerCapabilities(installed.manifest)
+            AlertDialog(
+                onDismissRequest = { bridgeScopeReview = null },
+                title = { Text(stringResource(R.string.store_bridge_scope_review)) },
+                text = {
+                    Column(
+                        modifier = Modifier.verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Text(entry.name, style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            stringResource(
+                                R.string.store_bridge_scope_versions,
+                                installed.manifest.versionName,
+                                candidate.manifest.versionName,
+                            ),
+                        )
+                        Text(stringResource(R.string.store_bridge_scope_notice))
+                        if (additions.isNotEmpty()) {
+                            MangaLayerTargets(
+                                additions,
+                                stringResource(R.string.store_bridge_scope_additions),
+                                showIdentity = true,
+                            )
+                        }
+                        if (installed.manifest.entryPoints.isEmpty() && candidate.manifest.entryPoints.isNotEmpty()) {
+                            Text(stringResource(R.string.store_bridge_scope_executable))
+                        }
+                        if (candidate.manifest.nsfw != installed.manifest.nsfw) {
+                            Text(
+                                stringResource(
+                                    if (candidate.manifest.nsfw) R.string.store_bridge_scope_adult
+                                    else R.string.store_bridge_scope_general,
+                                ),
+                            )
+                        }
+                        HorizontalDivider()
+                        LayerPresentationBlock(requested)
+                        MangaLayerScope(requested)
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        bridgeScopeReview = null
+                        if (repository.install(entry, StoreInstallMode.PRIVATE, reviewedBridgeUpdate = candidate) == null) {
+                            report(R.string.store_bridge_scope_changed)
+                        }
+                    }) { Text(stringResource(R.string.store_bridge_scope_accept)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { bridgeScopeReview = null }) { Text(stringResource(R.string.store_not_now)) }
+                },
+            )
         }
         installConfirmation?.let { (entry, mode, individualConsent, bridges) ->
             AlertDialog(

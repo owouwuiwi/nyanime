@@ -13,7 +13,9 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import eu.kanade.tachiyomi.data.addon.RinAddonRuntime
 import eu.kanade.tachiyomi.data.cast.CastController
+import eu.kanade.tachiyomi.data.extensionstore.ExtensionStoreRepository
 import eu.kanade.tachiyomi.ui.player.PlayerActivity
 import eu.kanade.tachiyomi.ui.reader.ReaderActivity
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -66,14 +68,7 @@ object RinSessions {
                 if (startedActivities++ ==
                     0
                 ) {
-                    repository.scope.launch {
-                        if (!eu.kanade.tachiyomi.data.extensionstore.ExtensionStoreRepository.get(
-                                application,
-                            ).checkImportedUpdates()
-                        ) {
-                            retry(application)
-                        }
-                    }
+                    ExtensionStoreRepository.get(application).scheduleImportedUpdates()
                 }
             }
             override fun onActivityResumed(activity: Activity) = Unit
@@ -84,26 +79,13 @@ object RinSessions {
             override fun onActivitySaveInstanceState(activity: Activity, state: Bundle) = Unit
         })
         repository.scope.launch {
-            combine(activityBusy, casting, playbackBusy) { reading, activeCast, playing ->
-                reading ||
-                    activeCast ||
-                    playing
+            combine(activityBusy, casting, playbackBusy, RinAddonRuntime.busy) { reading, activeCast, playing, addon ->
+                (reading || activeCast || playing) to addon
             }
-                .collectLatest {
-                    busy.value = it
-                    if (!it) {
-                        try {
-                            if (!eu.kanade.tachiyomi.data.extensionstore.ExtensionStoreRepository.get(
-                                    application,
-                                ).checkImportedUpdates()
-                            ) {
-                                retry(application)
-                            }
-                        } catch (cancel: kotlinx.coroutines.CancellationException) {
-                            throw cancel
-                        } catch (_: Exception) {
-                            // A catalogue failure cannot affect the host or its player.
-                        }
+                .collectLatest { (session, addon) ->
+                    busy.value = session
+                    if (!session && !addon) {
+                        ExtensionStoreRepository.get(application).scheduleImportedUpdates()
                     }
                 }
         }
@@ -135,10 +117,7 @@ class RinUpdateWorker(context: android.content.Context, parameters: WorkerParame
     parameters,
 ) {
     override suspend fun doWork(): Result = try {
-        if (eu.kanade.tachiyomi.data.extensionstore.ExtensionStoreRepository.get(
-                applicationContext,
-            ).checkImportedUpdates(force = true)
-        ) {
+        if (ExtensionStoreRepository.get(applicationContext).checkImportedUpdates(force = true)) {
             Result.success()
         } else {
             Result.retry()

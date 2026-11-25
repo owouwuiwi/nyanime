@@ -94,6 +94,71 @@ class RinStoreCatalogueTest {
         format = "apk",
     )
 
+    @Test fun `store offers new bridge capabilities for review while background updates retain safe candidates`() {
+        val installed = record.copy(manifest = bridgeManifest)
+        val stable = bridgeCandidate.copy(manifest = bridgeManifest.copy(versionCode = 2, versionName = "1.1"))
+        val expanded = expandedBridge(3)
+
+        fun row(vararg candidates: RinEntry) =
+            RinStoreCatalogue.entries(candidates.toList(), listOf(installed), emptyList(), emptyList()).single()
+
+        val review = row(stable, expanded)
+        assertEquals(StoreAction.UPDATE, review.action)
+        assertEquals(expanded, review.rinCandidate)
+        assertTrue(review.requiresBridgeScopeReview)
+        assertFalse(review.automaticUpdatePending)
+        assertTrue(RinUpdatePolicy.updates(listOf(expanded), listOf(installed)).isEmpty())
+        assertEquals(listOf(stable), RinUpdatePolicy.updates(listOf(stable, expanded), listOf(installed)))
+        assertFalse(row(stable).requiresBridgeScopeReview)
+        assertTrue(row(stable).automaticUpdatePending)
+
+        val additions = expanded.manifest.addedLayerCapabilities(installed.manifest)
+        assertEquals(listOf(901L, 902L), additions.map { it.sourceId })
+        assertEquals(listOf(setOf("catalog"), setOf("home")), additions.map { it.capabilities })
+    }
+
+    @Test fun `bridge review consent only authorizes the exact reviewed revision and signer`() {
+        val installed = record.copy(manifest = bridgeManifest, signerHistory = setOf(record.signer, "a".repeat(64)))
+        val expanded = expandedBridge(2)
+        assertTrue(RinUpdatePolicy.matchesScopeApproval(expanded, installed, expanded))
+        listOf(
+            null,
+            expanded.copy(sha256 = "f".repeat(64)),
+            expanded.copy(url = "https://example.invalid/same-bridge.apk"),
+            expanded.copy(manifest = expanded.manifest.copy(versionName = "different")),
+        ).forEach { assertFalse(RinUpdatePolicy.matchesScopeApproval(expanded, installed, it)) }
+
+        listOf(
+            expanded.copy(repository = "https://other.example/index.json"),
+            expanded.copy(signer = "a".repeat(64)),
+            expanded.copy(requiresAndroid = true),
+            expanded.copy(format = "rin"),
+            expanded.copy(manifest = expanded.manifest.copy(versionCode = 1)),
+            expanded.copy(manifest = expanded.manifest.copy(packageName = "test.extension.other")),
+        ).forEach { assertFalse(RinUpdatePolicy.matchesScopeApproval(it, installed, it)) }
+        assertFalse(RinUpdatePolicy.matchesScopeApproval(expanded, installed.copy(isShared = true), expanded))
+        assertFalse(
+            RinUpdatePolicy.matchesScopeApproval(expanded, installed.copy(catalogueConsent = record.signer), expanded),
+        )
+    }
+
+    private fun expandedBridge(version: Long): RinEntry {
+        val declaration = requireNotNull(bridgeManifest.mangaLayer)
+        val base = declaration.targets.single()
+        return bridgeCandidate.copy(
+            manifest = bridgeManifest.copy(
+                versionCode = version,
+                versionName = "1.$version",
+                mangaLayer = declaration.copy(
+                    targets = listOf(
+                        base.copy(capabilities = setOf("home", "catalog")),
+                        base.copy(packageName = "test.extension.other", sourceId = 902),
+                    ),
+                ),
+            ),
+        )
+    }
+
     @Test fun `catalogue previews only link a bridge to a matching source identity publisher and version`() {
         fun related(base: RinEntry): List<StoreBridge> {
             val entries = RinStoreCatalogue.entries(listOf(base, bridgeCandidate), emptyList(), emptyList(), emptyList())

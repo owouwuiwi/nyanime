@@ -12,6 +12,32 @@ import kotlinx.serialization.encodeToString
 import org.json.JSONObject
 
 @Serializable
+internal data class StoreApkRevision(
+    val packageName: String,
+    val version: Long,
+    val url: String,
+    val repository: String?,
+    val signer: String?,
+    val sha256: String?,
+) {
+    fun matches(entry: StoreEntry): Boolean = this == from(entry)
+
+    companion object {
+        fun from(entry: StoreEntry): StoreApkRevision? {
+            if (entry.privateOnly) return null
+            return StoreApkRevision(
+                entry.packageName,
+                entry.candidateVersion ?: return null,
+                entry.candidateUrl ?: return null,
+                entry.repository,
+                entry.candidateSigner,
+                entry.candidateHash,
+            )
+        }
+    }
+}
+
+@Serializable
 internal data class ApprovedBridgeInstall(
     val basePackage: String,
     val medium: StoreMedium,
@@ -43,9 +69,15 @@ internal class ExtensionInstallStatusStore(context: Context) {
         }.associateBy { it.basePackage },
     )
     val bridgeInstalls = mutableBridgeInstalls.asStateFlow()
+    private val mutableAndroidRequired = MutableStateFlow(
+        preferences.all.filterKeys { it.startsWith(ANDROID_REQUIRED_PREFIX) }.mapNotNull { (_, raw) ->
+            runCatching { RinArchive.json.decodeFromString<StoreApkRevision>(raw as String) }.getOrNull()
+        }.associateBy { it.packageName },
+    )
+    val androidRequired = mutableAndroidRequired.asStateFlow()
 
     @Synchronized fun read(): Map<String, InstallStep> = preferences.all.filterKeys {
-        !it.startsWith(BRIDGE_PREFIX)
+        !it.startsWith(BRIDGE_PREFIX) && !it.startsWith(ANDROID_REQUIRED_PREFIX)
     }.mapNotNull { (name, raw) ->
         runCatching {
             val data = JSONObject(raw as String)
@@ -86,6 +118,15 @@ internal class ExtensionInstallStatusStore(context: Context) {
         preferences.edit().remove(packageName).apply()
     }
 
+    @Synchronized fun rememberAndroidRequirement(entry: StoreEntry) {
+        val revision = StoreApkRevision.from(entry) ?: return
+        preferences.edit().putString(
+            ANDROID_REQUIRED_PREFIX + revision.packageName,
+            RinArchive.json.encodeToString(revision),
+        ).apply()
+        mutableAndroidRequired.update { it + (revision.packageName to revision) }
+    }
+
     @Synchronized fun approveBridges(plan: ApprovedBridgeInstall) {
         val payload = RinArchive.json.encodeToString(plan)
         check(preferences.edit().putString(BRIDGE_PREFIX + plan.basePackage, payload).commit())
@@ -100,5 +141,6 @@ internal class ExtensionInstallStatusStore(context: Context) {
 
     private companion object {
         const val BRIDGE_PREFIX = "bridge:"
+        const val ANDROID_REQUIRED_PREFIX = "android-required:"
     }
 }

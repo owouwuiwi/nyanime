@@ -11,6 +11,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.layer.MangaLayerDeclaration
+import eu.kanade.tachiyomi.data.layer.MangaLayerTarget
 
 @Composable
 internal fun LayerPresentationBlock(declaration: MangaLayerDeclaration) {
@@ -38,9 +39,17 @@ internal fun LayerPresentationBlock(declaration: MangaLayerDeclaration) {
 
 @Composable
 internal fun MangaLayerScope(declaration: MangaLayerDeclaration) {
+    MangaLayerTargets(
+        declaration.targets,
+        stringResource(R.string.store_manga_layer_targets),
+    )
+}
+
+@Composable
+internal fun MangaLayerTargets(targets: List<MangaLayerTarget>, title: String, showIdentity: Boolean = false) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(stringResource(R.string.store_manga_layer_targets), style = MaterialTheme.typography.labelLarge)
-        declaration.targets.forEach { target ->
+        Text(title, style = MaterialTheme.typography.labelLarge)
+        targets.forEach { target ->
             val capabilities = target.capabilities.sorted().map { capability ->
                 stringResource(
                     when (capability) {
@@ -59,6 +68,16 @@ internal fun MangaLayerScope(declaration: MangaLayerDeclaration) {
                 )
             }
             Text(target.packageName, style = MaterialTheme.typography.labelMedium)
+            if (showIdentity) {
+                Text(
+                    stringResource(R.string.store_bridge_scope_base_identity, target.medium, target.sourceId.toString()),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Text(
+                    target.signer.chunked(8).joinToString(" "),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
             Text(capabilities.joinToString(", "), style = MaterialTheme.typography.bodySmall)
         }
     }

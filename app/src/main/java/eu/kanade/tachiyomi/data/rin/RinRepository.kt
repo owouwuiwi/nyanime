@@ -65,6 +65,22 @@ data class RinEntry(
 
 object RinUpdatePolicy {
     fun accepts(entry: RinEntry, installed: RinRecord): Boolean =
+        matchesInstalled(entry, installed) &&
+            (!installed.manifest.isLayer || !entry.requiresAndroid &&
+                entry.manifest.preservesMangaLayerScope(installed.manifest))
+
+    fun requiresScopeReview(entry: RinEntry, installed: RinRecord): Boolean =
+        matchesInstalled(entry, installed) &&
+            installed.manifest.validMangaLayer() &&
+            !installed.isShared && installed.catalogueConsent == null &&
+            !entry.requiresAndroid && entry.signer in installed.publisherSigners &&
+            entry.manifest.validMangaLayer() &&
+            !entry.manifest.preservesMangaLayerScope(installed.manifest)
+
+    fun matchesScopeApproval(entry: RinEntry, installed: RinRecord, approved: RinEntry?): Boolean =
+        approved == entry && requiresScopeReview(entry, installed)
+
+    private fun matchesInstalled(entry: RinEntry, installed: RinRecord): Boolean =
         installed.format == "apk" &&
             entry.manifest.packageName == installed.manifest.packageName &&
             (entry.signer in installed.publisherSigners || entry.signer in installed.publisherHistory) &&
@@ -72,11 +88,6 @@ object RinUpdatePolicy {
             entry.manifest.medium == installed.manifest.medium &&
             entry.manifest.versionCode > installed.manifest.versionCode &&
             RinRepository.compatible(entry.manifest, entry.format) &&
-            (
-                !installed.manifest.isLayer ||
-                    !entry.requiresAndroid &&
-                    entry.manifest.preservesMangaLayerScope(installed.manifest)
-                ) &&
             (
                 installed.manifest.knownSourceIds.isEmpty() ||
                     entry.manifest.preservesSourceIds(installed.manifest.knownSourceIds)
@@ -99,6 +110,8 @@ class RinRepository private constructor(private val context: Context) {
     private val preferences = context.getSharedPreferences("rin_state", Context.MODE_PRIVATE)
     private val mutableEntries = MutableStateFlow(cachedEntries())
     val entries = mutableEntries.asStateFlow()
+    private val mutableUnavailableRepositories = MutableStateFlow<Set<String>>(emptySet())
+    val unavailableRepositories = mutableUnavailableRepositories.asStateFlow()
     private val mutableInstalled = MutableStateFlow(
         storage.records().map {
             it.copy(trusted = eu.kanade.tachiyomi.extension.ExtensionPackageConsent.trusted(it))
@@ -283,8 +296,7 @@ class RinRepository private constructor(private val context: Context) {
     }
 
     suspend fun setAutomaticUpdates(packageName: String, enabled: Boolean) {
-        val previous = storage.record(packageName) ?: return
-        storage.activate(previous.copy(automaticUpdates = enabled))
+        withContext(Dispatchers.IO) { storage.setAutomaticUpdates(packageName, enabled) }
         reloadInstalled()
     }
 
@@ -302,7 +314,7 @@ class RinRepository private constructor(private val context: Context) {
                         Injekt.get<MangaExtensionRepoRepository>().getAll().map { it.baseUrl }
                     ).distinct()
                 val all = mutableListOf<RinEntry>()
-                var complete = true
+                val unavailable = mutableSetOf<String>()
                 repositories.forEach { repository ->
                     try {
                         val url = if (repository.endsWith(".json")) {
@@ -368,15 +380,16 @@ class RinRepository private constructor(private val context: Context) {
                         throw cancel
                     } catch (error: Exception) {
                         logcat(LogPriority.WARN, error) { "Extension catalogue refresh failed" }
-                        complete = false
+                        unavailable += repository
                         // Retain only previously authenticated entries from this still-configured publisher.
                         all += entries.value.filter { it.repository == repository }
                     }
                 }
-                mutableEntries.value = all.distinctBy { Triple(it.manifest.packageName, it.sha256, it.signer) }
+                mutableUnavailableRepositories.value = unavailable.toSet()
+                mutableEntries.value = all.distinctBy { it.repository to Triple(it.manifest.packageName, it.sha256, it.signer) }
                 val encoded = RinArchive.json.encodeToString(mutableEntries.value)
                 check(preferences.edit().putString("catalogue", encoded).commit())
-                complete
+                unavailable.isEmpty()
             }
         }
         // A Store refresh can discover a new version inside the periodic check window.
@@ -589,7 +602,7 @@ class RinRepository private constructor(private val context: Context) {
         if (!RinLocalImportPolicy.accepts(candidate.record, candidate.previous)) {
             throw RinImportException(RinImportFailure.CHANGED)
         }
-        // This path follows the user's explicit file confirmation, not catalogue authority.
+        // This path follows explicit user confirmation for an exact verified package.
         // Approval applies only to this package; updates remain pinned to its signer and identity.
         activateVerified(candidate.record, candidate.previous, requireUnchanged = true, approveConsent = true)
     }
@@ -743,6 +756,8 @@ class RinRepository private constructor(private val context: Context) {
                         SourceActivationRequirements.current(context, accessProof),
                 ),
                 approveLayerScope = approveConsent,
+                expected = expected,
+                requireUnchanged = requireUnchanged || expected != null,
             )
             if (approveConsent) approveExecution(verified)
             reloadInstalled()
@@ -831,7 +846,7 @@ class RinRepository private constructor(private val context: Context) {
     // Compatibility entry point. All imported formats share the Store coordinator.
     suspend fun updateInstalled(force: Boolean = false, catalogueRefreshed: Boolean? = null): Boolean =
         eu.kanade.tachiyomi.data.extensionstore.ExtensionStoreRepository.get(context)
-            .checkImportedUpdates(force || catalogueRefreshed == true)
+            .checkImportedUpdates(force, catalogueRefreshed)
 
     companion object {
         @Volatile private var instance: RinRepository? = null

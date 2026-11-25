@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.domain.extension.ExtensionExecutionTrust
+import eu.kanade.tachiyomi.data.rin.RinEntry
 import eu.kanade.tachiyomi.data.rin.RinLocalImport
 import eu.kanade.tachiyomi.data.rin.RinRepository
 import eu.kanade.tachiyomi.data.rin.RinUpdatePolicy
@@ -26,6 +27,8 @@ import java.io.File
 
 enum class StoreInstallMode { SYSTEM, PRIVATE }
 
+internal class AndroidInstallRequired : Exception()
+
 /** One verified artifact, two backends. Download/verification cannot execute unapproved code. */
 internal class ExtensionPackageInstaller(private val context: Context, private val rin: RinRepository) {
     suspend fun install(
@@ -33,7 +36,9 @@ internal class ExtensionPackageInstaller(private val context: Context, private v
         mode: StoreInstallMode,
         progress: (Float?) -> Unit,
         catalogueConsent: String? = null,
+        reviewedBridgeUpdate: RinEntry? = null,
         beforeActivation: () -> Unit = {},
+        automatic: Boolean = false,
     ): Boolean = withContext(Dispatchers.IO) {
         check(!Injekt.get<BasePreferences>().downloadedOnly().get())
         require(mode == StoreInstallMode.SYSTEM || entry.canImport)
@@ -42,6 +47,16 @@ internal class ExtensionPackageInstaller(private val context: Context, private v
         require(eu.kanade.tachiyomi.data.rin.RinArchive.validBundleUrl(url))
         val previous = rin.storage.record(entry.packageName)
         require(entry.rinRecord == null || previous?.sha256 == entry.rinRecord.sha256)
+        if (reviewedBridgeUpdate != null) {
+            require(entry.privateOnly && previous != null && entry.rinRecord == previous)
+            require(RinUpdatePolicy.matchesScopeApproval(requireNotNull(entry.rinCandidate), previous, reviewedBridgeUpdate))
+        }
+        if (automatic) {
+            require(mode == StoreInstallMode.PRIVATE)
+            requireNotNull(previous)
+            require(ImportedExtensionUpdates.matchesInstalled(entry, previous))
+            require(eu.kanade.tachiyomi.extension.ExtensionPackageConsent.trusted(previous))
+        }
         val originalSystem = systemIdentity(entry.packageName)
         val file = File.createTempFile("extension-", ".apk", context.cacheDir)
         var handedToAndroid = false
@@ -78,6 +93,7 @@ internal class ExtensionPackageInstaller(private val context: Context, private v
                 contracts.copy(signers = it.publisherSigners, signerHistory = it.publisherHistory)
             } ?: entry.installedMetadata
             val metadata = ExtensionPackageInspector.inspect(inspected.info) { 0 }
+            if (automatic) require(metadata.signers == requireNotNull(previous).publisherSigners)
             val equivalent = if (entry.candidateVersion == entry.installedVersion) {
                 if (previous?.format == "apk") {
                     previous.sha256
@@ -120,26 +136,34 @@ internal class ExtensionPackageInstaller(private val context: Context, private v
             if (entry.privateOnly) {
                 val candidate = requireNotNull(entry.rinCandidate)
                 require(inspected.manifest == candidate.manifest)
-                if (previous != null) require(RinUpdatePolicy.accepts(candidate, previous))
+                if (previous != null && reviewedBridgeUpdate == null) require(RinUpdatePolicy.accepts(candidate, previous))
                 val staged = rin.storage.stage(
                     file,
                     candidate.signer,
                     candidate.sha256,
                     candidate.repository,
                 )
-                if (previous == null) {
+                if (reviewedBridgeUpdate != null) {
+                    requireNotNull(previous)
+                    require(staged.publisherSigners == previous.publisherSigners)
+                    require(rin.trusted(candidate) && candidate in rin.entries.value)
+                    rin.activateLocal(RinLocalImport(staged, previous))
+                } else if (previous == null) {
                     rin.activateLocal(RinLocalImport(staged, null))
                 } else {
                     rin.activate(staged, previous, requireUnchanged = true)
                 }
                 return@withContext true
             }
-            ExtensionExecutionTrust(Injekt.get()).approve(
-                entry.packageName,
-                metadata,
-                entry.repository,
-                catalogueConsent,
-            )
+            if (mode == StoreInstallMode.PRIVATE && inspected.requiresAndroid) throw AndroidInstallRequired()
+            if (!automatic) {
+                ExtensionExecutionTrust(Injekt.get()).approve(
+                    entry.packageName,
+                    metadata,
+                    entry.repository,
+                    catalogueConsent,
+                )
+            }
             if (mode == StoreInstallMode.SYSTEM && !inspected.requiresAndroid) {
                 val staged = rin.storage.stage(
                     file,
@@ -175,7 +199,6 @@ internal class ExtensionPackageInstaller(private val context: Context, private v
                 }
             }
             if (mode == StoreInstallMode.PRIVATE) {
-                require(!inspected.requiresAndroid)
                 val signer = ExtensionPackageInspector.inspect(inspected.info) { 0 }.signers.first()
                 val catalogueKey = catalogueConsent
                 val staged = rin.storage.stage(

@@ -316,7 +316,7 @@ internal fun StoreList(
             item(key = "updates-heading") {
                 Row(Modifier.fillMaxWidth().padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     StoreListHeading(stringResource(R.string.store_updates_available), Modifier.weight(1f))
-                    if (updates.size > 1 && !hasFilters) {
+                    if (updates.count { !it.requiresBridgeScopeReview } > 1 && !hasFilters) {
                         TextButton(onClick = onUpdateAll) { Text(stringResource(R.string.store_update_all)) }
                     }
                 }
@@ -421,6 +421,7 @@ internal fun EntryButton(
                 ) -> R.string.addon_host_unavailable
             downloading -> R.string.store_cancel_download
             installing -> R.string.store_installing
+            entry.requiresBridgeScopeReview -> R.string.store_bridge_scope_review
             step == InstallStep.Error -> R.string.store_retry
             entry.rinRecord != null && !entry.enabled -> R.string.store_activate
             else -> entry.action.label()

@@ -23,6 +23,10 @@
     <string name="unified_search_other_results">Show other titles (%1$d)</string>
     <string name="unified_search_sources">%1$d sources</string>
     <string name="unified_search_filters">Filters</string>
+    <string name="unified_search_extensions">Extensions</string>
+    <string name="unified_search_choose_extensions">Choose extensions</string>
+    <string name="unified_search_all_extensions">All extensions</string>
+    <string name="unified_search_extensions_empty">No searchable anime or manga extensions are installed.</string>
     <string name="unified_search_supported_sources">Searching %1$d compatible sources. Sources that cannot apply your genres are excluded.</string>
     <string name="unified_search_advanced">Advanced source filters</string>
     <string name="unified_search_settings">Search settings</string>

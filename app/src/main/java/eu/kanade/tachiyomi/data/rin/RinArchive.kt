@@ -1,6 +1,7 @@
 package eu.kanade.tachiyomi.data.rin
 
 import eu.kanade.tachiyomi.data.layer.MangaLayerDeclaration
+import eu.kanade.tachiyomi.data.layer.MangaLayerTarget
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -91,8 +92,18 @@ data class RinManifest(
 
     private data class LayerBase(val medium: String, val packageName: String, val sourceId: Long, val signer: String)
 
-    private fun layerPermissions(): Map<LayerBase, Set<String>> = requireNotNull(mangaLayer).targets.associate {
-        LayerBase(it.medium, it.packageName, it.sourceId, it.signer) to it.capabilities
+    private fun MangaLayerTarget.base() = LayerBase(medium, packageName, sourceId, signer)
+
+    private fun layerPermissions(): Map<LayerBase, Set<String>> = mangaLayer?.targets.orEmpty().associate {
+        it.base() to it.capabilities
+    }
+
+    fun addedLayerCapabilities(previous: RinManifest): List<MangaLayerTarget> {
+        val approved = previous.layerPermissions()
+        return mangaLayer?.targets.orEmpty().mapNotNull { target ->
+            val additions = target.capabilities - approved[target.base()].orEmpty()
+            if (additions.isEmpty()) null else target.copy(capabilities = additions)
+        }
     }
 
     fun validSourceIdentities(): Boolean {

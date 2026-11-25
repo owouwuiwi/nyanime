@@ -57,6 +57,22 @@ class StoreCatalogueTest {
         assertEquals(StoreAction.OPEN, entry.action)
     }
 
+    @Test fun `system update count includes each actionable Android package once`() {
+        val system = legacyAnime().copy(hasUpdate = true)
+        val update = available(1)
+        val entry = StoreCatalogue.anime(listOf(system), emptyList(), listOf(update)).single()
+        val import = StoreCatalogue.anime(
+            listOf(system.copy(isShared = false)),
+            emptyList(),
+            listOf(update),
+        ).single()
+
+        assertEquals(0, StoreCatalogue.systemUpdateCount(emptyList()))
+        assertEquals(0, StoreCatalogue.systemUpdateCount(listOf(import, entry.copy(animeCandidate = null))))
+        assertEquals(1, StoreCatalogue.systemUpdateCount(listOf(entry, entry.copy(id = "duplicate"), import)))
+        assertEquals(0, StoreCatalogue.systemUpdateCount(listOf(entry.copy(action = StoreAction.OPEN))))
+    }
+
     @Test fun `different catalogue origins are never silently collapsed`() {
         val first = available(1)
         val second = first.copy(store = catalogue.copy(indexUrl = "https://other.invalid/index.json"))

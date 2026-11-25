@@ -13,6 +13,8 @@
     <string name="store_tools">Strumenti</string>
     <string name="store_add_to_nyanime">Importa in Nyanime</string>
     <string name="store_install_on_android">Installa su Android</string>
+    <string name="store_apk_requires_android">Questo APK verificato richiede l’installazione tramite Android per funzionare.</string>
+    <string name="store_package_install_failed">Installazione non riuscita.</string>
     <string name="store_installed_apk">APK installato</string>
     <string name="store_version_label">Versione</string>
     <string name="store_install_options">Opzioni di installazione</string>
@@ -114,6 +116,16 @@
     <string name="store_bridge_installed">Installato</string>
     <string name="store_bridge_install_notice">Quando la fonte è disponibile, Nyanime importa e abilita questi bridge. Prosegui solo se ti fidi degli editori della fonte e dei bridge.</string>
     <string name="store_bridge_signing_fingerprint">Impronta della firma: %1$s</string>
+    <string name="store_bridge_scope_review">Rivedi aggiornamento bridge</string>
+    <string name="store_bridge_scope_versions">Versione %1$s → %2$s</string>
+    <string name="store_bridge_scope_notice">Questo aggiornamento cambia ciò che il bridge può fare. Controlla e approva le modifiche per aggiornare il bridge.</string>
+    <string name="store_bridge_scope_additions">Nuove funzioni e fonti di base</string>
+    <string name="store_bridge_scope_base_identity">%1$s · Fonte %2$s</string>
+    <string name="store_bridge_scope_executable">Il bridge ora può eseguire codice proprio.</string>
+    <string name="store_bridge_scope_adult">Il bridge sarà contrassegnato come contenuto per adulti.</string>
+    <string name="store_bridge_scope_general">Il bridge perderà l’etichetta dei contenuti per adulti.</string>
+    <string name="store_bridge_scope_accept">Approva e aggiorna</string>
+    <string name="store_bridge_scope_changed">Questo aggiornamento è cambiato durante la revisione. Apri il bridge per rivederlo.</string>
     <string name="store_install_with_bridges">Continua con i bridge</string>
     <plurals name="store_bridges_active">
         <item quantity="one">%d bridge attivo</item>

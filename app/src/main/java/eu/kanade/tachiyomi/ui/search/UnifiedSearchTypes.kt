@@ -53,6 +53,17 @@ data class UnifiedSearchEntry(
                 ?: anime?.asAnimeCover()
                 ?: manga?.asMangaCover()
 
+    internal fun restrictTargets(sources: Set<Pair<SearchMedium, Long>>): UnifiedSearchEntry {
+        val retained = targets.filter { (it.medium to it.source) in sources }
+        val entryId = anime?.id ?: manga?.id
+        val allowed = if (retained.isEmpty() && entryId != null && (medium to source) in sources) {
+            listOf(UnifiedSearchTarget(entryId, source, medium, title))
+        } else {
+            retained
+        }
+        return copy(targets = allowed)
+    }
+
     companion object {
         fun novel(source: Long, item: NovelEntry, category: String, label: String) =
             UnifiedSearchEntry(
@@ -303,7 +314,10 @@ data class UnifiedSearchRoute(
     val home: SourceHomeSource? = null,
     val tv: Boolean = false,
     val revision: String = "",
+    val extension: String? = null,
 )
+
+data class UnifiedSearchExtension(val key: String, val name: String, val medium: SearchMedium)
 
 data class UnifiedSearchGenre(
     val key: String,

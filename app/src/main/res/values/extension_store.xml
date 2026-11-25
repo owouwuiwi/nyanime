@@ -13,6 +13,8 @@
     <string name="store_tools">Tools</string>
     <string name="store_add_to_nyanime">Import into Nyanime</string>
     <string name="store_install_on_android">Install on Android</string>
+    <string name="store_apk_requires_android">This verified APK needs the Android installer to work.</string>
+    <string name="store_package_install_failed">Installation failed.</string>
     <string name="store_installed_apk">Installed APK</string>
     <string name="store_version_label">Version</string>
     <string name="store_install_options">Installation options</string>
@@ -114,6 +116,16 @@
     <string name="store_bridge_installed">Installed</string>
     <string name="store_bridge_install_notice">Nyanime imports and enables these bridges when the source is available. Continue only if you trust the publishers of the source and its bridges.</string>
     <string name="store_bridge_signing_fingerprint">Signing fingerprint: %1$s</string>
+    <string name="store_bridge_scope_review">Review bridge update</string>
+    <string name="store_bridge_scope_versions">Version %1$s → %2$s</string>
+    <string name="store_bridge_scope_notice">This update changes what the bridge can do. Review and approve these changes to update this bridge.</string>
+    <string name="store_bridge_scope_additions">New capabilities and base sources</string>
+    <string name="store_bridge_scope_base_identity">%1$s · Source %2$s</string>
+    <string name="store_bridge_scope_executable">The bridge can now run its own code.</string>
+    <string name="store_bridge_scope_adult">The bridge will be marked as adult content.</string>
+    <string name="store_bridge_scope_general">The adult-content label will be removed from this bridge.</string>
+    <string name="store_bridge_scope_accept">Approve and update</string>
+    <string name="store_bridge_scope_changed">This update changed while you were reviewing it. Open the bridge to review it again.</string>
     <string name="store_install_with_bridges">Continue with bridges</string>
     <plurals name="store_bridges_active">
         <item quantity="one">%d active bridge</item>

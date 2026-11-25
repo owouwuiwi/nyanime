@@ -23,6 +23,10 @@
     <string name="unified_search_other_results">Mostra altri titoli (%1$d)</string>
     <string name="unified_search_sources">%1$d fonti</string>
     <string name="unified_search_filters">Filtri</string>
+    <string name="unified_search_extensions">Estensioni</string>
+    <string name="unified_search_choose_extensions">Scegli le estensioni</string>
+    <string name="unified_search_all_extensions">Tutte le estensioni</string>
+    <string name="unified_search_extensions_empty">Non ci sono estensioni anime o manga disponibili per la ricerca.</string>
     <string name="unified_search_supported_sources">Ricerca in %1$d fonti compatibili. Le fonti che non possono applicare i generi scelti sono escluse.</string>
     <string name="unified_search_advanced">Filtri avanzati delle fonti</string>
     <string name="unified_search_settings">Impostazioni di ricerca</string>

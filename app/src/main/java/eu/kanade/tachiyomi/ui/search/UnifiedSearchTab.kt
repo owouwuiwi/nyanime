@@ -290,6 +290,7 @@ private fun UnifiedSearchContent(
                     Icon(Icons.Outlined.Tune, stringResource(R.string.unified_search_settings))
                 }
             }
+            UnifiedSearchGenreBar(model)
         }
         LazyVerticalGrid(
             columns = GridCells.Adaptive(128.dp),
@@ -510,6 +511,11 @@ private fun UnifiedSearchContent(
                                 Text(stringResource(R.string.unified_search_clear_filters))
                             }
                         }
+                        if (state.selectedExtensions.isNotEmpty()) {
+                            TextButton(onClick = model::clearExtensions) {
+                                Text(stringResource(R.string.unified_search_all_extensions))
+                            }
+                        }
                     }
                 }
             }
@@ -669,6 +675,7 @@ private fun UnifiedSearchPoster(
 private fun UnifiedSearchSheet(
     onDismiss: () -> Unit,
     title: String,
+    showClose: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     ModalBottomSheet(
@@ -676,13 +683,18 @@ private fun UnifiedSearchSheet(
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp)) {
-            Text(
-                title,
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(bottom = 16.dp),
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Row(Modifier.fillMaxWidth().padding(bottom = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (showClose) {
+                    TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
+                }
+            }
             content()
         }
     }
@@ -698,11 +710,13 @@ private fun UnifiedSearchPanelContent(
     val preferences = remember { Injekt.get<SourcePreferences>() }
     UnifiedSearchSheet(
         onDismiss = { model.showPanel(null) },
+        showClose = panel == UnifiedSearchPanel.EXTENSIONS,
         title =
         stringResource(
             when (panel) {
                 UnifiedSearchPanel.CATEGORIES -> R.string.unified_search_categories
                 UnifiedSearchPanel.FILTERS -> R.string.unified_search_filters
+                UnifiedSearchPanel.EXTENSIONS -> R.string.unified_search_choose_extensions
                 UnifiedSearchPanel.ASSISTANCE -> R.string.unified_search_search_help
                 UnifiedSearchPanel.SETTINGS -> R.string.unified_search_settings
             },
@@ -734,6 +748,11 @@ private fun UnifiedSearchPanelContent(
                     }
                 }
                 UnifiedSearchPanel.FILTERS -> {
+                    item {
+                        TextButton(onClick = { model.showPanel(UnifiedSearchPanel.EXTENSIONS) }) {
+                            Text(stringResource(R.string.unified_search_choose_extensions))
+                        }
+                    }
                     item {
                         Text(
                             stringResource(
@@ -779,6 +798,41 @@ private fun UnifiedSearchPanelContent(
                             },
                         ) {
                             Text(route.name + " · " + route.language.uppercase())
+                        }
+                    }
+                }
+                UnifiedSearchPanel.EXTENSIONS -> {
+                    item(key = "all-extensions") {
+                        UnifiedSearchCategoryRow(
+                            stringResource(R.string.unified_search_all_extensions),
+                            state.selectedExtensions.isEmpty(),
+                            model::clearExtensions,
+                        )
+                    }
+                    if (state.extensions.isEmpty()) {
+                        item {
+                            Text(
+                                stringResource(R.string.unified_search_extensions_empty),
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(12.dp),
+                            )
+                        }
+                    }
+                    state.extensions.groupBy(UnifiedSearchExtension::medium).forEach { (medium, extensions) ->
+                        item(key = "extension-medium:$medium") {
+                            Text(
+                                stringResource(
+                                    if (medium == SearchMedium.VIDEO) R.string.unified_search_video
+                                    else R.string.unified_search_manga,
+                                ),
+                                modifier = Modifier.padding(start = 12.dp, top = 12.dp),
+                                style = MaterialTheme.typography.titleSmall,
+                            )
+                        }
+                        items(extensions, key = UnifiedSearchExtension::key) { extension ->
+                            UnifiedSearchCategoryRow(extension.name, extension.key in state.selectedExtensions) {
+                                model.toggleExtension(extension.key)
+                            }
                         }
                     }
                 }
@@ -885,7 +939,7 @@ private fun UnifiedSearchCategoryRow(label: String, selected: Boolean, onClick: 
         onClick = onClick,
         color = if (selected) MaterialTheme.colorScheme.surfaceContainerHigh else Color.Transparent,
         shape = RoundedCornerShape(14.dp),
-        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics { this.selected = selected },
     ) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
@@ -918,6 +972,15 @@ fun UnifiedSearchGenreBar(model: UnifiedSearchScreenModel) {
                 count = state.selectedGenres.size,
             )
         }
+        item(key = "extension-filter") {
+            UnifiedSearchGenrePill(
+                selected = state.selectedExtensions.isNotEmpty(),
+                onClick = { model.showPanel(UnifiedSearchPanel.EXTENSIONS) },
+                label = stringResource(R.string.unified_search_extensions),
+                count = state.selectedExtensions.size,
+                modifier = Modifier.testTag("unified_search_extension_filter"),
+            )
+        }
         items(state.genres, key = { it.key }) { genre ->
             UnifiedSearchGenrePill(
                 selected = genre.key in state.selectedGenres,
@@ -935,6 +998,7 @@ private fun UnifiedSearchGenrePill(
     onClick: () -> Unit,
     isFilter: Boolean = false,
     count: Int = 0,
+    modifier: Modifier = Modifier,
 ) {
     val dark = LocalDarkTheme.current
     val motion = appMotionEnabled()
@@ -965,7 +1029,7 @@ private fun UnifiedSearchGenrePill(
                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
             },
         ),
-        modifier = Modifier.heightIn(min = 44.dp).semantics { this.selected = selected },
+        modifier = modifier.heightIn(min = 44.dp).semantics { this.selected = selected },
     ) {
         Row(
             Modifier.padding(horizontal = 16.dp, vertical = 10.dp),

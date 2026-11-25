@@ -100,6 +100,36 @@ class UnifiedSearchPolicyTest {
     private val native = UnifiedSearchRoute("video:2", SearchMedium.VIDEO, 2, "Source B", "en", "native", "Video")
 
     @Test
+    fun selectedPackagesRestrictBothMediaAndKeepExistingFilters() {
+        val primary = video.copy(extension = "video:example.video")
+        val secondary = native.copy(category = "video", extension = "video:example.other")
+        val manga = native.copy(
+            key = "manga:2",
+            medium = SearchMedium.MANGA,
+            category = "manga",
+            extension = "manga:example.manga",
+        )
+        val state = UnifiedSearchState(routes = listOf(primary, secondary, manga, native))
+        val scoped = state.copy(selectedExtensions = setOf(requireNotNull(primary.extension), requireNotNull(manga.extension)))
+        assertEquals(listOf(primary, manga), scoped.eligible)
+        val genres = UnifiedSearchFilters.genres(listOf(primary))
+        assertEquals(
+            listOf(primary),
+            scoped.copy(category = "video", genres = genres, selectedGenres = setOf(genres.first().key)).eligible,
+        )
+        assertEquals(listOf(primary, secondary, manga, native), scoped.copy(selectedExtensions = emptySet()).eligible)
+    }
+
+    @Test
+    fun filteredCardKeepsItsOwnRouteWhenEveryAlternateIsOutsideTheSelection() {
+        val manga = Manga.create().copy(id = 8, source = 1, title = "Title", url = "/item")
+        val entry = UnifiedSearchEntry.manga(MangaHomeItem(manga), "manga", "Manga")
+            .copy(targets = listOf(UnifiedSearchTarget(7, 2, SearchMedium.MANGA, "Other source")))
+        val restricted = entry.restrictTargets(setOf(SearchMedium.MANGA to 1L))
+        assertEquals(listOf(UnifiedSearchTarget(8, 1, SearchMedium.MANGA, "Title")), restricted.targets)
+    }
+
+    @Test
     fun rememberedScopeSurvivesColdExtensionInitialization() {
         val selected = setOf(MangaGenreLabels.key("Adventure"))
         val pending = UnifiedSearchSelection.resolve("video", selected, emptySet(), emptyList(), initializing = true)

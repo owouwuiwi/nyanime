@@ -21,6 +21,7 @@ import eu.kanade.tachiyomi.data.discovery.MangaHomePresentation
 import eu.kanade.tachiyomi.data.discovery.MangaHomeRegistry
 import eu.kanade.tachiyomi.data.discovery.MangaHomeService
 import eu.kanade.tachiyomi.data.track.SourceTrackingHints
+import eu.kanade.tachiyomi.extension.anime.AnimeExtensionManager
 import eu.kanade.tachiyomi.extension.manga.MangaExtensionManager
 import eu.kanade.tachiyomi.ui.browse.SourceSearchRunner
 import eu.kanade.tachiyomi.ui.discovery.DiscoveryTab
@@ -75,6 +76,8 @@ data class UnifiedSearchState(
     val category: String? = null,
     val categories: List<HomeCategory> = emptyList(),
     val routes: List<UnifiedSearchRoute> = emptyList(),
+    val extensions: List<UnifiedSearchExtension> = emptyList(),
+    val selectedExtensions: Set<String> = emptySet(),
     val genres: List<UnifiedSearchGenre> = emptyList(),
     val selectedGenres: Set<String> = emptySet(),
     val cards: List<UnifiedSearchCard> = emptyList(),
@@ -108,8 +111,11 @@ data class UnifiedSearchState(
     val failures
         get() = progress.values.count { it.error != null }
 
+    val extensionRoutes
+        get() = if (selectedExtensions.isEmpty()) routes else routes.filter { it.extension in selectedExtensions }
+
     val scopedRoutes
-        get() = routes.filter { category == null || it.category == category }
+        get() = extensionRoutes.filter { category == null || it.category == category }
 
     val selected
         get() = genres.filter { it.key in selectedGenres }
@@ -121,6 +127,7 @@ data class UnifiedSearchState(
 enum class UnifiedSearchPanel {
     CATEGORIES,
     FILTERS,
+    EXTENSIONS,
     ASSISTANCE,
     SETTINGS,
 }
@@ -134,6 +141,7 @@ class UnifiedSearchScreenModel : StateScreenModel<UnifiedSearchState>(UnifiedSea
     private val videos: AnimeSourceManager = Injekt.get()
     private val mangas: MangaSourceManager = Injekt.get()
     private val visibility: DiscoverySourceService = Injekt.get()
+    private val animeExtensions: AnimeExtensionManager = Injekt.get()
     private val mangaExtensions: MangaExtensionManager = Injekt.get()
     private val preferences: SourcePreferences = Injekt.get()
     private val uiPreferences: UiPreferences = Injekt.get()
@@ -160,7 +168,7 @@ class UnifiedSearchScreenModel : StateScreenModel<UnifiedSearchState>(UnifiedSea
     private var debounce: Job? = null
     private var logicalQuery: String? = null
     private var budget = SearchRequestBudget(3)
-    private val sessions = mutableMapOf<Triple<SearchMedium, Boolean, Boolean>, SearchSession>()
+    private val sessions = mutableMapOf<Triple<SearchMedium, Boolean, Long?>, SearchSession>()
     private val assistanceJobs = mutableListOf<Job>()
     private val received = linkedMapOf<String, List<UnifiedSearchEntry>>()
     private val ranker = SearchResultRanker()
@@ -183,10 +191,12 @@ class UnifiedSearchScreenModel : StateScreenModel<UnifiedSearchState>(UnifiedSea
         screenModelScope.launch {
             merge(
                 videoRegistry.observe().map { Unit },
+                animeExtensions.installedExtensionsFlow.map { Unit },
                 tv.registry.state.map { Unit },
                 tv.initialized.map { Unit },
                 tv.personal.changes.map { Unit },
                 mangaRegistry.observe().map { Unit },
+                mangaExtensions.installedExtensionsFlow.map { Unit },
                 novels.observe().map { Unit },
                 uiPreferences.homeCategoryOrder().changes().map { Unit },
                 base.downloadedOnly().changes().map { Unit },
@@ -373,8 +383,23 @@ class UnifiedSearchScreenModel : StateScreenModel<UnifiedSearchState>(UnifiedSea
                 nativeFallback = videoListing.nativeFallback,
             )
                 .map { if (it.id == null) it.copy(id = DEFAULT_VIDEO) else it }
+        val visibleVideoIds = videoSources.map { it.id }.toSet()
+        val visibleMangaIds = mangaSources.map { it.id }.toSet()
+        val extensionsBySource = buildMap {
+            for (extension in animeExtensions.installedExtensionsFlow.value) {
+                val option = UnifiedSearchExtension("video:${extension.pkgName}", extension.name, SearchMedium.VIDEO)
+                extension.sources.filter { it.id in visibleVideoIds }.forEach { put(SearchMedium.VIDEO to it.id, option) }
+            }
+            for (extension in mangaExtensions.installedExtensionsFlow.value) {
+                val option = UnifiedSearchExtension("manga:${extension.pkgName}", extension.name, SearchMedium.MANGA)
+                extension.sources.filter { it.id in visibleMangaIds }.forEach { put(SearchMedium.MANGA to it.id, option) }
+            }
+        }
         val routes =
-            (videoRoutes + mangaRoutes + tvRoutes + novelRoutes).sortedBy { route ->
+            (videoRoutes + mangaRoutes + tvRoutes + novelRoutes).map { route ->
+                val extension = extensionsBySource[route.medium to route.source]?.takeUnless { route.tv }
+                route.copy(extension = extension?.key)
+            }.sortedBy { route ->
                 val pinned =
                     when (route.medium) {
                         SearchMedium.VIDEO -> preferences.pinnedAnimeSources().get()
@@ -388,6 +413,13 @@ class UnifiedSearchScreenModel : StateScreenModel<UnifiedSearchState>(UnifiedSea
                 mangaListing.loading ||
                 !tv.initialized.value ||
                 !novelListing.initialized
+        val extensions = extensionsBySource.values.distinctBy(UnifiedSearchExtension::key)
+            .sortedWith(compareBy<UnifiedSearchExtension> { it.medium }.thenBy { it.name.lowercase() })
+        val selectedExtensions = if (initializing) {
+            state.value.selectedExtensions
+        } else {
+            state.value.selectedExtensions.intersect(extensions.map(UnifiedSearchExtension::key).toSet())
+        }
         val selection =
             UnifiedSearchSelection.resolve(
                 state.value.category,
@@ -401,11 +433,14 @@ class UnifiedSearchScreenModel : StateScreenModel<UnifiedSearchState>(UnifiedSea
                 state.value.offline != base.downloadedOnly().get() ||
                 state.value.initializing != initializing ||
                 state.value.category != selection.category ||
+                state.value.selectedExtensions != selectedExtensions ||
                 state.value.selectedGenres != selection.selected
         mutableState.update {
             it.copy(
                 initializing = initializing,
                 routes = routes,
+                extensions = extensions,
+                selectedExtensions = selectedExtensions,
                 categories = choices,
                 category = selection.category,
                 genres = selection.genres,
@@ -444,6 +479,7 @@ class UnifiedSearchScreenModel : StateScreenModel<UnifiedSearchState>(UnifiedSea
                 input = input,
                 query = "",
                 category = selection.category,
+                selectedExtensions = emptySet(),
                 selectedGenres = selection.selected,
                 genres = selection.genres,
                 exact = false,
@@ -564,6 +600,21 @@ class UnifiedSearchScreenModel : StateScreenModel<UnifiedSearchState>(UnifiedSea
         submit()
     }
 
+    fun toggleExtension(key: String) {
+        if (state.value.extensions.none { it.key == key }) return
+        mutableState.update {
+            val selected = it.selectedExtensions
+            it.copy(selectedExtensions = if (key in selected) selected - key else selected + key)
+        }
+        submit()
+    }
+
+    fun clearExtensions() {
+        if (state.value.selectedExtensions.isEmpty()) return
+        mutableState.update { it.copy(selectedExtensions = emptySet()) }
+        submit()
+    }
+
     fun showPanel(panel: UnifiedSearchPanel?) {
         mutableState.update { it.copy(panel = panel) }
     }
@@ -631,7 +682,7 @@ class UnifiedSearchScreenModel : StateScreenModel<UnifiedSearchState>(UnifiedSea
             .forEach { medium ->
                 val privateSource = privateSource(medium, current)
                 val session =
-                    sessions.getOrPut(Triple(medium, current.exact, privateSource != null)) {
+                    sessions.getOrPut(Triple(medium, current.exact, privateSource)) {
                         engine.session(
                             query,
                             medium,
@@ -846,28 +897,17 @@ class UnifiedSearchScreenModel : StateScreenModel<UnifiedSearchState>(UnifiedSea
             }
             return
         }
+        val extensionSources = current.extensionRoutes.map { it.medium to it.source }.toSet()
         val public =
             UnifiedSearchExploreCache.snapshots.value
                 .filter { entry ->
-                    current.routes.any { it.source == entry.source && it.medium == entry.medium } &&
+                    (entry.medium to entry.source) in extensionSources &&
                         (current.category == null || current.category == entry.category) &&
                         !isPrivate(entry.medium, entry.source) &&
                         visibleEntry(entry)
                 }
-                .map { entry ->
-                    entry.copy(
-                        targets =
-                        entry.targets.filter { target ->
-                            current.routes.any {
-                                it.source == target.source && it.medium == target.medium
-                            }
-                        },
-                    )
-                }
-        val live =
-            current.routes.filter {
-                it.tv && (current.category == null || it.category == current.category)
-            }
+                .map { it.restrictTargets(extensionSources) }
+        val live = current.scopedRoutes.filter { it.tv }
         mutableState.update {
             it.copy(
                 cards =
@@ -890,14 +930,20 @@ class UnifiedSearchScreenModel : StateScreenModel<UnifiedSearchState>(UnifiedSea
         ranking?.cancel()
         val ticket = revision
         val snapshot = state.value
-        val entries = snapshot.routes.flatMap { received[it.key].orEmpty() }.filter(::visibleEntry)
+        val entries = snapshot.scopedRoutes.flatMap { received[it.key].orEmpty() }.filter(::visibleEntry)
+        val filtered = if (snapshot.selectedExtensions.isEmpty()) {
+            entries
+        } else {
+            val extensionSources = snapshot.extensionRoutes.map { it.medium to it.source }.toSet()
+            entries.map { it.restrictTargets(extensionSources) }
+        }
         ranking = screenModelScope.launch {
             val cards =
                 withContext(Dispatchers.Default) {
                     UnifiedSearchCards.ranked(
                         snapshot.query,
-                        UnifiedSearchCards.merge(entries, snapshot.cards),
-                        entries,
+                        UnifiedSearchCards.merge(filtered, snapshot.cards),
+                        filtered,
                         ranker,
                     )
                 }
@@ -916,7 +962,7 @@ class UnifiedSearchScreenModel : StateScreenModel<UnifiedSearchState>(UnifiedSea
                 Triple(
                     route.medium,
                     snapshot.exact,
-                    privateSource(route.medium, snapshot) != null,
+                    privateSource(route.medium, snapshot),
                 ),
             )
         runner.submit(

@@ -21,7 +21,7 @@ internal object RinStoreCatalogue {
         val owned = records.values.map { record ->
             val candidate = available[record.manifest.packageName].orEmpty().filter {
                 if (record.manifest.isLayer) {
-                    RinUpdatePolicy.accepts(it, record)
+                    RinUpdatePolicy.accepts(it, record) || RinUpdatePolicy.requiresScopeReview(it, record)
                 } else {
                     it.repository == record.repository && it.signer == record.signer
                 }
@@ -77,7 +77,9 @@ internal object RinStoreCatalogue {
                 StoreAction.INSTALL
             } else if (!record.trusted) {
                 StoreAction.TRUST
-            } else if (candidate != null && RinUpdatePolicy.accepts(candidate, record)) {
+            } else if (candidate != null &&
+                (RinUpdatePolicy.accepts(candidate, record) || RinUpdatePolicy.requiresScopeReview(candidate, record))
+            ) {
                 StoreAction.UPDATE
             } else if (manifest.medium in setOf("addon", "guide", "tv", "novel") &&
                 !eu.kanade.tachiyomi.data.rin.RinRepository.compatible(manifest)

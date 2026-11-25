@@ -9,6 +9,20 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 25 novembre 2026 — 0.81.1.4
+
+### Store
+
+- Corretta la verifica della firma degli APK delle estensioni nella build di distribuzione.
+- Se un aggiornamento del bridge aggiunge funzioni o fonti compatibili, lo Store mostra le modifiche e chiede un nuovo consenso prima dell’installazione.
+
+- Lo Store indica quando una fonte richiede il programma di installazione di Android.
+- Le estensioni e i bridge importati si aggiornano automaticamente quando la firma e le autorizzazioni coincidono. Altro mostra quanti APK installati su Android hanno un aggiornamento disponibile.
+
+### Ricerca
+
+- La ricerca globale può essere limitata a una o più estensioni installate per anime e manga.
+
 ## 25 novembre 2026 — 0.81.1.3
 
 ### Store
