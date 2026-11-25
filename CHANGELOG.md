@@ -9,6 +9,12 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 25 novembre 2026 — 0.81.1.6
+
+### Compatibilità
+
+- Lo Store può importare gli APK firmati delle estensioni anime e manga che dichiarano solo attività facoltative per l’apertura di link web. Il pacchetto mantiene la propria firma e il catalogo di origine continua a fornire gli aggiornamenti.
+
 ## 25 novembre 2026 — 0.81.1.4
 
 ### Store

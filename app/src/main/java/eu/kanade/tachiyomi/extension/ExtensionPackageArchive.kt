@@ -164,16 +164,23 @@ object ExtensionPackageArchive {
                     it.matches(Regex("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_$]*)+"))
                 },
         )
+        val activities = info.activities.orEmpty()
         val requiresAndroid = app.metaData?.getBoolean("nyanime.extension.requires_android", false) == true ||
-            medium == "addon" &&
-            entryPoints.isEmpty() ||
-            info.activities.orEmpty().isNotEmpty() ||
+            medium == "addon" && entryPoints.isEmpty() ||
             info.services.orEmpty().isNotEmpty() ||
             info.providers.orEmpty().isNotEmpty() ||
             info.receivers.orEmpty().isNotEmpty() ||
-            app.className?.let { it != "android.app.Application" } == true
+            info.instrumentation.orEmpty().isNotEmpty() ||
+            app.className?.let { it != "android.app.Application" } == true ||
+            activities.isNotEmpty() && (
+                medium !in setOf("anime", "manga") || entryPoints.isEmpty() ||
+                    activities.any {
+                        !it.exported || it.targetActivity != null || it.permission != null || it.name in entryPoints
+                    } ||
+                    !ExtensionWebLinkActivity.isOptionalOnly(file, info.packageName, activities.map { it.name }.toSet())
+                )
         if (isLayer) {
-            require(!requiresAndroid && info.instrumentation.orEmpty().isEmpty()) {
+            require(!requiresAndroid) {
                 "Layers cannot declare Android components"
             }
             require(app.metaData?.getString("nyanime.optional.factory") == null)

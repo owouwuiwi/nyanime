@@ -76,8 +76,35 @@ internal class ExtensionInstallStatusStore(context: Context) {
     )
     val androidRequired = mutableAndroidRequired.asStateFlow()
 
+    init {
+        val saved = preferences.all
+        val outdated = saved.filterKeys {
+            it.startsWith(ANDROID_REQUIREMENT_RECORD_PREFIX) && !it.startsWith(ANDROID_REQUIRED_PREFIX)
+        }
+        if (outdated.isNotEmpty()) {
+            val editor = preferences.edit()
+            for ((key, payload) in outdated) {
+                editor.remove(key)
+                val revision = runCatching {
+                    RinArchive.json.decodeFromString<StoreApkRevision>(payload as String)
+                }.getOrNull() ?: continue
+                if (key != ANDROID_REQUIREMENT_RECORD_PREFIX + revision.packageName) continue
+                val status = runCatching {
+                    JSONObject(saved[revision.packageName] as String)
+                }.getOrNull() ?: continue
+                if (status.optString("step") == InstallStep.Error.name &&
+                    status.optString("mode") == StoreInstallMode.PRIVATE.name &&
+                    status.optLong("version") == revision.version
+                ) {
+                    editor.remove(revision.packageName)
+                }
+            }
+            editor.apply()
+        }
+    }
+
     @Synchronized fun read(): Map<String, InstallStep> = preferences.all.filterKeys {
-        !it.startsWith(BRIDGE_PREFIX) && !it.startsWith(ANDROID_REQUIRED_PREFIX)
+        !it.startsWith(BRIDGE_PREFIX) && !it.startsWith(ANDROID_REQUIREMENT_RECORD_PREFIX)
     }.mapNotNull { (name, raw) ->
         runCatching {
             val data = JSONObject(raw as String)
@@ -141,6 +168,8 @@ internal class ExtensionInstallStatusStore(context: Context) {
 
     private companion object {
         const val BRIDGE_PREFIX = "bridge:"
-        const val ANDROID_REQUIRED_PREFIX = "android-required:"
+        const val ANDROID_REQUIREMENT_RECORD_PREFIX = "android-required:"
+        // Earlier records predate recognition of optional web link activities.
+        const val ANDROID_REQUIRED_PREFIX = "${ANDROID_REQUIREMENT_RECORD_PREFIX}v2:"
     }
 }
