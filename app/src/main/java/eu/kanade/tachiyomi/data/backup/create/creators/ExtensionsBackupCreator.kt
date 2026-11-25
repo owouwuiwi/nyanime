@@ -2,6 +2,8 @@ package eu.kanade.tachiyomi.data.backup.create.creators
 
 import android.content.Context
 import eu.kanade.tachiyomi.data.backup.models.BackupExtension
+import eu.kanade.tachiyomi.extension.ExtensionApkValidator
+import eu.kanade.tachiyomi.extension.ExtensionPackageArchive
 import eu.kanade.tachiyomi.extension.anime.AnimeExtensionManager
 import eu.kanade.tachiyomi.extension.manga.MangaExtensionManager
 import uy.kohesive.injekt.Injekt
@@ -16,13 +18,12 @@ class ExtensionsBackupCreator(
 
     operator fun invoke(): List<BackupExtension> {
         val storage = eu.kanade.tachiyomi.data.rin.RinStorage(context)
-        val records = storage.records().associateBy { it.manifest.packageName }
+        val records = storage.records().filter { it.format == "apk" }.associateBy { it.manifest.packageName }
+        val features = ExtensionApkValidator.Kind.entries.map { it.feature }.toSet() + ExtensionPackageArchive.LAYER_FEATURE
         val systems = context.packageManager.getInstalledPackages(
-            eu.kanade.tachiyomi.extension.ExtensionPackageArchive.FLAGS,
+            ExtensionPackageArchive.FLAGS,
         ).filter { info ->
-            info.reqFeatures.orEmpty().any { feature ->
-                feature.name in eu.kanade.tachiyomi.extension.ExtensionApkValidator.Kind.entries.map { it.feature }
-            }
+            info.reqFeatures.orEmpty().any { it.name in features }
         }.associateBy { it.packageName }
         val active = animeExtensionManager?.installedExtensionsFlow?.value.orEmpty()
             .associate { it.pkgName to it.isShared } +
@@ -31,8 +32,14 @@ class ExtensionsBackupCreator(
             .getStringSet("packages", emptySet()).orEmpty()
         val legacy = File(context.filesDir, "exts").listFiles().orEmpty()
             .filter { it.isFile && it.extension == "ext" && it.nameWithoutExtension !in retired }
+            .filter { file ->
+                runCatching {
+                    val apk = ExtensionPackageArchive.inspect(context, file)
+                    apk.manifest.packageName == file.nameWithoutExtension && !apk.requiresAndroid
+                }.getOrDefault(false)
+            }
             .associateBy { it.nameWithoutExtension }
-        return (records.keys + systems.keys + active.keys + legacy.keys).map { name ->
+        return (records.keys + systems.keys + active.keys + legacy.keys).mapNotNull { name ->
             val record = records[name]
             val system = systems[name]
             val preferSystem = when {
@@ -43,9 +50,9 @@ class ExtensionsBackupCreator(
                 else -> {
                     val candidate = runCatching {
                         val source = File(requireNotNull(system.applicationInfo?.sourceDir))
-                        val inspected = eu.kanade.tachiyomi.extension.ExtensionPackageArchive.inspect(context, source)
+                        val inspected = ExtensionPackageArchive.inspect(context, source)
                         val metadata = eu.kanade.tachiyomi.extension.ExtensionPackageInspector.inspect(system) { 0 }
-                        eu.kanade.tachiyomi.data.rin.RinRepository.compatible(inspected.manifest) &&
+                        eu.kanade.tachiyomi.data.rin.RinRepository.compatible(inspected.manifest, "apk") &&
                             eu.kanade.tachiyomi.extension.ExtensionPackageChoice.samePublisher(
                                 record.publisherSigners,
                                 eu.kanade.tachiyomi.extension.ExtensionPackageChoice.Candidate(
@@ -71,7 +78,7 @@ class ExtensionsBackupCreator(
                 val source = if (private) {
                     requireNotNull(legacy[name])
                 } else {
-                    File(requireNotNull(system?.applicationInfo?.sourceDir))
+                    system?.applicationInfo?.sourceDir?.let(::File) ?: return@mapNotNull null
                 }
                 BackupExtension(
                     name,

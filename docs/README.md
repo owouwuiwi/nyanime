@@ -90,7 +90,7 @@ Il progetto segue il modello [bring your own content](responsible-use.md).
 | [Home Panorama](home-discovery.md) | Carosello circolare, ripresa compatta, caricamento e interazioni. |
 | [Fluidità](ui-fluidity.md) | Rendering, immagini, aggiornamenti locali e prove di scorrimento su dispositivo. |
 | [Store](extension-store.md) | Inventario, Installa o Importa, fiducia e aggiornamenti delle estensioni. |
-| [Importazione manuale](rin-manual-import.md) | APK e vecchi archivi, senza catalogo obbligatorio. |
+| [Importazione manuale](rin-manual-import.md) | APK firmati, con catalogo opzionale. |
 | [Interoperabilità delle estensioni](extension-interoperability.md) | Contratti, capacità facoltative, SDK, identità e verifiche. |
 | [Estensioni Notizie](news-extensions.md) | Fonti separate, lettore nativo, articoli salvati e avvisi facoltativi. |
 | [Addon opzionali](addons.md) | Modalità installabili, logo e attivazione dichiarati, isolamento, tema e aggiornamenti. |
@@ -126,5 +126,3 @@ Il progetto segue il modello [bring your own content](responsible-use.md).
   non elenco delle release Nyanime.
 
 - [Distribuzioni e aggiornamenti delle estensioni](extension-distributions.md)
-
-- [Nyanime RIN: formato, migrazione e aggiornamenti](rin.md)

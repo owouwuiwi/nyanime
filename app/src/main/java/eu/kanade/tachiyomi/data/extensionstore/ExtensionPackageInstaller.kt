@@ -33,6 +33,7 @@ internal class ExtensionPackageInstaller(private val context: Context, private v
         mode: StoreInstallMode,
         progress: (Float?) -> Unit,
         catalogueConsent: String? = null,
+        beforeActivation: () -> Unit = {},
     ): Boolean = withContext(Dispatchers.IO) {
         check(!Injekt.get<BasePreferences>().downloadedOnly().get())
         require(mode == StoreInstallMode.SYSTEM || entry.canImport)
@@ -184,10 +185,12 @@ internal class ExtensionPackageInstaller(private val context: Context, private v
                     entry.repository.orEmpty(),
                 )
                     .copy(catalogueConsent = if (previous == null) catalogueKey else previous.catalogueConsent)
+                beforeActivation()
                 rin.activate(staged, previous, requireUnchanged = true)
                 true
             } else {
                 check(file.setReadOnly())
+                beforeActivation()
                 withContext(Dispatchers.Main.immediate) {
                     context.startActivity(
                         Intent(Intent.ACTION_VIEW).setDataAndType(

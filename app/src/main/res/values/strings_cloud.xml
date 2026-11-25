@@ -120,7 +120,7 @@
     <string name="cloud_restore_manga">Manga</string>
     <string name="cloud_restore_progress">Episodes and chapters</string>
     <string name="cloud_restore_settings">Settings</string>
-    <string name="cloud_restore_extensions_summary">Includes %1$d extensions. The app restores RIN packages; missing APK extensions require Android confirmation. Downloaded media and your Telegram session stay on this phone.</string>
+    <string name="cloud_restore_extensions_summary">Includes %1$d extensions. Nyanime restores imported APKs. Reinstalling missing Android APKs requires confirmation. Downloaded media and your Telegram session stay on this phone.</string>
     <string name="cloud_restore_options">Choose what to restore</string>
     <string name="cloud_restore_missing">Some sources or services are not available on this device yet. We will recover their data; you may need to finish setting them up.</string>
     <string name="cloud_restore_start">Restore this copy</string>

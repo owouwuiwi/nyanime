@@ -3,7 +3,7 @@
     <string name="store_title">Store</string>
     <string name="store_explore_tab">Esplora</string>
     <string name="store_catalogues_tab">Cataloghi</string>
-    <string name="store_from_file">Da file</string>
+    <string name="store_from_file">Importa APK da file</string>
     <string name="store_view">Vedi</string>
     <string name="store_view_extension">Vedi estensione</string>
     <string name="store_extensions_heading">Estensioni</string>
@@ -11,15 +11,15 @@
     <string name="store_updates_available">Aggiornamenti disponibili</string>
     <string name="store_your_catalogues">I tuoi cataloghi</string>
     <string name="store_tools">Strumenti</string>
-    <string name="store_add_to_nyanime">Aggiungi a Nyanime</string>
+    <string name="store_add_to_nyanime">Importa in Nyanime</string>
     <string name="store_install_on_android">Installa su Android</string>
-    <string name="store_mode_nyanime">Solo in Nyanime</string>
+    <string name="store_installed_apk">APK installato</string>
     <string name="store_version_label">Versione</string>
     <string name="store_install_options">Opzioni di installazione</string>
-    <string name="store_related_layers">Componenti aggiuntivi</string>
+    <string name="store_related_layers">Bridge della fonte</string>
     <string name="store_layer_features">Cosa aggiunge</string>
     <string name="store_return_to_source">Torna alla fonte</string>
-    <string name="store_layer_no_description">L’autore del layer non ha fornito una descrizione.</string>
+    <string name="store_layer_no_description">Descrizione dell’autore non disponibile.</string>
     <string name="store_installed">Installate</string>
     <string name="store_catalogue">Catalogo</string>
     <string name="store_anime">Anime</string>
@@ -98,4 +98,33 @@
     <string name="store_prepare_error">Non è stato possibile completare il passaggio. I progressi salvati sono al sicuro. Riprova per verificare e preparare nuovamente l’APK.</string>
     <string name="store_step">Passaggio %1$d di %2$d</string>
     <string name="store_review_updates">Verifica gli aggiornamenti</string>
+    <string name="store_more_options">Altre opzioni</string>
+    <string name="store_clear_filters">Azzera ricerca e filtri</string>
+    <string name="store_language_multi">Multilingue</string>
+    <string name="store_language_unspecified">Lingua non indicata</string>
+    <string name="store_bridge_requires_source">Fonte da installare</string>
+    <string name="store_bridge_check_author">Autore da verificare</string>
+    <string name="store_bridge_partly_active">Parzialmente attivo</string>
+    <string name="store_bridge_install_source_first">Installa la fonte compatibile per aggiungere questo bridge.</string>
+    <string name="store_bridge_open_source">Apri scheda della fonte</string>
+    <string name="store_bridge_for">Bridge per %1$s</string>
+    <string name="store_bridge_configure">Configura</string>
+    <string name="store_bridge_update_available">Aggiornamento disponibile</string>
+    <string name="store_bridge_disabled">Disattivato</string>
+    <string name="store_bridge_installed">Installato</string>
+    <string name="store_bridge_install_notice">Quando la fonte è disponibile, Nyanime importa e abilita questi bridge. Prosegui solo se ti fidi degli editori della fonte e dei bridge.</string>
+    <string name="store_bridge_signing_fingerprint">Impronta della firma: %1$s</string>
+    <string name="store_install_with_bridges">Continua con i bridge</string>
+    <plurals name="store_bridges_active">
+        <item quantity="one">%d bridge attivo</item>
+        <item quantity="other">%d bridge attivi</item>
+    </plurals>
+    <plurals name="store_bridges_available">
+        <item quantity="one">%d bridge disponibile</item>
+        <item quantity="other">%d bridge disponibili</item>
+    </plurals>
+    <plurals name="store_bridges_linked">
+        <item quantity="one">%d bridge associato</item>
+        <item quantity="other">%d bridge associati</item>
+    </plurals>
 </resources>

@@ -11,7 +11,7 @@ enum class RinImportFailure {
     BUSY,
 }
 
-class RinImportException(val reason: RinImportFailure) : Exception("RIN import: $reason")
+class RinImportException(val reason: RinImportFailure) : Exception("APK import: $reason")
 
 /** Manual selection never grants publisher changes, downgrades or a new media/source identity. */
 object RinLocalImportPolicy {

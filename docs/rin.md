@@ -1,6 +1,5 @@
-> Compatibility archive documentation. From Nyanime 0.45, new extensions
-> use signed APKs with Install or Import. Legacy RIN remains readable; no forced
-> APK-to-RIN migration, precedence, catalogue authority or uninstall runs.
+> Historical format reference. Current versions use signed APKs with Install
+> or Import and retire this archive format from extension operations.
 > See [extension interoperability](extension-interoperability.md).
 
 # Nyanime RIN

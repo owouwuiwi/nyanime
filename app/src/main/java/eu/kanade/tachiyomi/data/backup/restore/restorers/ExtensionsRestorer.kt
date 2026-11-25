@@ -3,12 +3,13 @@ package eu.kanade.tachiyomi.data.backup.restore.restorers
 import android.content.Context
 import android.content.Intent
 import eu.kanade.tachiyomi.data.backup.models.BackupExtension
-import eu.kanade.tachiyomi.data.rin.RinArchive
+import eu.kanade.tachiyomi.data.rin.RinRepository
+import eu.kanade.tachiyomi.data.rin.RinStorage
+import eu.kanade.tachiyomi.extension.ExtensionPackageArchive
+import eu.kanade.tachiyomi.extension.ExtensionPackageInspector
 import eu.kanade.tachiyomi.util.storage.getUriCompat
-import mihon.domain.extension.anime.repository.AnimeExtensionStoreRepository
-import mihon.domain.extensionrepo.manga.repository.MangaExtensionRepoRepository
-import uy.kohesive.injekt.Injekt
-import uy.kohesive.injekt.api.get
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.runBlocking
 import java.io.File
 
 class ExtensionsRestorer(
@@ -19,33 +20,31 @@ class ExtensionsRestorer(
     fun restoreExtensions(extensions: List<BackupExtension>): List<String> {
         val failures = mutableListOf<String>()
         extensions.forEach {
+            if (it.format != "apk") return@forEach
             try {
                 require(it.pkgName.matches(Regex("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+")))
-                require(it.apk.size.toLong() in 1..eu.kanade.tachiyomi.extension.ExtensionPackageArchive.MAX_BYTES)
-                if (it.format == "rin" || it.privatelyInstalled) {
-                    val storage = eu.kanade.tachiyomi.data.rin.RinStorage(context)
-                    kotlinx.coroutines.runBlocking {
-                        val file = File.createTempFile("rin-restore-", ".tmp", context.cacheDir)
-                        try {
-                            file.writeBytes(it.apk)
-                            val signer = if (it.format == "apk") {
-                                val inspected = eu.kanade.tachiyomi.extension.ExtensionPackageArchive.inspect(
-                                    context,
-                                    file,
-                                )
-                                eu.kanade.tachiyomi.extension.ExtensionPackageInspector.inspect(inspected.info) {
-                                    0
-                                }.signers.first()
-                            } else {
-                                it.rinSigner
-                            }
+                require(it.apk.size.toLong() in 1..ExtensionPackageArchive.MAX_BYTES)
+                if (!it.privatelyInstalled &&
+                    context.packageManager.getInstalledPackages(0).any { pkg -> pkg.packageName == it.pkgName }
+                ) {
+                    return@forEach
+                }
+                val file = File.createTempFile("extension-restore-", ".apk", context.cacheDir)
+                var handedToAndroid = false
+                try {
+                    file.writeBytes(it.apk)
+                    val inspected = ExtensionPackageArchive.inspect(context, file)
+                    require(inspected.manifest.packageName == it.pkgName)
+                    if (it.privatelyInstalled) {
+                        val storage = RinStorage(context)
+                        val signer = ExtensionPackageInspector.inspect(inspected.info) { 0 }.signers.first()
+                        runBlocking {
                             val record = storage.stage(
                                 file,
                                 signer,
-                                RinArchive.sha256(it.apk),
+                                ExtensionPackageArchive.sha256(file),
                                 it.rinRepository,
                             )
-                            require(record.manifest.packageName == it.pkgName)
                             require(it.storagePublisher.isEmpty() || it.storagePublisher in record.publisherHistory)
                             val staged = record.copy(storagePublisher = it.storagePublisher.ifEmpty { record.signer })
                             val previous = storage.record(it.pkgName)
@@ -59,21 +58,12 @@ class ExtensionsRestorer(
                             if (emergency) {
                                 storage.activate(restored)
                             } else {
-                                eu.kanade.tachiyomi.data.rin.RinRepository.get(context)
-                                    .restoreDormant(restored)
+                                RinRepository.get(context).restoreDormant(restored)
                             }
-                        } finally {
-                            file.delete()
                         }
+                        return@forEach
                     }
-                    return@forEach
-                }
-                require(it.format == "apk")
-                if (context.packageManager.getInstalledPackages(0).none { pkg -> pkg.packageName == it.pkgName }) {
                     check(!emergency) { "An extension needs to be installed from the saved backup" }
-                    // save apk in files dir and open installer dialog
-                    val file = File(context.cacheDir, "${it.pkgName}.apk")
-                    file.writeBytes(it.apk)
                     val intent = Intent(Intent.ACTION_VIEW)
                         .setDataAndType(
                             file.getUriCompat(context),
@@ -83,8 +73,11 @@ class ExtensionsRestorer(
                             Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION,
                         )
                     context.startActivity(intent)
+                    handedToAndroid = true
+                } finally {
+                    if (!handedToAndroid) file.delete()
                 }
-            } catch (cancel: kotlinx.coroutines.CancellationException) {
+            } catch (cancel: CancellationException) {
                 throw cancel
             } catch (error: Exception) {
                 failures += "${it.pkgName}: ${error.message ?: error.javaClass.simpleName}"

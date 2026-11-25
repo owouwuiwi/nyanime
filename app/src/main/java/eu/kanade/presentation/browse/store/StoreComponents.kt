@@ -18,12 +18,10 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -41,10 +39,12 @@ import androidx.compose.material.icons.outlined.PlayCircleOutline
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
@@ -64,23 +64,26 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import eu.kanade.presentation.browse.anime.components.AnimeExtensionIcon
 import eu.kanade.presentation.browse.manga.components.MangaExtensionIcon
-import eu.kanade.presentation.motion.modernMotionEnabled
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.extensionstore.StoreAction
 import eu.kanade.tachiyomi.data.extensionstore.StoreActivation
 import eu.kanade.tachiyomi.data.extensionstore.StoreEntry
 import eu.kanade.tachiyomi.data.extensionstore.StoreMedium
-import eu.kanade.tachiyomi.data.extensionstore.StoreShelf
+import eu.kanade.tachiyomi.data.extensionstore.StoreBridge
 import eu.kanade.tachiyomi.extension.InstallStep
 import eu.kanade.tachiyomi.ui.home.LocalFloatingNavigationInset
+import java.text.Collator
+import java.util.Locale
 
 @Composable
 internal fun StoreSearch(
@@ -229,11 +232,10 @@ internal fun StoreActivationFilters(
 }
 
 @Composable
-internal fun StoreGrid(
+internal fun StoreList(
     entries: List<StoreEntry>,
+    bridges: Map<String, List<StoreBridge>>,
     steps: Map<String, InstallStep>,
-    shelf: StoreShelf,
-    searching: Boolean,
     loading: Boolean,
     failed: Boolean,
     changing: Set<String>,
@@ -241,180 +243,121 @@ internal fun StoreGrid(
     onAction: (StoreEntry) -> Unit,
     onCancel: (StoreEntry) -> Unit,
     onRetry: () -> Unit,
-    onDiscover: () -> Unit,
     onClear: () -> Unit,
+    onCatalogues: () -> Unit,
+    onUpdateAll: () -> Unit,
+    hasFilters: Boolean,
     modifier: Modifier = Modifier,
     filterKey: String = "",
-    hasFilters: Boolean = false,
-    onCatalogues: () -> Unit = {},
-    onUpdateAll: () -> Unit,
 ) {
     val c = LocalStoreColors.current
-    val state = rememberLazyGridState()
-    val motion = modernMotionEnabled()
-    val updates = remember(entries, shelf) {
-        if (shelf == StoreShelf.OWNED) entries.filter { it.action == StoreAction.UPDATE } else emptyList()
+    val state = rememberLazyListState()
+    val locale = LocalConfiguration.current.locales[0]
+    val multilingual = stringResource(R.string.store_language_multi)
+    val unspecified = stringResource(R.string.store_language_unspecified)
+    val updates = remember(entries) { entries.filter { it.installed && it.action == StoreAction.UPDATE } }
+    val installed = remember(entries) { entries.filter { it.installed && it.action != StoreAction.UPDATE } }
+    val availableBridges = remember(entries) { entries.filter { !it.installed && it.privateOnly } }
+    val available = remember(entries, locale, multilingual, unspecified) {
+        val collation = Collator.getInstance(locale)
+        entries.filterNot { it.installed || it.privateOnly }.groupBy { entry ->
+            when {
+                entry.languages.isEmpty() -> unspecified
+                entry.languages.size > 1 || "all" in entry.languages -> multilingual
+                else -> {
+                    val language = entry.languages.single()
+                    Locale.forLanguageTag(language).getDisplayLanguage(locale).ifBlank { language }
+                        .replaceFirstChar { it.titlecase(locale) }
+                }
+            }
+        }.toSortedMap(Comparator { left, right ->
+            collation.compare(left, right).takeUnless { it == 0 } ?: left.compareTo(right)
+        })
     }
-    val featured = remember(entries, shelf, hasFilters) {
-        if (shelf == StoreShelf.DISCOVER && !hasFilters) {
-            val eligible = entries.filter { !it.nsfw && it.addonHostCompatible && it.candidateUrl != null }
-            eligible.firstOrNull { it.ready } ?: eligible.firstOrNull()
-        } else {
-            null
-        }
+    val row: @Composable (StoreEntry) -> Unit = { entry ->
+        StoreCatalogueRow(
+            entry,
+            bridges[entry.id].orEmpty(),
+            steps[entry.packageName],
+            entry.packageName in changing,
+            onInfo,
+            onAction,
+            onCancel,
+        )
     }
-    val otherEntries = remember(entries, updates, featured) {
-        val pinnedIds = updates.mapTo(mutableSetOf()) { it.id }
-        entries.filterNot { it.id == featured?.id || it.id in pinnedIds }
-    }
-    LaunchedEffect(shelf, filterKey) { state.requestScrollToItem(0) }
-    LazyVerticalGrid(
-        GridCells.Adaptive(360.dp),
+    LaunchedEffect(filterKey) { state.requestScrollToItem(0) }
+    LazyColumn(
         modifier.fillMaxWidth(),
-        state,
-        contentPadding =
-        PaddingValues(
-            start = 18.dp,
-            end = 18.dp,
-            top = 4.dp,
-            bottom = LocalFloatingNavigationInset.current + 24.dp,
-        ),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+        state = state,
+        contentPadding = PaddingValues(bottom = LocalFloatingNavigationInset.current + 16.dp),
     ) {
+        if (loading && entries.isNotEmpty()) {
+            item(key = "refreshing") {
+                LinearProgressIndicator(Modifier.fillMaxWidth(), color = c.accent)
+            }
+        }
         if (failed) {
-            item(key = "error", span = { GridItemSpan(maxLineSpan) }) {
-                Surface(color = c.elevated, shape = RoundedCornerShape(16.dp)) {
-                    Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            stringResource(R.string.store_refresh_error),
-                            Modifier.weight(1f),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = c.muted,
-                        )
-                        TextButton(onClick = onRetry) { Text(stringResource(R.string.store_retry)) }
-                    }
+            item(key = "error") {
+                Row(
+                    Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        stringResource(R.string.store_refresh_error),
+                        Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = c.muted,
+                    )
+                    TextButton(onClick = onRetry) { Text(stringResource(R.string.store_retry)) }
                 }
             }
         }
-        if (featured != null) {
-            item(key = "feature", span = { GridItemSpan(maxLineSpan) }) {
-                StoreShowcaseFeature(featured, onInfo)
-            }
-        }
         if (updates.isNotEmpty()) {
-            item(key = "updates-header", span = { GridItemSpan(maxLineSpan) }) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    StoreSectionHeading(
-                        stringResource(R.string.store_updates_available),
-                        updates.size,
-                        Modifier.weight(1f),
-                    )
+            item(key = "updates-heading") {
+                Row(Modifier.fillMaxWidth().padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    StoreListHeading(stringResource(R.string.store_updates_available), Modifier.weight(1f))
                     if (updates.size > 1 && !hasFilters) {
                         TextButton(onClick = onUpdateAll) { Text(stringResource(R.string.store_update_all)) }
                     }
                 }
             }
-            items(updates, key = StoreEntry::id, contentType = { "extension" }) { entry ->
-                StoreShowcaseRow(
-                    entry,
-                    steps[entry.packageName],
-                    entry.packageName in changing,
-                    onInfo,
-                    onAction,
-                    onCancel,
-                    if (motion) Modifier.animateItem() else Modifier,
-                )
-            }
+            items(updates, key = StoreEntry::id, contentType = { "extension" }) { row(it) }
         }
-        if (otherEntries.isNotEmpty()) {
-            item(key = "catalogue-header", span = { GridItemSpan(maxLineSpan) }) {
-                StoreSectionHeading(
-                    stringResource(
-                        when {
-                            searching -> R.string.store_search_results
-                            shelf == StoreShelf.OWNED -> R.string.store_installed
-                            else -> R.string.store_extensions_heading
-                        },
-                    ),
-                    otherEntries.size,
-                    Modifier.padding(top = if (featured != null || updates.isNotEmpty()) 12.dp else 0.dp),
-                )
-            }
+        if (installed.isNotEmpty()) {
+            item(key = "installed-heading") { StoreListHeading(stringResource(R.string.store_installed)) }
+            items(installed, key = StoreEntry::id, contentType = { "extension" }) { row(it) }
         }
-        items(otherEntries, key = StoreEntry::id, contentType = { "extension" }) { entry ->
-            StoreShowcaseRow(
-                entry,
-                steps[entry.packageName],
-                entry.packageName in changing,
-                onInfo,
-                onAction,
-                onCancel,
-                if (motion) Modifier.animateItem() else Modifier,
-            )
+        available.forEach { (language, group) ->
+            item(key = "language:$language") { StoreListHeading(language) }
+            items(group, key = StoreEntry::id, contentType = { "extension" }) { row(it) }
+        }
+        if (availableBridges.isNotEmpty()) {
+            item(key = "bridges-heading") { StoreListHeading(stringResource(R.string.store_related_layers)) }
+            items(availableBridges, key = StoreEntry::id, contentType = { "extension" }) { row(it) }
         }
         if (entries.isEmpty()) {
-            item(key = "empty", span = { GridItemSpan(maxLineSpan) }) {
+            item(key = "empty") {
                 Column(
-                    Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                    Modifier.fillMaxWidth().padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     if (loading) {
-                        repeat(3) {
-                            Surface(
-                                Modifier.fillMaxWidth().height(94.dp),
-                                color = c.surface,
-                                shape = RoundedCornerShape(20.dp),
-                            ) {}
-                        }
+                        CircularProgressIndicator()
                     } else {
-                        Icon(
-                            if (shelf == StoreShelf.OWNED && !searching) {
-                                Icons.Outlined.Extension
-                            } else {
-                                Icons.Outlined.Search
-                            },
-                            null,
-                            Modifier.size(40.dp),
-                            tint = c.muted,
-                        )
                         Text(
-                            stringResource(
-                                when {
-                                    hasFilters -> R.string.store_no_results
-                                    shelf == StoreShelf.OWNED -> R.string.store_empty
-                                    else -> R.string.store_empty_catalogue
-                                },
-                            ),
+                            stringResource(if (hasFilters) R.string.store_no_results else R.string.store_empty),
                             style = MaterialTheme.typography.titleMedium,
                         )
                         Text(
-                            stringResource(
-                                when {
-                                    hasFilters -> R.string.store_empty_description
-                                    shelf == StoreShelf.OWNED -> R.string.store_empty_owned
-                                    else -> R.string.store_empty_catalogue_hint
-                                },
-                            ),
-                            color = c.muted,
+                            stringResource(if (hasFilters) R.string.store_empty_description else R.string.store_no_catalogue),
                             style = MaterialTheme.typography.bodyMedium,
+                            color = c.muted,
+                            textAlign = TextAlign.Center,
                         )
-                        StoreButton(
-                            stringResource(
-                                when {
-                                    hasFilters -> R.string.store_reset_filters
-                                    shelf == StoreShelf.OWNED -> R.string.store_explore_tab
-                                    else -> R.string.store_catalogues
-                                },
-                            ),
-                            when {
-                                hasFilters -> onClear
-                                shelf == StoreShelf.OWNED -> onDiscover
-                                else -> onCatalogues
-                            },
-                            outlined = true,
-                        )
+                        TextButton(onClick = if (hasFilters) onClear else onCatalogues) {
+                            Text(stringResource(if (hasFilters) R.string.store_clear_filters else R.string.store_catalogues))
+                        }
                     }
                 }
             }
@@ -423,21 +366,14 @@ internal fun StoreGrid(
 }
 
 @Composable
-private fun StoreSectionHeading(label: String, count: Int, modifier: Modifier = Modifier) {
-    val c = LocalStoreColors.current
-    Row(
-        modifier.padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            color = c.text,
-        )
-        Text(count.toString(), style = MaterialTheme.typography.labelMedium, color = c.muted)
-    }
+private fun StoreListHeading(label: String, modifier: Modifier = Modifier) {
+    Text(
+        label,
+        modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 6.dp).semantics { heading() },
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.SemiBold,
+        color = LocalStoreColors.current.accent,
+    )
 }
 
 @Composable

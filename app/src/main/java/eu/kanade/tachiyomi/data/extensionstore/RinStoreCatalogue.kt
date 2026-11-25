@@ -16,9 +16,9 @@ internal object RinStoreCatalogue {
     ): List<StoreEntry> {
         val a = anime.associateBy { it.pkgName }
         val m = manga.associateBy { it.pkgName }
-        val records = installed.associateBy { it.manifest.packageName }
-        val available = candidates.groupBy { it.manifest.packageName }
-        val owned = installed.map { record ->
+        val records = installed.filter { it.format == "apk" }.associateBy { it.manifest.packageName }
+        val available = candidates.filter { it.format == "apk" }.groupBy { it.manifest.packageName }
+        val owned = records.values.map { record ->
             val candidate = available[record.manifest.packageName].orEmpty().filter {
                 if (record.manifest.isLayer) {
                     RinUpdatePolicy.accepts(it, record)
@@ -28,9 +28,11 @@ internal object RinStoreCatalogue {
             }.maxByOrNull { it.manifest.versionCode }
             entry(candidate, record, a[record.manifest.packageName], m[record.manifest.packageName])
         }
-        val discover = candidates.filterNot { it.manifest.packageName in records }
-            .groupBy { Triple(it.manifest.packageName, it.repository, it.signer) }
-            .values.map { versions -> entry(versions.maxBy { it.manifest.versionCode }, null, null, null) }
+        val discover = available.filterKeys { it !in records }.values.flatMap { versions ->
+            versions.groupBy { it.repository to it.signer }.values.map {
+                entry(it.maxBy { candidate -> candidate.manifest.versionCode }, null, null, null)
+            }
+        }
         return owned + discover
     }
 
@@ -46,7 +48,7 @@ internal object RinStoreCatalogue {
             id = if (record != null) {
                 "${manifest.medium.uppercase()}:${manifest.packageName}"
             } else {
-                "${manifest.medium.uppercase()}:${manifest.packageName}:$repository"
+                "${manifest.medium.uppercase()}:${manifest.packageName}:$repository:${requireNotNull(candidate).signer}"
             },
             packageName = manifest.packageName,
             name = manifest.name,
@@ -63,7 +65,7 @@ internal object RinStoreCatalogue {
             },
             ready = eu.kanade.tachiyomi.data.rin.RinRepository.compatible(
                 manifest,
-                record?.format ?: candidate?.format ?: "rin",
+                record?.format ?: requireNotNull(candidate).format,
             ),
             languages = manifest.sources.map { it.language }.toSet(),
             version = manifest.versionName,

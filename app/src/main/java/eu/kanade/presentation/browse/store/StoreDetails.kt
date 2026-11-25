@@ -16,10 +16,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -30,15 +28,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.extensionstore.StoreAction
+import eu.kanade.tachiyomi.data.extensionstore.StoreBridge
 import eu.kanade.tachiyomi.data.extensionstore.StoreEntry
 import eu.kanade.tachiyomi.data.extensionstore.StoreInstallMode
-import eu.kanade.tachiyomi.data.layer.MangaLayerRegistry
-import eu.kanade.tachiyomi.data.layer.MangaLayerStatus
 import eu.kanade.tachiyomi.extension.InstallStep
 import eu.kanade.tachiyomi.extension.anime.model.AnimeExtension
 import eu.kanade.tachiyomi.extension.manga.model.MangaExtension
-import uy.kohesive.injekt.Injekt
-import uy.kohesive.injekt.api.get
 
 @Composable
 internal fun StoreDetails(
@@ -60,7 +55,10 @@ internal fun StoreDetails(
     onMigratePublisher: (() -> Unit)?,
     onMigrateAndroidPublisher: (() -> Unit)?,
     onRollbackPublisher: (() -> Unit)?,
-    relatedLayers: List<StoreEntry> = emptyList(),
+    relatedBridges: List<StoreBridge> = emptyList(),
+    parentSource: StoreEntry? = null,
+    bridge: StoreBridge? = null,
+    onConfigureBridges: (() -> Unit)? = null,
     onLayer: (StoreEntry) -> Unit = {},
     onReturnToSource: (() -> Unit)? = null,
     progress: Float? = null,
@@ -87,7 +85,7 @@ internal fun StoreDetails(
             }
             if (entry.installed) {
                 StoreBadge(
-                    stringResource(if (entry.imported) R.string.store_mode_nyanime else R.string.package_system),
+                    stringResource(if (entry.imported) R.string.store_imported_apk else R.string.store_installed_apk),
                     c.accent,
                     c.tint,
                 )
@@ -114,6 +112,14 @@ internal fun StoreDetails(
             eu.kanade.tachiyomi.ui.addon.AddonCompatibilityNotice(it)
         }
         val layerDeclaration = (entry.rinRecord?.manifest ?: entry.rinCandidate?.manifest)?.mangaLayer
+        if (parentSource != null) {
+            Text(
+                stringResource(R.string.store_bridge_for, parentSource.name),
+                style = MaterialTheme.typography.labelLarge,
+                color = c.muted,
+            )
+            bridge?.let { Text(stringResource(it.state.label()), color = c.accent) }
+        }
         layerDeclaration?.let { LayerPresentationBlock(it) }
         if (entry.rinRecord != null) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -141,7 +147,25 @@ internal fun StoreDetails(
         val busy = step in setOf(InstallStep.Pending, InstallStep.Downloading, InstallStep.Installing)
         val canChooseMode = !busy && entry.addonHostCompatible && entry.candidateUrl != null
         val newInstall = canChooseMode && !entry.installed && entry.action == StoreAction.INSTALL
-        if (newInstall) {
+        val needsSource = parentSource != null && !entry.installed && (!parentSource.installed || bridge?.compatible != true)
+        if (needsSource && !busy) {
+            Text(
+                stringResource(
+                    if (parentSource?.installed == true) R.string.source_layers_incompatible
+                    else R.string.store_bridge_install_source_first,
+                ),
+                color = c.muted,
+                style = MaterialTheme.typography.bodySmall,
+            )
+            if (parentSource?.installed == false && onReturnToSource != null) {
+                StoreButton(
+                    stringResource(R.string.store_bridge_open_source),
+                    onReturnToSource,
+                    Modifier.fillMaxWidth(),
+                    accent = true,
+                )
+            }
+        } else if (newInstall) {
             StoreInstallChoices(entry, onInstallMode)
         } else if (!entry.privateOnly || busy || entry.action in setOf(StoreAction.TRUST, StoreAction.UPDATE)) {
             EntryButton(entry, step, Modifier.fillMaxWidth(), { onAction() }, { onCancel() }, changing)
@@ -156,6 +180,9 @@ internal fun StoreDetails(
                 Text(stringResource(R.string.store_install_options))
             }
             if (showVersions) StoreInstallChoices(entry, onInstallMode)
+        }
+        if (relatedBridges.isNotEmpty()) {
+            StoreBridgeSection(relatedBridges, onLayer, onConfigureBridges)
         }
         HorizontalDivider(color = c.line)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -199,39 +226,6 @@ internal fun StoreDetails(
                     style = MaterialTheme.typography.bodySmall,
                     color = c.muted,
                 )
-            }
-        }
-        if (relatedLayers.isNotEmpty()) {
-            val registry = remember { Injekt.get<MangaLayerRegistry>() }
-            val choices by registry.choices.collectAsState()
-            HorizontalDivider(color = c.line)
-            Text(stringResource(R.string.store_related_layers), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-            relatedLayers.forEach { layer ->
-                val active = choices.filter { it.packageName == layer.packageName && it.basePackage == entry.packageName }
-                val status = when {
-                    !layer.installed -> R.string.source_layers_unselected
-                    !layer.enabled -> R.string.store_inactive
-                    active.any { it.status == MangaLayerStatus.ACTIVE } -> R.string.source_layers_active
-                    active.isNotEmpty() && active.all { it.status == MangaLayerStatus.INCOMPATIBLE } ->
-                        R.string.source_layers_incompatible
-                    active.any { it.status == MangaLayerStatus.FAILED } -> R.string.source_layers_failed
-                    active.any { it.status == MangaLayerStatus.DEPENDENCY_MISSING } -> R.string.source_layers_dependency
-                    else -> R.string.store_package_installed
-                }
-                val summary = (layer.rinRecord?.manifest ?: layer.rinCandidate?.manifest)?.mangaLayer
-                    ?.presentationFor(locale)?.summary
-                Surface(
-                    onClick = { onLayer(layer) },
-                    modifier = Modifier.fillMaxWidth(),
-                    color = c.elevated,
-                    shape = RoundedCornerShape(14.dp),
-                ) {
-                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                        Text(layer.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                        summary?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = c.muted) }
-                        Text(stringResource(status), color = c.accent, style = MaterialTheme.typography.labelMedium)
-                    }
-                }
             }
         }
         layerDeclaration?.let { MangaLayerScope(it) }
@@ -315,7 +309,7 @@ internal fun StoreDetails(
             )
         }
         if (entry.installed) {
-            if (entry.enabled && entry.action != StoreAction.TRUST && !unavailableRin && !entry.privateOnly) {
+            if ((entry.enabled || entry.privateOnly) && entry.action != StoreAction.TRUST && !unavailableRin) {
                 StoreButton(
                     stringResource(if (entry.privateOnly) R.string.store_manage else R.string.store_settings),
                     onManage,
@@ -347,6 +341,58 @@ internal fun StoreDetails(
 }
 
 @Composable
+private fun StoreBridgeSection(
+    bridges: List<StoreBridge>,
+    onOpen: (StoreEntry) -> Unit,
+    onConfigure: (() -> Unit)?,
+) {
+    val c = LocalStoreColors.current
+    val locale = LocalConfiguration.current.locales[0]
+    HorizontalDivider(color = c.line)
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                stringResource(R.string.store_related_layers),
+                Modifier.weight(1f),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            if (onConfigure != null && bridges.any {
+                it.entry.installed && it.entry.enabled && it.entry.action != StoreAction.TRUST && it.compatible
+            }) {
+                TextButton(onClick = onConfigure) { Text(stringResource(R.string.store_bridge_configure)) }
+            }
+        }
+        bridges.forEach { bridge ->
+            val record = bridge.entry.rinRecord?.manifest ?: bridge.entry.rinCandidate?.manifest
+            val summary = record?.mangaLayer?.presentationFor(locale)?.summary
+            Surface(
+                onClick = { onOpen(bridge.entry) },
+                modifier = Modifier.fillMaxWidth(),
+                color = c.elevated,
+                shape = RoundedCornerShape(10.dp),
+            ) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(bridge.entry.name, style = MaterialTheme.typography.titleSmall)
+                    summary?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = c.muted) }
+                    val status = stringResource(bridge.state.label())
+                    val update = if (bridge.entry.action == StoreAction.UPDATE) {
+                        stringResource(R.string.store_bridge_update_available)
+                    } else {
+                        null
+                    }
+                    Text(
+                        listOfNotNull(status, update).joinToString(" · "),
+                        color = c.accent,
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun StoreInstallChoices(entry: StoreEntry, onInstallMode: (StoreInstallMode) -> Unit) {
     val importable = entry.canImport
     if (importable) {
@@ -357,7 +403,7 @@ private fun StoreInstallChoices(entry: StoreEntry, onInstallMode: (StoreInstallM
             accent = true,
         )
     }
-    if (!entry.privateOnly && entry.rinCandidate?.format != "rin") {
+    if (!entry.privateOnly) {
         StoreButton(
             stringResource(R.string.store_install_on_android),
             { onInstallMode(StoreInstallMode.SYSTEM) },

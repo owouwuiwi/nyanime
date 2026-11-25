@@ -137,6 +137,7 @@ internal object MigrationSnapshot {
     private fun include(path: String): Boolean {
         val name = path.substringAfterLast('/')
         if (name.endsWith("-shm") || name.endsWith(".lock")) return false
+        if (isRetiredExtensionArchive(path)) return false
         if (path.startsWith("no_backup/identity-migration/")) return false
         if (path.split('/').any { it.startsWith(".migration-") }) return false
         if (path.startsWith("databases/androidx.work.workdb")) return false

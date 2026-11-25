@@ -57,6 +57,10 @@ class AnimeExtensionStoresScreen(
                 CatalogueLinkHelpDialog(
                     onDismissRequest = screenModel::dismissDialog,
                     onLink = screenModel::addFromDeeplink,
+                    onDriveLink = {
+                        screenModel.dismissDialog()
+                        navigator.push(ExtensionCatalogueScreen(it))
+                    },
                 )
             }
             is AnimeExtensionStoreDialog.Delete -> {

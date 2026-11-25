@@ -17,7 +17,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -58,13 +61,17 @@ import eu.kanade.tachiyomi.data.addon.RinAddonRuntime
 import eu.kanade.tachiyomi.data.extensionstore.ExtensionStoreRepository
 import eu.kanade.tachiyomi.data.extensionstore.StoreAction
 import eu.kanade.tachiyomi.data.extensionstore.StoreActivation
+import eu.kanade.tachiyomi.data.extensionstore.StoreBridge
+import eu.kanade.tachiyomi.data.extensionstore.StoreBridges
 import eu.kanade.tachiyomi.data.extensionstore.StoreCatalogue
 import eu.kanade.tachiyomi.data.extensionstore.StoreEntry
+import eu.kanade.tachiyomi.data.extensionstore.StoreInstallMode
 import eu.kanade.tachiyomi.data.extensionstore.StoreLanguages
 import eu.kanade.tachiyomi.data.extensionstore.StoreMedium
 import eu.kanade.tachiyomi.data.extensionstore.StorePresentation
 import eu.kanade.tachiyomi.data.extensionstore.StoreShelf
 import eu.kanade.tachiyomi.data.extensionstore.SystemMangaMigration
+import eu.kanade.tachiyomi.data.layer.MangaLayerRegistry
 import eu.kanade.tachiyomi.data.rin.RinSessions
 import eu.kanade.tachiyomi.extension.InstallStep
 import eu.kanade.tachiyomi.extension.anime.AnimeExtensionManager
@@ -111,9 +118,16 @@ internal val LocalStoreColors = staticCompositionLocalOf {
 
 private data class StoreDisplay(
     val entries: List<StoreEntry> = emptyList(),
-    val shelf: StoreShelf = StoreShelf.OWNED,
-    val searching: Boolean = false,
+    val bridges: Map<String, List<StoreBridge>> = emptyMap(),
     val filterKey: String = "",
+    val initialized: Boolean = false,
+)
+
+private data class StoreInstallConfirmation(
+    val entry: StoreEntry,
+    val mode: StoreInstallMode,
+    val individualConsent: Boolean,
+    val bridges: List<StoreEntry>,
 )
 
 @Composable
@@ -130,9 +144,7 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
     val steps by repository.steps.collectAsState()
     val progress by repository.progress.collectAsState()
     var associateOrigin by remember { mutableStateOf<StoreEntry?>(null) }
-    var installMode by remember {
-        mutableStateOf<Pair<StoreEntry, eu.kanade.tachiyomi.data.extensionstore.StoreInstallMode>?>(null)
-    }
+    var installConfirmation by remember { mutableStateOf<StoreInstallConfirmation?>(null) }
     val refreshing by repository.refreshing.collectAsState()
     val failed by repository.failed.collectAsState()
     val inventoryUnavailable by eu.kanade.tachiyomi.extension.ExtensionPackageDiscovery.unavailable.collectAsState()
@@ -145,7 +157,8 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
     val languages = StoreLanguages.normalize(savedLanguages)
     val adult by
         preferences.showNsfwSource().changes().collectAsState(preferences.showNsfwSource().get())
-    var shelf by rememberSaveable { mutableStateOf(StoreShelf.DISCOVER) }
+    val registry = remember { Injekt.get<MangaLayerRegistry>() }
+    val layerChoices by registry.choices.collectAsState()
     var category by rememberSaveable { mutableStateOf<StoreMedium?>(null) }
     var activation by rememberSaveable { mutableStateOf(StoreActivation.ALL) }
     var query by rememberSaveable { mutableStateOf("") }
@@ -160,7 +173,7 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
     val navigator = LocalNavigator.currentOrThrow
-    val rinFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+    val apkFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let { navigator.push(RinImportScreen(it.toString())) }
     }
     var migratePackage by rememberSaveable { mutableStateOf<String?>(null) }
@@ -189,7 +202,7 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
         produceState(
             StoreDisplay(),
             entries,
-            shelf,
+            layerChoices,
             category,
             activation,
             query,
@@ -198,23 +211,24 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
         ) {
             value =
                 withContext(Dispatchers.Default) {
+                    val bridges = StoreBridges.bySource(entries, layerChoices, adult)
                     StoreDisplay(
                         entries = StorePresentation.select(
                             entries,
-                            shelf,
+                            StoreShelf.CATALOGUE,
                             category,
                             activation,
                             query,
                             languages,
                             adult,
+                            bridges,
                         ),
-                        shelf = shelf,
-                        searching = query.isNotBlank(),
-                        filterKey = "$shelf:$category:$activation:$query",
+                        bridges = bridges,
+                        filterKey = "$category:$activation:$query",
+                        initialized = true,
                     )
                 }
         }
-    val updates = remember(entries) { entries.count { it.installed && it.action == StoreAction.UPDATE } }
     LifecycleResumeEffect(repository) {
         repository.resume()
         scope.launch { systemMigration.refreshSessions() }
@@ -282,14 +296,27 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
             },
         )
     }
+    fun requiresInstallConfirmation(entry: StoreEntry, mode: StoreInstallMode): Boolean {
+        val bridges = if (entry.action == StoreAction.INSTALL && !entry.privateOnly) {
+            StoreBridges.forInstallation(visible.bridges[entry.id].orEmpty())
+        } else {
+            emptyList()
+        }
+        val individualConsent = (!entry.installed || entry.action == StoreAction.TRUST) &&
+            repository.catalogueConsent(entry) == null
+        if (individualConsent || bridges.isNotEmpty()) {
+            installConfirmation = StoreInstallConfirmation(entry, mode, individualConsent, bridges)
+            return true
+        }
+        return false
+    }
     val action: (StoreEntry) -> Unit = { entry ->
         when {
             entry.rinRecord != null && !entry.enabled && entry.action != StoreAction.TRUST -> toggle(entry)
             entry.action in setOf(StoreAction.INSTALL, StoreAction.UPDATE) -> {
-                if (!entry.installed && repository.catalogueConsent(entry) == null) {
-                    installMode = entry to repository.preferredMode(entry)
-                } else {
-                    repository.install(entry, repository.preferredMode(entry))?.let { job ->
+                val mode = repository.preferredMode(entry)
+                if (!requiresInstallConfirmation(entry, mode)) {
+                    repository.install(entry, mode)?.let { job ->
                         scope.launch {
                             job.join()
                             if (repository.steps.value[entry.packageName] == InstallStep.Installed) {
@@ -301,8 +328,8 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                                 )
                                 if (result == SnackbarResult.ActionPerformed) {
                                     catalogues = false
-                                    shelf = StoreShelf.OWNED
                                     query = ""
+                                    category = null
                                     activation = StoreActivation.ALL
                                 }
                             }
@@ -311,8 +338,6 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                 }
             }
             entry.action == StoreAction.TRUST -> {
-                detail = null
-                sourceDetail = null
                 trust = entry
             }
             entry.action == StoreAction.OPEN -> {
@@ -348,19 +373,15 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
     CompositionLocalProvider(LocalStoreColors provides colors) {
         Box(Modifier.fillMaxSize().background(colors.background).statusBarsPadding().imePadding()) {
             Column(Modifier.align(Alignment.TopCenter).widthIn(max = 1000.dp).fillMaxSize()) {
-                StoreShowcaseHeader(onBack = back, onImport = { rinFile.launch(arrayOf("*/*")) })
-                StoreShowcaseTabs(
-                    shelf,
-                    catalogues,
-                    updates,
-                    onShelf = {
-                        shelf = it
-                        catalogues = false
-                    },
+                StoreToolbar(
+                    catalogues = catalogues,
+                    onBack = back,
                     onCatalogues = { catalogues = true },
+                    onImport = { apkFile.launch(arrayOf("*/*")) },
+                    onRefresh = { repository.refresh(force = true) },
                 )
                 if (catalogues) {
-                    StoreShowcaseCatalogues(
+                    StoreCatalogueSettings(
                         refreshing = refreshing,
                         failed = failed,
                         onAdd = { addCatalogue = true },
@@ -375,7 +396,7 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                         modifier = Modifier.weight(1f),
                     )
                 } else {
-                    if (shelf == StoreShelf.OWNED && migrations.isNotEmpty()) {
+                    if (migrations.isNotEmpty()) {
                         TextButton(
                             onClick = { navigator.push(SystemMangaMigrationScreen()) },
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
@@ -386,8 +407,7 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                         query,
                         onQuery = { query = it },
                         onFilters = { filters = true },
-                        filtered = (shelf == StoreShelf.OWNED && activation != StoreActivation.ALL) ||
-                            languages.size != 2 || adult,
+                        filtered = activation != StoreActivation.ALL || languages.size != 2 || adult,
                     )
                     if (inventoryUnavailable) {
                         Text(
@@ -401,12 +421,11 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                         category = it
                         if (it != null) onMedium(it)
                     }
-                    StoreGrid(
-                        visible.entries.takeIf { visible.shelf == shelf }.orEmpty(),
+                    StoreList(
+                        visible.entries,
+                        visible.bridges,
                         steps,
-                        shelf,
-                        visible.searching,
-                        refreshing || visible.shelf != shelf,
+                        refreshing || !visible.initialized,
                         failed,
                         changing,
                         onInfo = {
@@ -418,10 +437,9 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                         onRetry = { repository.refresh(force = true) },
                         hasFilters = query.isNotBlank() ||
                             category != null ||
-                            (shelf == StoreShelf.OWNED && activation != StoreActivation.ALL),
+                            activation != StoreActivation.ALL,
                         onCatalogues = { catalogues = true },
                         onUpdateAll = { repository.updateAll(category) },
-                        onDiscover = { shelf = StoreShelf.DISCOVER },
                         onClear = {
                             query = ""
                             category = null
@@ -451,9 +469,7 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                 },
             ) {
                 SheetTitle(stringResource(R.string.store_filters))
-                if (shelf == StoreShelf.OWNED) {
-                    StoreActivationFilters(activation) { activation = it }
-                }
+                StoreActivationFilters(activation) { activation = it }
                 StoreFilterOptions(
                     languages,
                     adult,
@@ -477,11 +493,10 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
         }
         detail?.let { selected ->
             val current = StoreCatalogue.currentEntry(selected, entries)
-            if (current != null) key(current.packageName) {
-                val layers = remember(current, entries, adult) {
-                    relatedStoreLayers(current, entries).filter {
-                        it.installed || adult || !it.nsfw
-                    }
+            if (current != null) key(current.id) {
+                val parent = sourceDetail?.let { StoreCatalogue.currentEntry(it, entries) ?: it }
+                val bridge = parent?.let { source ->
+                    visible.bridges[source.id].orEmpty().firstOrNull { it.entry.id == current.id }
                 }
                 StoreDetails(
                     current,
@@ -495,12 +510,23 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                     onToggle = { toggle(current) },
                     onCancel = { repository.cancel(current) },
                     onManage = { manage(current) },
-                    relatedLayers = layers,
+                    relatedBridges = visible.bridges[current.id].orEmpty(),
+                    parentSource = parent,
+                    bridge = bridge,
+                    onConfigureBridges = if (current.installed) {
+                        {
+                            detail = null
+                            sourceDetail = null
+                            navigator.push(MangaLayerManageScreen(basePackage = current.packageName))
+                        }
+                    } else {
+                        null
+                    },
                     onLayer = {
                         sourceDetail = current
                         detail = it
                     },
-                    onReturnToSource = sourceDetail?.let { source ->
+                    onReturnToSource = parent?.let { source ->
                         {
                             detail = source
                             sourceDetail = null
@@ -520,13 +546,8 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                         navigator.push(BrowseAnimeSourceScreen(it, null))
                     },
                     onInstallMode = { mode ->
-                        if (current.installed &&
-                            current.action != StoreAction.TRUST ||
-                            repository.catalogueConsent(current) != null
-                        ) {
+                        if (!requiresInstallConfirmation(current, mode)) {
                             repository.install(current, mode)
-                        } else {
-                            installMode = current to mode
                         }
                     },
                     onAssociateOrigin = { associateOrigin = current },
@@ -617,15 +638,13 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                 }
             }
         }
-        installMode?.let { (entry, mode) ->
+        installConfirmation?.let { (entry, mode, individualConsent, bridges) ->
             AlertDialog(
-                onDismissRequest = { installMode = null },
+                onDismissRequest = { installConfirmation = null },
                 title = {
                     Text(
                         stringResource(
-                            if (mode ==
-                                eu.kanade.tachiyomi.data.extensionstore.StoreInstallMode.PRIVATE
-                            ) {
+                            if (mode == StoreInstallMode.PRIVATE) {
                                 R.string.package_import
                             } else {
                                 R.string.package_install
@@ -634,24 +653,59 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                     )
                 },
                 text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(entry.name)
-                        Text(stringResource(R.string.store_trust_description))
+                    Column(
+                        modifier = Modifier.verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Text(entry.name, style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            stringResource(
+                                if (bridges.isEmpty()) R.string.store_trust_description
+                                else R.string.store_bridge_install_notice,
+                            ),
+                        )
+                        if (bridges.isNotEmpty()) {
+                            entry.candidateSigner?.let {
+                                Text(
+                                    stringResource(R.string.store_bridge_signing_fingerprint, it.chunked(8).joinToString(" ")),
+                                )
+                            }
+                        }
                         entry.rinCandidate?.manifest?.mangaLayer?.let {
                             LayerPresentationBlock(it)
                             MangaLayerScope(it)
                         }
                         if (entry.privateOnly) entry.candidateSigner?.let { Text(it.chunked(8).joinToString(" ")) }
+                        bridges.forEach { bridge ->
+                            HorizontalDivider()
+                            Text(bridge.name, style = MaterialTheme.typography.titleSmall)
+                            bridge.rinCandidate?.manifest?.mangaLayer?.let {
+                                LayerPresentationBlock(it)
+                                MangaLayerScope(it)
+                            }
+                            bridge.candidateSigner?.let {
+                                Text(
+                                    stringResource(R.string.store_bridge_signing_fingerprint, it.chunked(8).joinToString(" ")),
+                                )
+                            }
+                        }
                     }
                 },
                 confirmButton = {
                     TextButton(onClick = {
-                        repository.install(entry, mode, individualConsent = true)
-                        installMode = null
-                    }) { Text(stringResource(R.string.store_trust_accept)) }
+                        repository.install(entry, mode, individualConsent = individualConsent, approvedBridges = bridges)
+                        installConfirmation = null
+                    }) {
+                        Text(
+                            stringResource(
+                                if (bridges.isEmpty()) R.string.store_trust_accept
+                                else R.string.store_install_with_bridges,
+                            ),
+                        )
+                    }
                 },
                 dismissButton = {
-                    TextButton(onClick = { installMode = null }) { Text(stringResource(R.string.store_not_now)) }
+                    TextButton(onClick = { installConfirmation = null }) { Text(stringResource(R.string.store_not_now)) }
                 },
             )
         }

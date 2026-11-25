@@ -3,8 +3,7 @@
 Nyanime accepts publisher-signed APK extensions. The catalogue offers **Install**
 (Android installation, shared with compatible hosts) and **Import** (private to
 Nyanime). Both modes use the same artifact and verify its publisher, version and
-API before activation. Legacy `.rin` files remain readable; they are not APKs and
-cannot be converted by renaming them.
+API before activation. Install, import, catalogue updates and restore all use APKs.
 
 ## Public contracts
 

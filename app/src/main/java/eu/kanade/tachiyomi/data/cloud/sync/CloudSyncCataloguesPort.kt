@@ -97,11 +97,13 @@ internal class CloudSyncCataloguesPort(
         }
         // The initial absence of an extension/catalogue does not delete it on the other phone.
         for (ref in observed - values.keys) {
-            if (ref.kind == "rin" &&
-                ref.title in
-                sourcePreferences.incognitoAnimeExtensions().get() + sourcePreferences.incognitoMangaExtensions().get()
-            ) {
-                continue
+            if (ref.kind == "rin") {
+                val archived = store.record(ref)?.fields?.get("package")?.resolved()?.value
+                    ?.let { runCatching { syncJson.decodeFromJsonElement(PortableRin.serializer(), it) }.getOrNull() }
+                if (archived?.format != "apk" ||
+                    ref.title in sourcePreferences.incognitoAnimeExtensions().get() +
+                    sourcePreferences.incognitoMangaExtensions().get()
+                ) continue
             }
             changes += store.capture(ref, removed, now())
         }
@@ -156,6 +158,11 @@ internal class CloudSyncCataloguesPort(
                 fields["package"]?.let { syncJson.decodeFromJsonElement(PortableRin.serializer(), it) } ?: return false
             data.validate()
             require(data.packageName == record.ref.title)
+            if (data.format != "apk") {
+                store.applied(projection, fields)
+                store.state(intentKey, "")
+                return true
+            }
             val previous = rin.installed.value.firstOrNull { it.manifest.packageName == data.packageName }
             if (previous != null) {
                 require(data.signer in previous.publisherHistory && previous.manifest.medium == data.medium)

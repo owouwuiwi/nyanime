@@ -2,7 +2,10 @@ package eu.kanade.domain.extension
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.net.URI
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 
 /** Media are declared by a catalogue, never inferred from package or source names. */
 object ExtensionCatalogueMedium {
@@ -23,6 +26,7 @@ data class UnifiedExtensionCatalogue(
     val media: Set<String>,
     val extensionList: ExtensionList,
     val replaces: Set<String> = emptySet(),
+    private val packageList: JsonElement? = null,
 ) {
     @Serializable data class Contact(val website: String, val discord: String? = null)
 
@@ -32,19 +36,24 @@ data class UnifiedExtensionCatalogue(
 
     fun count(medium: String): Int = extensionList.extensions.count { it.medium == medium }
 
+    val bridgeCount: Int
+        get() {
+            val packages = (packageList as? JsonObject)?.get("extensions") as? JsonArray
+            return packages.orEmpty().count { entry ->
+                val descriptor = entry as? JsonObject
+                val format = (descriptor?.get("format") as? JsonPrimitive)?.content
+                val manifest = descriptor?.get("manifest") as? JsonObject
+                val medium = (manifest?.get("medium") as? JsonPrimitive)?.content
+                format == "apk" && (medium == "layer" || medium == "manga-layer")
+            }
+        }
+
     companion object {
         const val MAX_BYTES = 8L * 1024 * 1024
         private val json = Json { ignoreUnknownKeys = true }
 
-        fun validUrl(value: String): Boolean = runCatching {
-            val url = URI(value)
-            url.scheme == "https" &&
-                !url.host.isNullOrBlank() &&
-                url.rawUserInfo == null &&
-                url.rawQuery == null &&
-                url.rawFragment == null &&
-                url.path.endsWith(".json")
-        }.getOrDefault(false)
+        fun validUrl(value: String): Boolean = (ExtensionCatalogueLink.parse(value) as? ExtensionCatalogueLink.Index)
+            ?.url == value
 
         fun parse(value: String): UnifiedExtensionCatalogue {
             require(value.toByteArray().size <= MAX_BYTES)

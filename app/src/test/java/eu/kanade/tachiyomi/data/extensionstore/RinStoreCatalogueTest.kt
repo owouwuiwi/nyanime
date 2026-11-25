@@ -1,5 +1,9 @@
 package eu.kanade.tachiyomi.data.extensionstore
 
+import eu.kanade.tachiyomi.data.layer.MangaLayerChoice
+import eu.kanade.tachiyomi.data.layer.MangaLayerDeclaration
+import eu.kanade.tachiyomi.data.layer.MangaLayerStatus
+import eu.kanade.tachiyomi.data.layer.MangaLayerTarget
 import eu.kanade.tachiyomi.data.rin.RinArchive
 import eu.kanade.tachiyomi.data.rin.RinEntry
 import eu.kanade.tachiyomi.data.rin.RinManifest
@@ -48,15 +52,142 @@ class RinStoreCatalogueTest {
         "c".repeat(64),
         "d".repeat(64),
         "https://example.invalid/index.json",
-        "version.rin",
+        "version.apk",
+        format = "apk",
     )
     private val candidate = RinEntry(
         manifest.copy(versionCode = 2, versionName = "16.2"),
-        "https://example.invalid/package.rin",
+        "https://example.invalid/package.apk",
         "e".repeat(64),
         record.signer,
         record.repository,
+        format = "apk",
     )
+
+    private val bridgeManifest = RinManifest(
+        schema = 2,
+        packageName = "test.extension.bridge",
+        name = "Compact home",
+        versionCode = 1,
+        versionName = "1.0",
+        medium = "layer",
+        extensionLib = 1.0,
+        entryPoints = emptyList(),
+        sources = emptyList(),
+        hashes = emptyMap(),
+        mangaLayer = MangaLayerDeclaration(
+            1,
+            listOf(MangaLayerTarget(
+                packageName = manifest.packageName,
+                sourceId = 901,
+                signer = record.signer,
+                minVersionCode = 1,
+                maxVersionCode = 2,
+                capabilities = setOf("home"),
+                medium = "anime",
+            )),
+        ),
+    )
+    private val bridgeCandidate = candidate.copy(
+        manifest = bridgeManifest,
+        url = "https://example.invalid/bridge.apk",
+        format = "apk",
+    )
+
+    @Test fun `catalogue previews only link a bridge to a matching source identity publisher and version`() {
+        fun related(base: RinEntry): List<StoreBridge> {
+            val entries = RinStoreCatalogue.entries(listOf(base, bridgeCandidate), emptyList(), emptyList(), emptyList())
+            val source = entries.single { it.medium == StoreMedium.ANIME }
+            return StoreBridges.bySource(entries, choices = emptyList(), adult = false)[source.id].orEmpty()
+        }
+        assertEquals(StoreBridgeState.NEEDS_SOURCE, related(candidate).single().state)
+        assertTrue(related(candidate.copy(signer = "b".repeat(64))).isEmpty())
+        assertTrue(related(candidate.copy(manifest = candidate.manifest.copy(versionCode = 3))).isEmpty())
+        assertTrue(related(candidate.copy(manifest = candidate.manifest.copy(sources = emptyList()))).isEmpty())
+    }
+
+    @Test fun `catalogue search returns the source while bridge filter and installed state remain distinct`() {
+        val bridge = record.copy(manifest = bridgeManifest, format = "apk")
+        val nextBridge = bridgeCandidate.copy(manifest = bridgeManifest.copy(versionCode = 2, versionName = "1.1"))
+        val entries = RinStoreCatalogue.entries(listOf(nextBridge), listOf(record, bridge), emptyList(), emptyList())
+        val source = entries.single { it.medium == StoreMedium.ANIME }
+        val patch = entries.single { it.medium == StoreMedium.MANGA_LAYER }
+        val active = MangaLayerChoice(
+            patch.packageName, patch.name, source.packageName, 901, "home",
+            MangaLayerStatus.ACTIVE, "anime", "Example edition",
+        )
+        val bridges = StoreBridges.bySource(entries, choices = listOf(active), adult = false)
+        assertEquals(StoreBridgeState.ACTIVE, bridges.getValue(source.id).single().state)
+        val noMatch = StoreBridges.bySource(
+            entries.map { if (it == source) source.copy(rinRecord = record.copy(signer = "b".repeat(64))) else it },
+            choices = emptyList(),
+            adult = false,
+        )
+        assertEquals(StoreBridgeState.INCOMPATIBLE, noMatch.getValue(source.id).single().state)
+        assertEquals(
+            listOf(patch, source),
+            StorePresentation.select(entries, StoreShelf.CATALOGUE, null, StoreActivation.ALL, "Compact home", setOf("it"), false, bridges),
+        )
+        assertEquals(
+            listOf(patch),
+            StorePresentation.select(entries, StoreShelf.CATALOGUE, StoreMedium.MANGA_LAYER, StoreActivation.ALL, "", setOf("it"), false, bridges),
+        )
+    }
+
+    @Test fun `catalogues with only bridges stay visible until a matching source can carry the bridge`() {
+        val entries = RinStoreCatalogue.entries(listOf(candidate, bridgeCandidate), emptyList(), emptyList(), emptyList())
+        val source = entries.single { it.medium == StoreMedium.ANIME }
+        val bridge = entries.single { it.medium == StoreMedium.MANGA_LAYER }
+        fun visible(all: List<StoreEntry>) = StorePresentation.select(
+            all,
+            StoreShelf.CATALOGUE,
+            null,
+            StoreActivation.ALL,
+            "",
+            setOf("it"),
+            false,
+            StoreBridges.bySource(all, emptyList(), adult = false),
+        )
+        assertEquals(listOf(bridge), visible(listOf(bridge)))
+        assertEquals(listOf(source), visible(entries))
+    }
+
+    @Test fun `bridge approval requires the installed source identity and unchanged APK offer`() {
+        val entries = RinStoreCatalogue.entries(listOf(bridgeCandidate), listOf(record), emptyList(), emptyList())
+        val base = entries.single { it.medium == StoreMedium.ANIME }
+        val bridge = entries.single { it.privateOnly }
+        val plan = ApprovedBridgeInstall(
+            base.packageName, base.medium, manifest.versionCode, record.signer, StoreInstallMode.PRIVATE,
+            listOf(bridgeCandidate), createdAt = 1L,
+        )
+        val restored = RinArchive.json.decodeFromString<ApprovedBridgeInstall>(RinArchive.json.encodeToString(plan))
+        assertEquals(listOf(bridge), restored.compatibleBridges(base, entries))
+        assertTrue(restored.compatibleBridges(base.copy(installed = false), entries).isEmpty())
+        assertTrue(restored.compatibleBridges(base.copy(action = StoreAction.TRUST), entries).isEmpty())
+        assertTrue(restored.compatibleBridges(base.copy(rinRecord = record.copy(isShared = true)), entries).isEmpty())
+        val shared = base.copy(rinRecord = record.copy(isShared = true))
+        assertEquals(listOf(bridge), restored.copy(mode = StoreInstallMode.SYSTEM).compatibleBridges(shared, entries))
+        assertTrue(restored.compatibleBridges(base.copy(rinRecord = record.copy(signer = "b".repeat(64))), entries).isEmpty())
+        val differentSource = record.copy(manifest = manifest.copy(sources = listOf(RinSource(42, "Other", "it"))))
+        assertTrue(restored.compatibleBridges(base.copy(rinRecord = differentSource), entries).isEmpty())
+        val changed = bridge.copy(rinCandidate = bridgeCandidate.copy(sha256 = "f".repeat(64)))
+        assertTrue(restored.compatibleBridges(base, listOf(base, changed)).isEmpty())
+    }
+
+    @Test fun `matching duplicate catalogues coalesce while conflicting bridge publishers require manual choice`() {
+        val differentPublisher = bridgeCandidate.copy(signer = "b".repeat(64))
+        val mirror = bridgeCandidate.copy(repository = "https://mirror.invalid/index.json")
+        fun installable(vararg offers: RinEntry): List<StoreEntry> {
+            val entries = RinStoreCatalogue.entries(listOf(candidate) + offers, emptyList(), emptyList(), emptyList())
+            val base = entries.single { !it.privateOnly }
+            val bridges = StoreBridges.bySource(entries, emptyList(), adult = false)
+            return StoreBridges.forInstallation(bridges.getValue(base.id))
+        }
+        assertEquals(1, installable(bridgeCandidate, mirror).size)
+        assertTrue(installable(bridgeCandidate, differentPublisher).isEmpty())
+        val competingBridge = bridgeCandidate.copy(manifest = bridgeManifest.copy(packageName = "test.other.bridge"))
+        assertTrue(installable(bridgeCandidate, competingBridge).isEmpty())
+    }
 
     @Test fun `installed disabled packages stay manageable without a catalogue or loaded sources`() {
         val disabled = record.copy(enabled = false)
@@ -91,9 +222,15 @@ class RinStoreCatalogueTest {
     @Test fun `discover keeps publisher choices separate and selects the newest immutable version`() {
         val older = candidate.copy(manifest = manifest)
         val other = candidate.copy(repository = "https://other.invalid/index.json")
-        val entries = RinStoreCatalogue.entries(listOf(older, candidate, other), emptyList(), emptyList(), emptyList())
-        assertEquals(2, entries.size)
-        assertEquals(2, entries.map { it.id }.distinct().size)
+        val sameCatalogueDifferentPublisher = candidate.copy(signer = "b".repeat(64))
+        val entries = RinStoreCatalogue.entries(
+            listOf(older, candidate, other, sameCatalogueDifferentPublisher),
+            emptyList(),
+            emptyList(),
+            emptyList(),
+        )
+        assertEquals(3, entries.size)
+        assertEquals(3, entries.map { it.id }.distinct().size)
         assertTrue(entries.all { !it.installed && it.action == StoreAction.INSTALL })
         assertTrue(entries.all { it.rinCandidate!!.manifest.versionCode == 2L })
     }
@@ -132,7 +269,15 @@ class RinStoreCatalogueTest {
         assertTrue(select(StoreShelf.DISCOVER, query = "missing", languages = setOf("it")).isEmpty())
     }
 
-    @Test fun `RIN addons use the addon shelf without source languages`() {
+    @Test fun `catalogue ignores retired packages in cache and local inventory`() {
+        val legacy = record.copy(format = "rin")
+        val legacyCandidate = candidate.copy(format = "rin")
+        val entries = RinStoreCatalogue.entries(listOf(legacyCandidate, candidate), listOf(legacy), emptyList(), emptyList())
+        assertEquals(candidate, entries.single().rinCandidate)
+        assertFalse(entries.single().installed)
+    }
+
+    @Test fun `APK addons use the addon shelf without source languages`() {
         val addon = manifest.copy(
             schema = 2,
             medium = "addon",
@@ -159,7 +304,7 @@ class RinStoreCatalogueTest {
         assertEquals(StoreAction.INSTALL, entry.action)
     }
 
-    @Test fun `incompatible RIN addons remain manageable and cannot replace a working version`() {
+    @Test fun `incompatible APK addons remain manageable and cannot replace a working version`() {
         val addon = manifest.copy(
             schema = 2,
             medium = "addon",

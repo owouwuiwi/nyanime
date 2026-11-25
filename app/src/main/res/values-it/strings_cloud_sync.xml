@@ -39,7 +39,7 @@
     <string name="cloud_sync_appearance">Aspetto</string>
     <string name="cloud_sync_playback">Player e sottotitoli</string>
     <string name="cloud_sync_reader">Lettore manga</string>
-    <string name="cloud_sync_catalogues">Home, fonti e RIN installate</string>
+    <string name="cloud_sync_catalogues">Home, fonti e APK importati</string>
     <string name="cloud_sync_general">Libreria, filtri e altre preferenze</string>
     <string name="cloud_sync_devices_title">I tuoi dispositivi</string>
     <string name="cloud_sync_devices_summary">Approva un altro telefono usando il QR mostrato nelle sue impostazioni Cloud.</string>

@@ -120,7 +120,7 @@
     <string name="cloud_restore_manga">Manga</string>
     <string name="cloud_restore_progress">Episodi e capitoli</string>
     <string name="cloud_restore_settings">Impostazioni</string>
-    <string name="cloud_restore_extensions_summary">Sono incluse %1$d estensioni. Le RIN vengono recuperate dall’app; le estensioni APK mancanti richiedono la conferma di Android. I file scaricati e la sessione Telegram restano su questo telefono.</string>
+    <string name="cloud_restore_extensions_summary">Sono incluse %1$d estensioni. Nyanime ripristina gli APK importati. Per reinstallare gli APK Android mancanti serve conferma. I file scaricati e la sessione Telegram restano su questo telefono.</string>
     <string name="cloud_restore_options">Scegli cosa ripristinare</string>
     <string name="cloud_restore_missing">Alcune fonti o servizi non sono ancora disponibili su questo dispositivo. Recupereremo i dati; potrebbe essere necessario completare la loro configurazione.</string>
     <string name="cloud_restore_start">Ripristina questa copia</string>

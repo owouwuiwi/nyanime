@@ -11,12 +11,11 @@
     <string name="store_activate">Attiva</string>
     <string name="store_activation_filter">Stato delle estensioni</string>
     <string name="store_owned_summary">%1$d attive · %2$d disattivate</string>
-    <string name="store_discover_summary">Le RIN si aggiornano automaticamente</string>
-    <string name="store_rin_heading">Estensioni RIN</string>
+    <string name="store_imported_apk">APK importato</string>
     <string name="store_other_extensions">Altre estensioni</string>
     <string name="store_clear_search">Cancella ricerca</string>
     <string name="store_reset_filters">Rimuovi i filtri</string>
-    <string name="store_rin_description">Si installa dentro Nyanime e si aggiorna automaticamente. Gli aggiornamenti attendono la fine della riproduzione o lettura.</string>
+    <string name="store_imported_apk_description">L’estensione è gestita in Nyanime. Gli aggiornamenti automatici attendono la fine della riproduzione o della lettura.</string>
     <string name="store_disable_hint">Disattivarla conserva preferenze, libreria e progressi.</string>
     <string name="store_session_busy">Chiudi la riproduzione, il lettore o la sessione Cast prima di modificare le estensioni.</string>
     <string name="store_activation_error">Non è stato possibile cambiare lo stato. La versione installata è conservata; riprova.</string>

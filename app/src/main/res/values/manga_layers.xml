@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="store_manga_layer">Layers</string>
-    <string name="store_manga_layer_hint">Import this layer into Nyanime to add features to supported extensions.</string>
+    <string name="store_manga_layer">Bridges</string>
+    <string name="store_manga_layer_hint">Import this bridge into Nyanime to add features to supported extensions.</string>
     <string name="store_manga_layer_targets">Supported extensions and features</string>
     <string name="store_manga_layer_home">Home</string>
     <string name="store_manga_layer_catalog">Catalogue</string>

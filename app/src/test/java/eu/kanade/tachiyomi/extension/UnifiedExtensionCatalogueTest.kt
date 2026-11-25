@@ -1,9 +1,12 @@
 package eu.kanade.tachiyomi.extension
 
+import eu.kanade.domain.extension.ExtensionCatalogueLink
 import eu.kanade.domain.extension.ExtensionCatalogueMedium
 import eu.kanade.domain.extension.UnifiedExtensionCatalogue
+import eu.kanade.presentation.more.settings.screen.browse.DriveCatalogueResolver
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -52,5 +55,67 @@ class UnifiedExtensionCatalogueTest {
         ).forEach {
             assertFalse(UnifiedExtensionCatalogue.validUrl(it))
         }
+    }
+
+    @Test fun driveAliasesResolveToTheSameCanonicalIndex() {
+        val folder = "https://drive.google.com/drive/folders/folder_id?usp=sharing&resourcekey=0-folder-key"
+        val folderLink = ExtensionCatalogueLink.parse(folder) as ExtensionCatalogueLink.DriveFolder
+        assertEquals("https://drive.google.com/embeddedfolderview?id=folder_id&resourcekey=0-folder-key", folderLink.listingUrl)
+        assertFalse(UnifiedExtensionCatalogue.validUrl(folder))
+
+        val canonical = "https://drive.google.com/uc?export=download&id=file_id&resourcekey=0-file-key&filename=index.json"
+        val aliases = listOf(
+            "https://drive.google.com/file/d/file_id/view?usp=drive_link&resourcekey=0-file-key",
+            "https://drive.google.com/uc?id=file_id&resourcekey=0-file-key&export=download",
+            "https://drive.usercontent.google.com/download?id=file_id&resourcekey=0-file-key&export=download&confirm=t",
+            canonical,
+        )
+        aliases.forEach {
+            assertEquals(ExtensionCatalogueLink.Index(canonical, isDrive = true), ExtensionCatalogueLink.parse(it))
+        }
+        assertTrue(UnifiedExtensionCatalogue.validUrl(canonical))
+    }
+
+    @Test fun driveParsingRejectsAmbiguousParametersAndExternalHosts() {
+        listOf(
+            "http://drive.google.com/drive/folders/example?usp=sharing",
+            "https://drive.google.com.evil.test/drive/folders/example?usp=sharing",
+            "https://example@drive.google.com/drive/folders/id?usp=sharing",
+            "https://drive.google.com/drive/folders/example?usp=sharing#fragment",
+            "https://drive.google.com:444/file/d/example/view",
+            "https://drive.google.com/drive/folders/example?resourcekey=foo%26id%3Dother",
+            "https://drive.google.com/uc?id=one&id=other",
+            "https://drive.google.com/uc?id=one&redirect=other",
+            "https://drive.google.com/uc?id=one&filename=outside.json",
+        ).forEach {
+            assertNull(ExtensionCatalogueLink.parse(it), it)
+        }
+        assertTrue(ExtensionCatalogueLink.isLegacyRepositoryUrl("https://catalogue.invalid/repo/"))
+    }
+
+    @Test fun driveFolderMustContainOnePublicIndex() {
+        fun entry(href: String, title: String = "index.json") =
+            """<div class="flip-entry"><a href="$href"><div class="flip-entry-title">$title</div></a></div>"""
+
+        val valid = entry("/file/d/file_id/view?usp=sharing&amp;resourcekey=0-file-key")
+        val otherFile = entry("/file/d/other_id/view", "bridge.apk")
+        val fake = entry("https://third-party.invalid/index.json")
+        val expected = "https://drive.google.com/uc?export=download&id=file_id&resourcekey=0-file-key&filename=index.json"
+
+        assertEquals(expected, DriveCatalogueResolver.findIndex(valid + otherFile + fake + valid))
+        assertNull(DriveCatalogueResolver.findIndex(fake + otherFile))
+        assertNull(DriveCatalogueResolver.findIndex(valid + entry("/file/d/second_file/view")))
+    }
+
+    @Test fun bridgesCountOnlyApkEntries() {
+        val packageList = """"packageList":{"extensions":[
+           {"format":"apk", "manifest":{"medium":"layer"}},
+           {"format":"apk", "manifest":{"medium":"manga-layer"}},
+           {"format":"apk", "manifest":{"medium":"anime"}},
+           {"format":"old", "manifest":{"medium":"layer"}},
+           {"manifest":{"medium":"manga-layer"}}
+        ]}"""
+        val result = UnifiedExtensionCatalogue.parse(catalogue.trimEnd().dropLast(1) + ",$packageList}")
+        assertEquals(2, result.bridgeCount)
     }
 }

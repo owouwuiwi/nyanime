@@ -1,21 +1,16 @@
 package eu.kanade.tachiyomi.data.migration
 
-import android.app.Application
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
 import android.os.StatFs
-import androidx.preference.PreferenceManager
 import eu.kanade.tachiyomi.BuildConfig
 import eu.kanade.tachiyomi.data.backup.BackupDecoder
-import eu.kanade.tachiyomi.data.backup.create.BackupCreator
-import eu.kanade.tachiyomi.data.backup.create.BackupOptions
-import eu.kanade.tachiyomi.data.recovery.RecoveryBackupIntegrity
-import eu.kanade.tachiyomi.data.recovery.RecoveryRuntime
-import eu.kanade.tachiyomi.data.rin.RinArchive
 import eu.kanade.tachiyomi.data.rin.RinStorage
-import kotlinx.coroutines.runBlocking
+import eu.kanade.tachiyomi.extension.ExtensionPackageArchive
 import java.io.File
+
+internal fun isRetiredExtensionArchive(path: String): Boolean = path.startsWith("files/rin/") && path.endsWith(".rin")
 
 internal object MigrationRestore {
     fun enoughSpace(context: Context, bytes: Long): Boolean = bytes >= 0 &&
@@ -49,7 +44,9 @@ internal object MigrationRestore {
             MigrationSharedStorage.verify(context, requireNotNull(manifest.storageUri), Uri.parse(storage))
             require(MigrationSharedStorage.inventory(context, storage) == shared.getString("inventory"))
         }
-        val entries = manifest.files.filter { it.path.substringBefore('/') !in setOf("portable", "secrets") }
+        val entries = manifest.files.filter {
+            it.path.substringBefore('/') !in setOf("portable", "secrets") && !isRetiredExtensionArchive(it.path)
+        }
         fun mapped(path: String) = if (path in setOf(
                 "preferences/${manifest.packageName}_preferences.xml",
                 "preferences/${manifest.packageName}_preferences.xml.bak",
@@ -73,27 +70,34 @@ internal object MigrationRestore {
             MigrationState.stopOwnOtherProcesses(context)
             MigrationTransaction.begin(context, paths)
             val destinations = MigrationSnapshot.roots(context)
-            manifest.files.filter { it.path.substringBefore('/') !in setOf("portable", "secrets") }.forEach { entry ->
+            entries.forEach { entry ->
                 val root = entry.path.substringBefore('/')
                 val relative = mapped(entry.path).substringAfter('/')
                 val target = File(checkNotNull(destinations[root]), relative)
                 check(target.parentFile!!.mkdirs() || target.parentFile!!.isDirectory)
                 val source = File(stage, entry.path)
+                val importedApk = root == "files" && relative.startsWith("rin/") && relative.endsWith(".apk")
+                val legacyApk = root == "files" && relative.startsWith("exts/") && relative.endsWith(".ext")
+                if (legacyApk) {
+                    val inspected = ExtensionPackageArchive.inspect(context, source)
+                    require(!inspected.requiresAndroid && inspected.manifest.packageName == source.nameWithoutExtension)
+                }
                 // Copy across storage volumes, then atomically publish the verified file.
                 val temporary = File(target.parentFile, "${target.name}.migration-part")
-                source.inputStream().use { input -> temporary.outputStream().use { input.copyTo(it, 256 * 1024) } }
+                source.inputStream().use { input ->
+                    temporary.outputStream().use { output ->
+                        if (importedApk || legacyApk) check(temporary.setReadOnly())
+                        input.copyTo(output, 256 * 1024)
+                    }
+                }
                 require(MigrationArchive.hash(temporary) == entry.sha256)
                 check(temporary.renameTo(target))
-                if (root == "files" &&
-                    (relative.endsWith(".rin") || relative.endsWith(".ext"))
-                ) {
-                    check(target.setReadOnly())
-                }
             }
             // Bound secrets are deliberately rewrapped; the old ciphertext alone is unusable.
             File(context.noBackupFilesDir, "cloud-sync-keys").deleteRecursively()
-            RinStorage(context).records().forEach { record ->
-                RinArchive.verify(RinStorage(context).file(record), record.signer, record.sha256)
+            val extensions = RinStorage(context)
+            extensions.records().forEach { record ->
+                ExtensionPackageArchive.verify(context, extensions.file(record), record)
             }
             val verification = context.contentResolver.call(
                 Uri.parse("content://${context.packageName}.migration.verify"),

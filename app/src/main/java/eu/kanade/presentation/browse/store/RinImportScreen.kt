@@ -39,6 +39,7 @@ import eu.kanade.tachiyomi.data.rin.RinImportException
 import eu.kanade.tachiyomi.data.rin.RinImportFailure
 import eu.kanade.tachiyomi.data.rin.RinLocalImport
 import eu.kanade.tachiyomi.data.rin.RinSessions
+import eu.kanade.tachiyomi.extension.ExtensionPackageConsent
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import tachiyomi.presentation.core.components.material.Scaffold
@@ -66,7 +67,7 @@ private class RinImportModel(
                 }
                 mutableState.value = if (candidate.previous?.let {
                         it.sha256 == candidate.record.sha256 &&
-                            eu.kanade.tachiyomi.extension.ExtensionPackageConsent.trusted(it)
+                            ExtensionPackageConsent.trusted(it)
                     } == true
                 ) {
                     State.Done(candidate.record.manifest.name)
@@ -95,8 +96,9 @@ private class RinImportModel(
         screenModelScope.launch {
             job.join()
             val record = preview.candidate.record
+            val installed = repository.rin.storage.record(record.manifest.packageName)
             mutableState.value =
-                if (repository.rin.storage.record(record.manifest.packageName)?.sha256 == record.sha256) {
+                if (installed != null && installed.sha256 == record.sha256 && ExtensionPackageConsent.trusted(installed)) {
                     State.Done(record.manifest.name)
                 } else {
                     State.Failed(RinImportFailure.CHANGED)

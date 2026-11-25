@@ -99,9 +99,18 @@ internal object RecoveryBackupIntegrity {
         }
         backup.backupMangaExtensionRepo.forEach { put(listOf("manga_store", it.baseUrl), it.signingKeyFingerprint) }
         backup.backupAnimeExtensionStores.forEach { put(listOf("anime_store", it.indexUrl), it.signingKey) }
-        backup.backupExtensions.forEach {
-            // Backup bytes must survive; imported execution consent is deliberately not portable.
-            put(listOf("extension", it.pkgName), if (it.format == "rin") it.copy(rinEnabled = false) else it)
+        backup.backupExtensions.filter { it.format == "apk" }.forEach {
+            // Imported execution consent is not portable. Default publisher identity is carried by the signed APK.
+            val portable = if (it.privatelyInstalled) {
+                it.copy(
+                    rinSigner = "",
+                    rinEnabled = false,
+                    storagePublisher = it.storagePublisher.takeUnless { publisher -> publisher == it.rinSigner }.orEmpty(),
+                )
+            } else {
+                it
+            }
+            put(listOf("extension", it.pkgName), portable)
         }
         backup.releaseSubscriptions.forEach {
             put(listOf("release_subscription", it.medium, it.source.toString(), it.url), it)

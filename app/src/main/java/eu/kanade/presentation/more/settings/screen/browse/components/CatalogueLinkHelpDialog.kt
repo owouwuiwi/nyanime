@@ -19,24 +19,26 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import eu.kanade.domain.extension.UnifiedExtensionCatalogue
+import eu.kanade.domain.extension.ExtensionCatalogueLink
 import eu.kanade.tachiyomi.R
-import java.net.URI
 
 @Composable
-fun CatalogueLinkHelpDialog(onDismissRequest: () -> Unit, onLink: (String) -> Unit, unified: Boolean = false) {
+fun CatalogueLinkHelpDialog(
+    onDismissRequest: () -> Unit,
+    onLink: (String) -> Unit,
+    unified: Boolean = false,
+    onDriveLink: (String) -> Unit = onLink,
+) {
     var link by rememberSaveable { mutableStateOf("") }
     val normalized = link.trim()
-    val valid = normalized.length in 1..2048 &&
-        runCatching {
-            val uri = URI(normalized)
-            uri.scheme == "https" &&
-                !uri.host.isNullOrBlank() &&
-                uri.userInfo == null &&
-                uri.rawFragment == null &&
-                uri.rawQuery == null &&
-                (!unified || UnifiedExtensionCatalogue.validUrl(normalized))
-        }.getOrDefault(false)
+    val catalogueLink = ExtensionCatalogueLink.parse(normalized)
+    val isDriveLink = catalogueLink is ExtensionCatalogueLink.DriveFolder ||
+        catalogueLink is ExtensionCatalogueLink.Index && catalogueLink.isDrive
+    val valid = catalogueLink != null || (!unified && ExtensionCatalogueLink.isLegacyRepositoryUrl(normalized))
+    val invalid = link.isNotBlank() && !valid
+    val submitLink = {
+        if (isDriveLink) onDriveLink(normalized) else onLink(normalized)
+    }
     AlertDialog(
         onDismissRequest = onDismissRequest,
         title = { Text(stringResource(R.string.catalogue_link_title)) },
@@ -48,15 +50,17 @@ fun CatalogueLinkHelpDialog(onDismissRequest: () -> Unit, onLink: (String) -> Un
                     label = { Text(stringResource(R.string.catalogue_link_address)) },
                     placeholder = { Text("https://…/index.json") },
                     singleLine = true,
-                    isError = link.isNotBlank() && !valid,
+                    isError = invalid,
+                    supportingText = {
+                        if (invalid) Text(stringResource(R.string.catalogue_link_invalid))
+                    },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = { if (valid) onLink(normalized) }),
+                    keyboardActions = KeyboardActions(onDone = { if (valid) submitLink() }),
                 )
-                Text(stringResource(R.string.catalogue_link_confirmation))
             }
         },
         confirmButton = {
-            TextButton(onClick = { onLink(normalized) }, enabled = valid) {
+            TextButton(onClick = submitLink, enabled = valid) {
                 Text(stringResource(R.string.extensions_catalogue_add))
             }
         },

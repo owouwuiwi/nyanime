@@ -2,7 +2,7 @@ package eu.kanade.tachiyomi.data.extensionstore
 
 import java.util.Locale
 
-enum class StoreShelf { OWNED, DISCOVER }
+enum class StoreShelf { OWNED, DISCOVER, CATALOGUE }
 enum class StoreActivation { ALL, ACTIVE, INACTIVE }
 
 /** A single catalogue model for every viewport; no network or source initialization while filtering. */
@@ -15,19 +15,29 @@ internal object StorePresentation {
         query: String,
         languages: Set<String>,
         adult: Boolean,
-    ): List<StoreEntry> = entries.asSequence().filter {
-        it.installed == (shelf == StoreShelf.OWNED) &&
-            (medium == null || it.medium == medium) &&
-            (it.medium != StoreMedium.MANGA_LAYER || shelf == StoreShelf.OWNED || medium != null || query.isNotBlank()) &&
-            (
-                shelf != StoreShelf.OWNED ||
-                    activation == StoreActivation.ALL ||
-                    it.enabled == (activation == StoreActivation.ACTIVE)
-                ) &&
-            (it.installed || adult || !it.nsfw) &&
-            it.matchesLanguages(languages) &&
-            it.matchesQuery(query)
-    }.sortedWith(
-        compareBy<StoreEntry> { it.name.lowercase(Locale.ROOT) }.thenBy { it.id },
-    ).toList()
+        bridges: Map<String, List<StoreBridge>> = emptyMap(),
+    ): List<StoreEntry> {
+        val matching = entries.filter {
+            (shelf == StoreShelf.CATALOGUE || it.installed == (shelf == StoreShelf.OWNED)) &&
+                (medium == null || it.medium == medium) &&
+                (
+                    shelf == StoreShelf.DISCOVER || !it.installed ||
+                        activation == StoreActivation.ALL ||
+                        it.enabled == (activation == StoreActivation.ACTIVE)
+                    ) &&
+                (it.installed || adult || !it.nsfw) &&
+                it.matchesLanguages(languages) &&
+                (it.matchesQuery(query) || bridges[it.id].orEmpty().any { bridge -> bridge.entry.matchesQuery(query) })
+        }
+        val attached = matching.flatMap { bridges[it.id].orEmpty() }.map { it.entry.id }.toSet()
+        return matching.filter {
+            !it.privateOnly || medium == StoreMedium.MANGA_LAYER || when (shelf) {
+                StoreShelf.OWNED -> true
+                StoreShelf.DISCOVER -> query.isNotBlank()
+                StoreShelf.CATALOGUE -> it.action == StoreAction.UPDATE || it.id !in attached
+            }
+        }.sortedWith(
+            compareBy<StoreEntry> { it.name.lowercase(Locale.ROOT) }.thenBy { it.id },
+        )
+    }
 }

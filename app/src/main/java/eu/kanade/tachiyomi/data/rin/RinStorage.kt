@@ -35,7 +35,9 @@ class RinStorage(private val context: Context) {
     private val root = File(context.filesDir, "rin").apply { mkdirs() }
     private val index = AtomicFile(File(root, "active.json"))
 
-    fun records(): List<RinRecord> = synchronized(lock) {
+    fun records(): List<RinRecord> = synchronized(lock) { readRecords().filter { it.format == "apk" } }
+
+    private fun readRecords(): List<RinRecord> =
         runCatching {
             RinArchive.json.parseToJsonElement(index.openRead().use { it.readBytes().decodeToString() }).jsonArray
                 .mapNotNull { encoded ->
@@ -45,9 +47,8 @@ class RinStorage(private val context: Context) {
                             require(file(it).isFile)
                         }
                     }.getOrNull()
-                }.distinctBy { it.manifest.packageName }
+                }.distinctBy { it.manifest.packageName to it.format }
         }.getOrDefault(emptyList())
-    }
 
     fun record(packageName: String) = records().firstOrNull { it.manifest.packageName == packageName }
 
@@ -58,20 +59,18 @@ class RinStorage(private val context: Context) {
     }
 
     fun stage(input: File, signer: String, hash: String, repository: String): RinRecord = synchronized(lock) {
-        val apk = if (eu.kanade.tachiyomi.extension.ExtensionPackageArchive.isApk(input)) {
-            eu.kanade.tachiyomi.extension.ExtensionPackageArchive.inspect(context, input)
-        } else {
-            null
-        }
-        val manifest = apk?.manifest ?: RinArchive.verify(input, signer, hash)
-        val metadata = apk?.let { eu.kanade.tachiyomi.extension.ExtensionPackageInspector.inspect(it.info) { 0 } }
-        require(apk == null || !apk.requiresAndroid) { "This extension requires Android installation" }
-        require(metadata == null || signer in metadata.signers || signer in metadata.signerHistory)
+        val apk = eu.kanade.tachiyomi.extension.ExtensionPackageArchive.inspect(context, input)
+        val metadata = eu.kanade.tachiyomi.extension.ExtensionPackageInspector.inspect(apk.info) { 0 }
+        require(!apk.requiresAndroid) { "This extension requires Android installation" }
+        require(signer in metadata.signers || signer in metadata.signerHistory)
         require(eu.kanade.tachiyomi.extension.ExtensionPackageArchive.sha256(input) == hash)
-        val format = if (apk == null) "rin" else "apk"
-        val target = File(root, "$hash.$format")
+        val target = File(root, "$hash.apk")
+        val record = RinRecord(
+            apk.manifest, signer, hash, repository, target.name, format = "apk",
+            signers = metadata.signers, signerHistory = metadata.signerHistory, trusted = false,
+        )
         if (!target.isFile) {
-            val temp = File.createTempFile("stage-", ".$format", root)
+            val temp = File.createTempFile("stage-", ".apk", root)
             try {
                 // Android 14: establish read-only permissions before writing executable bytes.
                 temp.outputStream().use { output ->
@@ -80,26 +79,15 @@ class RinStorage(private val context: Context) {
                     output.flush()
                     output.fd.sync()
                 }
-                if (apk == null) {
-                    RinArchive.verify(temp, signer, hash)
-                } else {
-                    eu.kanade.tachiyomi.extension.ExtensionPackageArchive.inspect(context, temp)
-                }
+                eu.kanade.tachiyomi.extension.ExtensionPackageArchive.verify(context, temp, record)
                 check(temp.renameTo(target))
             } finally {
                 temp.delete()
             }
         } else {
-            if (apk == null) {
-                RinArchive.verify(target, signer, hash)
-            } else {
-                eu.kanade.tachiyomi.extension.ExtensionPackageArchive.inspect(context, target)
-            }
+            eu.kanade.tachiyomi.extension.ExtensionPackageArchive.verify(context, target, record)
         }
-        RinRecord(
-            manifest, signer, hash, repository, target.name, format = format,
-            signers = metadata?.signers.orEmpty(), signerHistory = metadata?.signerHistory.orEmpty(), trusted = false,
-        )
+        record
     }
 
     fun activate(record: RinRecord, approveLayerScope: Boolean = false) = synchronized(lock) {
@@ -193,14 +181,17 @@ class RinStorage(private val context: Context) {
         val keep = (records() + prepared).flatMap { listOfNotNull(it.file, it.publisherRollback?.file) }.toSet()
         val cutoff = System.currentTimeMillis() - 24 * 60 * 60 * 1000L
         root.listFiles()?.filter {
-            it.isFile && it.extension in setOf("rin", "apk") && it.name !in keep && it.lastModified() < cutoff
+            it.isFile && it.extension == "apk" && it.name !in keep && it.lastModified() < cutoff
         }?.forEach { it.delete() }
     }
 
     private fun write(records: List<RinRecord>) {
+        require(records.all { it.format == "apk" })
+        // Keep historical package records on disk, outside the active APK inventory.
+        val retired = readRecords().filter { it.format != "apk" }
         val output = index.startWrite()
         try {
-            output.write(RinArchive.json.encodeToString(records).toByteArray())
+            output.write(RinArchive.json.encodeToString(records + retired).toByteArray())
             index.finishWrite(output)
         } catch (error: Exception) {
             index.failWrite(output)

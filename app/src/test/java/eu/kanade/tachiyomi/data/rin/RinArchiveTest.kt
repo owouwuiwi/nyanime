@@ -49,7 +49,7 @@ class RinArchiveTest {
         }
         assertFalse(RinRepository.compatible(manga.copy(extensionLib = 1.5), "apk"))
         assertFalse(RinRepository.compatible(manga.copy(extensionLib = 2.0), "apk"))
-        assertTrue(RinRepository.compatible(manga.copy(extensionLib = 1.5), "rin"))
+        assertFalse(RinRepository.compatible(manga.copy(extensionLib = 1.5), "rin"))
     }
 
     @Test fun `bundle URLs reject insecure transports credentials fragments and malformed addresses`() {

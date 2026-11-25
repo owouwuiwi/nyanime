@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="store_manga_layer">Layer</string>
-    <string name="store_manga_layer_hint">Importa questo layer in Nyanime per aggiungere funzioni alle estensioni supportate.</string>
+    <string name="store_manga_layer">Bridge</string>
+    <string name="store_manga_layer_hint">Importa questo bridge in Nyanime per aggiungere funzioni alle estensioni supportate.</string>
     <string name="store_manga_layer_targets">Estensioni e funzioni supportate</string>
     <string name="store_manga_layer_home">Home</string>
     <string name="store_manga_layer_catalog">Catalogo</string>

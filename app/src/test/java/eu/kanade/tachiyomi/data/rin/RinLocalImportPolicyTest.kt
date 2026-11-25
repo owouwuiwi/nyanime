@@ -15,7 +15,8 @@ class RinLocalImportPolicyTest {
         "a".repeat(64),
         "b".repeat(64),
         "https://catalog.invalid/index.json",
-        "b".repeat(64) + ".rin",
+        "b".repeat(64) + ".apk",
+        format = "apk",
     )
     private val next = old.copy(manifest = manifest.copy(versionCode = 3), sha256 = "c".repeat(64))
 
@@ -28,7 +29,7 @@ class RinLocalImportPolicyTest {
         assertEquals("", RinLocalImportPolicy.origin(old.signer, standalone, listOf(old.repository to old.signer)))
         assertTrue(
             RinUpdatePolicy.updates(
-                listOf(RinEntry(next.manifest, "", next.sha256, next.signer, old.repository)),
+                listOf(RinEntry(next.manifest, "", next.sha256, next.signer, old.repository, format = "apk")),
                 listOf(standalone),
             ).isEmpty(),
         )
@@ -61,6 +62,7 @@ class RinLocalImportPolicyTest {
     @Test fun `manual updates cannot replace identity publisher medium or immutable version bytes`() {
         listOf(
             next.copy(signer = "d".repeat(64)),
+            next.copy(format = "rin"),
             next.copy(repository = "https://other.invalid/index.json"),
             next.copy(manifest = next.manifest.copy(packageName = "test.other")),
             next.copy(manifest = next.manifest.copy(medium = "manga")),

@@ -184,7 +184,7 @@ object ExtensionPackageArchive {
     }
 
     fun verify(context: Context, file: File, record: RinRecord): RinManifest {
-        if (record.format != "apk") return RinArchive.verify(file, record.signer, record.sha256)
+        require(record.format == "apk")
         require(sha256(file) == record.sha256)
         val inspected = inspect(context, file)
         val metadata = ExtensionPackageInspector.inspect(inspected.info) { 0 }

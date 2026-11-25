@@ -5,6 +5,7 @@ import eu.kanade.tachiyomi.data.backup.models.BackupAnime
 import eu.kanade.tachiyomi.data.backup.models.BackupCategory
 import eu.kanade.tachiyomi.data.backup.models.BackupChapter
 import eu.kanade.tachiyomi.data.backup.models.BackupEpisode
+import eu.kanade.tachiyomi.data.backup.models.BackupExtension
 import eu.kanade.tachiyomi.data.backup.models.BackupManga
 import eu.kanade.tachiyomi.data.backup.models.BackupPreference
 import eu.kanade.tachiyomi.data.backup.models.StringPreferenceValue
@@ -48,6 +49,20 @@ class RecoveryBackupIntegrityTest {
         assertThrows(IllegalStateException::class.java) {
             RecoveryBackupIntegrity.verify(backup(), backup(secret = ""))
         }
+    }
+
+    @Test fun legacyExtensionsMayBeRetiredWhileImportedApkBytesStayIntact() {
+        val legacy = BackupExtension("example.retired", byteArrayOf(1), format = "rin")
+        val apk = BackupExtension("example.imported", byteArrayOf(2), privatelyInstalled = true)
+        val signer = "a".repeat(64)
+        val restored = apk.copy(rinEnabled = false, rinSigner = signer, storagePublisher = signer)
+        val before = backup().apply { backupExtensions = listOf(legacy, apk) }
+        val after = backup().apply { backupExtensions = listOf(restored) }
+
+        RecoveryBackupIntegrity.verify(before, after)
+
+        after.backupExtensions = listOf(restored.copy(apk = byteArrayOf(3)))
+        assertThrows(IllegalStateException::class.java) { RecoveryBackupIntegrity.verify(before, after) }
     }
 
     @Test fun lostReadingPositionIsDetected() {

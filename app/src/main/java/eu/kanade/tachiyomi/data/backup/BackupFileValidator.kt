@@ -83,7 +83,7 @@ class BackupFileValidator(
             mangaCount = backup.backupManga.size,
             episodeCount = backup.backupAnime.sumOf { it.episodes.size },
             chapterCount = backup.backupManga.sumOf { it.chapters.size },
-            extensionCount = backup.backupExtensions.size,
+            extensionCount = backup.backupExtensions.count { it.format == "apk" },
             settingCount =
             backup.backupPreferences.size +
                 backup.backupSourcePreferences.sumOf { it.prefs.size },

@@ -32,6 +32,8 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -63,7 +65,8 @@ data class RinEntry(
 
 object RinUpdatePolicy {
     fun accepts(entry: RinEntry, installed: RinRecord): Boolean =
-        entry.manifest.packageName == installed.manifest.packageName &&
+        installed.format == "apk" &&
+            entry.manifest.packageName == installed.manifest.packageName &&
             (entry.signer in installed.publisherSigners || entry.signer in installed.publisherHistory) &&
             entry.repository == installed.repository &&
             entry.manifest.medium == installed.manifest.medium &&
@@ -120,7 +123,8 @@ class RinRepository private constructor(private val context: Context) {
             val prepared = RinArchive.json.parseToJsonElement(raw).jsonObject["prepared"]?.jsonArray.orEmpty()
             prepared.forEach { encoded ->
                 val record = RinArchive.json.decodeFromJsonElement<RinRecord>(encoded)
-                if (storage.record(record.manifest.packageName) == null &&
+                if (record.format == "apk" &&
+                    storage.record(record.manifest.packageName) == null &&
                     !legacyPresent(record.manifest.packageName)
                 ) {
                     storage.activate(record.copy(enabled = false, trusted = false))
@@ -286,6 +290,7 @@ class RinRepository private constructor(private val context: Context) {
 
     private fun cachedEntries(): List<RinEntry> = runCatching {
         RinArchive.json.decodeFromString<List<RinEntry>>(preferences.getString("catalogue", "[]")!!)
+            .filter { it.format == "apk" }
     }.getOrDefault(emptyList())
 
     suspend fun refresh(scheduleUpdates: Boolean = true): Boolean {
@@ -293,16 +298,12 @@ class RinRepository private constructor(private val context: Context) {
             withContext(Dispatchers.IO) {
                 if (Injekt.get<BasePreferences>().downloadedOnly().get()) return@withContext false
                 val repositories = (
-                    Injekt.get<AnimeExtensionStoreRepository>().getAll().map {
-                        it.indexUrl to it.signingKey.lowercase()
-                    } +
-                        Injekt.get<MangaExtensionRepoRepository>().getAll().map {
-                            it.baseUrl to it.signingKeyFingerprint.lowercase()
-                        }
+                    Injekt.get<AnimeExtensionStoreRepository>().getAll().map { it.indexUrl } +
+                        Injekt.get<MangaExtensionRepoRepository>().getAll().map { it.baseUrl }
                     ).distinct()
                 val all = mutableListOf<RinEntry>()
                 var complete = true
-                repositories.forEach { (repository, signer) ->
+                repositories.forEach { repository ->
                     try {
                         val url = if (repository.endsWith(".json")) {
                             repository
@@ -319,15 +320,16 @@ class RinRepository private constructor(private val context: Context) {
                                     root["rinTv"]?.jsonObject?.get("extensions")?.jsonArray.orEmpty() +
                                     root["packageList"]?.jsonObject?.get("extensions")?.jsonArray.orEmpty()
                                 ).forEach extensions@{ value ->
+                                if (((value as? JsonObject)?.get("format") as? JsonPrimitive)?.content != "apk") {
+                                    return@extensions
+                                }
                                 val decoded = RinArchive.json.decodeFromJsonElement<RinEntry>(value)
                                 val entry = decoded.copy(repository = repository)
                                 val digestPattern = Regex("[a-f0-9]{64}")
-                                val validArtifact = entry.format in setOf("rin", "apk") &&
-                                    entry.signer.matches(digestPattern) &&
+                                val validArtifact = entry.signer.matches(digestPattern) &&
                                     entry.sha256.matches(digestPattern)
                                 if (entry.manifest.isLayer) {
                                     if (validArtifact &&
-                                        entry.format == "apk" &&
                                         !entry.requiresAndroid &&
                                         compatible(entry.manifest, entry.format) &&
                                         RinArchive.validBundleUrl(entry.url)
@@ -337,7 +339,6 @@ class RinRepository private constructor(private val context: Context) {
                                     return@extensions
                                 }
                                 require(validArtifact)
-                                require(entry.format == "apk" || entry.signer == signer)
                                 require(RinArchive.validBundleUrl(entry.url))
                                 require(
                                     entry.manifest.schema ==
@@ -366,14 +367,10 @@ class RinRepository private constructor(private val context: Context) {
                     } catch (cancel: CancellationException) {
                         throw cancel
                     } catch (error: Exception) {
-                        logcat(LogPriority.WARN, error) { "RIN catalogue refresh failed" }
+                        logcat(LogPriority.WARN, error) { "Extension catalogue refresh failed" }
                         complete = false
                         // Retain only previously authenticated entries from this still-configured publisher.
-                        all +=
-                            entries.value.filter {
-                                it.repository == repository &&
-                                    (it.format == "apk" || it.signer == signer)
-                            }
+                        all += entries.value.filter { it.repository == repository }
                     }
                 }
                 mutableEntries.value = all.distinctBy { Triple(it.manifest.packageName, it.sha256, it.signer) }
@@ -391,13 +388,8 @@ class RinRepository private constructor(private val context: Context) {
     }
 
     suspend fun trusted(entry: RinEntry): Boolean {
-        val configured = Injekt.get<AnimeExtensionStoreRepository>().getAll().any {
-            it.indexUrl == entry.repository && (entry.format == "apk" || it.signingKey.lowercase() == entry.signer)
-        } ||
-            Injekt.get<MangaExtensionRepoRepository>().getAll().any {
-                it.baseUrl == entry.repository &&
-                    (entry.format == "apk" || it.signingKeyFingerprint.lowercase() == entry.signer)
-            }
+        val configured = Injekt.get<AnimeExtensionStoreRepository>().getAll().any { it.indexUrl == entry.repository } ||
+            Injekt.get<MangaExtensionRepoRepository>().getAll().any { it.baseUrl == entry.repository }
         return configured && compatible(entry.manifest, entry.format)
     }
 
@@ -433,7 +425,7 @@ class RinRepository private constructor(private val context: Context) {
             }
             val record = storage.stage(file, entry.signer, entry.sha256, entry.repository)
                 .copy(catalogueConsent = storage.record(entry.manifest.packageName)?.catalogueConsent)
-            require(record.manifest == entry.manifest && record.format == entry.format) { "RIN catalogue mismatch" }
+            require(record.manifest == entry.manifest) { "APK does not match the catalogue" }
             // Instantiate while the old package is still recoverable; IDs must match real source instances.
             record
         } finally {
@@ -452,7 +444,7 @@ class RinRepository private constructor(private val context: Context) {
         uri: android.net.Uri,
         migrationPackage: String?,
     ): RinLocalImport = withContext(Dispatchers.IO) {
-        val file = File.createTempFile("rin-import-", ".rin", context.cacheDir)
+        val file = File.createTempFile("extension-import-", ".apk", context.cacheDir)
         try {
             val input = context.contentResolver.openInputStream(uri)
                 ?: throw RinImportException(RinImportFailure.INVALID)
@@ -470,35 +462,18 @@ class RinRepository private constructor(private val context: Context) {
                     }
                 }
             }
-            val apk = if (eu.kanade.tachiyomi.extension.ExtensionPackageArchive.isApk(file)) {
-                eu.kanade.tachiyomi.extension.ExtensionPackageArchive.inspect(context, file)
-            } else {
-                null
-            }
-            if (apk?.requiresAndroid == true) throw RinImportException(RinImportFailure.SYSTEM_REQUIRED)
-            val signer =
-                apk?.let {
-                    eu.kanade.tachiyomi.extension.ExtensionPackageInspector.inspect(it.info) { 0 }.signers.first()
-                }
-                    ?: RinArchive.publisher(file)
-            val manifest = apk?.manifest ?: RinArchive.verify(file, signer)
-            val format = if (apk == null) "rin" else "apk"
-            if (!compatible(manifest, format)) throw RinImportException(RinImportFailure.INCOMPATIBLE)
+            val apk = ExtensionPackageArchive.inspect(context, file)
+            if (apk.requiresAndroid) throw RinImportException(RinImportFailure.SYSTEM_REQUIRED)
+            val signer = eu.kanade.tachiyomi.extension.ExtensionPackageInspector.inspect(apk.info) { 0 }.signers.first()
+            val manifest = apk.manifest
+            if (!compatible(manifest)) throw RinImportException(RinImportFailure.INCOMPATIBLE)
             val previous = storage.record(manifest.packageName)
-            val origins = Injekt.get<AnimeExtensionStoreRepository>().getAll().map {
-                it.indexUrl to it.signingKey.lowercase()
-            } +
-                Injekt.get<MangaExtensionRepoRepository>().getAll().map {
-                    it.baseUrl to it.signingKeyFingerprint.lowercase()
-                }
             val origin = if (migrationPackage != null) {
                 Injekt.get<MangaExtensionRepoRepository>().getAll().filter {
                     it.signingKeyFingerprint.equals(signer, ignoreCase = true)
                 }.map { it.baseUrl }.distinct().singleOrNull().orEmpty()
-            } else if (apk != null) {
-                previous?.repository.orEmpty()
             } else {
-                RinLocalImportPolicy.origin(signer, previous, origins)
+                previous?.repository.orEmpty()
             }
             val record = storage.stage(
                 file,
@@ -864,10 +839,11 @@ class RinRepository private constructor(private val context: Context) {
             instance ?: RinRepository(context.applicationContext).also { instance = it }
         }
 
-        fun compatible(m: RinManifest, format: String = "rin"): Boolean =
-            m.hostVersions.supports(eu.kanade.tachiyomi.BuildConfig.VERSION_CODE.toLong()) &&
+        fun compatible(m: RinManifest, format: String = "apk"): Boolean =
+            format == "apk" &&
+                m.hostVersions.supports(eu.kanade.tachiyomi.BuildConfig.VERSION_CODE.toLong()) &&
                 when (m.medium) {
-                    RinManifest.MANGA_LAYER, RinManifest.LAYER -> format == "apk" && m.validMangaLayer()
+                    RinManifest.MANGA_LAYER, RinManifest.LAYER -> m.validMangaLayer()
                     "novel" -> it.lorelore.nyanime.novel.source.NovelSourcePackages.compatible(m)
                     "news" -> m.schema == 2 && m.extensionLib == 1.0 && m.entryPoints.size == 1
                     "tv" ->
@@ -882,11 +858,7 @@ class RinRepository private constructor(private val context: Context) {
                             m.addon?.valid() == true &&
                             m.addon.api.toDouble() == m.extensionLib
                     "anime" -> m.extensionLib in listOf(14.0, 16.0, 17.0)
-                    "manga" -> if (format == "apk") {
-                        m.extensionLib in MangaExtensionLoader.SUPPORTED_LIB_VERSIONS
-                    } else {
-                        m.extensionLib in listOf(1.4, 1.5, 1.6)
-                    }
+                    "manga" -> m.extensionLib in MangaExtensionLoader.SUPPORTED_LIB_VERSIONS
                     else -> false
                 }
 

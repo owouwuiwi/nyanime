@@ -3,7 +3,7 @@
     <string name="store_title">Store</string>
     <string name="store_explore_tab">Explore</string>
     <string name="store_catalogues_tab">Catalogues</string>
-    <string name="store_from_file">From file</string>
+    <string name="store_from_file">Import APK from file</string>
     <string name="store_view">View</string>
     <string name="store_view_extension">View extension</string>
     <string name="store_extensions_heading">Extensions</string>
@@ -11,15 +11,15 @@
     <string name="store_updates_available">Updates available</string>
     <string name="store_your_catalogues">Your catalogues</string>
     <string name="store_tools">Tools</string>
-    <string name="store_add_to_nyanime">Add to Nyanime</string>
+    <string name="store_add_to_nyanime">Import into Nyanime</string>
     <string name="store_install_on_android">Install on Android</string>
-    <string name="store_mode_nyanime">Only in Nyanime</string>
+    <string name="store_installed_apk">Installed APK</string>
     <string name="store_version_label">Version</string>
     <string name="store_install_options">Installation options</string>
-    <string name="store_related_layers">Add-ons for this source</string>
+    <string name="store_related_layers">Bridges</string>
     <string name="store_layer_features">What it adds</string>
     <string name="store_return_to_source">Back to source</string>
-    <string name="store_layer_no_description">The layer author did not provide a description.</string>
+    <string name="store_layer_no_description">Description unavailable.</string>
     <string name="store_installed">Installed</string>
     <string name="store_catalogue">Catalogue</string>
     <string name="store_anime">Anime</string>
@@ -98,4 +98,33 @@
     <string name="store_prepare_error">The switch could not be completed. Your saved progress is safe. Retry to verify and prepare the APK again.</string>
     <string name="store_step">Step %1$d of %2$d</string>
     <string name="store_review_updates">Review update policy</string>
+    <string name="store_more_options">More options</string>
+    <string name="store_clear_filters">Clear search and filters</string>
+    <string name="store_language_multi">Multiple languages</string>
+    <string name="store_language_unspecified">Language unspecified</string>
+    <string name="store_bridge_requires_source">Source installation required</string>
+    <string name="store_bridge_check_author">Publisher approval required</string>
+    <string name="store_bridge_partly_active">Partially active</string>
+    <string name="store_bridge_install_source_first">Install the compatible source first to add this bridge.</string>
+    <string name="store_bridge_open_source">Open source details</string>
+    <string name="store_bridge_for">Bridge for %1$s</string>
+    <string name="store_bridge_configure">Configure</string>
+    <string name="store_bridge_update_available">Update available</string>
+    <string name="store_bridge_disabled">Disabled</string>
+    <string name="store_bridge_installed">Installed</string>
+    <string name="store_bridge_install_notice">Nyanime imports and enables these bridges when the source is available. Continue only if you trust the publishers of the source and its bridges.</string>
+    <string name="store_bridge_signing_fingerprint">Signing fingerprint: %1$s</string>
+    <string name="store_install_with_bridges">Continue with bridges</string>
+    <plurals name="store_bridges_active">
+        <item quantity="one">%d active bridge</item>
+        <item quantity="other">%d active bridges</item>
+    </plurals>
+    <plurals name="store_bridges_available">
+        <item quantity="one">%d available bridge</item>
+        <item quantity="other">%d available bridges</item>
+    </plurals>
+    <plurals name="store_bridges_linked">
+        <item quantity="one">%d bridge</item>
+        <item quantity="other">%d bridges</item>
+    </plurals>
 </resources>

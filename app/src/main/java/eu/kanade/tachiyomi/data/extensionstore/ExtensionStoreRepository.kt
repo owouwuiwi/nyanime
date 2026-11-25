@@ -208,6 +208,27 @@ class ExtensionStoreRepository private constructor(private val context: Context)
                 java.io.File(context.noBackupFilesDir, "extension-store-replacement.json.bak"),
             ).forEach { it.delete() }
         }
+        scope.launch {
+            combine(entries, status.bridgeInstalls) { current, approvals -> current to approvals.values }
+                .collect { (current, approvals) ->
+                    for (plan in approvals) {
+                        if (System.currentTimeMillis() - plan.createdAt > BRIDGE_APPROVAL_LIFETIME) {
+                            kotlinx.coroutines.withContext(Dispatchers.IO) { status.clearBridgeApproval(plan) }
+                            continue
+                        }
+                        val base = current.firstOrNull(plan::matches) ?: continue
+                        installApprovedBridges(base, plan, current)
+                    }
+                }
+        }
+    }
+
+    private suspend fun installApprovedBridges(base: StoreEntry, plan: ApprovedBridgeInstall, current: List<StoreEntry>) {
+        for (bridge in plan.compatibleBridges(base, current)) {
+            if (status.bridgeInstalls.value[plan.basePackage] != plan) break
+            install(bridge, StoreInstallMode.PRIVATE, individualConsent = true)?.join()
+        }
+        kotlinx.coroutines.withContext(Dispatchers.IO) { status.clearBridgeApproval(plan) }
     }
 
     private val automaticLock = kotlinx.coroutines.sync.Mutex()
@@ -273,6 +294,9 @@ class ExtensionStoreRepository private constructor(private val context: Context)
                             eu.kanade.tachiyomi.extension.ExtensionPackageConsent.trusted(record)
                     } == true
                 val result = if (installed) InstallStep.Installed else InstallStep.Idle
+                if (!installed) {
+                    status.bridgeInstalls.value[name]?.let(status::clearBridgeApproval)
+                }
                 status.set(name, result)
                 mutableSteps.update { it + (name to result) }
             }
@@ -392,18 +416,23 @@ class ExtensionStoreRepository private constructor(private val context: Context)
             entry,
         ),
         individualConsent: Boolean = false,
+        approvedBridges: List<StoreEntry> = emptyList(),
     ): Job? {
         val packageName = entry.packageName
         if (steps.value[packageName] == InstallStep.Installing) return null
         // Resolve again from live state; a stale card cannot bypass update/repository policy.
         val current = entries.value.firstOrNull { it.id == entry.id } ?: return null
+        if (current.candidateUrl == null) return null
         if (current.privateOnly && (mode != StoreInstallMode.PRIVATE || !current.installed && !individualConsent)) {
             return null
         }
+        if (current.privateOnly && individualConsent && current.rinCandidate != entry.rinCandidate) return null
+        if (approvedBridges.isNotEmpty() &&
+            (current.candidateSigner != entry.candidateSigner || current.candidateVersion != entry.candidateVersion)
+        ) return null
         val modeChange = current.installed &&
             current.candidateVersion == current.installedVersion &&
-            mode != preferredMode(current) &&
-            current.rinCandidate?.format != "rin"
+            mode != preferredMode(current)
         if ((!modeChange && current.action !in setOf(StoreAction.INSTALL, StoreAction.UPDATE)) ||
             !current.addonHostCompatible
         ) {
@@ -416,6 +445,25 @@ class ExtensionStoreRepository private constructor(private val context: Context)
         ) {
             return null
         }
+        val version = current.candidateVersion
+        val signer = current.candidateSigner?.lowercase()
+        val plan = if (!current.installed && approvedBridges.isNotEmpty() && version != null && signer != null) {
+            val pins = approvedBridges.mapNotNull { it.rinCandidate }.toSet()
+            val available = entries.value.filter { it.rinCandidate in pins && !it.installed }
+            val related = StoreBridges.bySource(listOf(current) + available, emptyList(), adult = true)
+            val confirmed = StoreBridges.forInstallation(related[current.id].orEmpty())
+            if (confirmed.isEmpty()) {
+                null
+            } else {
+                ApprovedBridgeInstall(
+                    packageName, current.medium, version, signer, mode,
+                    confirmed.map { requireNotNull(it.rinCandidate) },
+                    System.currentTimeMillis(),
+                )
+            }
+        } else {
+            null
+        }
         return operations.submit(packageName) {
             val operation = currentCoroutineContext()[Job]!!
             fun emit(step: InstallStep) {
@@ -426,38 +474,31 @@ class ExtensionStoreRepository private constructor(private val context: Context)
             }
             emit(InstallStep.Pending)
             try {
-                when {
-                    current.candidateUrl != null && current.rinCandidate?.format != "rin" -> {
-                        emit(InstallStep.Downloading)
-                        val done = packageInstaller.install(current, mode, { value ->
-                            mutableProgress.update { it + (packageName to value) }
-                        }, consent)
-                        if (!current.privateOnly) modes.edit().putString("mode", mode.name).apply()
-                        if (!done) {
-                            awaitingNews.update {
-                                it +
-                                    (packageName to (packageName to requireNotNull(current.candidateVersion)))
-                            }
-                        }
-                        if (done) {
-                            news.initialize()
-                        }
-                        emit(if (done) InstallStep.Installed else InstallStep.Installing)
+                emit(InstallStep.Downloading)
+                val done = packageInstaller.install(
+                    current,
+                    mode,
+                    { value -> mutableProgress.update { it + (packageName to value) } },
+                    consent,
+                    beforeActivation = { plan?.let(status::approveBridges) },
+                )
+                if (!current.privateOnly) modes.edit().putString("mode", mode.name).apply()
+                if (!done) {
+                    awaitingNews.update {
+                        it + (packageName to (packageName to requireNotNull(current.candidateVersion)))
                     }
-                    current.rinCandidate != null -> {
-                        emit(InstallStep.Downloading)
-                        val prepared = rin.prepare(current.rinCandidate)
-                        val previous = rin.storage.record(packageName)
-                        val selected = prepared.copy(catalogueConsent = consent)
-                        rin.activateLocal(eu.kanade.tachiyomi.data.rin.RinLocalImport(selected, previous))
-                        emit(InstallStep.Installed)
-                    }
-                    else -> emit(InstallStep.Error)
+                } else {
+                    news.initialize()
                 }
+                emit(if (done) InstallStep.Installed else InstallStep.Installing)
             } catch (cancel: CancellationException) {
                 if (operations.isCurrent(packageName, operation)) mutableSteps.update { it - packageName }
+                kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable + Dispatchers.IO) {
+                    plan?.let(status::clearBridgeApproval)
+                }
                 throw cancel
             } catch (_: Exception) {
+                kotlinx.coroutines.withContext(Dispatchers.IO) { plan?.let(status::clearBridgeApproval) }
                 emit(InstallStep.Error)
             } finally {
                 mutableProgress.update { it - packageName }
@@ -539,6 +580,7 @@ class ExtensionStoreRepository private constructor(private val context: Context)
     }
 
     companion object {
+        private const val BRIDGE_APPROVAL_LIFETIME = 24 * 60 * 60 * 1000L
         @Volatile private var instance: ExtensionStoreRepository? = null
         fun get(context: Context): ExtensionStoreRepository = instance ?: synchronized(this) {
             instance ?: ExtensionStoreRepository(context.applicationContext).also { instance = it }

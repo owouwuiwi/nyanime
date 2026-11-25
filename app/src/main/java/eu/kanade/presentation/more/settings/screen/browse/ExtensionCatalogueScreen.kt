@@ -68,8 +68,13 @@ class ExtensionCatalogueScreen(private val url: String) : Screen() {
                 )
                 when (val current = state) {
                     ExtensionCatalogueScreenModel.State.Loading -> CircularProgressIndicator()
-                    ExtensionCatalogueScreenModel.State.Failed -> {
-                        Text(stringResource(R.string.extensions_catalogue_error), textAlign = TextAlign.Center)
+                    is ExtensionCatalogueScreenModel.State.Failed -> {
+                        val error = when {
+                            current.driveFolder -> R.string.catalogue_drive_folder_error
+                            current.driveFile -> R.string.catalogue_drive_file_error
+                            else -> R.string.extensions_catalogue_error
+                        }
+                        Text(stringResource(error), textAlign = TextAlign.Center)
                         TextButton(onClick = model::load) { Text(stringResource(R.string.extensions_retry)) }
                     }
                     is ExtensionCatalogueScreenModel.State.Preview -> {
@@ -86,15 +91,22 @@ class ExtensionCatalogueScreen(private val url: String) : Screen() {
                                 Modifier.fillMaxWidth().padding(20.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                Text(
-                                    stringResource(
-                                        R.string.extensions_catalogue_counts,
-                                        current.catalogue.count("anime"),
-                                        current.catalogue.count("manga"),
-                                        current.catalogue.count("news"),
-                                    ),
-                                    style = MaterialTheme.typography.titleMedium,
-                                )
+                                val animeCount = current.catalogue.count("anime")
+                                val mangaCount = current.catalogue.count("manga")
+                                val newsCount = current.catalogue.count("news")
+                                val bridgeCount = current.catalogue.bridgeCount
+                                if (animeCount + mangaCount + newsCount > 0 || bridgeCount == 0) {
+                                    Text(
+                                        stringResource(R.string.extensions_catalogue_counts, animeCount, mangaCount, newsCount),
+                                        style = MaterialTheme.typography.titleMedium,
+                                    )
+                                }
+                                if (bridgeCount > 0) {
+                                    Text(
+                                        stringResource(R.string.catalogue_bridge_count, bridgeCount),
+                                        style = MaterialTheme.typography.titleMedium,
+                                    )
+                                }
                                 Text(
                                     url,
                                     style = MaterialTheme.typography.bodySmall,

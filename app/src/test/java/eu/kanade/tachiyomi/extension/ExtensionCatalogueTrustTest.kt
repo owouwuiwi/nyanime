@@ -48,4 +48,15 @@ class ExtensionCatalogueTrustTest {
         trust.set(url, signer, false)
         assertTrue(trust.get().isEmpty())
     }
+
+    @Test fun `a canonical Drive index can be registered with or without execution approval`() {
+        val index = "https://drive.google.com/uc?export=download&id=ExampleDriveId&filename=index.json"
+        val trust = ExtensionCatalogueTrust(preferences())
+        trust.set(index, signer, false)
+        assertFalse(trust.permits(index, signer))
+        trust.set(index, signer, true)
+        assertTrue(trust.permits(index, signer))
+        assertFalse(ExtensionCatalogueTrust.validRepository("$url?filename=index.json"))
+        assertFalse(ExtensionCatalogueTrust.validRepository(index.replace("index.json", "other.json")))
+    }
 }

@@ -1,8 +1,6 @@
 package eu.kanade.tachiyomi.data.rin
 
 import android.content.Context
-import android.graphics.BitmapFactory
-import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.tachiyomi.animesource.AnimeSource
@@ -30,7 +28,6 @@ import tachiyomi.core.common.util.system.logcat
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.lang.reflect.Modifier
-import java.util.zip.ZipFile
 
 object RinLoader {
     fun path(
@@ -241,27 +238,16 @@ object RinLoader {
     } catch (cancel: CancellationException) {
         throw cancel
     } catch (error: Exception) {
-        logcat(LogPriority.ERROR, error) { "RIN implementation could not be loaded" }
+        logcat(LogPriority.ERROR, error) { "Extension implementation could not be loaded" }
         fallback
     }
 
     fun icon(context: Context, record: RinRecord): Drawable? = runCatching {
-        if (record.format == "apk") {
-            val info = eu.kanade.tachiyomi.extension.ExtensionPackageArchive.inspect(
-                context,
-                RinStorage(context).file(record),
-            ).info
-            return info.applicationInfo?.loadIcon(context.packageManager)
-        }
-        ZipFile(RinStorage(context).file(record)).use { zip ->
-            val entry = zip.getEntry("assets/nyanime/rin-icon") ?: return null
-            require(entry.size in 1..1_048_576)
-            val bytes = zip.getInputStream(entry).use { RinRepository.boundedRead(it, 1_048_576) }
-            val dimensions = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, dimensions)
-            require(dimensions.outWidth in 1..2048 && dimensions.outHeight in 1..2048)
-            val bitmap = requireNotNull(BitmapFactory.decodeByteArray(bytes, 0, bytes.size))
-            BitmapDrawable(context.resources, bitmap)
-        }
+        require(record.format == "apk")
+        val info = eu.kanade.tachiyomi.extension.ExtensionPackageArchive.inspect(
+            context,
+            RinStorage(context).file(record),
+        ).info
+        info.applicationInfo?.loadIcon(context.packageManager)
     }.getOrNull()
 }

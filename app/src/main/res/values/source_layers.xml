@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="source_layers_empty">Enable and trust this layer to see the features it can add.</string>
+    <string name="source_layers_empty">Enable and trust this bridge to see the features it can add.</string>
     <string name="source_layers_active">Active</string>
     <string name="source_layers_unselected">Available</string>
     <string name="source_layers_incompatible">Requires a compatible version of the source</string>
-    <string name="source_layers_dependency">A required layer feature is missing</string>
+    <string name="source_layers_dependency">A required bridge feature is missing</string>
     <string name="source_layers_failed">Paused after a compatibility error</string>
     <string name="source_layers_original">Use original</string>
-    <string name="source_layers_choose">Use layer</string>
+    <string name="source_layers_choose">Use bridge</string>
     <string name="source_layers_playback">Playback</string>
     <string name="source_layers_feed">Feed</string>
     <string name="source_layers_article">Articles</string>

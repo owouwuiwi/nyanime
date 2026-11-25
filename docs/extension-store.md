@@ -1,16 +1,18 @@
 # Store
 
-**Explore** shows available extensions. **Installed** shows both Android and
-privately imported packages, with available updates at the top. **Catalogues**
-shows the configured publishers and links to catalogue management. Anime,
-manga, news, TV, guide and addon families use one inventory. Search, language,
-content and state filters work together. Installed packages remain manageable
-offline or without their catalogue.
+The catalogue starts with updates, then shows installed extensions and available
+extensions grouped by language. Search and the media filters apply to the full
+list. The toolbar opens the configured catalogues and imports local files.
+Installed packages remain manageable offline or without their catalogue.
 
-Compatible source layers appear as add-ons in an installed source's details.
-The layer's signed manifest supplies its own description and feature list.
-Opening the layer shows its installation or management actions. Search and
-the Layer filter can also find layers directly. See [source layers](source-layers.md).
+The Store presents source layers as **bridges**. Source details show bridges
+with matching package, source identity, publisher and version. If the catalogue
+provides these details for an available source, users can see its bridges before
+installing it. Each bridge supplies its description and features in its signed
+manifest. The source details show active bridges and link to the per-feature
+settings, including the choice to use the original source. Bridges without a
+matching source stay visible in the list. The Bridge filter shows every bridge,
+and updates appear at the top. See [source layers](source-layers.md).
 
 ## Install or Import
 
@@ -22,8 +24,13 @@ The detail sheet offers two choices for the same publisher-signed APK:
 
 The last successful choice supplies the default for new packages. Existing
 packages show their active mode, version and fingerprint. Addons declaring
-registered Android components require **Install**. Existing `.rin` files remain
-readable and updateable but are not APKs; no forced conversion or uninstall runs.
+registered Android components require **Install**. Bridges use **Import** and
+request separate approval of their signed features. Local import, catalogue
+downloads and restore use signed APKs.
+
+When adding a source, the Store includes its compatible bridges in the same
+confirmation. It imports the approved bridge APKs once the signed source
+installation is complete and rechecks compatibility with the installed source.
 
 ## Consent
 
@@ -57,10 +64,10 @@ file. Interrupted transfers remain visible as errors after restart; an Android
 installer cancellation is not reported as successful private activation.
 
 The application-lived coordinator prevents duplicate package operations and
-keeps progress/results when changing screens. The lazy adaptive grid reserves
-icon space and keeps installed cards during refresh. Sorting and searches run
-off the UI thread; no source factory runs merely to render a card.
+keeps progress and results when changing screens. The list reserves icon space
+and keeps installed extensions visible during refresh. Sorting and searches
+run off the UI thread.
 
-No provider, catalogue endpoint or parser is embedded in this interface or its
-tests. See [interoperability](extension-interoperability.md) and
-[manual import](rin-manual-import.md).
+Catalogue setup accepts a direct HTTPS index or a shared Google Drive folder
+containing a single `index.json`. For catalogue and package compatibility, see
+[interoperability](extension-interoperability.md).

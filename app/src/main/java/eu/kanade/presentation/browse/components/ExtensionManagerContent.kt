@@ -452,7 +452,7 @@ fun ExtensionIntegrationDetails(
     repository: String?,
     updateRepositories: List<ExtensionUpdateRepository> = emptyList(),
     onUpdateRepository: (String) -> Unit = {},
-    isRin: Boolean = false,
+    imported: Boolean = false,
 ) {
     var chooseRepository by remember { mutableStateOf(false) }
     Surface(
@@ -486,7 +486,7 @@ fun ExtensionIntegrationDetails(
                 style = MaterialTheme.typography.bodySmall,
             )
             Text(
-                stringResource(if (isRin) R.string.store_rin_heading else statusLabel(status)),
+                stringResource(if (imported) R.string.store_imported_apk else statusLabel(status)),
                 style = MaterialTheme.typography.titleSmall,
             )
             val hint = when (status) {
@@ -497,12 +497,12 @@ fun ExtensionIntegrationDetails(
                 ExtensionUpdateStatus.REPOSITORY_UNAVAILABLE -> R.string.extensions_unavailable_hint
                 else -> null
             }
-            if (isRin) {
-                Text(stringResource(R.string.store_rin_description), style = MaterialTheme.typography.bodySmall)
+            if (imported) {
+                Text(stringResource(R.string.store_imported_apk_description), style = MaterialTheme.typography.bodySmall)
             } else if (hint != null) {
                 Text(stringResource(hint), style = MaterialTheme.typography.bodySmall)
             }
-            if (!isRin && updateRepositories.isNotEmpty()) {
+            if (!imported && updateRepositories.isNotEmpty()) {
                 TextButton(onClick = { chooseRepository = true }, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Outlined.SystemUpdateAlt, null, Modifier.size(18.dp))
                     Text(stringResource(R.string.extensions_link_updates), Modifier.padding(start = 8.dp))

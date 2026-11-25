@@ -9,6 +9,15 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 25 novembre 2026 — 0.81.1.2
+
+### Store
+
+- La lista riunisce aggiornamenti, estensioni già presenti e risultati per lingua. Le schede distinguono gli APK installati su Android dagli APK importati in Nyanime.
+- Quando aggiungi una fonte, la conferma include i bridge compatibili dei tuoi cataloghi. Nyanime li importa dopo che la fonte è pronta. Ogni bridge dichiara le proprie funzioni e i requisiti.
+- Puoi aggiungere un catalogo incollando il link di una cartella Google Drive pubblica che contiene `index.json`.
+- L’importazione da file, gli aggiornamenti e il ripristino delle estensioni usano APK firmati.
+
 ## 25 novembre 2026 — 0.81.1.1
 
 ### Store

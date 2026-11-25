@@ -58,6 +58,10 @@ class MangaExtensionReposScreen(
                 CatalogueLinkHelpDialog(
                     onDismissRequest = screenModel::dismissDialog,
                     onLink = { screenModel.showDialog(RepoDialog.Confirm(it)) },
+                    onDriveLink = {
+                        screenModel.dismissDialog()
+                        navigator.push(ExtensionCatalogueScreen(it))
+                    },
                 )
             }
             is RepoDialog.Delete -> {

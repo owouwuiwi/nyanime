@@ -2,14 +2,15 @@ package eu.kanade.presentation.more.settings.screen.browse
 
 import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
+import eu.kanade.domain.extension.ExtensionCatalogueLink
 import eu.kanade.domain.extension.ExtensionCatalogueTrust
 import eu.kanade.domain.extension.ImportExtensionCatalogue
 import eu.kanade.domain.extension.UnifiedExtensionCatalogue
 import eu.kanade.tachiyomi.extension.anime.AnimeExtensionManager
 import eu.kanade.tachiyomi.extension.manga.MangaExtensionManager
-import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.network.NetworkHelper
 import eu.kanade.tachiyomi.network.awaitSuccess
+import eu.kanade.tachiyomi.network.catalogueRequest
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.update
 import mihon.domain.extension.anime.repository.AnimeExtensionStoreRepository
@@ -30,25 +31,34 @@ class ExtensionCatalogueScreenModel(private val url: String) :
     fun load() {
         mutableState.value = State.Loading
         screenModelScope.launchIO {
+            val link = ExtensionCatalogueLink.parse(url)
             try {
-                require(UnifiedExtensionCatalogue.validUrl(url))
                 val network: NetworkHelper = Injekt.get()
-                val catalogue = network.client.newCall(GET(url)).awaitSuccess().use { response ->
+                val indexUrl = when (val validatedLink = requireNotNull(link)) {
+                    is ExtensionCatalogueLink.Index -> validatedLink.url
+                    is ExtensionCatalogueLink.DriveFolder -> DriveCatalogueResolver.resolve(validatedLink, network.client)
+                }
+                val catalogue = network.client.newCall(catalogueRequest(indexUrl)).awaitSuccess().use { response ->
                     val source = response.body.source()
                     require(!source.request(UnifiedExtensionCatalogue.MAX_BYTES + 1))
                     UnifiedExtensionCatalogue.parse(source.readUtf8())
                 }
                 val previous =
-                    anime.getAll().filter { it.indexUrl in catalogue.replaces && it.indexUrl != url }.map { it.name } +
+                    anime.getAll().filter {
+                        it.indexUrl in catalogue.replaces && it.indexUrl != indexUrl
+                    }.map { it.name } +
                         manga.getAll().filter {
-                            it.baseUrl != url &&
+                            it.baseUrl != indexUrl &&
                                 (it.baseUrl in catalogue.replaces || it.signingKeyFingerprint == catalogue.signingKey)
                         }.map { it.name }
-                mutableState.value = State.Preview(catalogue, previous.distinct())
+                mutableState.value = State.Preview(catalogue, previous.distinct(), indexUrl)
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
-                mutableState.value = State.Failed
+                mutableState.value = State.Failed(
+                    driveFolder = link is ExtensionCatalogueLink.DriveFolder,
+                    driveFile = link is ExtensionCatalogueLink.Index && link.isDrive,
+                )
             }
         }
     }
@@ -65,7 +75,7 @@ class ExtensionCatalogueScreenModel(private val url: String) :
         screenModelScope.launchIO {
             try {
                 ImportExtensionCatalogue(anime, manga, ExtensionCatalogueTrust(Injekt.get()))
-                    .await(url, preview.catalogue, preview.trustExtensions)
+                    .await(preview.indexUrl, preview.catalogue, preview.trustExtensions)
                 mutableState.value = State.Done(preview.catalogue.name)
                 screenModelScope.launchIO { Injekt.get<AnimeExtensionManager>().findAvailableExtensions() }
                 screenModelScope.launchIO { Injekt.get<MangaExtensionManager>().findAvailableExtensions() }
@@ -79,10 +89,11 @@ class ExtensionCatalogueScreenModel(private val url: String) :
 
     sealed interface State {
         data object Loading : State
-        data object Failed : State
+        data class Failed(val driveFolder: Boolean, val driveFile: Boolean) : State
         data class Preview(
             val catalogue: UnifiedExtensionCatalogue,
             val previous: List<String>,
+            val indexUrl: String,
             val processing: Boolean = false,
             val failed: Boolean = false,
             val trustExtensions: Boolean = false,

@@ -39,11 +39,12 @@ class ExtensionCatalogueTrust(store: PreferenceStore) {
         private val lock = Any()
         fun validRepository(value: String): Boolean = runCatching {
             val uri = java.net.URI(value)
+            val linkedIndex = ExtensionCatalogueLink.parse(value) as? ExtensionCatalogueLink.Index
             value.length <= 4096 &&
                 uri.scheme == "https" &&
                 !uri.host.isNullOrBlank() &&
                 uri.rawUserInfo == null &&
-                uri.rawQuery == null &&
+                (uri.rawQuery == null || linkedIndex?.isDrive == true && linkedIndex.url == value) &&
                 uri.rawFragment == null
         }.getOrDefault(false)
     }

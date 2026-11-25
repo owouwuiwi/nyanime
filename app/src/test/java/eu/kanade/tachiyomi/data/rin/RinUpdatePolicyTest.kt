@@ -14,21 +14,25 @@ class RinUpdatePolicyTest {
         "c".repeat(64),
         "d".repeat(64),
         "https://example.invalid/index.json",
-        "d".repeat(64) + ".rin",
+        "d".repeat(64) + ".apk",
+        format = "apk",
     )
     private val next =
         RinEntry(
             manifest.copy(versionCode = 2, versionName = "16.2"),
-            "https://example.invalid/extension.rin",
+            "https://example.invalid/extension.apk",
             "e".repeat(64),
             old.signer,
             old.repository,
+            format = "apk",
         )
 
-    @Test fun `updates are restricted to already installed RIN sources`() {
+    @Test fun `updates are restricted to existing imported APKs`() {
         val other = next.copy(manifest = next.manifest.copy(packageName = "test.extension.other"))
         assertEquals(listOf(next), RinUpdatePolicy.updates(listOf(next, other), listOf(old)))
         assertTrue(RinUpdatePolicy.updates(listOf(next, other), emptyList()).isEmpty())
+        assertTrue(RinUpdatePolicy.updates(listOf(next), listOf(old.copy(format = "rin"))).isEmpty())
+        assertTrue(RinUpdatePolicy.updates(listOf(next.copy(format = "rin")), listOf(old)).isEmpty())
     }
 
     @Test fun `publisher catalogue downgrade and identity changes are excluded`() {

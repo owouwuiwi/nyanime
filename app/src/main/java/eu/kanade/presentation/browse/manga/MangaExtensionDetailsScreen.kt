@@ -29,7 +29,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -183,9 +182,6 @@ private fun ExtensionDetails(
     updateRepositories: List<ExtensionUpdateRepository> = emptyList(),
 ) {
     val context = LocalContext.current
-    val rinRecords by remember(context) {
-        eu.kanade.tachiyomi.data.rin.RinRepository.get(context).installed
-    }.collectAsState()
     var showNsfwWarning by remember { mutableStateOf(false) }
 
     ScrollbarLazyColumn(
@@ -219,7 +215,7 @@ private fun ExtensionDetails(
         item(key = "integration") {
             ExtensionIntegrationDetails(
                 metadata = extension.metadata,
-                isRin = rinRecords.any { it.manifest.packageName == extension.pkgName },
+                imported = !extension.isShared,
                 status = extension.updateStatus,
                 repository = extension.repoName,
                 updateRepositories = updateRepositories,
