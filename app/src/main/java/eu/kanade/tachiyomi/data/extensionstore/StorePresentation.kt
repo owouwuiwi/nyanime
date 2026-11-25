@@ -18,6 +18,7 @@ internal object StorePresentation {
     ): List<StoreEntry> = entries.asSequence().filter {
         it.installed == (shelf == StoreShelf.OWNED) &&
             (medium == null || it.medium == medium) &&
+            (it.medium != StoreMedium.MANGA_LAYER || shelf == StoreShelf.OWNED || medium != null || query.isNotBlank()) &&
             (
                 shelf != StoreShelf.OWNED ||
                     activation == StoreActivation.ALL ||

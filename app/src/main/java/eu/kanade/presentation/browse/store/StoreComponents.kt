@@ -1,7 +1,5 @@
 package eu.kanade.presentation.browse.store
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -20,7 +18,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -36,35 +33,27 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.ExpandLess
-import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Extension
 import androidx.compose.material.icons.outlined.LiveTv
 import androidx.compose.material.icons.outlined.MenuBook
-import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.Newspaper
 import androidx.compose.material.icons.outlined.PlayCircleOutline
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -74,19 +63,15 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import eu.kanade.presentation.browse.anime.components.AnimeExtensionIcon
 import eu.kanade.presentation.browse.manga.components.MangaExtensionIcon
-import eu.kanade.presentation.motion.ModernMotion
 import eu.kanade.presentation.motion.modernMotionEnabled
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.extensionstore.StoreAction
@@ -98,66 +83,6 @@ import eu.kanade.tachiyomi.extension.InstallStep
 import eu.kanade.tachiyomi.ui.home.LocalFloatingNavigationInset
 
 @Composable
-internal fun StoreShelves(
-    selected: StoreShelf,
-    owned: Int,
-    discover: Int,
-    onSelect: (StoreShelf) -> Unit,
-) {
-    val c = LocalStoreColors.current
-    Row(
-        Modifier.fillMaxWidth()
-            .padding(horizontal = 18.dp, vertical = 8.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .background(c.elevated)
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        StoreShelf.entries.forEach { shelf ->
-            val active = selected == shelf
-            val color by
-                animateColorAsState(
-                    if (active) c.surface else c.elevated,
-                    tween(if (modernMotionEnabled()) ModernMotion.PAGE_MILLIS else 0),
-                    label = "storeShelf",
-                )
-            Surface(
-                onClick = { onSelect(shelf) },
-                Modifier.weight(1f).semantics {
-                    role = Role.Tab
-                    this.selected = active
-                },
-                shape = RoundedCornerShape(14.dp),
-                color = color,
-            ) {
-                Row(
-                    Modifier.heightIn(min = 48.dp).padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-                ) {
-                    Text(
-                        stringResource(
-                            if (shelf == StoreShelf.OWNED) {
-                                R.string.store_mine
-                            } else {
-                                R.string.store_discover
-                            },
-                        ),
-                        fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
-                        color = if (active) c.text else c.muted,
-                    )
-                    Text(
-                        (if (shelf == StoreShelf.OWNED) owned else discover).toString(),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = c.muted,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
 internal fun StoreSearch(
     query: String,
     onQuery: (String) -> Unit,
@@ -167,11 +92,16 @@ internal fun StoreSearch(
     val c = LocalStoreColors.current
     val keyboard = LocalSoftwareKeyboardController.current
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 4.dp),
+        Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 3.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Surface(Modifier.weight(1f), shape = RoundedCornerShape(16.dp), color = c.elevated) {
+        Surface(
+            Modifier.weight(1f),
+            shape = RoundedCornerShape(13.dp),
+            color = c.surface,
+            border = BorderStroke(1.dp, c.line),
+        ) {
             Row(
                 Modifier.heightIn(min = 52.dp).padding(start = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -217,8 +147,9 @@ internal fun StoreSearch(
         }
         Surface(
             onClick = onFilters,
-            shape = RoundedCornerShape(16.dp),
-            color = if (filtered) c.tint else c.elevated,
+            shape = RoundedCornerShape(13.dp),
+            color = if (filtered) c.tint else c.surface,
+            border = BorderStroke(1.dp, c.line),
         ) {
             Box(Modifier.size(52.dp), contentAlignment = Alignment.Center) {
                 Icon(
@@ -233,6 +164,12 @@ internal fun StoreSearch(
 
 @Composable
 internal fun StoreCategories(selected: StoreMedium?, onSelect: (StoreMedium?) -> Unit) {
+    val c = LocalStoreColors.current
+    val chipColors = FilterChipDefaults.filterChipColors(
+        labelColor = c.muted,
+        selectedContainerColor = c.tint,
+        selectedLabelColor = c.accent,
+    )
     LazyRow(
         contentPadding = PaddingValues(horizontal = 18.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -242,14 +179,20 @@ internal fun StoreCategories(selected: StoreMedium?, onSelect: (StoreMedium?) ->
                 selected == null,
                 { onSelect(null) },
                 label = { Text(stringResource(R.string.store_all)) },
+                colors = chipColors,
+                shape = RoundedCornerShape(50),
             )
         }
-        StoreMedium.entries.forEach { medium ->
+        val media = listOf(StoreMedium.MANGA, StoreMedium.ANIME, StoreMedium.NEWS) +
+            StoreMedium.entries.filterNot { it in setOf(StoreMedium.MANGA, StoreMedium.ANIME, StoreMedium.NEWS) }
+        media.forEach { medium ->
             item(key = medium) {
                 FilterChip(
                     selected == medium,
                     { onSelect(medium) },
                     label = { Text(stringResource(medium.label())) },
+                    colors = chipColors,
+                    shape = RoundedCornerShape(50),
                 )
             }
         }
@@ -296,7 +239,6 @@ internal fun StoreGrid(
     changing: Set<String>,
     onInfo: (StoreEntry) -> Unit,
     onAction: (StoreEntry) -> Unit,
-    onToggle: (StoreEntry) -> Unit,
     onCancel: (StoreEntry) -> Unit,
     onRetry: () -> Unit,
     onDiscover: () -> Unit,
@@ -305,13 +247,29 @@ internal fun StoreGrid(
     filterKey: String = "",
     hasFilters: Boolean = false,
     onCatalogues: () -> Unit = {},
+    onUpdateAll: () -> Unit,
 ) {
     val c = LocalStoreColors.current
     val state = rememberLazyGridState()
     val motion = modernMotionEnabled()
+    val updates = remember(entries, shelf) {
+        if (shelf == StoreShelf.OWNED) entries.filter { it.action == StoreAction.UPDATE } else emptyList()
+    }
+    val featured = remember(entries, shelf, hasFilters) {
+        if (shelf == StoreShelf.DISCOVER && !hasFilters) {
+            val eligible = entries.filter { !it.nsfw && it.addonHostCompatible && it.candidateUrl != null }
+            eligible.firstOrNull { it.ready } ?: eligible.firstOrNull()
+        } else {
+            null
+        }
+    }
+    val otherEntries = remember(entries, updates, featured) {
+        val pinnedIds = updates.mapTo(mutableSetOf()) { it.id }
+        entries.filterNot { it.id == featured?.id || it.id in pinnedIds }
+    }
     LaunchedEffect(shelf, filterKey) { state.requestScrollToItem(0) }
     LazyVerticalGrid(
-        GridCells.Adaptive(300.dp),
+        GridCells.Adaptive(360.dp),
         modifier.fillMaxWidth(),
         state,
         contentPadding =
@@ -322,7 +280,7 @@ internal fun StoreGrid(
             bottom = LocalFloatingNavigationInset.current + 24.dp,
         ),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         if (failed) {
             item(key = "error", span = { GridItemSpan(maxLineSpan) }) {
@@ -339,14 +297,58 @@ internal fun StoreGrid(
                 }
             }
         }
-        items(entries, key = StoreEntry::id, contentType = { "extension" }) { entry ->
-            StoreTile(
+        if (featured != null) {
+            item(key = "feature", span = { GridItemSpan(maxLineSpan) }) {
+                StoreShowcaseFeature(featured, onInfo)
+            }
+        }
+        if (updates.isNotEmpty()) {
+            item(key = "updates-header", span = { GridItemSpan(maxLineSpan) }) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    StoreSectionHeading(
+                        stringResource(R.string.store_updates_available),
+                        updates.size,
+                        Modifier.weight(1f),
+                    )
+                    if (updates.size > 1 && !hasFilters) {
+                        TextButton(onClick = onUpdateAll) { Text(stringResource(R.string.store_update_all)) }
+                    }
+                }
+            }
+            items(updates, key = StoreEntry::id, contentType = { "extension" }) { entry ->
+                StoreShowcaseRow(
+                    entry,
+                    steps[entry.packageName],
+                    entry.packageName in changing,
+                    onInfo,
+                    onAction,
+                    onCancel,
+                    if (motion) Modifier.animateItem() else Modifier,
+                )
+            }
+        }
+        if (otherEntries.isNotEmpty()) {
+            item(key = "catalogue-header", span = { GridItemSpan(maxLineSpan) }) {
+                StoreSectionHeading(
+                    stringResource(
+                        when {
+                            searching -> R.string.store_search_results
+                            shelf == StoreShelf.OWNED -> R.string.store_installed
+                            else -> R.string.store_extensions_heading
+                        },
+                    ),
+                    otherEntries.size,
+                    Modifier.padding(top = if (featured != null || updates.isNotEmpty()) 12.dp else 0.dp),
+                )
+            }
+        }
+        items(otherEntries, key = StoreEntry::id, contentType = { "extension" }) { entry ->
+            StoreShowcaseRow(
                 entry,
                 steps[entry.packageName],
                 entry.packageName in changing,
                 onInfo,
                 onAction,
-                onToggle,
                 onCancel,
                 if (motion) Modifier.animateItem() else Modifier,
             )
@@ -402,7 +404,7 @@ internal fun StoreGrid(
                             stringResource(
                                 when {
                                     hasFilters -> R.string.store_reset_filters
-                                    shelf == StoreShelf.OWNED -> R.string.store_discover
+                                    shelf == StoreShelf.OWNED -> R.string.store_explore_tab
                                     else -> R.string.store_catalogues
                                 },
                             ),
@@ -435,131 +437,6 @@ private fun StoreSectionHeading(label: String, count: Int, modifier: Modifier = 
             color = c.text,
         )
         Text(count.toString(), style = MaterialTheme.typography.labelMedium, color = c.muted)
-    }
-}
-
-@Composable
-private fun StoreTile(
-    entry: StoreEntry,
-    step: InstallStep?,
-    changing: Boolean,
-    onInfo: (StoreEntry) -> Unit,
-    onAction: (StoreEntry) -> Unit,
-    onToggle: (StoreEntry) -> Unit,
-    onCancel: (StoreEntry) -> Unit,
-    modifier: Modifier,
-) {
-    val c = LocalStoreColors.current
-    val status =
-        stringResource(if (entry.enabled) R.string.store_active else R.string.store_inactive)
-    val installedState = if (entry.isRin || entry.addon != null) {
-        status
-    } else {
-        stringResource(R.string.store_package_installed)
-    }
-    Surface(
-        onClick = { onInfo(entry) },
-        modifier = modifier.fillMaxWidth(),
-        color = c.surface,
-        shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(1.dp, c.line.copy(alpha = .5f)),
-    ) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                StoreIcon(entry, Modifier.size(46.dp))
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text(
-                        entry.name,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        color = c.text,
-                    )
-                    Text(
-                        if (entry.installed) {
-                            listOf(installedState, entry.languages.joinToString(" / ").uppercase())
-                                .filter(String::isNotBlank).joinToString(" · ")
-                        } else {
-                            entry.languages.joinToString(" / ").uppercase().ifBlank {
-                                stringResource(entry.medium.label())
-                            }
-                        },
-                        style = MaterialTheme.typography.labelSmall,
-                        color = c.muted,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                if (entry.rinRecord != null) {
-                    Switch(
-                        entry.enabled,
-                        { onToggle(entry) },
-                        enabled = !changing,
-                        modifier =
-                        Modifier.semantics {
-                            contentDescription = entry.name
-                            stateDescription = status
-                        },
-                    )
-                } else {
-                    IconButton(onClick = { onInfo(entry) }) {
-                        Icon(
-                            Icons.Outlined.MoreHoriz,
-                            stringResource(R.string.store_info),
-                            tint = c.muted,
-                        )
-                    }
-                }
-            }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                StoreBadge(
-                    stringResource(if (entry.imported) R.string.package_imported else R.string.package_system),
-                    if (entry.isRin) c.accent else c.muted,
-                    if (entry.isRin) c.tint else c.elevated,
-                )
-                Text(
-                    if (entry.automaticUpdatePending) {
-                        stringResource(R.string.store_rin_auto_update)
-                    } else {
-                        entry.version
-                    },
-                    Modifier.weight(1f),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = c.muted,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                EntryButton(
-                    entry,
-                    step,
-                    Modifier.widthIn(min = 92.dp, max = 148.dp),
-                    onAction,
-                    onCancel,
-                    changing,
-                )
-            }
-            if (
-                changing ||
-                step == InstallStep.Downloading ||
-                step == InstallStep.Pending ||
-                step == InstallStep.Installing
-            ) {
-                LinearProgressIndicator(
-                    Modifier.fillMaxWidth().height(2.dp),
-                    color = c.accent,
-                    trackColor = c.elevated,
-                )
-            } else {
-                Spacer(Modifier.height(2.dp))
-            }
-        }
     }
 }
 
@@ -719,7 +596,7 @@ internal fun SheetTitle(text: String) {
 
 internal fun StoreMedium.label() =
     when (this) {
-        StoreMedium.ANIME -> R.string.store_video
+        StoreMedium.ANIME -> R.string.store_anime
         StoreMedium.MANGA -> R.string.store_manga
         StoreMedium.MANGA_LAYER -> R.string.store_manga_layer
         StoreMedium.TV -> R.string.tv_title

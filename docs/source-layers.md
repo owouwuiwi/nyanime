@@ -44,6 +44,40 @@ source so its fixes arrive independently. A manga layer can implement
 `VersionedMangaLayerFactoryV1` to apply a specific workaround to known base
 versions while keeping the rest of the layer active on newer releases.
 
+## Store description
+
+The layer author can add `presentation` inside the signed `mangaLayer`
+declaration. The Store shows the summary on the layer's card under the base
+source and the feature descriptions before installation and approval.
+
+```json
+"presentation": {
+  "en": {
+    "summary": "Adds a Home with recent releases and rankings.",
+    "features": [
+      {
+        "title": "Recent releases",
+        "description": "Shows the latest chapters from the source catalogue."
+      },
+      {
+        "title": "Rankings",
+        "description": "Lists popular titles for the day and week."
+      }
+    ]
+  }
+}
+```
+
+Use up to eight locale keys such as `it`, `en` and `pt-BR`. The app checks
+the full locale, the language, English and then the first provided entry.
+Each entry has a plain-text summary of up to 350 characters and one to eight
+features. Each feature has a title of up to 70 characters and a description
+of up to 420 characters. Explain what the layer adds, the applicable versions
+if a feature is version-specific, and any limitations relevant to the user.
+
+Existing packages may omit this field. The signed target declarations and
+capabilities continue to determine compatibility and approval.
+
 ## Selection and updates
 
 Import and approve a layer in the Store. A single compatible layer attaches

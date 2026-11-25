@@ -9,6 +9,13 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 25 novembre 2026 — 0.81.1.0
+
+### Store
+
+- La Vetrina riunisce Esplora, Installate e Cataloghi. Gli aggiornamenti disponibili compaiono in cima a Installate.
+- I layer compaiono come componenti aggiuntivi nella scheda della fonte compatibile. Ogni layer può descrivere le proprie funzioni e i limiti nella lingua dell’app.
+
 ## 23 novembre 2026 — 0.81.0.0
 
 ### Fonti e Store

@@ -1,6 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="store_title">Store</string>
+    <string name="store_explore_tab">Esplora</string>
+    <string name="store_catalogues_tab">Cataloghi</string>
+    <string name="store_from_file">Da file</string>
+    <string name="store_view">Vedi</string>
+    <string name="store_view_extension">Vedi estensione</string>
+    <string name="store_extensions_heading">Estensioni</string>
+    <string name="store_search_results">Risultati</string>
+    <string name="store_updates_available">Aggiornamenti disponibili</string>
+    <string name="store_your_catalogues">I tuoi cataloghi</string>
+    <string name="store_tools">Strumenti</string>
+    <string name="store_add_to_nyanime">Aggiungi a Nyanime</string>
+    <string name="store_install_on_android">Installa su Android</string>
+    <string name="store_mode_nyanime">Solo in Nyanime</string>
+    <string name="store_version_label">Versione</string>
+    <string name="store_install_options">Opzioni di installazione</string>
+    <string name="store_related_layers">Componenti aggiuntivi</string>
+    <string name="store_layer_features">Cosa aggiunge</string>
+    <string name="store_return_to_source">Torna alla fonte</string>
+    <string name="store_layer_no_description">L’autore del layer non ha fornito una descrizione.</string>
     <string name="store_installed">Installate</string>
     <string name="store_catalogue">Catalogo</string>
     <string name="store_anime">Anime</string>

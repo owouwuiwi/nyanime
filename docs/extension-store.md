@@ -1,10 +1,16 @@
 # Store
 
-The Store groups installed and imported extensions in **My extensions** and
-offers the configured catalogues under **Discover**. Anime, manga, news, TV,
-guide and addon families use one inventory. No format is ranked above another.
-Search, language, content and state filters compose; installed packages remain
-manageable offline or without their catalogue.
+**Explore** shows available extensions. **Installed** shows both Android and
+privately imported packages, with available updates at the top. **Catalogues**
+shows the configured publishers and links to catalogue management. Anime,
+manga, news, TV, guide and addon families use one inventory. Search, language,
+content and state filters work together. Installed packages remain manageable
+offline or without their catalogue.
+
+Compatible source layers appear as add-ons in an installed source's details.
+The layer's signed manifest supplies its own description and feature list.
+Opening the layer shows its installation or management actions. Search and
+the Layer filter can also find layers directly. See [source layers](source-layers.md).
 
 ## Install or Import
 

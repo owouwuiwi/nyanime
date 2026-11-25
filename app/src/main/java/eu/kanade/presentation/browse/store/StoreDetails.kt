@@ -4,15 +4,24 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -22,9 +31,14 @@ import androidx.compose.ui.unit.dp
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.extensionstore.StoreAction
 import eu.kanade.tachiyomi.data.extensionstore.StoreEntry
+import eu.kanade.tachiyomi.data.extensionstore.StoreInstallMode
+import eu.kanade.tachiyomi.data.layer.MangaLayerRegistry
+import eu.kanade.tachiyomi.data.layer.MangaLayerStatus
 import eu.kanade.tachiyomi.extension.InstallStep
 import eu.kanade.tachiyomi.extension.anime.model.AnimeExtension
 import eu.kanade.tachiyomi.extension.manga.model.MangaExtension
+import uy.kohesive.injekt.Injekt
+import uy.kohesive.injekt.api.get
 
 @Composable
 internal fun StoreDetails(
@@ -40,16 +54,24 @@ internal fun StoreDetails(
     onUninstall: () -> Unit,
     onAnime: (Long) -> Unit,
     onManga: (Long) -> Unit,
-    onInstallMode: (eu.kanade.tachiyomi.data.extensionstore.StoreInstallMode) -> Unit,
+    onInstallMode: (StoreInstallMode) -> Unit,
     onAutomaticUpdates: (Boolean) -> Unit,
     onAssociateOrigin: () -> Unit,
     onMigratePublisher: (() -> Unit)?,
     onMigrateAndroidPublisher: (() -> Unit)?,
     onRollbackPublisher: (() -> Unit)?,
+    relatedLayers: List<StoreEntry> = emptyList(),
+    onLayer: (StoreEntry) -> Unit = {},
+    onReturnToSource: (() -> Unit)? = null,
     progress: Float? = null,
 ) {
     val c = LocalStoreColors.current
+    var showVersions by rememberSaveable(entry.packageName) { mutableStateOf(false) }
+    var showSignature by rememberSaveable(entry.packageName) { mutableStateOf(false) }
     StoreSheet(onDismiss) {
+        if (onReturnToSource != null) {
+            TextButton(onClick = onReturnToSource) { Text(stringResource(R.string.store_return_to_source)) }
+        }
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -58,15 +80,14 @@ internal fun StoreDetails(
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 SheetTitle(entry.name)
                 Text(
-                    listOf(entry.version, entry.languages.joinToString(" / ").uppercase())
-                        .filter { it.isNotBlank() }.joinToString(" · "),
+                    storeEntrySubtitle(entry),
                     color = c.muted,
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
             if (entry.installed) {
                 StoreBadge(
-                    stringResource(if (entry.imported) R.string.package_imported else R.string.package_system),
+                    stringResource(if (entry.imported) R.string.store_mode_nyanime else R.string.package_system),
                     c.accent,
                     c.tint,
                 )
@@ -92,7 +113,8 @@ internal fun StoreDetails(
             )?.let {
             eu.kanade.tachiyomi.ui.addon.AddonCompatibilityNotice(it)
         }
-        (entry.rinRecord?.manifest ?: entry.rinCandidate?.manifest)?.mangaLayer?.let { MangaLayerScope(it) }
+        val layerDeclaration = (entry.rinRecord?.manifest ?: entry.rinCandidate?.manifest)?.mangaLayer
+        layerDeclaration?.let { LayerPresentationBlock(it) }
         if (entry.rinRecord != null) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -117,50 +139,38 @@ internal fun StoreDetails(
             }
         }
         val busy = step in setOf(InstallStep.Pending, InstallStep.Downloading, InstallStep.Installing)
-        if ((
-                entry.action in setOf(StoreAction.INSTALL, StoreAction.UPDATE) ||
-                    entry.candidateVersion == entry.installedVersion &&
-                    entry.candidateUrl != null
-                ) &&
-            !busy
+        val canChooseMode = !busy && entry.addonHostCompatible && entry.candidateUrl != null
+        val newInstall = canChooseMode && !entry.installed && entry.action == StoreAction.INSTALL
+        if (newInstall) {
+            StoreInstallChoices(entry, onInstallMode)
+        } else if (!entry.privateOnly || busy || entry.action in setOf(StoreAction.TRUST, StoreAction.UPDATE)) {
+            EntryButton(entry, step, Modifier.fillMaxWidth(), { onAction() }, { onCancel() }, changing)
+        }
+        if (canChooseMode && entry.installed && !entry.privateOnly &&
+            (
+                entry.action == StoreAction.UPDATE ||
+                    entry.candidateVersion == entry.installedVersion
+                )
         ) {
-            androidx.compose.foundation.layout.FlowRow(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                if (!entry.privateOnly && entry.rinCandidate?.format != "rin") {
-                    StoreButton(
-                        stringResource(R.string.package_install),
-                        {
-                            onInstallMode(eu.kanade.tachiyomi.data.extensionstore.StoreInstallMode.SYSTEM)
-                        },
-                        outlined = true,
-                    )
-                }
-                if (entry.canImport) {
-                    StoreButton(
-                        stringResource(R.string.package_import),
-                        {
-                            onInstallMode(eu.kanade.tachiyomi.data.extensionstore.StoreInstallMode.PRIVATE)
-                        },
-                        outlined = true,
-                    )
+            TextButton(onClick = { showVersions = !showVersions }) {
+                Text(stringResource(R.string.store_install_options))
+            }
+            if (showVersions) StoreInstallChoices(entry, onInstallMode)
+        }
+        HorizontalDivider(color = c.line)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            if (!entry.version.isBlank()) {
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.store_version_label), color = c.muted, style = MaterialTheme.typography.labelMedium)
+                    Text(entry.version, fontWeight = FontWeight.SemiBold)
                 }
             }
-            Text(
-                stringResource(
-                    when {
-                        entry.privateOnly -> R.string.store_manga_layer_hint
-                        entry.canImport -> R.string.package_modes_hint
-                        else -> R.string.package_system_required
-                    },
-                ),
-                color = c.muted,
-                style = MaterialTheme.typography.bodySmall,
-            )
-        } else if (!entry.privateOnly || busy || entry.action == StoreAction.TRUST) {
-            EntryButton(entry, step, Modifier.fillMaxWidth(), { onAction() }, { onCancel() }, changing)
+            entry.repositoryName?.takeIf(String::isNotBlank)?.let { name ->
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.store_catalogue), color = c.muted, style = MaterialTheme.typography.labelMedium)
+                    Text(name, fontWeight = FontWeight.SemiBold)
+                }
+            }
         }
         if (step == InstallStep.Error) {
             Text(
@@ -182,19 +192,49 @@ internal fun StoreDetails(
             }
         }
         entry.installedMetadata?.signers?.takeIf { it.isNotEmpty() }?.let { signers ->
-            Text(
-                stringResource(R.string.package_publisher),
-                style = MaterialTheme.typography.labelMedium,
-                color = c.muted,
-            )
-            Text(
-                signers.joinToString("\n") {
-                    it.chunked(8).joinToString(" ")
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = c.muted,
-            )
+            TextButton(onClick = { showSignature = !showSignature }) { Text(stringResource(R.string.package_publisher)) }
+            if (showSignature) {
+                Text(
+                    signers.joinToString("\n") { it.chunked(8).joinToString(" ") },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = c.muted,
+                )
+            }
         }
+        if (relatedLayers.isNotEmpty()) {
+            val registry = remember { Injekt.get<MangaLayerRegistry>() }
+            val choices by registry.choices.collectAsState()
+            HorizontalDivider(color = c.line)
+            Text(stringResource(R.string.store_related_layers), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            relatedLayers.forEach { layer ->
+                val active = choices.filter { it.packageName == layer.packageName && it.basePackage == entry.packageName }
+                val status = when {
+                    !layer.installed -> R.string.source_layers_unselected
+                    !layer.enabled -> R.string.store_inactive
+                    active.any { it.status == MangaLayerStatus.ACTIVE } -> R.string.source_layers_active
+                    active.isNotEmpty() && active.all { it.status == MangaLayerStatus.INCOMPATIBLE } ->
+                        R.string.source_layers_incompatible
+                    active.any { it.status == MangaLayerStatus.FAILED } -> R.string.source_layers_failed
+                    active.any { it.status == MangaLayerStatus.DEPENDENCY_MISSING } -> R.string.source_layers_dependency
+                    else -> R.string.store_package_installed
+                }
+                val summary = (layer.rinRecord?.manifest ?: layer.rinCandidate?.manifest)?.mangaLayer
+                    ?.presentationFor(locale)?.summary
+                Surface(
+                    onClick = { onLayer(layer) },
+                    modifier = Modifier.fillMaxWidth(),
+                    color = c.elevated,
+                    shape = RoundedCornerShape(14.dp),
+                ) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Text(layer.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        summary?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = c.muted) }
+                        Text(stringResource(status), color = c.accent, style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+            }
+        }
+        layerDeclaration?.let { MangaLayerScope(it) }
         if (entry.imported && entry.installed) {
             if (entry.repository.isNullOrBlank()) {
                 Text(stringResource(R.string.package_manual_updates), color = c.muted)
@@ -277,7 +317,7 @@ internal fun StoreDetails(
         if (entry.installed) {
             if (entry.enabled && entry.action != StoreAction.TRUST && !unavailableRin && !entry.privateOnly) {
                 StoreButton(
-                    stringResource(R.string.store_settings),
+                    stringResource(if (entry.privateOnly) R.string.store_manage else R.string.store_settings),
                     onManage,
                     Modifier.fillMaxWidth(),
                     outlined = true,
@@ -303,5 +343,27 @@ internal fun StoreDetails(
             )
             Text(it, color = c.muted, style = MaterialTheme.typography.bodySmall)
         }
+    }
+}
+
+@Composable
+private fun StoreInstallChoices(entry: StoreEntry, onInstallMode: (StoreInstallMode) -> Unit) {
+    val importable = entry.canImport
+    if (importable) {
+        StoreButton(
+            stringResource(R.string.store_add_to_nyanime),
+            { onInstallMode(StoreInstallMode.PRIVATE) },
+            Modifier.fillMaxWidth(),
+            accent = true,
+        )
+    }
+    if (!entry.privateOnly && entry.rinCandidate?.format != "rin") {
+        StoreButton(
+            stringResource(R.string.store_install_on_android),
+            { onInstallMode(StoreInstallMode.SYSTEM) },
+            Modifier.fillMaxWidth(),
+            accent = !importable,
+            outlined = importable,
+        )
     }
 }

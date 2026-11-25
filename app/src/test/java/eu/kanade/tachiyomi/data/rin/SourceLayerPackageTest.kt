@@ -2,10 +2,13 @@ package eu.kanade.tachiyomi.data.rin
 
 import eu.kanade.tachiyomi.data.layer.MangaLayerDeclaration
 import eu.kanade.tachiyomi.data.layer.MangaLayerTarget
+import eu.kanade.tachiyomi.data.layer.SourceLayerFeature
+import eu.kanade.tachiyomi.data.layer.SourceLayerPresentation
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import java.util.Locale
 
 class SourceLayerPackageTest {
     private val authorSigner = "a".repeat(64)
@@ -126,6 +129,26 @@ class SourceLayerPackageTest {
         assertFalse(RinUpdatePolicy.accepts(entry(update), record(declarative)))
         assertTrue(RinLocalImportPolicy.accepts(record(update), record(declarative)))
         assertTrue(RinUpdatePolicy.accepts(entry(update.copy(entryPoints = emptyList())), record(original)))
+    }
+
+    @Test
+    fun `author descriptions are optional and may be translated without changing approval`() {
+        val original = manifest()
+        val translations = mapOf(
+            "en" to SourceLayerPresentation("Adds a Home.", listOf(SourceLayerFeature("Recent releases", "Shows the latest chapters."))),
+            "it" to SourceLayerPresentation("Aggiunge una Home.", listOf(SourceLayerFeature("Novità", "Mostra gli ultimi capitoli."))),
+        )
+        val translated = original.copy(
+            versionCode = 3,
+            mangaLayer = requireNotNull(original.mangaLayer).copy(presentation = translations),
+        )
+        val update = RinArchive.json.decodeFromString<RinManifest>(RinArchive.json.encodeToString(translated))
+        val declaration = requireNotNull(update.mangaLayer)
+        assertEquals(null, original.mangaLayer?.presentationFor(Locale.ITALY))
+        assertEquals("Aggiunge una Home.", declaration.presentationFor(Locale.ITALY)?.summary)
+        assertEquals("Adds a Home.", declaration.presentationFor(Locale.JAPAN)?.summary)
+        assertTrue(RinUpdatePolicy.accepts(entry(update), record(original)))
+        assertFalse(declaration.copy(presentation = mapOf("?" to declaration.presentation.getValue("en"))).valid())
     }
 
     @Test

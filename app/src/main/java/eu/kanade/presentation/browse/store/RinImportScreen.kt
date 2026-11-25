@@ -156,7 +156,10 @@ class RinImportScreen(private val uri: String, private val migrationPackage: Str
                                 )
                             }
                         }
-                        record.manifest.mangaLayer?.let { MangaLayerScope(it) }
+                        record.manifest.mangaLayer?.let {
+                            LayerPresentationBlock(it)
+                            MangaLayerScope(it)
+                        }
                         Text(
                             stringResource(
                                 when {

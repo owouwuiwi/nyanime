@@ -16,13 +16,8 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -35,6 +30,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -47,7 +43,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import cafe.adriel.voyager.navigator.LocalNavigator
@@ -150,15 +145,15 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
     val languages = StoreLanguages.normalize(savedLanguages)
     val adult by
         preferences.showNsfwSource().changes().collectAsState(preferences.showNsfwSource().get())
-    var shelf by rememberSaveable { mutableStateOf(StoreShelf.OWNED) }
+    var shelf by rememberSaveable { mutableStateOf(StoreShelf.DISCOVER) }
     var category by rememberSaveable { mutableStateOf<StoreMedium?>(null) }
     var activation by rememberSaveable { mutableStateOf(StoreActivation.ALL) }
     var query by rememberSaveable { mutableStateOf("") }
     var filters by rememberSaveable { mutableStateOf(false) }
     var catalogues by rememberSaveable { mutableStateOf(false) }
     var addCatalogue by rememberSaveable { mutableStateOf(false) }
-    var firstLoad by rememberSaveable { mutableStateOf(true) }
     var detail by remember { mutableStateOf<StoreEntry?>(null) }
+    var sourceDetail by remember { mutableStateOf<StoreEntry?>(null) }
     var trust by remember { mutableStateOf<StoreEntry?>(null) }
     var uninstall by remember { mutableStateOf<StoreEntry?>(null) }
     var changing by remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -180,14 +175,14 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
     val colors =
         remember(scheme, dark) {
             StoreColors(
-                if (dark) Color(0xFF0C0E13) else Color(0xFFFAFAFC),
-                if (dark) Color(0xFF171A22) else Color.White,
-                if (dark) Color(0xFF222632) else Color(0xFFF0F1F6),
+                scheme.surface,
+                scheme.surfaceContainerLow,
+                scheme.surfaceContainerHigh,
                 scheme.onSurface,
                 scheme.onSurfaceVariant,
                 scheme.outlineVariant.copy(alpha = .55f),
                 scheme.primary,
-                scheme.primary.copy(alpha = if (dark) .14f else .07f),
+                scheme.primaryContainer.copy(alpha = if (dark) .65f else .55f),
             )
         }
     val visible by
@@ -219,26 +214,21 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                     )
                 }
         }
-    val owned = remember(entries) { entries.count { it.installed } }
-    val inactive =
-        remember(entries) { entries.count { it.installed && (!it.enabled || it.action == StoreAction.TRUST) } }
-    val discover =
-        remember(entries, languages, adult) {
-            entries.count { !it.installed && it.matchesLanguages(languages) && (adult || !it.nsfw) }
-        }
+    val updates = remember(entries) { entries.count { it.installed && it.action == StoreAction.UPDATE } }
     LifecycleResumeEffect(repository) {
         repository.resume()
         scope.launch { systemMigration.refreshSessions() }
         onPauseOrDispose {}
     }
-    LaunchedEffect(refreshing) {
-        if (!refreshing && firstLoad) {
-            firstLoad = false
-            if (owned == 0) shelf = StoreShelf.DISCOVER
+    LaunchedEffect(medium) { if (category != null) category = medium }
+    val back: () -> Unit = {
+        when {
+            catalogues -> catalogues = false
+            query.isNotEmpty() -> query = ""
+            else -> onBack()
         }
     }
-    LaunchedEffect(medium) { if (category != null) category = medium }
-    BackHandler { if (query.isNotEmpty()) query = "" else onBack() }
+    BackHandler(onBack = back)
     val installer =
         rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
             repository.resume()
@@ -274,6 +264,7 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
     }
     val manage: (StoreEntry) -> Unit = { entry ->
         detail = null
+        sourceDetail = null
         navigator.push(
             when (entry.medium) {
                 StoreMedium.ANIME -> AnimeExtensionDetailsScreen(entry.packageName)
@@ -304,11 +295,12 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                             if (repository.steps.value[entry.packageName] == InstallStep.Installed) {
                                 val result = snackbar.showSnackbar(
                                     context.getString(R.string.store_installed_notice, entry.name),
-                                    actionLabel = context.getString(R.string.store_mine),
+                                    actionLabel = context.getString(R.string.store_installed),
                                     withDismissAction = true,
                                     duration = SnackbarDuration.Long,
                                 )
                                 if (result == SnackbarResult.ActionPerformed) {
+                                    catalogues = false
                                     shelf = StoreShelf.OWNED
                                     query = ""
                                     activation = StoreActivation.ALL
@@ -320,6 +312,7 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
             }
             entry.action == StoreAction.TRUST -> {
                 detail = null
+                sourceDetail = null
                 trust = entry
             }
             entry.action == StoreAction.OPEN -> {
@@ -354,129 +347,90 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
     }
     CompositionLocalProvider(LocalStoreColors provides colors) {
         Box(Modifier.fillMaxSize().background(colors.background).statusBarsPadding().imePadding()) {
-            Column(Modifier.fillMaxSize()) {
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Outlined.ArrowBack,
-                            stringResource(R.string.store_close),
+            Column(Modifier.align(Alignment.TopCenter).widthIn(max = 1000.dp).fillMaxSize()) {
+                StoreShowcaseHeader(onBack = back, onImport = { rinFile.launch(arrayOf("*/*")) })
+                StoreShowcaseTabs(
+                    shelf,
+                    catalogues,
+                    updates,
+                    onShelf = {
+                        shelf = it
+                        catalogues = false
+                    },
+                    onCatalogues = { catalogues = true },
+                )
+                if (catalogues) {
+                    StoreShowcaseCatalogues(
+                        refreshing = refreshing,
+                        failed = failed,
+                        onAdd = { addCatalogue = true },
+                        onRefresh = { repository.refresh(force = true) },
+                        onVideo = { navigator.push(AnimeExtensionStoresScreen()) },
+                        onManga = { navigator.push(MangaExtensionReposScreen()) },
+                        onTrust = {
+                            navigator.push(eu.kanade.presentation.more.settings.screen.browse.ExtensionCatalogueTrustScreen())
+                        },
+                        onStudio = { navigator.push(it.lorelore.nyanime.studio.StudioLibraryScreen()) },
+                        onMigration = { navigator.push(AdvancedBrowseScreen()) },
+                        modifier = Modifier.weight(1f),
+                    )
+                } else {
+                    if (shelf == StoreShelf.OWNED && migrations.isNotEmpty()) {
+                        TextButton(
+                            onClick = { navigator.push(SystemMangaMigrationScreen()) },
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
+                            enabled = !migrationBusy,
+                        ) { Text(stringResource(R.string.store_android_migration_resume)) }
+                    }
+                    StoreSearch(
+                        query,
+                        onQuery = { query = it },
+                        onFilters = { filters = true },
+                        filtered = (shelf == StoreShelf.OWNED && activation != StoreActivation.ALL) ||
+                            languages.size != 2 || adult,
+                    )
+                    if (inventoryUnavailable) {
+                        Text(
+                            stringResource(R.string.package_inventory_unavailable),
+                            Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
+                            color = colors.muted,
+                            style = MaterialTheme.typography.bodySmall,
                         )
                     }
-                    Text(
-                        stringResource(R.string.store_title),
-                        Modifier.weight(1f),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                    )
-
-                    IconButton(
-                        onClick = { repository.refresh(force = true) },
-                        enabled = !refreshing,
-                    ) {
-                        Icon(Icons.Outlined.Refresh, stringResource(R.string.store_refresh))
+                    StoreCategories(category) {
+                        category = it
+                        if (it != null) onMedium(it)
                     }
-                    IconButton(onClick = { catalogues = true }) {
-                        Icon(Icons.Outlined.Settings, stringResource(R.string.store_catalogues))
-                    }
-                }
-                StoreShelves(shelf, owned, discover) { shelf = it }
-                if (migrations.isNotEmpty()) {
-                    TextButton(
-                        onClick = { navigator.push(SystemMangaMigrationScreen()) },
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
-                        enabled = !migrationBusy,
-                    ) { Text(stringResource(R.string.store_android_migration_resume)) }
-                }
-                TextButton(
-                    onClick = { navigator.push(it.lorelore.nyanime.studio.StudioLibraryScreen()) },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
-                ) {
-                    Text(stringResource(R.string.studio_title))
-                }
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    StoreButton(
-                        stringResource(R.string.rin_load),
-                        { rinFile.launch(arrayOf("*/*")) },
-                        Modifier.weight(1f),
-                        outlined = true,
-                    )
-                    StoreButton(
-                        stringResource(R.string.extensions_catalogue_add),
-                        { addCatalogue = true },
-                        Modifier.weight(1f),
-                        outlined = true,
-                    )
-                }
-                StoreSearch(
-                    query,
-                    onQuery = { query = it },
-                    onFilters = { filters = true },
-                    filtered = activation != StoreActivation.ALL || languages.size != 2 || adult,
-                )
-                if (inventoryUnavailable) {
-                    Text(
-                        stringResource(R.string.package_inventory_unavailable),
-                        Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
-                        color = colors.muted,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-                StoreCategories(category) {
-                    category = it
-                    if (it != null) onMedium(it)
-                }
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        if (shelf == StoreShelf.OWNED) {
-                            stringResource(R.string.store_owned_summary, owned - inactive, inactive)
-                        } else {
-                            stringResource(R.string.store_discover_summary)
+                    StoreGrid(
+                        visible.entries.takeIf { visible.shelf == shelf }.orEmpty(),
+                        steps,
+                        shelf,
+                        visible.searching,
+                        refreshing || visible.shelf != shelf,
+                        failed,
+                        changing,
+                        onInfo = {
+                            sourceDetail = null
+                            detail = it
                         },
-                        Modifier.weight(1f),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = colors.muted,
-                    )
-                    Text(
-                        visible.entries.size.toString(),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = colors.muted,
+                        onAction = action,
+                        onCancel = repository::cancel,
+                        onRetry = { repository.refresh(force = true) },
+                        hasFilters = query.isNotBlank() ||
+                            category != null ||
+                            (shelf == StoreShelf.OWNED && activation != StoreActivation.ALL),
+                        onCatalogues = { catalogues = true },
+                        onUpdateAll = { repository.updateAll(category) },
+                        onDiscover = { shelf = StoreShelf.DISCOVER },
+                        onClear = {
+                            query = ""
+                            category = null
+                            activation = StoreActivation.ALL
+                        },
+                        modifier = Modifier.weight(1f),
+                        filterKey = visible.filterKey,
                     )
                 }
-                StoreGrid(
-                    visible.entries,
-                    steps,
-                    visible.shelf,
-                    visible.searching,
-                    refreshing,
-                    failed,
-                    changing,
-                    onInfo = { detail = it },
-                    onAction = action,
-                    onToggle = toggle,
-                    onCancel = repository::cancel,
-                    onRetry = { repository.refresh(force = true) },
-                    hasFilters = query.isNotBlank() ||
-                        category != null ||
-                        (shelf == StoreShelf.OWNED && activation != StoreActivation.ALL),
-                    onCatalogues = { catalogues = true },
-                    onDiscover = { shelf = StoreShelf.DISCOVER },
-                    onClear = {
-                        query = ""
-                        category = null
-                        activation = StoreActivation.ALL
-                    },
-                    modifier = Modifier.weight(1f),
-                    filterKey = visible.filterKey,
-                )
             }
             SnackbarHost(
                 snackbar,
@@ -511,61 +465,6 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                 )
             }
         }
-        if (catalogues) {
-            StoreSheet(onDismiss = { catalogues = false }) {
-                SheetTitle(stringResource(R.string.store_catalogues))
-                val updates = entries.count {
-                    it.action == StoreAction.UPDATE && (category == null || it.medium == category)
-                }
-                if (updates > 0) {
-                    StoreButton(
-                        stringResource(R.string.store_update_others, updates),
-                        {
-                            catalogues = false
-                            repository.updateAll(category)
-                        },
-                        Modifier.fillMaxWidth(),
-                        outlined = true,
-                    )
-                }
-                StoreButton(stringResource(R.string.package_catalogue_trust), {
-                    catalogues = false
-                    navigator.push(eu.kanade.presentation.more.settings.screen.browse.ExtensionCatalogueTrustScreen())
-                }, Modifier.fillMaxWidth(), outlined = true)
-                Text(
-                    stringResource(R.string.package_modes_hint),
-                    color = colors.muted,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                StoreButton(
-                    stringResource(R.string.store_video_catalogues),
-                    {
-                        catalogues = false
-                        navigator.push(AnimeExtensionStoresScreen())
-                    },
-                    Modifier.fillMaxWidth(),
-                    outlined = true,
-                )
-                StoreButton(
-                    stringResource(R.string.store_manga_catalogues),
-                    {
-                        catalogues = false
-                        navigator.push(MangaExtensionReposScreen())
-                    },
-                    Modifier.fillMaxWidth(),
-                    outlined = true,
-                )
-                StoreButton(
-                    stringResource(R.string.store_sources_migration),
-                    {
-                        catalogues = false
-                        navigator.push(AdvancedBrowseScreen())
-                    },
-                    Modifier.fillMaxWidth(),
-                    outlined = true,
-                )
-            }
-        }
         if (addCatalogue) {
             CatalogueLinkHelpDialog(
                 onDismissRequest = { addCatalogue = false },
@@ -578,22 +477,42 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
         }
         detail?.let { selected ->
             val current = StoreCatalogue.currentEntry(selected, entries)
-            if (current != null) {
+            if (current != null) key(current.packageName) {
+                val layers = remember(current, entries, adult) {
+                    relatedStoreLayers(current, entries).filter {
+                        it.installed || adult || !it.nsfw
+                    }
+                }
                 StoreDetails(
                     current,
                     steps[current.packageName],
                     current.packageName in changing,
-                    onDismiss = { detail = null },
+                    onDismiss = {
+                        detail = sourceDetail
+                        sourceDetail = null
+                    },
                     onAction = { action(current) },
                     onToggle = { toggle(current) },
                     onCancel = { repository.cancel(current) },
                     onManage = { manage(current) },
+                    relatedLayers = layers,
+                    onLayer = {
+                        sourceDetail = current
+                        detail = it
+                    },
+                    onReturnToSource = sourceDetail?.let { source ->
+                        {
+                            detail = source
+                            sourceDetail = null
+                        }
+                    },
                     onFilters = {
                         detail = null
                         filters = true
                     },
                     onUninstall = {
                         detail = null
+                        sourceDetail = null
                         uninstall = current
                     },
                     onAnime = {
@@ -718,7 +637,10 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(entry.name)
                         Text(stringResource(R.string.store_trust_description))
-                        entry.rinCandidate?.manifest?.mangaLayer?.let { MangaLayerScope(it) }
+                        entry.rinCandidate?.manifest?.mangaLayer?.let {
+                            LayerPresentationBlock(it)
+                            MangaLayerScope(it)
+                        }
                         if (entry.privateOnly) entry.candidateSigner?.let { Text(it.chunked(8).joinToString(" ")) }
                     }
                 },

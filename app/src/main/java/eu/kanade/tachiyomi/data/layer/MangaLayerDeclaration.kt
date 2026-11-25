@@ -1,15 +1,43 @@
 package eu.kanade.tachiyomi.data.layer
 
 import kotlinx.serialization.Serializable
+import java.util.Locale
 
 @Serializable
 data class MangaLayerDeclaration(
     val api: Int,
     val targets: List<MangaLayerTarget>,
+    val presentation: Map<String, SourceLayerPresentation> = emptyMap(),
 ) {
     fun valid(): Boolean = api == 1 && targets.size in 1..32 &&
         targets.all(MangaLayerTarget::valid) &&
-        targets.distinctBy { Triple(it.medium, it.packageName, it.sourceId) }.size == targets.size
+        targets.distinctBy { Triple(it.medium, it.packageName, it.sourceId) }.size == targets.size &&
+        presentation.size <= 8 && presentation.all { (language, value) ->
+            LANGUAGE_TAG.matches(language) && value.valid()
+        }
+
+    fun presentationFor(locale: Locale): SourceLayerPresentation? =
+        presentation[locale.toLanguageTag()] ?: presentation[locale.language] ?: presentation["en"]
+            ?: presentation.values.firstOrNull()
+
+    companion object {
+        private val LANGUAGE_TAG = Regex("[a-z]{2,3}(?:-[a-zA-Z0-9]{2,8}){0,3}")
+    }
+}
+
+@Serializable
+data class SourceLayerPresentation(
+    val summary: String,
+    val features: List<SourceLayerFeature>,
+) {
+    fun valid(): Boolean = summary.isNotBlank() && summary.length <= 350 &&
+        features.size in 1..8 && features.all { it.valid() }
+}
+
+@Serializable
+data class SourceLayerFeature(val title: String, val description: String) {
+    fun valid(): Boolean = title.isNotBlank() && title.length <= 70 &&
+        description.isNotBlank() && description.length <= 420
 }
 
 @Serializable
