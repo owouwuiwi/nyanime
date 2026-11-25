@@ -53,6 +53,7 @@ import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.animesource.model.Hoster
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.data.download.anime.AnimeDownloadManager
+import eu.kanade.tachiyomi.data.player.service.HttpServerService
 import eu.kanade.tachiyomi.ui.main.MainActivity
 import eu.kanade.tachiyomi.ui.player.controls.components.sheets.HosterState
 import eu.kanade.tachiyomi.ui.player.controls.components.sheets.QualitySheetHosterContent
@@ -527,7 +528,7 @@ private fun VideoList(
                         clipboardManager.setText(AnnotatedString(currentVideo.videoUrl))
                         scope.launch {
                             if (currentVideo.usesHttpServer()) {
-                                MainActivity.startHttpServerService(context, anime.source)
+                                HttpServerService.start(context, anime.source)
                             }
                             context.toast(copiedString)
                         }

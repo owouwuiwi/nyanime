@@ -488,6 +488,7 @@ dependencies {
     implementation(projects.data)
     implementation(projects.domain)
     implementation(projects.presentationCore)
+    implementation(projects.presentationDesign)
     implementation(projects.presentationWidget)
 
     // Compose

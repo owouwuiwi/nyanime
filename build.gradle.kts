@@ -18,12 +18,16 @@ val verifyComposeAlignment = tasks.register("verifyComposeAlignment") {
             "Material3 must match in every UI compile/runtime classpath:\n" +
                 selected.joinToString("\n")
         }
-        logger.lifecycle("COMPOSE_ALIGNMENT_OK: Material3 ${selected.first().substringAfter("=")} across ${selected.size} classpaths")
+        logger.lifecycle(
+            "COMPOSE_ALIGNMENT_OK: Material3 ${selected.first().substringAfter(
+                "=",
+            )} across ${selected.size} classpaths",
+        )
     }
 }
 
 subprojects {
-    if (path in setOf(":app", ":presentation-player")) {
+    if (path in setOf(":app", ":presentation-core", ":presentation-design", ":presentation-player")) {
         // Resolve each graph in its owning project, under Gradle's project lock.
         val report = layout.buildDirectory.file("reports/compose-alignment.txt")
         val writeComposeVersions = tasks.register("writeComposeVersions") {
@@ -32,11 +36,15 @@ subprojects {
             outputs.upToDateWhen { false }
             doLast {
                 val selected = configurations.filter {
-                    it.isCanBeResolved && it.name in setOf(
-                        "debugCompileClasspath", "debugRuntimeClasspath",
-                        "releaseCompileClasspath", "releaseRuntimeClasspath",
-                        "previewCompileClasspath", "previewRuntimeClasspath",
-                    )
+                    it.isCanBeResolved &&
+                        it.name in setOf(
+                            "debugCompileClasspath",
+                            "debugRuntimeClasspath",
+                            "releaseCompileClasspath",
+                            "releaseRuntimeClasspath",
+                            "previewCompileClasspath",
+                            "previewRuntimeClasspath",
+                        )
                 }.map { configuration ->
                     val versions = configuration.incoming.resolutionResult.allComponents.mapNotNull {
                         it.moduleVersion?.takeIf { module ->
@@ -44,7 +52,9 @@ subprojects {
                                 module.name in setOf("material3", "material3-android")
                         }?.version
                     }.toSet()
-                    check(versions.size == 1) { "Missing or conflicting Material3 in $path:${configuration.name}: $versions" }
+                    check(versions.size == 1) {
+                        "Missing or conflicting Material3 in $path:${configuration.name}: $versions"
+                    }
                     "$path:${configuration.name}=${versions.single()}"
                 }
                 check(selected.isNotEmpty()) { "No UI classpaths checked in $path" }

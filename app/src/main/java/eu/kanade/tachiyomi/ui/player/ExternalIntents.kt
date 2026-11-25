@@ -18,9 +18,9 @@ import eu.kanade.tachiyomi.animesource.AnimeSource
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.animesource.online.AnimeHttpSource
 import eu.kanade.tachiyomi.data.download.anime.AnimeDownloadManager
+import eu.kanade.tachiyomi.data.player.service.HttpServerService
 import eu.kanade.tachiyomi.data.track.AnimeTracker
 import eu.kanade.tachiyomi.data.track.TrackerManager
-import eu.kanade.tachiyomi.ui.main.MainActivity
 import eu.kanade.tachiyomi.ui.player.loader.EpisodeLoader
 import eu.kanade.tachiyomi.ui.player.loader.HosterLoader
 import eu.kanade.tachiyomi.ui.player.settings.PlayerPreferences
@@ -92,7 +92,7 @@ class ExternalIntents {
         var videoUrl = getVideoUrl(source, context, video) ?: return null
 
         if (video.usesHttpServer()) {
-            val (success, port) = MainActivity.startHttpServerService(context, source.id)
+            val (success, port) = HttpServerService.start(context, source.id)
             if (!success) {
                 launchUI {
                     context.toast(AYMR.strings.http_server_start_failure)

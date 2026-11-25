@@ -1,4 +1,4 @@
-package eu.kanade.tachiyomi.ui
+package eu.kanade.presentation.theme
 
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
@@ -6,8 +6,6 @@ import eu.kanade.presentation.theme.colorscheme.NyanimeColorScheme
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import java.io.File
-import javax.xml.parsers.DocumentBuilderFactory
 
 class NyanimeLightPaletteTest {
     @Test
@@ -31,12 +29,9 @@ class NyanimeLightPaletteTest {
 
     @Test
     fun nativeAndComposeColorsStayConsistent() {
-        val path = listOf(
-            File("src/main/res/values/colors_nyanime.xml"),
-            File("app/src/main/res/values/colors_nyanime.xml"),
-        )
-            .first { it.exists() }
-        val nodes = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(path).getElementsByTagName("color")
+        val path = NyanimeIdentityPaletteTest.resources.resolve("values/colors_nyanime.xml")
+        val nodes = NyanimeIdentityPaletteTest.xmlFactory().newDocumentBuilder().parse(path)
+            .getElementsByTagName("color")
         val native = (0 until nodes.length).associate { index ->
             val node = nodes.item(index)
             node.attributes.getNamedItem("name").nodeValue to node.textContent.removePrefix("#").toLong(16)

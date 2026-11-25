@@ -7,6 +7,14 @@
     <string name="catalogue_drive_folder_error">Verifica che chiunque abbia il link possa aprire la cartella di Google Drive e che contenga un solo file index.json valido.</string>
     <string name="catalogue_drive_file_error">Verifica che chiunque abbia il link possa aprire il file di Google Drive e che sia un indice di catalogo valido.</string>
     <string name="catalogue_bridge_count">Bridge · %1$d</string>
+    <string name="catalogue_preview_checking">Verifica dei cataloghi…</string>
+    <string name="catalogue_links_title">Cataloghi collegati</string>
+    <string name="catalogue_link_verified">Impronta della firma corrispondente</string>
+    <string name="catalogue_link_identity_mismatch">Indirizzo o editore diverso da quello dichiarato</string>
+    <string name="catalogue_link_unavailable">Catalogo irraggiungibile o illeggibile</string>
+    <string name="catalogue_links_incomplete">Tutti i cataloghi collegati devono superare la verifica per poterli aggiungere insieme.</string>
+    <string name="catalogue_links_done">I cataloghi sono pronti. Apri lo Store per scegliere le estensioni.</string>
+    <string name="catalogue_primary_trust_hint">Vale per le estensioni che scegli dal catalogo principale. Puoi gestire separatamente il consenso per quelli collegati.</string>
     <string name="catalogue_reset_title">Ripristino delle estensioni</string>
     <string name="catalogue_reset_description">L’aggiornamento rimuove una sola volta i vecchi cataloghi. Prima di proseguire, rimuovi le estensioni già presenti. Potrai poi aggiungere i cataloghi nello Store e reinstallare le estensioni che usi.</string>
     <string name="catalogue_reset_preserved">La libreria, i progressi e i download vengono conservati.</string>

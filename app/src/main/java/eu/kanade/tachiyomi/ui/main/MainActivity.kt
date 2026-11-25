@@ -3,7 +3,6 @@ package eu.kanade.tachiyomi.ui.main
 import android.animation.ValueAnimator
 import android.app.Activity
 import android.app.Application
-import android.app.SearchManager
 import android.app.assist.AssistContent
 import android.content.Context
 import android.content.Intent
@@ -12,137 +11,59 @@ import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
-import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.consumeWindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.windowInsetsBottomHeight
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.platform.LocalContext
 import androidx.core.animation.doOnEnd
 import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.util.Consumer
-import androidx.core.view.doOnPreDraw
 import androidx.interpolator.view.animation.FastOutSlowInInterpolator
 import androidx.interpolator.view.animation.LinearOutSlowInInterpolator
 import androidx.lifecycle.lifecycleScope
-import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.Navigator
-import cafe.adriel.voyager.navigator.NavigatorDisposeBehavior
-import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.domain.base.BasePreferences
 import eu.kanade.domain.source.anime.interactor.GetAnimeIncognitoState
 import eu.kanade.domain.source.manga.interactor.GetMangaIncognitoState
-import eu.kanade.presentation.components.AppStateBanners
-import eu.kanade.presentation.components.DownloadedOnlyBannerBackgroundColor
-import eu.kanade.presentation.components.IncognitoModeBannerBackgroundColor
-import eu.kanade.presentation.components.IndexingBannerBackgroundColor
-import eu.kanade.presentation.more.settings.screen.browse.AnimeExtensionStoresScreen
-import eu.kanade.presentation.more.settings.screen.browse.ExtensionCatalogueScreen
-import eu.kanade.presentation.more.settings.screen.browse.MangaExtensionReposScreen
-import eu.kanade.presentation.more.settings.screen.data.RestoreBackupScreen
 import eu.kanade.presentation.util.AssistContentScreen
-import eu.kanade.presentation.util.DefaultNavigatorScreenTransition
-import eu.kanade.tachiyomi.BuildConfig
 import eu.kanade.tachiyomi.animesource.model.Hoster
 import eu.kanade.tachiyomi.animesource.model.Video
-import eu.kanade.tachiyomi.core.common.Constants
-import eu.kanade.tachiyomi.data.backup.BackupFileFormat
 import eu.kanade.tachiyomi.data.cache.ChapterCache
 import eu.kanade.tachiyomi.data.cast.CastController
 import eu.kanade.tachiyomi.data.download.anime.AnimeDownloadCache
 import eu.kanade.tachiyomi.data.download.manga.MangaDownloadCache
-import eu.kanade.tachiyomi.data.notification.NotificationReceiver
+import eu.kanade.tachiyomi.data.extensionstore.CatalogueUpgradeReset
 import eu.kanade.tachiyomi.data.player.service.HttpServerService
-import eu.kanade.tachiyomi.data.share.ContentLinks
-import eu.kanade.tachiyomi.data.updater.AppUpdateChecker
-import eu.kanade.tachiyomi.data.updater.RELEASE_URL
-import eu.kanade.tachiyomi.extension.anime.api.AnimeExtensionApi
-import eu.kanade.tachiyomi.extension.manga.api.MangaExtensionApi
 import eu.kanade.tachiyomi.ui.base.activity.BaseActivity
-import eu.kanade.tachiyomi.ui.browse.anime.source.browse.BrowseAnimeSourceScreen
-import eu.kanade.tachiyomi.ui.browse.anime.source.globalsearch.GlobalAnimeSearchScreen
-import eu.kanade.tachiyomi.ui.browse.manga.source.browse.BrowseMangaSourceScreen
-import eu.kanade.tachiyomi.ui.browse.manga.source.globalsearch.GlobalMangaSearchScreen
-import eu.kanade.tachiyomi.ui.cast.CastMiniController
-import eu.kanade.tachiyomi.ui.deeplink.DeepLinkScreenType
-import eu.kanade.tachiyomi.ui.deeplink.anime.DeepLinkAnimeScreen
-import eu.kanade.tachiyomi.ui.deeplink.content.SharedContentScreen
-import eu.kanade.tachiyomi.ui.deeplink.manga.DeepLinkMangaScreen
-import eu.kanade.tachiyomi.ui.entries.anime.AnimeScreen
-import eu.kanade.tachiyomi.ui.entries.manga.MangaScreen
-import eu.kanade.tachiyomi.ui.home.HomeScreen
-import eu.kanade.tachiyomi.ui.more.InitialAppSetupGate
-import eu.kanade.tachiyomi.ui.more.NewUpdateScreen
 import eu.kanade.tachiyomi.ui.player.ExternalIntents
 import eu.kanade.tachiyomi.ui.player.PlayerActivity
+import eu.kanade.tachiyomi.ui.player.session.PlaybackHost
 import eu.kanade.tachiyomi.util.system.dpToPx
 import eu.kanade.tachiyomi.util.system.isNavigationBarNeedsScrim
-import eu.kanade.tachiyomi.util.system.openInBrowser
 import eu.kanade.tachiyomi.util.system.toast
-import eu.kanade.tachiyomi.util.system.updaterEnabled
 import eu.kanade.tachiyomi.util.view.setComposeContent
+import it.lorelore.nyanime.attention.AttentionHost
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.drop
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeoutOrNull
 import logcat.LogPriority
 import mihon.core.migration.Migrator
-import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.util.lang.launchIO
 import tachiyomi.core.common.util.lang.withUIContext
 import tachiyomi.core.common.util.system.logcat
 import tachiyomi.domain.entries.anime.interactor.GetAnime
 import tachiyomi.domain.library.service.LibraryPreferences
-import tachiyomi.domain.release.interactor.GetApplicationRelease
-import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
-import tachiyomi.presentation.core.components.material.Scaffold
-import tachiyomi.presentation.core.util.collectAsState
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import uy.kohesive.injekt.injectLazy
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
 
 class MainActivity : BaseActivity() {
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
@@ -172,6 +93,9 @@ class MainActivity : BaseActivity() {
 
     private var navigator: Navigator? = null
     private var launchIntentHandled = false
+    private val intentNavigator by lazy {
+        MainIntentNavigator(applicationContext, lifecycleScope, onReady = { ready = true })
+    }
 
     init {
         registerSecureActivity(this)
@@ -223,228 +147,31 @@ class MainActivity : BaseActivity() {
         }
 
         setComposeContent {
-            val catalogueReset = remember {
-                eu.kanade.tachiyomi.data.extensionstore.CatalogueUpgradeReset(Injekt.get())
-            }
-            var resetPending by remember { mutableStateOf(catalogueReset.pending) }
-            if (resetPending) {
-                LaunchedEffect(Unit) { ready = true }
-                eu.kanade.presentation.more.settings.screen.browse.components.CatalogueResetGate(
-                    reset = catalogueReset,
-                    onComplete = { resetPending = false },
-                    onExit = { finishAndRemoveTask() },
+            val catalogueReset = remember { CatalogueUpgradeReset(Injekt.get()) }
+            MainStartup(
+                catalogueReset = catalogueReset,
+                onReady = { ready = true },
+                onExit = ::finishAndRemoveTask,
+            ) {
+                MainNavigation(
+                    preferences = preferences,
+                    mangaIndexing = downloadCache.isInitializing,
+                    animeIndexing = animeDownloadCache.isInitializing,
+                    mangaIncognito = getMangaIncognitoState,
+                    animeIncognito = getAnimeIncognitoState,
+                    needsNavigationScrim = this::isNavigationBarNeedsScrim,
+                    onSystemBarColors = ::applySystemBarColors,
+                    onNavigatorReady = { navigator -> attachNavigator(navigator, isLaunch) },
+                    navigatorEffects = { navigator ->
+                        HandleNewIntents(navigator)
+                        MainUpdateChecks(navigator)
+                    },
+                    overlays = {
+                        PlaybackHost(this)
+                        AttentionHost(this)
+                    },
                 )
-                return@setComposeContent
-            }
-            InitialAppSetupGate(onReady = { ready = true }) {
-                val context = LocalContext.current
-
-                var incognito by remember { mutableStateOf(getMangaIncognitoState.await(null)) }
-                var incognitoAnime by remember { mutableStateOf(getAnimeIncognitoState.await(null)) }
-                val downloadOnly by preferences.downloadedOnly().collectAsState()
-                val indexing by downloadCache.isInitializing.collectAsState()
-                val indexingAnime by animeDownloadCache.isInitializing.collectAsState()
-
-                val navigationBackgroundColor = eu.kanade.presentation.theme.LocalMangaSurfaces.current
-                    ?.values?.firstOrNull() ?: MaterialTheme.colorScheme.surface
-                val statusBarBackgroundColor = when {
-                    indexing || indexingAnime -> IndexingBannerBackgroundColor
-                    downloadOnly -> DownloadedOnlyBannerBackgroundColor
-                    incognito || incognitoAnime -> IncognitoModeBannerBackgroundColor
-                    else -> navigationBackgroundColor
-                }
-                LaunchedEffect(navigationBackgroundColor, statusBarBackgroundColor) {
-                    // Draw edge-to-edge and set system bars color to transparent
-                    val lightStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.BLACK)
-                    val darkStyle = SystemBarStyle.dark(Color.TRANSPARENT)
-                    enableEdgeToEdge(
-                        statusBarStyle = if (statusBarBackgroundColor.luminance() > 0.5) lightStyle else darkStyle,
-                        navigationBarStyle = if (navigationBackgroundColor.luminance() > 0.5) lightStyle else darkStyle,
-                    )
-                }
-
-                Box(Modifier.fillMaxSize()) {
-                    Navigator(
-                        screen = HomeScreen,
-                        disposeBehavior = NavigatorDisposeBehavior(
-                            disposeNestedNavigators = false,
-                            disposeSteps = true,
-                        ),
-                    ) { navigator ->
-
-                        LaunchedEffect(navigator) {
-                            this@MainActivity.navigator = navigator
-
-                            if (!launchIntentHandled) {
-                                // Set start screen
-                                handleIntentAction(intent, navigator)
-                                launchIntentHandled = true
-                            }
-
-                            if (isLaunch) {
-                                // Reset Incognito Mode on relaunch
-                                preferences.incognitoMode().set(false)
-                            }
-                        }
-                        LaunchedEffect(navigator.lastItem) {
-                            (navigator.lastItem as? BrowseMangaSourceScreen)?.sourceId
-                                .let(getMangaIncognitoState::subscribe)
-                                .collectLatest { incognito = it }
-                        }
-
-                        LaunchedEffect(navigator.lastItem) {
-                            (navigator.lastItem as? BrowseAnimeSourceScreen)?.sourceId
-                                .let(getAnimeIncognitoState::subscribe)
-                                .collectLatest { incognitoAnime = it }
-                        }
-
-                        val scaffoldInsets = WindowInsets.navigationBars.only(WindowInsetsSides.Horizontal)
-                        Scaffold(
-                            topBar = {
-                                AppStateBanners(
-                                    downloadedOnlyMode = downloadOnly,
-                                    incognitoMode = incognito || incognitoAnime,
-                                    indexing = indexing || indexingAnime,
-                                    modifier = Modifier.windowInsetsPadding(scaffoldInsets),
-                                )
-                            },
-                            bottomBar = {
-                                // Restored object screens are not guaranteed to be the canonical singleton.
-                                // The Home destination owns these controllers beside its floating navigation.
-                                if (navigator.lastItem !is HomeScreen) {
-                                    androidx.compose.foundation.layout.Column {
-                                        eu.kanade.tachiyomi.ui.watch.WatchMiniController()
-                                        CastMiniController()
-                                    }
-                                }
-                            },
-                            contentWindowInsets = scaffoldInsets,
-                        ) { contentPadding ->
-                            // Consume insets already used by app state banners
-                            Box {
-                                // Shows current screen
-                                DefaultNavigatorScreenTransition(
-                                    navigator = navigator,
-                                    modifier = Modifier
-                                        .padding(contentPadding)
-                                        .consumeWindowInsets(contentPadding),
-                                )
-                                // Draw navigation bar scrim when needed
-                                if (remember { isNavigationBarNeedsScrim() }) {
-                                    Spacer(
-                                        modifier = Modifier
-                                            .align(Alignment.BottomCenter)
-                                            .fillMaxWidth()
-                                            .windowInsetsBottomHeight(WindowInsets.navigationBars)
-                                            .alpha(0.8f)
-                                            .background(MaterialTheme.colorScheme.surfaceContainer),
-                                    )
-                                }
-                            }
-                        }
-
-                        // Pop source-related screens when incognito mode is turned off
-                        LaunchedEffect(Unit) {
-                            preferences.incognitoMode().changes()
-                                .drop(1)
-                                .filter { !it }
-                                .onEach {
-                                    val currentScreen = navigator.lastItem
-                                    if ((
-                                            currentScreen is BrowseMangaSourceScreen ||
-                                                (currentScreen is MangaScreen && currentScreen.fromSource)
-                                            ) ||
-                                        (
-                                            currentScreen is BrowseAnimeSourceScreen ||
-                                                (currentScreen is AnimeScreen && currentScreen.fromSource)
-                                            )
-                                    ) {
-                                        navigator.popUntilRoot()
-                                    }
-                                }
-                                .launchIn(this)
-                        }
-
-                        HandleOnNewIntent(context = context, navigator = navigator)
-
-                        CheckForUpdates()
-                    }
-                    eu.kanade.tachiyomi.ui.player.session.PlaybackHost(this@MainActivity)
-                    it.lorelore.nyanime.attention.AttentionHost(this@MainActivity)
-                }
-
-                var showChangelog by remember { mutableStateOf(didMigration && wasConfigured && !BuildConfig.DEBUG) }
-                var showRemovalOffer by remember { mutableStateOf(false) }
-                var removalOfferChecked by remember { mutableStateOf(false) }
-                LaunchedEffect(Unit) {
-                    showRemovalOffer = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                        eu.kanade.tachiyomi.data.migration.MigrationRemovalOffer.shouldOffer(this@MainActivity)
-                    }
-                    if (showRemovalOffer) showChangelog = false
-                    removalOfferChecked = true
-                }
-                if (showRemovalOffer) {
-                    fun closeRemovalOffer() {
-                        eu.kanade.tachiyomi.data.migration.MigrationRemovalOffer.acknowledge(this@MainActivity)
-                        showRemovalOffer = false
-                    }
-                    eu.kanade.tachiyomi.data.migration.MigrationRemovalDialog(
-                        onLater = ::closeRemovalOffer,
-                        onRemove = {
-                            if (eu.kanade.tachiyomi.data.migration.MigrationRemovalOffer.request(this@MainActivity)) {
-                                closeRemovalOffer()
-                            }
-                        },
-                    )
-                }
-                if (showChangelog && !showRemovalOffer && removalOfferChecked) {
-                    val installOffer = remember {
-                        eu.kanade.tachiyomi.data.migration.MigrationInstallOffer.shouldOffer(
-                            this@MainActivity,
-                            wasConfigured,
-                            didMigration,
-                        )
-                    }
-                    if (installOffer) {
-                        fun closeOffer() {
-                            eu.kanade.tachiyomi.data.migration.MigrationInstallOffer.acknowledge(this@MainActivity)
-                            showChangelog = false
-                        }
-                        eu.kanade.tachiyomi.data.migration.MigrationInstallDialog(
-                            onLater = ::closeOffer,
-                            onContinue = {
-                                lifecycleScope.launch {
-                                    if (eu.kanade.tachiyomi.data.migration.MigrationInstallOffer.open(
-                                            this@MainActivity,
-                                            stillRequested = { showChangelog },
-                                        )
-                                    ) {
-                                        closeOffer()
-                                    }
-                                }
-                            },
-                        )
-                    } else {
-                        AlertDialog(
-                            onDismissRequest = { showChangelog = false },
-                            title = {
-                                Text(
-                                    text = stringResource(MR.strings.updated_version, BuildConfig.VERSION_NAME),
-                                )
-                            },
-                            dismissButton = {
-                                TextButton(onClick = { openInBrowser(RELEASE_URL) }) {
-                                    Text(text = stringResource(MR.strings.whats_new))
-                                }
-                            },
-                            confirmButton = {
-                                TextButton(onClick = { showChangelog = false }) {
-                                    Text(text = stringResource(MR.strings.action_ok))
-                                }
-                            },
-                        )
-                    }
-                }
+                MainStartupNotices(this, lifecycleScope, wasConfigured, didMigration)
             }
         }
 
@@ -521,67 +248,39 @@ class MainActivity : BaseActivity() {
         }
     }
 
-    @Composable
-    private fun HandleOnNewIntent(context: Context, navigator: Navigator) {
-        LaunchedEffect(Unit) {
-            callbackFlow {
-                val componentActivity = context as ComponentActivity
-                val consumer = Consumer<Intent> { trySend(it) }
-                componentActivity.addOnNewIntentListener(consumer)
-                awaitClose { componentActivity.removeOnNewIntentListener(consumer) }
-            }
-                .collectLatest {
-                    handleIntentAction(it, navigator)
-                    launchIntentHandled = true
-                }
+    private fun attachNavigator(navigator: Navigator, isLaunch: Boolean) {
+        this.navigator = navigator
+        if (!launchIntentHandled) {
+            intentNavigator.navigate(intent, navigator)
+            launchIntentHandled = true
         }
+        if (isLaunch) preferences.incognitoMode().set(false)
     }
 
     @Composable
-    private fun CheckForUpdates() {
-        val context = LocalContext.current
-        val navigator = LocalNavigator.currentOrThrow
+    private fun HandleNewIntents(navigator: Navigator) {
+        LaunchedEffect(navigator) {
+            callbackFlow {
+                val consumer = Consumer<Intent> { trySend(it) }
+                addOnNewIntentListener(consumer)
+                awaitClose { removeOnNewIntentListener(consumer) }
+            }.collect { intent ->
+                intentNavigator.navigate(intent, navigator)
+                launchIntentHandled = true
+            }
+        }
+    }
 
-        // App updates
-        LaunchedEffect(Unit) {
-            if (updaterEnabled) {
-                try {
-                    // Check the selected channel once per launch after the initial choice.
-                    val result = AppUpdateChecker().checkForUpdate(context, forceCheck = true)
-                    if (result is GetApplicationRelease.Result.NewUpdate) {
-                        val updateScreen = NewUpdateScreen(
-                            versionName = result.release.version,
-                            changelogInfo = result.release.info,
-                            releaseLink = result.release.releaseLink,
-                            downloadLink = result.release.downloadLink,
-                        )
-                        navigator.push(updateScreen)
-                    }
-                } catch (e: Exception) {
-                    logcat(LogPriority.ERROR, e)
-                }
-            }
-        }
-
-        // Extensions updates
-        LaunchedEffect(Unit) {
-            try {
-                AnimeExtensionApi().checkForUpdates(context)
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                logcat(LogPriority.ERROR, e)
-            }
-        }
-        LaunchedEffect(Unit) {
-            try {
-                MangaExtensionApi().checkForUpdates(context)
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                logcat(LogPriority.ERROR, e)
-            }
-        }
+    private fun applySystemBarColors(
+        statusBar: androidx.compose.ui.graphics.Color,
+        navigationBar: androidx.compose.ui.graphics.Color,
+    ) {
+        val lightStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.BLACK)
+        val darkStyle = SystemBarStyle.dark(Color.TRANSPARENT)
+        enableEdgeToEdge(
+            statusBarStyle = if (statusBar.luminance() > 0.5) lightStyle else darkStyle,
+            navigationBarStyle = if (navigationBar.luminance() > 0.5) lightStyle else darkStyle,
+        )
     }
 
     /**
@@ -628,157 +327,6 @@ class MainActivity : BaseActivity() {
         }
     }
 
-    private fun handleIntentAction(intent: Intent, navigator: Navigator): Boolean {
-        if (intent.action == eu.kanade.tachiyomi.ui.player.session.PlaybackSessionService.OPEN ||
-            intent.action == eu.kanade.tachiyomi.ui.player.session.PlaybackSessionService.OPEN_START
-        ) {
-            val startPresentation = if (intent.action ==
-                eu.kanade.tachiyomi.ui.player.session.PlaybackSessionService.OPEN_START
-            ) {
-                Injekt.get<eu.kanade.tachiyomi.ui.player.settings.PlayerPreferences>()
-                    .startPresentation().get().presentation
-            } else {
-                eu.kanade.tachiyomi.ui.player.session.PlaybackPresentation.Page
-            }
-            lifecycleScope.launch {
-                kotlinx.coroutines.withTimeoutOrNull(15_000) {
-                    eu.kanade.tachiyomi.ui.player.session.PlaybackSessions.current.filterNotNull().first()
-                }?.present(startPresentation)
-            }
-            return true
-        }
-        val notificationId = intent.getIntExtra("notificationId", -1)
-        if (notificationId > -1) {
-            NotificationReceiver.dismissNotification(
-                applicationContext,
-                notificationId,
-                intent.getIntExtra("groupId", 0),
-            )
-        }
-
-        val tabToOpen = when (intent.action) {
-            Constants.SHORTCUT_ANIMELIB -> HomeScreen.Tab.AnimeLib()
-            Constants.SHORTCUT_LIBRARY -> HomeScreen.Tab.Library()
-            Constants.SHORTCUT_MANGA -> {
-                val idToOpen = intent.extras?.getLong(Constants.MANGA_EXTRA) ?: return false
-                navigator.popUntilRoot()
-                HomeScreen.Tab.Library(idToOpen)
-            }
-            Constants.SHORTCUT_ANIME -> {
-                val idToOpen = intent.extras?.getLong(Constants.ANIME_EXTRA) ?: return false
-                navigator.popUntilRoot()
-                HomeScreen.Tab.AnimeLib(idToOpen)
-            }
-            eu.kanade.tachiyomi.data.releases.ReleaseAgendaWidget.OPEN -> HomeScreen.Tab.Releases
-            Constants.SHORTCUT_UPDATES -> HomeScreen.Tab.Updates
-            Constants.SHORTCUT_HISTORY -> HomeScreen.Tab.History
-            Constants.SHORTCUT_SOURCES -> HomeScreen.Tab.Browse(false)
-            Constants.SHORTCUT_ANIMEEXTENSIONS -> HomeScreen.Tab.Browse(true, true)
-            Constants.SHORTCUT_EXTENSIONS -> HomeScreen.Tab.Browse(true)
-            Constants.SHORTCUT_DOWNLOADS -> {
-                navigator.popUntilRoot()
-                HomeScreen.Tab.More(toDownloads = true)
-            }
-            Constants.SHORTCUT_ANIME_DOWNLOADS -> {
-                navigator.popUntilRoot()
-                HomeScreen.Tab.More(toDownloads = true)
-            }
-            Intent.ACTION_SEARCH, Intent.ACTION_SEND, "com.google.android.gms.actions.SEARCH_ACTION" -> {
-                // If the intent match the "standard" Android search intent
-                // or the Google-specific search intent (triggered by saying or typing "search *query* on *Tachiyomi*" in Google Search/Google Assistant)
-
-                // Get the search query provided in extras, and if not null, perform a global search with it.
-                val query = intent.getStringExtra(SearchManager.QUERY)
-                    ?: intent.getStringExtra(Intent.EXTRA_TEXT)
-
-                if (!query.isNullOrEmpty()) {
-                    navigator.popUntilRoot()
-
-                    val contentLink = ContentLinks.extract(query)
-                        ?: query.takeIf { it.contains("nyanime://open/", ignoreCase = true) }
-                    if (contentLink != null) {
-                        navigator.push(SharedContentScreen(contentLink))
-                    } else {
-                        val screenType = intent.getStringExtra(INTENT_SEARCH_TYPE).orEmpty()
-                            .ifBlank { "ANIME" }
-                            .let(DeepLinkScreenType::valueOf)
-
-                        when (screenType) {
-                            DeepLinkScreenType.MANGA -> {
-                                navigator.push(GlobalMangaSearchScreen(query))
-                                navigator.push(DeepLinkMangaScreen(query))
-                            }
-                            DeepLinkScreenType.ANIME -> {
-                                navigator.push(GlobalAnimeSearchScreen(query))
-                                navigator.push(DeepLinkAnimeScreen(query))
-                            }
-                        }
-                    }
-                }
-                null
-            }
-            INTENT_SEARCH -> { // Used by extensions (url intent handlers)
-                val query = intent.getStringExtra(INTENT_SEARCH_QUERY)
-                if (!query.isNullOrEmpty()) {
-                    val filter = intent.getStringExtra(INTENT_SEARCH_FILTER)
-                    navigator.popUntilRoot()
-                    navigator.push(GlobalMangaSearchScreen(query, filter))
-                }
-                null
-            }
-            INTENT_ANIMESEARCH -> { // Same as above
-                val query = intent.getStringExtra(INTENT_SEARCH_QUERY)
-                if (!query.isNullOrEmpty()) {
-                    val filter = intent.getStringExtra(INTENT_SEARCH_FILTER)
-                    navigator.popUntilRoot()
-                    navigator.push(GlobalAnimeSearchScreen(query, filter))
-                }
-                null
-            }
-            Intent.ACTION_VIEW -> {
-                // Versioned content links always resolve through an installed extension.
-                if (ContentLinks.isContentUri(intent.data.toString())) {
-                    navigator.popUntilRoot()
-                    navigator.push(SharedContentScreen(intent.data.toString()))
-                }
-                // Handling opening of backup files
-                else if (BackupFileFormat.acceptsPath(intent.data?.path)) {
-                    navigator.popUntilRoot()
-                    navigator.push(RestoreBackupScreen(intent.data.toString()))
-                } else if (intent.scheme == "nyanime" && intent.data?.host == "extension-catalogue") {
-                    intent.data?.getQueryParameter("url")?.let { repoUrl ->
-                        navigator.popUntilRoot()
-                        navigator.push(ExtensionCatalogueScreen(repoUrl.take(4096)))
-                    }
-                }
-                // Deep link to add anime extension repo
-                else if (intent.isAddAnimeExtensionStoreIntent()) {
-                    intent.data?.getQueryParameter("url")?.let { repoUrl ->
-                        navigator.popUntilRoot()
-                        navigator.push(AnimeExtensionStoresScreen(repoUrl))
-                    }
-                } // Deep link to add extension repo
-                else if ((intent.scheme == "tachiyomi" && intent.data?.host == "add-repo") ||
-                    (intent.scheme == "nyanime" && intent.data?.host == "manga-repo")
-                ) {
-                    intent.data?.getQueryParameter("url")?.let { repoUrl ->
-                        navigator.popUntilRoot()
-                        navigator.push(MangaExtensionReposScreen(repoUrl))
-                    }
-                }
-                null
-            }
-            else -> return false
-        }
-
-        if (tabToOpen != null) {
-            lifecycleScope.launch { HomeScreen.openTab(tabToOpen) }
-        }
-
-        ready = true
-        return true
-    }
-
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putInt(NavigationRestorePolicy.KEY, NavigationRestorePolicy.SCHEMA)
         outState.putBoolean("nyanime_launch_intent_handled", launchIntentHandled)
@@ -791,11 +339,6 @@ class MainActivity : BaseActivity() {
         ExternalIntents.externalIntents.episodeId?.let {
             outState.putLong(SAVED_STATE_EPISODE_KEY, it)
         }
-    }
-
-    private fun Intent.isAddAnimeExtensionStoreIntent(): Boolean {
-        return (scheme == "aniyomi" && (data?.host == "add-repo" || data?.host == "extension-store")) ||
-            (scheme == "nyanime" && data?.host == "anime-store")
     }
 
     companion object {
@@ -824,7 +367,7 @@ class MainActivity : BaseActivity() {
         ) {
             if (extPlayer) {
                 val sourceId = sourceId ?: (Injekt.get<GetAnime>().await(animeId)?.source ?: -1L)
-                val (success, port) = startHttpServerService(context, sourceId)
+                val (success, port) = HttpServerService.start(context, sourceId)
                 if (!success) {
                     withUIContext { Injekt.get<Application>().toast(AYMR.strings.http_server_start_failure) }
                     return
@@ -856,24 +399,6 @@ class MainActivity : BaseActivity() {
                     ),
                 )
             }
-        }
-
-        suspend fun startHttpServerService(
-            context: Context,
-            sourceId: Long,
-            timeout: Duration = 5.seconds,
-        ): Pair<Boolean, Int> {
-            HttpServerService.resetIsRunning()
-            context.startService(
-                Intent(context, HttpServerService::class.java)
-                    .putExtra(HttpServerService.EXTRA_SOURCE_ID, sourceId),
-            )
-
-            val ready = withTimeoutOrNull(timeout) {
-                HttpServerService.isRunning.first { it }
-            }
-
-            return Pair(ready == true, HttpServerService.port)
         }
     }
 }

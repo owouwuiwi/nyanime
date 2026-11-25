@@ -50,6 +50,8 @@ import eu.kanade.presentation.entries.components.ItemCover
 import eu.kanade.presentation.motion.ModernMotion
 import eu.kanade.presentation.motion.appMotionEnabled
 import eu.kanade.tachiyomi.R
+import eu.kanade.tachiyomi.data.releases.ReleaseAgendaActions
+import eu.kanade.tachiyomi.data.releases.ReleaseAgendaItem
 import eu.kanade.tachiyomi.data.releases.ReleaseMedium
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -129,7 +131,7 @@ internal fun ReleaseAgendaActionsSheet(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        item.label,
+                        item.label.displayText(),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,

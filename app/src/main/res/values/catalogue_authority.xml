@@ -7,6 +7,14 @@
     <string name="catalogue_drive_folder_error">Check that anyone with the Google Drive link can open the folder and that it contains one valid index.json file.</string>
     <string name="catalogue_drive_file_error">Check that anyone with the Google Drive link can open the file and that it is a valid catalogue index.</string>
     <string name="catalogue_bridge_count">Bridges · %1$d</string>
+    <string name="catalogue_preview_checking">Checking catalogues…</string>
+    <string name="catalogue_links_title">Linked catalogues</string>
+    <string name="catalogue_link_verified">Signing fingerprint matches</string>
+    <string name="catalogue_link_identity_mismatch">Declared address or publisher does not match</string>
+    <string name="catalogue_link_unavailable">Catalogue unavailable or unreadable</string>
+    <string name="catalogue_links_incomplete">Every linked catalogue must pass verification before you can add them together.</string>
+    <string name="catalogue_links_done">Catalogues are ready. Open the Store to choose extensions.</string>
+    <string name="catalogue_primary_trust_hint">Applies to extensions you choose from the main catalogue. You can manage trust for linked catalogues separately.</string>
     <string name="catalogue_reset_title">Reset extension setup</string>
     <string name="catalogue_reset_description">This update clears your old catalogues once. Remove the existing extensions before continuing. You can then add your catalogues in the Store and reinstall the extensions you use.</string>
     <string name="catalogue_reset_preserved">Your library, progress and downloads are kept.</string>

@@ -6,10 +6,12 @@ import cafe.adriel.voyager.navigator.Navigator
 import com.android.tools.screenshot.PreviewTest
 import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.domain.ui.model.AppTheme
-import eu.kanade.presentation.components.releases.ReleaseAgendaItem
 import eu.kanade.presentation.components.releases.ReleaseCalendarContent
 import eu.kanade.presentation.theme.TachiyomiPreviewTheme
 import eu.kanade.presentation.util.Screen
+import eu.kanade.tachiyomi.data.releases.AiringEvent
+import eu.kanade.tachiyomi.data.releases.ReleaseAgendaItem
+import eu.kanade.tachiyomi.data.releases.ReleaseAgendaLabel
 import eu.kanade.tachiyomi.data.releases.ReleaseMedium
 import kotlinx.collections.immutable.persistentMapOf
 import tachiyomi.core.common.preference.InMemoryPreferenceStore
@@ -63,7 +65,7 @@ private class AgendaScreen(val empty: Boolean, val calendar: Boolean) : Screen()
             "Il ritorno nella citta delle stelle: una promessa per domani",
             null,
             date.atTime(18, 30).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
-            "Trasmissione originale · Episodio 15",
+            ReleaseAgendaLabel.OriginalBroadcast(AiringEvent(entryId = 1, episode = 15, airingAt = 0, catalogId = 0)),
         )
         ReleaseCalendarContent(
             YearMonth.from(date), if (calendar || empty) date else null, persistentMapOf(date to 2),
@@ -76,7 +78,7 @@ private class AgendaScreen(val empty: Boolean, val calendar: Boolean) : Screen()
                     event.copy(
                         key = "manga-available",
                         title = "Le avventure oltre l’orizzonte",
-                        label = "Disponibile · Capitolo 12",
+                        label = ReleaseAgendaLabel.Available("Capitolo 12"),
                         itemId = 1,
                         medium = ReleaseMedium.MANGA,
                     ),
@@ -84,7 +86,7 @@ private class AgendaScreen(val empty: Boolean, val calendar: Boolean) : Screen()
                 )
             },
             false, null, {}, {}, {}, {},
-            initialCalendar = calendar, showBack = false, showMediaFilter = true, today = date,
+            initialCalendar = calendar, showMediaFilter = true, today = date,
         )
     }
 }

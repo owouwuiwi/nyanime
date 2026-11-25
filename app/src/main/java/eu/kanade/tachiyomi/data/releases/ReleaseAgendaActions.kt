@@ -1,6 +1,5 @@
-package eu.kanade.presentation.components.releases
+package eu.kanade.tachiyomi.data.releases
 
-import eu.kanade.tachiyomi.data.releases.ReleaseMedium
 import java.util.Base64
 
 /** A dismissal follows one release through date changes and local database-ID remapping. */

@@ -4,12 +4,17 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 import org.w3c.dom.Element
+import java.io.File
+import javax.xml.parsers.DocumentBuilderFactory
 
 class LauncherUpgradeContractTest {
     @Test
     fun updatesReuseTheExistingDefaultAndNeverAddAnotherDefaultEnabledLauncher() {
-        val manifest = requireNotNull(NyanimeIdentityPaletteTest.resources.parentFile).resolve("AndroidManifest.xml")
-        val xml = NyanimeIdentityPaletteTest.xmlFactory().newDocumentBuilder().parse(manifest)
+        val manifest = listOf(File("src/main/AndroidManifest.xml"), File("app/src/main/AndroidManifest.xml"))
+            .first { it.isFile }
+        val xml = DocumentBuilderFactory.newInstance().apply {
+            setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
+        }.newDocumentBuilder().parse(manifest)
         val nodes = xml.getElementsByTagName("activity-alias")
         val aliases = (0 until nodes.length).map { nodes.item(it) as Element }
             .filter { it.getAttribute("android:targetActivity") == ".ui.main.LauncherActivity" }

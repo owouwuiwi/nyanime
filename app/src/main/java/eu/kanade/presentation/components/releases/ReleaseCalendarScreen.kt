@@ -28,8 +28,11 @@ import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.model.rememberScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import eu.kanade.presentation.motion.appMotionEnabled
 import eu.kanade.presentation.util.Screen
 import eu.kanade.tachiyomi.R
+import eu.kanade.tachiyomi.data.releases.ReleaseAgendaActions
+import eu.kanade.tachiyomi.data.releases.ReleaseAgendaItem
 import eu.kanade.tachiyomi.data.releases.ReleaseMedium
 import eu.kanade.tachiyomi.data.releases.ReleasePreferences
 import eu.kanade.tachiyomi.ui.entries.anime.AnimeScreen
@@ -84,14 +87,15 @@ fun cafe.adriel.voyager.core.screen.Screen.ReleaseCalendar(
     ReleaseCalendarContent(
         state.month, state.date, state.events, state.items,
         state.loading,
-        state.warning.takeUnless {
-            state.medium == ReleaseMedium.MANGA
-        },
+        state.warning?.let { stringResource(it.agendaWarningResource()) },
         model::setMonth, model::setDate, model::refresh,
         onItem = {
             choiceTitle = false
             if (it.choices.isEmpty()) open(it) else choice = it
-        }, showBack = showBack, showMediaFilter = true, medium = state.medium,
+        },
+        onNavigateUp = if (showBack) ({ navigator.pop() }) else null,
+        showMediaFilter = true,
+        medium = state.medium,
         onMedium = if (unified) {
             model::setMedium
         } else {
@@ -103,6 +107,7 @@ fun cafe.adriel.voyager.core.screen.Screen.ReleaseCalendar(
         onStatus = { showIssues = true },
         onSchedule = { navigator.push(AnimeScheduleScreen()) },
         onLongItem = { actions = it },
+        motionEnabled = appMotionEnabled(),
         snackbarHostState = model.snackbarHostState,
     )
     actions?.let { item ->
@@ -175,7 +180,7 @@ fun cafe.adriel.voyager.core.screen.Screen.ReleaseCalendar(
                                 Text(option.title, style = MaterialTheme.typography.bodySmall)
                             }
                             Text(
-                                option.label,
+                                option.label.displayText(),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )

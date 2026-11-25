@@ -1,4 +1,4 @@
-package eu.kanade.tachiyomi.ui
+package eu.kanade.presentation.theme
 
 import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
@@ -92,7 +92,9 @@ class NyanimeIdentityPaletteTest {
         internal val resources: File get() {
             val workingDirectory = File(requireNotNull(System.getProperty("user.dir")))
             return generateSequence(workingDirectory) { it.parentFile }
-                .map { it.resolve("app/src/main/res") }.first { it.isDirectory }
+                .first { it.name == "presentation-design" || it.resolve("presentation-design").isDirectory }
+                .let { if (it.name == "presentation-design") it else it.resolve("presentation-design") }
+                .resolve("src/main/res")
         }
 
         internal fun xmlFactory(): DocumentBuilderFactory = DocumentBuilderFactory.newInstance().apply {

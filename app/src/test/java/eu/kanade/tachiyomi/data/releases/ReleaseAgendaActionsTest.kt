@@ -1,8 +1,5 @@
 package eu.kanade.tachiyomi.data.releases
 
-import eu.kanade.presentation.components.releases.ReleaseAgendaActions
-import eu.kanade.presentation.components.releases.ReleaseAgendaItem
-import eu.kanade.presentation.components.releases.ReleaseAgendaMerge
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -23,7 +20,10 @@ class ReleaseAgendaActionsTest {
     }
 
     private fun item(id: Long, number: Double = 2.0, available: Boolean = false) = ReleaseAgendaItem(
-        key = "item-$id", entryId = id, title = "Series", cover = null, at = 1000, label = "Episode $number",
+        key = "item-$id", entryId = id, title = "Series", cover = null, at = 1000,
+        label = ReleaseAgendaLabel.Available(
+            "Episode $number",
+        ),
         itemId = if (available) id * 10 else null, number = number,
         agendaKeys = setOf(ReleaseAgendaActions.key(ReleaseMedium.ANIME, id, "/series/$id", number)),
     )

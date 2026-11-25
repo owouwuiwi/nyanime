@@ -1,5 +1,6 @@
 package eu.kanade.presentation.components.releases
 
+import eu.kanade.tachiyomi.data.releases.ReleaseAgendaItem
 import java.time.LocalDate
 
 /** Local, chronological rows. Empty anchor days remain reachable without inventing releases. */

@@ -2,6 +2,7 @@ package eu.kanade.tachiyomi.data.player.service
 
 import android.app.PendingIntent
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.graphics.BitmapFactory
@@ -13,8 +14,9 @@ import eu.kanade.tachiyomi.animesource.online.AnimeHttpSource
 import eu.kanade.tachiyomi.data.notification.Notifications
 import eu.kanade.tachiyomi.util.system.notificationBuilder
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.withTimeoutOrNull
 import logcat.LogPriority
 import nyanime.extension.internal.layerHttpServer
 import tachiyomi.core.common.i18n.stringResource
@@ -23,6 +25,8 @@ import tachiyomi.domain.source.anime.service.AnimeSourceManager
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.aniyomi.AYMR
 import uy.kohesive.injekt.injectLazy
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 class HttpServerService : Service() {
 
@@ -38,7 +42,7 @@ class HttpServerService : Service() {
         }
 
         if (isRunning.value) {
-            _isRunning.update { _ -> false }
+            isRunning.update { _ -> false }
             httpServer?.stop()
         }
 
@@ -61,7 +65,7 @@ class HttpServerService : Service() {
             return START_NOT_STICKY
         }
 
-        _isRunning.update { _ -> true }
+        isRunning.update { _ -> true }
         val stopIntent = Intent(this, HttpServerService::class.java).apply {
             action = ACTION_STOP
         }
@@ -100,7 +104,7 @@ class HttpServerService : Service() {
     }
 
     override fun onDestroy() {
-        _isRunning.update { _ -> false }
+        isRunning.update { _ -> false }
         httpServer?.stop()
         super.onDestroy()
     }
@@ -110,14 +114,22 @@ class HttpServerService : Service() {
         private val ACTION_STOP = "${BuildConfig.APPLICATION_ID}.$NAME.ACTION_STOP"
         const val EXTRA_SOURCE_ID = "$NAME.EXTRA.SOURCE.ID"
 
-        fun resetIsRunning() {
-            _isRunning.update { _ -> false }
-        }
-
-        private val _isRunning = MutableStateFlow(false)
-        val isRunning = _isRunning.asStateFlow()
+        private val isRunning = MutableStateFlow(false)
 
         @Volatile
-        var port: Int = 0
+        private var port: Int = 0
+
+        internal suspend fun start(
+            context: Context,
+            sourceId: Long,
+            timeout: Duration = 5.seconds,
+        ): Pair<Boolean, Int> {
+            isRunning.value = false
+            context.startService(
+                Intent(context, HttpServerService::class.java).putExtra(EXTRA_SOURCE_ID, sourceId),
+            )
+            val ready = withTimeoutOrNull(timeout) { isRunning.first { it } }
+            return Pair(ready == true, port)
+        }
     }
 }

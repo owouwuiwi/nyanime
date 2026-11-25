@@ -1,4 +1,4 @@
-package eu.kanade.presentation.components.releases
+package eu.kanade.tachiyomi.data.releases
 
 import tachiyomi.data.discovery.mergeHomeCards
 import tachiyomi.domain.discovery.homePresentation

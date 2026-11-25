@@ -3,6 +3,7 @@ package eu.kanade.tachiyomi.extension
 import eu.kanade.domain.extension.ExtensionCatalogueLink
 import eu.kanade.domain.extension.ExtensionCatalogueMedium
 import eu.kanade.domain.extension.UnifiedExtensionCatalogue
+import eu.kanade.domain.extension.UnifiedExtensionCatalogue.LinkedCatalogue
 import eu.kanade.presentation.more.settings.screen.browse.DriveCatalogueResolver
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -118,4 +119,46 @@ class UnifiedExtensionCatalogueTest {
         val result = UnifiedExtensionCatalogue.parse(catalogue.trimEnd().dropLast(1) + ",$packageList}")
         assertEquals(2, result.bridgeCount)
     }
+
+    @Test fun readsExplicitAnimeAndMangaCatalogueLinks() {
+        val anime = "https://anime.invalid/index.pb"
+        val manga = "https://manga.invalid/index.json"
+        val result = withCatalogueLinks("""
+            {"url":"$anime","type":"anime","signingKey":"${"b".repeat(64)}"},
+            {"url":"$manga","type":"manga","signingKey":"${"c".repeat(64)}"}
+        """.trimIndent())
+        assertEquals(
+            listOf(
+                LinkedCatalogue(anime, LinkedCatalogue.Type.ANIME, "b".repeat(64)),
+                LinkedCatalogue(manga, LinkedCatalogue.Type.MANGA, "c".repeat(64)),
+            ),
+            result.catalogues,
+        )
+        assertTrue(UnifiedExtensionCatalogue.parse(catalogue).catalogues.isEmpty())
+    }
+
+    @Test fun rejectsDuplicateOrUnverifiableCatalogueLinks() {
+        val signer = "b".repeat(64)
+        fun link(url: String, type: String = "manga", key: String = signer) =
+            """{"url":"$url","type":"$type","signingKey":"$key"}"""
+
+        listOf(
+            link("http://catalogue.invalid/index.pb"),
+            link("https://user@catalogue.invalid/index.pb"),
+            link("https://catalogue.invalid/index.pb?index=other.pb"),
+            link("https://catalogue.invalid/index.pb#other.pb"),
+            link("https://catalogue.invalid/repo"),
+            link("https://drive.google.com/drive/folders/folder_id?usp=sharing"),
+            link("https://catalogue.invalid/index.pb", "tv"),
+            link("https://catalogue.invalid/index.pb", key = "unverified"),
+            link("https://catalogue.invalid/index.pb") + "," +
+                link("https://CATALOGUE.invalid:443/index.pb", "anime"),
+            link("https://catalogue.invalid/index.pb") + "," + link("https://other.invalid/index.pb"),
+        ).forEach { links ->
+            assertThrows(IllegalArgumentException::class.java) { withCatalogueLinks(links) }
+        }
+    }
+
+    private fun withCatalogueLinks(links: String): UnifiedExtensionCatalogue =
+        UnifiedExtensionCatalogue.parse(catalogue.trimEnd().dropLast(1) + ",\"catalogues\":[$links]}")
 }

@@ -10,7 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
-import eu.kanade.tachiyomi.R
+import it.lorelore.nyanime.presentation.design.R
 
 val LocalDarkTheme = staticCompositionLocalOf { true }
 

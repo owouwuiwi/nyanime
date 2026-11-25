@@ -249,7 +249,8 @@ class PublicDistributionTest(unittest.TestCase):
     def test_source_policy_preserves_code_but_excludes_local_material_and_signing_keys(self):
         for name in ['app/src/main/Example.kt', 'scripts/release_version.py', 'tools/native/README.md', 'LICENSE',
                      'feature/example-module/build.gradle.kts', 'feature/example-module/prepare.py',
-                     'feature/example-module/src/main/Example.kt']:
+                     'feature/example-module/src/main/Example.kt', 'presentation-design/build.gradle.kts',
+                     'presentation-design/src/main/Example.kt']:
             self.assertTrue(allowed_source(name), name)
             self.assertTrue(publisher.validate_name('public/' + name), name)
         for name in ['app/build/output.txt', 'feature/example-module/build/generated.kt',

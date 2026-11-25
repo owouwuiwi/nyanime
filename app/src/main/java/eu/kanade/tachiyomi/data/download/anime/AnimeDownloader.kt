@@ -28,8 +28,8 @@ import eu.kanade.tachiyomi.data.download.transfer.TransferCoordinator
 import eu.kanade.tachiyomi.data.download.transfer.TransferPhase
 import eu.kanade.tachiyomi.data.download.transfer.TransferWait
 import eu.kanade.tachiyomi.data.download.transfer.selectDownloads
+import eu.kanade.tachiyomi.data.player.service.HttpServerService
 import eu.kanade.tachiyomi.data.torrent.service.TorrentServerService
-import eu.kanade.tachiyomi.ui.main.MainActivity
 import eu.kanade.tachiyomi.ui.player.loader.EpisodeLoader
 import eu.kanade.tachiyomi.ui.player.loader.HosterLoader
 import eu.kanade.tachiyomi.util.storage.DiskUtil
@@ -524,7 +524,7 @@ class AnimeDownloader(
                         downloadVideo(download, tmpDir, filename)
                     } else {
                         if (download.video!!.usesHttpServer()) {
-                            val (success, port) = MainActivity.startHttpServerService(context, download.source.id)
+                            val (success, port) = HttpServerService.start(context, download.source.id)
                             if (!success) throw Exception("Failed to start server")
                             download.video = download.video!!.copyHttpServer(port)
                         }

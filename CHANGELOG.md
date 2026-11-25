@@ -9,6 +9,12 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 25 novembre 2026 — 0.81.1.3
+
+### Store
+
+- Un solo link può aggiungere i bridge del catalogo e le origini elencate nell’indice. Nyanime legge le estensioni e gli aggiornamenti dagli indici dei rispettivi editori e conserva le origini già configurate.
+
 ## 25 novembre 2026 — 0.81.1.2
 
 ### Store

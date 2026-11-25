@@ -54,13 +54,11 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import cafe.adriel.voyager.navigator.LocalNavigator
-import cafe.adriel.voyager.navigator.currentOrThrow
 import eu.kanade.presentation.components.AppBar
 import eu.kanade.presentation.components.relativeDateText
 import eu.kanade.presentation.entries.components.ItemCover
-import eu.kanade.presentation.motion.appMotionEnabled
 import eu.kanade.tachiyomi.R
+import eu.kanade.tachiyomi.data.releases.ReleaseAgendaItem
 import eu.kanade.tachiyomi.data.releases.ReleaseMedium
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.coroutines.launch
@@ -72,27 +70,6 @@ import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-
-data class ReleaseAgendaItem(
-    val key: String,
-    val entryId: Long,
-    val title: String,
-    val cover: Any?,
-    val at: Long,
-    val label: String,
-    val itemId: Long? = null,
-    val medium: ReleaseMedium = ReleaseMedium.ANIME,
-    val dismissalKey: String? = null,
-    val number: Double? = null,
-    val sourceLabel: String = "",
-    val choices: List<ReleaseAgendaItem> = emptyList(),
-    val broadcasts: List<eu.kanade.tachiyomi.data.releases.ScheduleBroadcast> = emptyList(),
-    val relatedEntryIds: Set<Long> = emptySet(),
-    val agendaKeys: Set<String> = emptySet(),
-    val plannedAgendaKeys: Set<String> = emptySet(),
-) {
-    val date: LocalDate get() = Instant.ofEpochMilli(at).atZone(ZoneId.systemDefault()).toLocalDate()
-}
 
 @Composable
 fun ReleaseCalendarContent(
@@ -107,7 +84,7 @@ fun ReleaseCalendarContent(
     onRefresh: () -> Unit,
     onItem: (ReleaseAgendaItem) -> Unit,
     initialCalendar: Boolean = false,
-    showBack: Boolean = true,
+    onNavigateUp: (() -> Unit)? = null,
     showMediaFilter: Boolean = false,
     medium: ReleaseMedium? = null,
     onMedium: (ReleaseMedium?) -> Unit = {},
@@ -116,26 +93,18 @@ fun ReleaseCalendarContent(
     onStatus: (() -> Unit)? = null,
     onSchedule: (() -> Unit)? = null,
     onLongItem: (ReleaseAgendaItem) -> Unit = {},
+    motionEnabled: Boolean = true,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
-    val navigator = LocalNavigator.currentOrThrow
     val locale = LocalConfiguration.current.locales[0]
     var calendarVisible by rememberSaveable { mutableStateOf(initialCalendar) }
-    val motion = appMotionEnabled()
     val scope = rememberCoroutineScope()
     val focusDate = selectedDate ?: if (calendarVisible && month != YearMonth.from(today)) month.atDay(1) else today
     val timeline = remember(items, today, focusDate) { ReleaseAgendaTimeline(items, today, focusDate) }
     Scaffold(topBar = {
         AppBar(
             title = stringResource(R.string.release_title),
-            navigateUp = if (showBack) {
-                {
-                    navigator.pop()
-                    Unit
-                }
-            } else {
-                null
-            },
+            navigateUp = onNavigateUp,
             actions = {
                 if (onSchedule != null) {
                     IconButton(onClick = onSchedule) {
@@ -198,7 +167,7 @@ fun ReleaseCalendarContent(
                                 calendarVisible = false
                             } else {
                                 scope.launch {
-                                    if (motion) {
+                                    if (motionEnabled) {
                                         listState.animateScrollToItem(timeline.indexOf(today))
                                     } else {
                                         listState.scrollToItem(timeline.indexOf(today))
@@ -246,7 +215,7 @@ fun ReleaseCalendarContent(
                                 is ReleaseAgendaTimeline.Row.Release -> ReleaseCard(
                                     row.item,
                                     showMediaFilter,
-                                    motion,
+                                    motionEnabled,
                                     locale,
                                     onItem,
                                     onLongItem,
@@ -336,7 +305,7 @@ private fun ReleaseTimelineEnd() {
 private fun LazyItemScope.ReleaseCard(
     item: ReleaseAgendaItem,
     showMediaFilter: Boolean,
-    motion: Boolean,
+    motionEnabled: Boolean,
     locale: Locale,
     onItem: (ReleaseAgendaItem) -> Unit,
     onLongItem: (ReleaseAgendaItem) -> Unit,
@@ -346,7 +315,7 @@ private fun LazyItemScope.ReleaseCard(
     val actionsLabel = stringResource(R.string.release_entry_actions)
     val shape = RoundedCornerShape(16.dp)
     Card(
-        (if (motion) Modifier.animateItem() else Modifier).fillMaxWidth().padding(
+        (if (motionEnabled) Modifier.animateItem() else Modifier).fillMaxWidth().padding(
             horizontal = 16.dp,
         ).combinedClickable(
             onClick = { onItem(item) },
@@ -395,7 +364,7 @@ private fun LazyItemScope.ReleaseCard(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    item.label,
+                    item.label.displayText(),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

@@ -1,6 +1,5 @@
 package eu.kanade.tachiyomi.data.releases
 
-import eu.kanade.presentation.components.releases.ReleaseAgendaItem
 import eu.kanade.presentation.components.releases.ReleaseAgendaTimeline
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -20,7 +19,7 @@ class ReleaseAgendaTimelineTest {
             "Title",
             null,
             today.plusDays(offset).atTime(hour, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
-            "Available",
+            ReleaseAgendaLabel.Available("Available"),
             medium = medium,
         )
 

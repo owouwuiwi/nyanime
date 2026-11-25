@@ -11,6 +11,14 @@ e il `medium` di ciascuna voce separano i tipi senza dedurli dai nomi. Un catalo
 può dichiarare gli URL precedenti tramite `replaces`: il passaggio aggiorna entrambi
 i registri e ripristina la configurazione precedente in caso di errore.
 
+Il campo facoltativo `catalogues` aggiunge origini indipendenti con una sola
+conferma. Ogni voce dichiara `type` (`anime` o `manga`), l’URL HTTPS diretto
+dell’indice (`url`) e l’impronta SHA-256 dell’editore (`signingKey`). L’URL deve
+essere quello finale dell’indice. Nyanime verifica le origini prima di salvare e
+mantiene la configurazione già presente delle origini collegate. Ogni origine usa
+il proprio indice per l’elenco e gli aggiornamenti. L’eventuale consenso alla
+firma del catalogo unificato si applica solo a quel catalogo.
+
 Le estensioni Notizie si installano e aggiornano in Notizie → Fonti dai cataloghi
 già importati. Download limitati e verificati per hash, pacchetto, API, certificato
 memorizzato al momento dell’importazione e ID di distribuzione precedono l’installer

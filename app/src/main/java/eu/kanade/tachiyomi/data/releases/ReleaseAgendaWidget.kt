@@ -9,7 +9,7 @@ import android.content.Intent
 import android.os.Build
 import android.widget.RemoteViews
 import eu.kanade.domain.base.BasePreferences
-import eu.kanade.presentation.components.releases.ReleaseAgendaRepository
+import eu.kanade.presentation.components.releases.displayText
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.core.security.SecurityPreferences
 import eu.kanade.tachiyomi.ui.main.MainActivity
@@ -111,7 +111,7 @@ class ReleaseAgendaWidget : AppWidgetProvider() {
                         R.id.release_widget_time,
                         "${Instant.ofEpochMilli(
                             item.at,
-                        ).atZone(ZoneId.systemDefault()).format(formatter)}\n${item.label}",
+                        ).atZone(ZoneId.systemDefault()).format(formatter)}\n${item.label.displayText(context)}",
                     )
                     row.setTextColor(
                         R.id.release_widget_time,

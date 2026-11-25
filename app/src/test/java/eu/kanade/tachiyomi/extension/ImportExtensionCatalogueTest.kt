@@ -1,7 +1,10 @@
 package eu.kanade.tachiyomi.extension
 
+import eu.kanade.domain.extension.ExtensionCatalogueTrust
 import eu.kanade.domain.extension.ImportExtensionCatalogue
 import eu.kanade.domain.extension.UnifiedExtensionCatalogue
+import eu.kanade.domain.extension.UnifiedExtensionCatalogue.LinkedCatalogue
+import eu.kanade.domain.extension.VerifiedLinkedCatalogue
 import eu.kanade.tachiyomi.extension.anime.model.AnimeExtension
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -12,14 +15,18 @@ import mihon.domain.extensionrepo.manga.repository.MangaExtensionRepoRepository
 import mihon.domain.extensionrepo.model.ExtensionRepo
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import tachiyomi.core.common.preference.InMemoryPreferenceStore
 
 class ImportExtensionCatalogueTest {
     private val key = "a".repeat(64)
     private val oldUrl = "https://catalogue.invalid/old/index.json"
     private val newUrl = "https://catalogue.invalid/index.json"
     private val unrelatedUrl = "https://unrelated.invalid/index.json"
+    private val linkedAnime = LinkedCatalogue("https://anime.invalid/index.pb", LinkedCatalogue.Type.ANIME, "b".repeat(64))
+    private val linkedManga = LinkedCatalogue("https://manga.invalid/index.pb", LinkedCatalogue.Type.MANGA, "c".repeat(64))
     private val catalogue = UnifiedExtensionCatalogue(
         "Example",
         "Example",
@@ -68,6 +75,90 @@ class ImportExtensionCatalogueTest {
         assertTrue(manga.values.isEmpty())
     }
 
+    @Test fun verifiedLinksAreAddedInTheSameBatchWithoutInheritedTrust(): Unit = runBlocking {
+        val anime = AnimeRegistry(emptyList())
+        val manga = MangaRegistry(emptyList())
+        val trust = ExtensionCatalogueTrust(InMemoryPreferenceStore())
+        trust.set(unrelatedUrl, key, true)
+        val parent = catalogue.copy(catalogues = listOf(linkedAnime, linkedManga))
+        val children = listOf(
+            VerifiedLinkedCatalogue.Anime(linkedAnime, video(linkedAnime.url, linkedAnime.signingKey)),
+            VerifiedLinkedCatalogue.Manga(linkedManga, reader(linkedManga.url, linkedManga.signingKey)),
+        )
+        val importer = ImportExtensionCatalogue(anime, manga, trust)
+        repeat(2) { importer.await(newUrl, parent, trustExtensions = true, linkedCatalogues = children) }
+        assertEquals(setOf(newUrl, linkedAnime.url), anime.values.keys)
+        assertEquals(setOf(newUrl, linkedManga.url), manga.values.keys)
+        assertTrue(trust.permits(newUrl, key))
+        assertTrue(trust.permits(unrelatedUrl, key))
+        assertFalse(trust.permits(linkedAnime.url, linkedAnime.signingKey))
+        assertFalse(trust.permits(linkedManga.url, linkedManga.signingKey))
+    }
+
+    @Test fun linkedMangaAliasRetainsPreviouslyConfiguredRepositoryAndApproval(): Unit = runBlocking {
+        val existing = reader(oldUrl, linkedManga.signingKey)
+        val anime = AnimeRegistry(emptyList())
+        val manga = MangaRegistry(listOf(existing))
+        val trust = ExtensionCatalogueTrust(InMemoryPreferenceStore())
+        trust.set(oldUrl, existing.signingKeyFingerprint, true)
+        ImportExtensionCatalogue(anime, manga, trust).await(
+            newUrl,
+            catalogue.copy(catalogues = listOf(linkedManga)),
+            linkedCatalogues = listOf(VerifiedLinkedCatalogue.Manga(linkedManga, reader(linkedManga.url, linkedManga.signingKey))),
+        )
+        assertEquals(existing, manga.values[oldUrl])
+        assertFalse(linkedManga.url in manga.values)
+        assertTrue(trust.permits(oldUrl, existing.signingKeyFingerprint))
+    }
+
+    @Test fun missingOrConflictingLinkedCatalogueLeavesBothRegistriesUnchanged(): Unit = runBlocking {
+        val existing = video(linkedAnime.url)
+        val anime = AnimeRegistry(listOf(existing))
+        val manga = MangaRegistry(emptyList())
+        val importer = ImportExtensionCatalogue(anime, manga)
+        val parent = catalogue.copy(catalogues = listOf(linkedAnime))
+        assertTrue(runCatching { importer.await(newUrl, parent) }.exceptionOrNull() is IllegalArgumentException)
+        val child = VerifiedLinkedCatalogue.Anime(linkedAnime, video(linkedAnime.url, linkedAnime.signingKey))
+        assertTrue(runCatching {
+            importer.await(newUrl, parent, linkedCatalogues = listOf(child))
+        }.exceptionOrNull() is IllegalArgumentException)
+        assertEquals(listOf(existing), anime.values.values.toList())
+        assertTrue(manga.values.isEmpty())
+    }
+
+    @Test fun failureAfterWritingLastLinkedCatalogueRollsBackTheBatch(): Unit = runBlocking {
+        val anime = AnimeRegistry(listOf(video(oldUrl)))
+        val manga = MangaRegistry(listOf(reader(oldUrl)), failAfterWriting = linkedManga.url)
+        val trust = ExtensionCatalogueTrust(InMemoryPreferenceStore())
+        trust.set(newUrl, key, true)
+        val children = listOf(
+            VerifiedLinkedCatalogue.Anime(linkedAnime, video(linkedAnime.url, linkedAnime.signingKey)),
+            VerifiedLinkedCatalogue.Manga(linkedManga, reader(linkedManga.url, linkedManga.signingKey)),
+        )
+        assertTrue(runCatching {
+            ImportExtensionCatalogue(anime, manga, trust).await(
+                newUrl,
+                catalogue.copy(catalogues = children.map { it.reference }),
+                linkedCatalogues = children,
+            )
+        }.isFailure)
+        assertEquals(listOf(video(oldUrl)), anime.values.values.toList())
+        assertEquals(listOf(reader(oldUrl)), manga.values.values.toList())
+        assertTrue(trust.permits(newUrl, key))
+    }
+
+    @Test fun linkedMetadataMustMatchTheDeclaredTypeUrlAndSigner() {
+        assertThrows(IllegalArgumentException::class.java) {
+            VerifiedLinkedCatalogue.Anime(linkedManga, video(linkedManga.url, linkedManga.signingKey))
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            VerifiedLinkedCatalogue.Anime(linkedAnime, video(oldUrl, linkedAnime.signingKey))
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            VerifiedLinkedCatalogue.Manga(linkedManga, reader(linkedManga.url))
+        }
+    }
+
     private class AnimeRegistry(initial: List<AnimeExtensionStore>) : AnimeExtensionStoreRepository {
         val values = initial.associateBy { it.indexUrl }.toMutableMap()
         override suspend fun insert(indexUrl: String): Result<Unit> = error("Must use the verified metadata")
@@ -88,6 +179,7 @@ class ImportExtensionCatalogueTest {
     private class MangaRegistry(
         initial: List<ExtensionRepo>,
         var failNextReplace: Boolean = false,
+        val failAfterWriting: String? = null,
     ) : MangaExtensionRepoRepository {
         val values = initial.associateBy { it.baseUrl }.toMutableMap()
         override fun subscribeAll(): Flow<List<ExtensionRepo>> = flowOf(values.values.toList())
@@ -120,6 +212,7 @@ class ImportExtensionCatalogueTest {
                 error("Simulated storage error")
             }
             values[baseUrl] = ExtensionRepo(baseUrl, name, shortName, website, signingKeyFingerprint)
+            if (baseUrl == failAfterWriting) error("Simulated failure after writing")
         }
         override suspend fun replaceRepo(newRepo: ExtensionRepo) {
             if (failNextReplace) {

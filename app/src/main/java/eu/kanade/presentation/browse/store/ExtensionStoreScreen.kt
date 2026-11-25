@@ -486,6 +486,7 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                 onDismissRequest = { addCatalogue = false },
                 onLink = {
                     addCatalogue = false
+                    catalogues = false
                     navigator.push(ExtensionCatalogueScreen(it))
                 },
                 unified = true,

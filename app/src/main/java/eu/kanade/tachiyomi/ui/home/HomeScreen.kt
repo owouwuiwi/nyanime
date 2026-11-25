@@ -3,17 +3,13 @@ package eu.kanade.tachiyomi.ui.home
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -27,13 +23,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Adjust
 import androidx.compose.material.icons.outlined.Tune
@@ -41,13 +34,11 @@ import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.NavigationRailItemDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -63,26 +54,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithCache
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import cafe.adriel.voyager.core.model.rememberScreenModel
@@ -128,7 +109,10 @@ import eu.kanade.tachiyomi.ui.search.UnifiedSearchTab
 import eu.kanade.tachiyomi.ui.search.UnifiedSearchUpgradeDialog
 import eu.kanade.tachiyomi.ui.search.UnifiedSearchUpgradeNotice
 import eu.kanade.tachiyomi.ui.updates.UpdatesTab
+import it.lorelore.nyanime.navigation.FloatingNavigationItem
+import it.lorelore.nyanime.navigation.FloatingNavigationItems
 import it.lorelore.nyanime.navigation.FloatingNavigationLayout
+import it.lorelore.nyanime.navigation.FloatingNavigationSurface
 import it.lorelore.nyanime.notifications.LocalNotificationAccess
 import it.lorelore.nyanime.notifications.NotificationAccessEdgeGlow
 import it.lorelore.nyanime.notifications.NotificationAccessWarningButton
@@ -647,67 +631,40 @@ object HomeScreen : Screen() {
 
     @Composable
     private fun FloatingNavigationBar(tabs: List<eu.kanade.presentation.util.Tab>) {
-        val colorScheme = MaterialTheme.colorScheme
         val motion = modernMotionEnabled()
         val selectTab = LocalSelectHomeTab.current
-        Box(
-            Modifier.fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(
-                    start = 12.dp,
-                    end = 12.dp,
-                    top = FloatingNavigationLayout.topMargin,
-                    bottom = FloatingNavigationLayout.bottomMargin,
-                ),
-        ) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(26.dp),
-                color = colorScheme.surfaceContainerHigh,
-                border = BorderStroke(1.dp, colorScheme.outlineVariant),
-                shadowElevation = 6.dp,
-            ) {
-                BoxWithConstraints {
-                    val compact = maxWidth < 350.dp || LocalDensity.current.fontScale > 1.3f
-                    Row(
-                        Modifier.fillMaxWidth().padding(FloatingNavigationLayout.contentPadding),
-                        horizontalArrangement = Arrangement.spacedBy(2.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        AnimatedContent(
-                            targetState = LocalTabNavigator.current.current == UnifiedSearchTab,
-                            transitionSpec = { ModernMotion.transform(motion).using(null) },
-                            label = "unifiedSearchNavigationMorph",
-                        ) { searching ->
-                            if (searching) {
-                                if (eu.kanade.tachiyomi.ui.news.LocalNewsSearch.current) {
-                                    val newsModel =
-                                        requireNotNull(
-                                            eu.kanade.tachiyomi.ui.news.LocalNewsModel.current,
-                                        )
-                                    val newsState by newsModel.state.collectAsState()
-                                    eu.kanade.tachiyomi.ui.search.UnifiedSearchQueryBar(
-                                        newsState.query,
-                                        newsModel::edit,
-                                        newsModel::submit,
-                                        compact,
-                                        LocalCloseUnifiedSearch.current,
-                                        { selectTab(BrowseTab) },
-                                        stringResource(R.string.news_search_hint),
-                                    )
-                                } else {
-                                    UnifiedSearchBar(
-                                        requireNotNull(LocalUnifiedSearch.current),
-                                        compact,
-                                        LocalCloseUnifiedSearch.current,
-                                        onBrowse = { selectTab(BrowseTab) },
-                                    )
-                                }
-                            } else {
-                                FloatingNavigationTabs(tabs, compact)
-                            }
-                        }
+        FloatingNavigationSurface { compact ->
+            AnimatedContent(
+                targetState = LocalTabNavigator.current.current == UnifiedSearchTab,
+                transitionSpec = { ModernMotion.transform(motion).using(null) },
+                label = "unifiedSearchNavigationMorph",
+            ) { searching ->
+                if (searching) {
+                    if (eu.kanade.tachiyomi.ui.news.LocalNewsSearch.current) {
+                        val newsModel =
+                            requireNotNull(
+                                eu.kanade.tachiyomi.ui.news.LocalNewsModel.current,
+                            )
+                        val newsState by newsModel.state.collectAsState()
+                        eu.kanade.tachiyomi.ui.search.UnifiedSearchQueryBar(
+                            newsState.query,
+                            newsModel::edit,
+                            newsModel::submit,
+                            compact,
+                            LocalCloseUnifiedSearch.current,
+                            { selectTab(BrowseTab) },
+                            stringResource(R.string.news_search_hint),
+                        )
+                    } else {
+                        UnifiedSearchBar(
+                            requireNotNull(LocalUnifiedSearch.current),
+                            compact,
+                            LocalCloseUnifiedSearch.current,
+                            onBrowse = { selectTab(BrowseTab) },
+                        )
                     }
+                } else {
+                    FloatingNavigationTabs(tabs, compact)
                 }
             }
         }
@@ -715,108 +672,36 @@ object HomeScreen : Screen() {
 
     @Composable
     private fun FloatingNavigationTabs(tabs: List<eu.kanade.presentation.util.Tab>, compact: Boolean) {
-        if (tabs.isEmpty()) return
-        val current = LocalTabNavigator.current.current
-        val selectedTab = if (current == BrowseTab) MoreTab else current
-        val selectedIndex = tabs.indexOfFirst { it::class == selectedTab::class }
-        val motion = modernMotionEnabled()
-        val indicatorPosition by animateFloatAsState(
-            targetValue = selectedIndex.coerceAtLeast(0).toFloat(),
-            animationSpec = tween(if (motion) ModernMotion.PAGE_MILLIS else 0),
-            label = "navigationIndicator",
-        )
-        val indicatorColor = MaterialTheme.colorScheme.primaryContainer
-        val spacing = 2.dp
-        Row(
-            Modifier.fillMaxWidth()
-                .selectableGroup()
-                .drawWithCache {
-                    val gap = spacing.toPx()
-                    val cellWidth = ((size.width - gap * (tabs.size - 1)) / tabs.size).coerceAtLeast(0f)
-                    val radius = CornerRadius(20.dp.toPx())
-                    onDrawBehind {
-                        if (selectedIndex >= 0) {
-                            val fromStart = indicatorPosition * (cellWidth + gap)
-                            val left = if (layoutDirection == LayoutDirection.Ltr) {
-                                fromStart
-                            } else {
-                                size.width - cellWidth - fromStart
-                            }
-                            drawRoundRect(
-                                color = indicatorColor,
-                                topLeft = Offset(left, 0f),
-                                size = Size(cellWidth, size.height),
-                                cornerRadius = radius,
-                            )
-                        }
-                    }
-                },
-            horizontalArrangement = Arrangement.spacedBy(spacing),
-        ) {
-            tabs.forEachIndexed { index, tab ->
-                FloatingNavigationItem(
-                    tab = tab,
-                    compact = compact,
-                    selected = selectedIndex == index,
-                    currentSelected = current::class == tab::class,
-                )
-            }
-        }
-    }
-
-    @Composable
-    private fun RowScope.FloatingNavigationItem(
-        tab: eu.kanade.presentation.util.Tab,
-        compact: Boolean,
-        selected: Boolean,
-        currentSelected: Boolean,
-    ) {
         val navigator = LocalNavigator.currentOrThrow
         val scope = rememberCoroutineScope()
         val selectTab = LocalSelectHomeTab.current
-        val title = tab.options.title
+        val current = LocalTabNavigator.current.current
+        val selectedTab = if (current == BrowseTab) MoreTab else current
+        val selectedIndex = tabs.indexOfFirst { it::class == selectedTab::class }
         val browseTitle = BrowseTab.options.title
-        val colorScheme = MaterialTheme.colorScheme
-        val contentColor = if (selected) colorScheme.onPrimaryContainer else colorScheme.onSurfaceVariant
-        Column(
-            Modifier.weight(1f)
-                .heightIn(min = FloatingNavigationLayout.itemMinHeight(compact))
-                .clip(RoundedCornerShape(20.dp))
-                .combinedClickable(
-                    onLongClick = if (tab == UnifiedSearchTab) ({ selectTab(BrowseTab) }) else null,
-                    onLongClickLabel = browseTitle.takeIf { tab == UnifiedSearchTab },
-                    onClick = {
-                        if (!currentSelected) {
-                            selectTab(tab)
-                        } else {
-                            scope.launch { tab.onReselect(navigator) }
-                        }
-                    },
-                )
-                .semantics {
-                    role = Role.Tab
-                    this.selected = selected
-                    contentDescription = title
-                }
-                .testTag(navigationTag(tab)),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            CompositionLocalProvider(LocalContentColor provides contentColor) {
-                Box(Modifier.size(30.dp), contentAlignment = Alignment.Center) {
-                    NavigationIconItem(tab)
-                }
-            }
-            Text(
-                title,
-                modifier = Modifier.padding(horizontal = 3.dp),
-                color = contentColor,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+        val items = tabs.map { tab ->
+            val isSearch = tab == UnifiedSearchTab
+            FloatingNavigationItem(
+                label = tab.options.title,
+                testTag = navigationTag(tab),
+                onClick = {
+                    if (current::class == tab::class) {
+                        scope.launch { tab.onReselect(navigator) }
+                    } else {
+                        selectTab(tab)
+                    }
+                },
+                onLongClick = if (isSearch) ({ selectTab(BrowseTab) }) else null,
+                longClickLabel = browseTitle.takeIf { isSearch },
+                icon = { NavigationIconItem(tab) },
             )
         }
+        FloatingNavigationItems(
+            items = items,
+            selectedIndex = selectedIndex,
+            compact = compact,
+            indicatorDurationMillis = if (modernMotionEnabled()) ModernMotion.PAGE_MILLIS else 0,
+        )
     }
 
     @Composable

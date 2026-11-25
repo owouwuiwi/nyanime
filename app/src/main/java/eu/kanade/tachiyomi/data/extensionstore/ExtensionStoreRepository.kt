@@ -357,6 +357,14 @@ class ExtensionStoreRepository private constructor(private val context: Context)
         refresh()
     }
 
+    fun onCataloguesChanged() {
+        scope.launch {
+            // A refresh that started before import may be using the old catalogue list.
+            refreshJob?.join()
+            refresh(force = true)
+        }
+    }
+
     fun refresh(force: Boolean = false) {
         if (refreshJob?.isActive == true) return
         val now = android.os.SystemClock.elapsedRealtime()

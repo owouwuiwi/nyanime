@@ -8,6 +8,9 @@ import cafe.adriel.voyager.core.model.screenModelScope
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.releases.AiringIssue
 import eu.kanade.tachiyomi.data.releases.FollowMode
+import eu.kanade.tachiyomi.data.releases.ReleaseAgendaActions
+import eu.kanade.tachiyomi.data.releases.ReleaseAgendaItem
+import eu.kanade.tachiyomi.data.releases.ReleaseAgendaRepository
 import eu.kanade.tachiyomi.data.releases.ReleaseMedium
 import eu.kanade.tachiyomi.data.releases.ReleaseMonitor
 import eu.kanade.tachiyomi.data.releases.ReleasePreferences
@@ -133,9 +136,9 @@ class ReleaseCalendarScreenModel(private val scope: ReleaseMedium? = null) :
         val items: List<ReleaseAgendaItem> = emptyList(),
         val events: ImmutableMap<LocalDate, Int> = persistentMapOf(),
         val loading: Boolean = true,
-        val warnings: Map<ReleaseMedium, String> = emptyMap(),
+        val warnings: Map<ReleaseMedium, AiringIssue.Reason> = emptyMap(),
         val issues: List<AiringIssue> = emptyList(),
     ) {
-        val warning: String? get() = if (medium == null) warnings.values.firstOrNull() else warnings[medium]
+        val warning: AiringIssue.Reason? get() = if (medium == null) warnings.values.firstOrNull() else warnings[medium]
     }
 }

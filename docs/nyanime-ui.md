@@ -10,6 +10,30 @@ elementi nascosti e ripristino.
 Il nome e l'icona cambiano; identificativo Android, firma, archivi e integrazioni
 rimangono compatibili. Il player e la sessione Cast mantengono i controlli esistenti.
 
+## Struttura della presentazione
+
+`:presentation-design` contiene palette Compose e XML, risorse del marchio,
+tipografia, superfici e navigazione fluttuante. Riceve colori, stato visivo,
+slot e azioni tramite i composable pubblici. Le preferenze dell'app e
+le transizioni di Voyager vengono collegate da `TachiyomiTheme`, `AppGlassHeader`
+e `HomeScreen` nel modulo `:app`.
+
+`:presentation-core` contiene i componenti generici e il layout della schermata
+principale. `MainNavigation` legge lo stato dell'app e collega banner, transizioni
+e controlli di riproduzione a `MainScaffold`. `MainActivity` gestisce il ciclo di
+vita Android e consegna gli intent a `MainIntentNavigator`. Il codice del player
+ha già un renderer in `:presentation-player`.
+
+Per sostituire una parte della UI, mantieni il contratto di stato e azioni del
+renderer. Per esempio, le schede della barra fluttuante ricevono icona,
+etichetta, selezione e callback mentre `HomeScreen` decide quale destinazione
+aprire. L'agenda passa al calendario e al widget gli stessi dati tipizzati.
+Entrambi traducono le etichette usando le risorse della lingua attiva.
+
+La separazione segue l'impostazione di
+[Now in Android](https://github.com/android/nowinandroid/blob/main/docs/ModularizationLearningJourney.md)
+e la [guida Android all'architettura](https://developer.android.com/topic/architecture).
+
 ## ModernUI e interfaccia legacy
 
 In **Impostazioni > Aspetto > ModernUI** è possibile scegliere l'interfaccia.

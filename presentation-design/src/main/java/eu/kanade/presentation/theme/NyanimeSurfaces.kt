@@ -35,8 +35,6 @@ import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
-import eu.kanade.presentation.motion.posterBackdropOpacity
-import eu.kanade.presentation.motion.posterForeground
 
 /** Home and title pages share the same bounded glass, atmosphere and surface materials. */
 @Composable
@@ -100,22 +98,23 @@ private fun Modifier.nyanimeAtmosphere(
 
 /** Only the backdrop is captured. Wordmarks, category labels and actions remain sharp. */
 @Composable
-fun NyanimeGlassHeader(
+fun GlassHeader(
     state: HazeState,
     modifier: Modifier = Modifier,
     topInset: Dp = 0.dp,
-    sharedTransitionOverlay: Boolean = false,
+    controlsOverlay: Modifier = Modifier,
+    backdropOverlay: Modifier = Modifier,
+    backdropOpacity: () -> Float = { 1f },
     backgroundColor: Color = MaterialTheme.colorScheme.background,
     atmosphereColor: Color = nyanimeBrandColors.atmosphere,
     content: @Composable () -> Unit,
 ) {
     SubcomposeLayout(modifier.fillMaxWidth()) { constraints ->
         val header = subcompose("controls") {
-            val foreground = if (sharedTransitionOverlay) Modifier.posterForeground(zIndex = 2.5f) else Modifier
-            Column(Modifier.fillMaxWidth().then(foreground).padding(top = topInset)) { content() }
+            Column(Modifier.fillMaxWidth().then(controlsOverlay).padding(top = topInset)) { content() }
         }.single().measure(constraints.copy(minHeight = 0))
         val glass = subcompose("glass") {
-            NyanimeGlass(state, sharedTransitionOverlay, backgroundColor, atmosphereColor)
+            NyanimeGlass(state, backdropOverlay, backdropOpacity, backgroundColor, atmosphereColor)
         }.single().measure(
             Constraints.fixed(header.width, header.height + 44.dp.roundToPx()),
         )
@@ -130,13 +129,13 @@ fun NyanimeGlassHeader(
 @Composable
 private fun NyanimeGlass(
     state: HazeState,
-    sharedTransitionOverlay: Boolean,
+    overlay: Modifier,
+    opacity: () -> Float,
     background: Color,
     atmosphere: Color,
 ) {
     val dark = LocalDarkTheme.current
     val supportedBlur = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-    val opacity = posterBackdropOpacity()
     val tint = remember(background, atmosphere) {
         val warm = lerp(background, atmosphere, if (dark) 0.09f else 0.13f)
         if (!supportedBlur) {
@@ -193,28 +192,21 @@ private fun NyanimeGlass(
     }
     // One bounded backdrop, not three full-screen copies. Old Android versions use a readable
     // soft tint without forcing the library's experimental CPU/RenderScript path.
-    // Only Home's header needs to cover artwork escaping from a shared source card. A destination
-    // header stays in its normal Scaffold layer, including while modal windows open and close.
-    val foreground = if (sharedTransitionOverlay) {
-        Modifier.posterForeground(zIndex = 2.4f, fadeOnEnter = false)
-    } else {
-        Modifier
-    }
     Box(
         Modifier.fillMaxSize()
             // The glass must already cover travelling artwork on the page's first frame.
             // Only the sharp controls fade in; fading the glass exposes the original image.
-            .then(foreground)
+            .then(overlay)
             .hazeEffect(state, style) {
                 // Fade the blur radius before its opacity: the sharp original must not
                 // bleed through category labels as it moves under the fixed controls.
                 progressive = progressiveBlur.takeIf { Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU }
                 mask = edge
                 inputScale = HazeInputScale.Fixed(0.8f)
-                alpha = opacity.value
+                alpha = opacity()
             }
             .drawWithCache {
-                onDrawBehind { drawRect(tint, alpha = opacity.value) }
+                onDrawBehind { drawRect(tint, alpha = opacity()) }
             }
             .testTag("nyanime_continuity_glass"),
     )
@@ -243,7 +235,7 @@ fun NyanimeFloatingSurface(
 }
 
 /** White captions over artwork need the same neutral scrim in both application themes. */
-internal val nyanimeArtworkScrim: Brush = Brush.verticalGradient(
+val nyanimeArtworkScrim: Brush = Brush.verticalGradient(
     0f to Color.Black.copy(alpha = 0.08f),
     0.30f to Color.Transparent,
     0.58f to Color.Black.copy(alpha = 0.56f),

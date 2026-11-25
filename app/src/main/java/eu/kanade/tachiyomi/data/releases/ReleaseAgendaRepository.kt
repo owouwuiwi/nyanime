@@ -1,15 +1,5 @@
-package eu.kanade.presentation.components.releases
+package eu.kanade.tachiyomi.data.releases
 
-import android.app.Application
-import eu.kanade.tachiyomi.R
-import eu.kanade.tachiyomi.data.releases.AiringCatalogReference
-import eu.kanade.tachiyomi.data.releases.AiringIssue
-import eu.kanade.tachiyomi.data.releases.AiringRepository
-import eu.kanade.tachiyomi.data.releases.ChapterScheduleRepository
-import eu.kanade.tachiyomi.data.releases.ReleaseEligibility
-import eu.kanade.tachiyomi.data.releases.ReleaseMedium
-import eu.kanade.tachiyomi.data.releases.ReleasePreferences
-import eu.kanade.tachiyomi.data.releases.ReleaseStore
 import eu.kanade.tachiyomi.data.track.SourceTrackingHints
 import eu.kanade.tachiyomi.data.track.TrackerManager
 import kotlinx.coroutines.flow.Flow
@@ -31,10 +21,9 @@ import uy.kohesive.injekt.api.get
 /** Shared local-only projection for the agenda and its home-screen widget. */
 internal class ReleaseAgendaRepository {
     private val store = ReleaseStore()
-    private val app: Application = Injekt.get()
     data class Snapshot(
         val items: List<ReleaseAgendaItem>,
-        val warnings: Map<ReleaseMedium, String> = emptyMap(),
+        val warnings: Map<ReleaseMedium, AiringIssue.Reason> = emptyMap(),
         val issues: List<AiringIssue> = emptyList(),
     )
     fun snapshots(scope: ReleaseMedium? = null): Flow<Snapshot> {
@@ -133,7 +122,7 @@ internal class ReleaseAgendaRepository {
                         entry.title,
                         entry.asAnimeCover(),
                         event.airingAt,
-                        scheduleBroadcastLabel(app, event),
+                        ReleaseAgendaLabel.OriginalBroadcast(event),
                         number = event.episode.toDouble(),
                         sourceLabel = sourceLabel,
                         broadcasts = event.variants,
@@ -156,10 +145,7 @@ internal class ReleaseAgendaRepository {
                         entry.title,
                         entry.asAnimeCover(),
                         notice.sourceAt,
-                        app.getString(
-                            R.string.release_content_available,
-                            item.name,
-                        ),
+                        ReleaseAgendaLabel.Available(item.name),
                         item.id,
                         dismissalKey = "${item.dateFetch}|anime|${entry.source}|${entry.title}|${item.name}",
                         number = item.episodeNumber,
@@ -179,10 +165,10 @@ internal class ReleaseAgendaRepository {
             val warning = when {
                 issues.any {
                     it.reason == AiringIssue.Reason.UNAVAILABLE
-                } -> app.getString(R.string.release_calendar_error)
+                } -> AiringIssue.Reason.UNAVAILABLE
                 issues.any { it.reason == AiringIssue.Reason.UNVERIFIED_ID } ->
-                    app.getString(R.string.release_calendar_unresolved)
-                issues.isNotEmpty() -> app.getString(R.string.release_calendar_pending)
+                    AiringIssue.Reason.UNVERIFIED_ID
+                issues.isNotEmpty() -> AiringIssue.Reason.PENDING
                 else -> null
             }
             Snapshot(
@@ -220,7 +206,7 @@ internal class ReleaseAgendaRepository {
                     entry.title,
                     entry.asMangaCover(),
                     event.release.releaseAt,
-                    app.getString(R.string.release_chapter_planned, event.release.number.toString()),
+                    ReleaseAgendaLabel.PlannedChapter(event.release.number),
                     medium = ReleaseMedium.MANGA,
                     number = event.release.number,
                     agendaKeys = setOf(
@@ -237,10 +223,7 @@ internal class ReleaseAgendaRepository {
                     entry.title,
                     entry.asMangaCover(),
                     notice.sourceAt,
-                    app.getString(
-                        R.string.release_content_available,
-                        item.name,
-                    ),
+                    ReleaseAgendaLabel.Available(item.name),
                     item.id,
                     ReleaseMedium.MANGA,
                     dismissalKey = "${item.dateFetch}|manga|${entry.source}|${entry.title}|${item.name}",

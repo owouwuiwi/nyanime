@@ -26,7 +26,8 @@ ABIS = ('universal', 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64')
 ROOT_DOCUMENTS = {'README.md', 'CHANGELOG.md', 'LICENSE', 'NOTICE', 'CONTRIBUTING.md'}
 SOURCE_ROOTS = {'addon-api', 'app', 'artwork', 'buildSrc', 'core', 'core-metadata',
                 'data', 'distribution', 'domain', 'feature', 'gradle', 'i18n', 'i18n-aniyomi',
-                'macrobenchmark', 'news-api', 'presentation-core', 'presentation-player', 'presentation-widget',
+                'macrobenchmark', 'news-api', 'presentation-core', 'presentation-design', 'presentation-player',
+                'presentation-widget',
                 'scripts', 'source-api', 'source-local', 'tools', 'tv-api', 'vendor'}
 SOURCE_FILES = {'.editorconfig', '.gitattributes', '.gitignore', 'CODE_OF_CONDUCT.md',
                 '.gitmodules',
