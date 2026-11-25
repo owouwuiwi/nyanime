@@ -9,6 +9,13 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 25 novembre 2026 — 0.81.1.1
+
+### Store
+
+- Al primo avvio dopo l’aggiornamento, Nyanime azzera i cataloghi e guida la rimozione delle estensioni già installate. Android chiede conferma per quelle installate come app.
+- Dopo la rimozione si possono aggiungere di nuovo i cataloghi e reinstallare le estensioni. Libreria, progressi e download vengono conservati.
+
 ## 25 novembre 2026 — 0.81.1.0
 
 ### Store

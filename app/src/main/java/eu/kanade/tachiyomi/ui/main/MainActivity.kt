@@ -223,6 +223,19 @@ class MainActivity : BaseActivity() {
         }
 
         setComposeContent {
+            val catalogueReset = remember {
+                eu.kanade.tachiyomi.data.extensionstore.CatalogueUpgradeReset(Injekt.get())
+            }
+            var resetPending by remember { mutableStateOf(catalogueReset.pending) }
+            if (resetPending) {
+                LaunchedEffect(Unit) { ready = true }
+                eu.kanade.presentation.more.settings.screen.browse.components.CatalogueResetGate(
+                    reset = catalogueReset,
+                    onComplete = { resetPending = false },
+                    onExit = { finishAndRemoveTask() },
+                )
+                return@setComposeContent
+            }
             InitialAppSetupGate(onReady = { ready = true }) {
                 val context = LocalContext.current
 
@@ -370,18 +383,7 @@ class MainActivity : BaseActivity() {
                     if (showRemovalOffer) showChangelog = false
                     removalOfferChecked = true
                 }
-                val catalogueReset = remember {
-                    eu.kanade.tachiyomi.data.extensionstore.CatalogueUpgradeReset(Injekt.get())
-                }
-                val showCatalogueReset by catalogueReset.notice.changes().collectAsState(
-                    initial = catalogueReset.notice.get(),
-                )
-                if (showCatalogueReset) {
-                    eu.kanade.presentation.more.settings.screen.browse.components.CatalogueResetNotice(
-                        catalogueReset::acknowledge,
-                    )
-                }
-                if (showRemovalOffer && !showCatalogueReset) {
+                if (showRemovalOffer) {
                     fun closeRemovalOffer() {
                         eu.kanade.tachiyomi.data.migration.MigrationRemovalOffer.acknowledge(this@MainActivity)
                         showRemovalOffer = false
@@ -395,7 +397,7 @@ class MainActivity : BaseActivity() {
                         },
                     )
                 }
-                if (showChangelog && !showCatalogueReset && !showRemovalOffer && removalOfferChecked) {
+                if (showChangelog && !showRemovalOffer && removalOfferChecked) {
                     val installOffer = remember {
                         eu.kanade.tachiyomi.data.migration.MigrationInstallOffer.shouldOffer(
                             this@MainActivity,

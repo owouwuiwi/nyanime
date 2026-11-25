@@ -1,28 +1,45 @@
 package eu.kanade.tachiyomi.data.extensionstore
 
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import tachiyomi.core.common.preference.Preference
 import tachiyomi.core.common.preference.PreferenceStore
 
-/** Installation-local, including upgrades from legacy revision codes larger than public version codes. */
+/** Installation-local state. The previous catalogue-only reset does not satisfy this migration. */
 class CatalogueUpgradeReset(store: PreferenceStore) {
-    private val completed = store.getBoolean(Preference.appStateKey("catalogue_upgrade_reset_v1"), false)
-    val notice = store.getBoolean(Preference.appStateKey("catalogue_upgrade_reset_notice_v1"), false)
+    private val phase = store.getInt(Preference.appStateKey("catalogue_upgrade_reset_v2"), UNINITIALIZED)
 
-    suspend fun initialize(previousVersion: Int, clearCatalogues: suspend () -> Unit) {
-        if (completed.get()) return
-        // A fresh installation is marked immediately; later imports/restores must not trigger a reset.
-        if (previousVersion == 0) {
-            completed.set(true)
-            return
-        }
-        withContext(NonCancellable) {
-            clearCatalogues()
-            notice.set(true)
-            completed.set(true)
+    val pending: Boolean get() = phase.get() != COMPLETE
+
+    fun prepare(previousVersion: Int) {
+        if (phase.get() == UNINITIALIZED) {
+            phase.set(if (previousVersion == 0) COMPLETE else RESET_CATALOGUES)
         }
     }
 
-    fun acknowledge() = notice.set(false)
+    suspend fun resetCatalogues(clear: suspend () -> Unit) = lock.withLock {
+        if (phase.get() == RESET_CATALOGUES) {
+            withContext(NonCancellable) {
+                clear()
+                phase.set(REMOVE_EXTENSIONS)
+            }
+        }
+    }
+
+    suspend fun finish(extensionsRemain: suspend () -> Boolean): Boolean = lock.withLock {
+        if (phase.get() == COMPLETE) return@withLock true
+        if (phase.get() != REMOVE_EXTENSIONS || extensionsRemain()) return@withLock false
+        phase.set(COMPLETE)
+        true
+    }
+
+    private companion object {
+        const val UNINITIALIZED = 0
+        const val RESET_CATALOGUES = 1
+        const val REMOVE_EXTENSIONS = 2
+        const val COMPLETE = 3
+        val lock = Mutex()
+    }
 }

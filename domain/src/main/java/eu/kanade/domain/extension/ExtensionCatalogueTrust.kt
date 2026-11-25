@@ -27,6 +27,8 @@ class ExtensionCatalogueTrust(store: PreferenceStore) {
     fun remove(
         url: String,
     ) = synchronized(lock) { preference.set(json.encodeToString(get().filterNot { it.url == url })) }
+    fun clear() = synchronized(lock) { preference.delete() }
+
     private fun decode(raw: String) = runCatching {
         require(raw.length <= 65_536)
         json.decodeFromString<List<Approval>>(raw).filter {

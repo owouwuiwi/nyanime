@@ -5,6 +5,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import tachiyomi.core.common.preference.InMemoryPreferenceStore.InMemoryPreference
@@ -12,9 +13,9 @@ import tachiyomi.core.common.preference.PreferenceStore
 
 class CatalogueUpgradeResetTest {
     private fun preferences(): PreferenceStore {
-        val values = mutableMapOf<String, InMemoryPreference<Boolean>>()
+        val values = mutableMapOf<String, InMemoryPreference<Int>>()
         return mockk {
-            every { getBoolean(any(), any()) } answers {
+            every { getInt(any(), any()) } answers {
                 values.getOrPut(firstArg()) { InMemoryPreference(firstArg(), null, secondArg()) }
             }
         }
@@ -22,12 +23,11 @@ class CatalogueUpgradeResetTest {
 
     @Test fun `a fresh installation is never cleared even after adding catalogues and upgrading later`() = runBlocking {
         val store = preferences()
-        var deletes = 0
-        CatalogueUpgradeReset(store).initialize(0) { deletes++ }
+        CatalogueUpgradeReset(store).prepare(0)
         val upgraded = CatalogueUpgradeReset(store)
-        upgraded.initialize(150) { deletes++ }
-        assertEquals(0, deletes)
-        assertFalse(upgraded.notice.get())
+        upgraded.prepare(298)
+        upgraded.resetCatalogues { error("A fresh installation has no migration") }
+        assertFalse(upgraded.pending)
     }
 
     @Test fun `both public and larger legacy revision codes clear exactly once across restarts`() = runBlocking {
@@ -35,32 +35,43 @@ class CatalogueUpgradeResetTest {
             val store = preferences()
             var deletes = 0
             val first = CatalogueUpgradeReset(store)
-            first.initialize(previous) { deletes++ }
-            assertTrue(first.notice.get())
-            first.acknowledge()
+            first.prepare(previous)
+            assertFalse(first.finish { false })
+            first.resetCatalogues { deletes++ }
+            assertTrue(first.pending)
             val restarted = CatalogueUpgradeReset(store)
-            restarted.initialize(previous) { deletes++ }
-            restarted.initialize(999) { deletes++ }
+            restarted.prepare(298)
+            restarted.resetCatalogues { deletes++ }
             assertEquals(1, deletes)
-            assertFalse(restarted.notice.get())
+            assertFalse(restarted.finish { true })
+            assertTrue(restarted.pending)
+            assertTrue(restarted.finish { false })
+            val later = CatalogueUpgradeReset(store)
+            later.prepare(299)
+            later.resetCatalogues { deletes++ }
+            assertEquals(1, deletes)
+            assertFalse(later.pending)
         }
     }
 
     @Test fun `an interrupted partial reset retries instead of silently marking it finished`() = runBlocking {
         val store = preferences()
         val catalogues = mutableListOf("first", "second")
-        assertTrue(
-            runCatching {
-                CatalogueUpgradeReset(store).initialize(141) {
+        val initial = CatalogueUpgradeReset(store)
+        initial.prepare(297)
+        assertThrows(IllegalStateException::class.java) {
+            runBlocking {
+                initial.resetCatalogues {
                     catalogues.remove("first")
                     error("Interrupted storage operation")
                 }
-            }.isFailure,
-        )
+            }
+        }
         val restarted = CatalogueUpgradeReset(store)
-        assertFalse(restarted.notice.get())
-        restarted.initialize(142) { catalogues.clear() }
+        assertTrue(restarted.pending)
+        assertFalse(restarted.finish { false })
+        restarted.resetCatalogues { catalogues.clear() }
         assertTrue(catalogues.isEmpty())
-        assertTrue(restarted.notice.get())
+        assertTrue(restarted.finish { false })
     }
 }

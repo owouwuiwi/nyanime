@@ -18,7 +18,7 @@ import kotlinx.serialization.json.put
 /** Discover declared contracts with small parcels; retrieve metadata only for matching packages. */
 object ExtensionPackageDiscovery {
     private data class Declaration(val name: String, val features: Set<String>)
-    private val contracts = setOf(
+    internal val contracts = setOf(
         "tachiyomi.animeextension",
         "tachiyomi.extension",
         "nyanime.newsextension",
@@ -26,6 +26,8 @@ object ExtensionPackageDiscovery {
         "nyanime.tvextension",
         "nyanime.guideextension",
         "nyanime.addon",
+        ExtensionPackageArchive.LAYER_FEATURE,
+        ExtensionPackageArchive.MANGA_LAYER_FEATURE,
     )
     private var cache: ExtensionInventoryCache<Declaration>? = null
     private val details = mutableMapOf<Pair<String, Int>, PackageInfo>()

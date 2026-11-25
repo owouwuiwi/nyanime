@@ -273,27 +273,7 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
         val preferenceStore = Injekt.get<PreferenceStore>()
         val preference = preferenceStore.getInt(Preference.appStateKey("last_version_code"), 0)
         eu.kanade.tachiyomi.ui.player.settings.preserveSmartAutoStartOnUpgrade(preferenceStore, preference.get())
-        kotlinx.coroutines.runBlocking(Dispatchers.IO) {
-            eu.kanade.tachiyomi.data.extensionstore.CatalogueUpgradeReset(
-                preferenceStore,
-            ).initialize(preference.get()) {
-                Injekt.get<mihon.domain.extension.anime.repository.AnimeExtensionStoreRepository>()
-                    .let { repository -> repository.getAll().forEach { repository.remove(it.indexUrl) } }
-                Injekt.get<mihon.domain.extensionrepo.manga.repository.MangaExtensionRepoRepository>()
-                    .let { repository -> repository.getAll().forEach { repository.deleteRepo(it.baseUrl) } }
-                Injekt.get<eu.kanade.domain.source.service.SourcePreferences>().apply {
-                    animeExtensionRepos().delete()
-                    mangaExtensionRepos().delete()
-                }
-                preferenceStore.getString(
-                    tachiyomi.core.common.preference.Preference.appStateKey("extension_catalogue_authorities_v1"),
-                    "[]",
-                ).delete()
-                android.util.AtomicFile(File(noBackupFilesDir, "extension-store-replacement.json")).delete()
-                File(filesDir, "extension-store/prepared.apk").delete()
-                File(filesDir, "extension-store/prepared.part").delete()
-            }
-        }
+        eu.kanade.tachiyomi.data.extensionstore.CatalogueUpgradeReset(preferenceStore).prepare(preference.get())
         eu.kanade.tachiyomi.ui.search.UnifiedSearchUpgradeNotice(preferenceStore).initialize(preference.get())
         logcat { "Migration from ${preference.get()} to ${BuildConfig.VERSION_CODE}" }
         Migrator.initialize(
