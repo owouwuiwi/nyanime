@@ -31,5 +31,9 @@
     "Nyanime-Delta-7b379012ee818309-0.81.1.0-x86_64.nyadelta": "bb8056f7689081cf9c63c826214e6121a5195e514ccaed9cb0159b2aa5f07c8d",
     "Nyanime-Delta-v1.json": "07eabf2c2dc0e0521e31a77e972ae8a1fe264007cb3b75cb550374eae1a0773b"
   },
-  "nativeManifest": "Nyanime-Native-Manifest-0.81.1.0.json"
+  "nativeManifest": "Nyanime-Native-Manifest-0.81.1.0.json",
+  "delivery": "full",
+  "graphSha256": {
+    "Nyanime-Release-v2.json": "fa9f8ec3cbe550e64c443bb2f507609af4fc2d221aa9eb0fc37c537795ca8b12"
+  }
 }
