@@ -12,9 +12,11 @@ object ApplicationReleaseAssets {
         allowGraph: Boolean = true,
     ): String? {
         if (allowGraph && prefix == "Nyanime-Production") {
-            assets.firstOrNull {
-                it.name == ReleaseGraph.FILE_NAME &&
-                    ReleaseGraph.descriptorVersion(it.downloadLink, "owouwuiwi/nyanime") == version.removePrefix("v")
+            listOf(ReleaseGraph.VCDIFF_FILE_NAME, ReleaseGraph.FILE_NAME).firstNotNullOfOrNull { name ->
+                assets.firstOrNull {
+                    it.name == name && it.downloadLink.substringAfterLast('/') == name &&
+                        ReleaseGraph.descriptorVersion(it.downloadLink, "owouwuiwi/nyanime") == version.removePrefix("v")
+                }
             }?.let { return it.downloadLink }
         }
         return select(assets, supportedAbis, prefix)

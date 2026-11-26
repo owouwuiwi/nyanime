@@ -19,8 +19,8 @@ from pathlib import Path, PurePosixPath
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from scripts.public_distribution import allowed_source, validate_release_notes
 from scripts.verify_native_distribution import validate as validate_native
-from scripts.delta_updates import MANIFEST as DELTA_MANIFEST, PATCH_NAME, validate_manifest as validate_delta_manifest
-from scripts.release_graph import FILE_NAME as GRAPH_NAME, publication_graph, reconstruct, verify_android, verify_capability, check_transition
+from scripts.delta_updates import ABI, VERSION, MANIFEST as DELTA_MANIFEST, PATCH_NAME, validate_manifest as validate_delta_manifest
+from scripts.release_graph import GRAPH_FILES, VCDIFF_FILE_NAME, publication_graph, reconstruct, verify_android, verify_capability, check_transition
 
 PUBLIC = 'owouwuiwi/nyanime'
 SOURCE = 'owouwuiwi/nyanime-source'
@@ -29,6 +29,7 @@ APPLICATION_ID = 'it.owouwuiwi.nyanime'
 ASSET_PREFIX = 'Nyanime-Production'
 ABIS = ('universal', 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64')
 ROOT_DOCS = {'README.md', 'CHANGELOG.md', 'LICENSE', 'NOTICE', 'CONTRIBUTING.md'}
+VCDIFF_PATCH = re.compile(rf'Nyanime-Delta-[a-f0-9]{{16}}-({VERSION})-({ABI})\.vcdiff')
 
 class SafeRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
@@ -54,14 +55,28 @@ def document(name):
         '.github/assets/nyanime.svg', '.github/assets/logo.png'}
 
 def validate_name(name):
-    if name == 'numeric/' + GRAPH_NAME:
+    if name in {'numeric/' + filename for filename in GRAPH_FILES.values()}:
         return True
     p = PurePosixPath(name)
     if p.is_absolute() or '..' in p.parts or '\\' in name or ':' in name or not p.parts:
         raise ValueError('Unsafe publication archive path')
+    patch = name.removeprefix('numeric/') if name.startswith('numeric/') else ''
     return name in {'publication.json', 'notes.md', 'numeric/SHA256SUMS', 'numeric/' + DELTA_MANIFEST} or (
         name.startswith('public/') and allowed_source(name.removeprefix('public/'))
-    ) or bool(PATCH_NAME.fullmatch(name.removeprefix('numeric/')) if name.startswith('numeric/') else False) or bool(re.fullmatch(r'numeric/(?:Nyanime-Production-\d+\.\d+\.\d+\.\d+-(universal|arm64-v8a|armeabi-v7a|x86|x86_64)\.apk|Nyanime-Source-\d+\.\d+\.\d+\.\d+\.zip|Nyanime-Native-\d+\.\d+\.\d+\.\d+-[a-z0-9-]+\.tar\.gz|Nyanime-Native-Manifest-\d+\.\d+\.\d+\.\d+\.json)', name))
+    ) or bool(PATCH_NAME.fullmatch(patch) or VCDIFF_PATCH.fullmatch(patch)) or bool(re.fullmatch(r'numeric/(?:Nyanime-Production-\d+\.\d+\.\d+\.\d+-(universal|arm64-v8a|armeabi-v7a|x86|x86_64)\.apk|Nyanime-Source-\d+\.\d+\.\d+\.\d+\.zip|Nyanime-Native-\d+\.\d+\.\d+\.\d+-[a-z0-9-]+\.tar\.gz|Nyanime-Native-Manifest-\d+\.\d+\.\d+\.\d+\.json)', name))
+
+
+def validate_delta_names(hashes, standard):
+    if not isinstance(hashes, dict):
+        raise ValueError('Invalid delta material manifest')
+    if standard:
+        valid = 1 <= len(hashes) <= 15 and all(VCDIFF_PATCH.fullmatch(name) for name in hashes)
+    else:
+        valid = 2 <= len(hashes) <= 16 and DELTA_MANIFEST in hashes and all(
+            name == DELTA_MANIFEST or PATCH_NAME.fullmatch(name) for name in hashes
+        )
+    if not valid:
+        raise ValueError('Invalid delta material set')
 
 def validate_text(text):
     blocked = {'807e4e92b75624ff2c9c3fd01ece23f84c4b2bfeec6816460539628f676d903d', '64a5090b45a4941f8ebc96f9c2f9f66558680fead5ddcbb8b780c1dc24d816a2', 'c4855bb0c8c2b1e2856a0aaf11f3b15ea7f0b353e2aa34dade10e6e435bc97c4'}
@@ -140,7 +155,7 @@ def validate_bundle(directory):
                 if item.get('url'):
                     if item['versionCode'] < transition['versionCode']:
                         raise ValueError('Retained complete base predates the capable client')
-                    verify_capability(file)
+                    verify_capability(file, graph['schema'])
             reconstruct(graph, digest, apk_directory / f'{ASSET_PREFIX}-{version}-{node["abi"]}.apk',
                         directory / 'numeric', verify=verify)
     checksums = ''
@@ -149,24 +164,32 @@ def validate_bundle(directory):
         if hashlib.sha256(apk.read_bytes()).hexdigest() != digest:
             raise ValueError('APK hash mismatch')
         if graph is not None and metadata.get('delivery') == 'full':
-            verify_capability(apk)
+            verify_capability(apk, graph['schema'])
         checksums += f'{digest}  {name}\n'
     if (directory / 'numeric/SHA256SUMS').read_text() != checksums:
         raise ValueError('Checksum manifest mismatch')
     delta_hashes = metadata.get('deltaSha256', {})
-    if 'deltaSha256' in metadata and (not isinstance(delta_hashes, dict) or not 2 <= len(delta_hashes) <= 16 or DELTA_MANIFEST not in delta_hashes):
-        raise ValueError('Invalid delta material manifest')
-    if delta_hashes:
+    standard = graph is not None and graph['schema'] == 3
+    if 'deltaSha256' in metadata:
+        validate_delta_names(delta_hashes, standard)
+    if delta_hashes and not standard:
         declaration = json.loads((directory / 'numeric' / DELTA_MANIFEST).read_text(encoding='utf-8'))
         expected_delta = validate_delta_manifest(declaration, version, metadata['versionCode'], metadata['sha256'])
         expected_delta[DELTA_MANIFEST] = hashlib.sha256((directory / 'numeric' / DELTA_MANIFEST).read_bytes()).hexdigest()
         if delta_hashes != expected_delta:
             raise ValueError('Delta material set mismatch')
-        for name, digest in delta_hashes.items():
-            if hashlib.sha256((directory / 'numeric' / name).read_bytes()).hexdigest() != digest:
-                raise ValueError('Delta hash mismatch')
+    for name, digest in delta_hashes.items():
+        if hashlib.sha256((directory / 'numeric' / name).read_bytes()).hexdigest() != digest:
+            raise ValueError('Delta hash mismatch')
+    if standard:
+        from scripts.vcdiff import verify_profile
+        by_hash = {item['sha256']: item for item in graph['packages']}
+        for edge in graph['patches']:
+            name = edge['url'].rsplit('/', 1)[-1]
+            if name in delta_hashes:
+                verify_profile(directory / 'numeric' / name, by_hash[edge['from']]['size'], by_hash[edge['to']]['size'])
     actual_delta = {file.name for file in (directory / 'numeric').iterdir()
-                    if file.suffix == '.nyadelta' or file.name == DELTA_MANIFEST}
+                    if file.suffix in {'.nyadelta', '.vcdiff'} or file.name == DELTA_MANIFEST}
     if actual_delta != set(delta_hashes):
         raise ValueError('Unlisted delta release materials')
     if metadata['schema'] in {3, 4}:
@@ -481,14 +504,14 @@ def reviewed_release_inputs(payload):
     if any(not re.fullmatch(r'[a-f0-9]{64}', digest) for digest in metadata['sha256'].values()):
         raise ValueError('Invalid reviewed target APK hash')
     graph_hashes = metadata.get('graphSha256', {})
-    if 'graphSha256' in metadata and (set(graph_hashes) != {GRAPH_NAME} or metadata.get('delivery') not in {'full', 'patches'}):
+    if 'graphSha256' in metadata and (len(graph_hashes) != 1 or not set(graph_hashes) <= set(GRAPH_FILES.values()) or
+                                      metadata.get('delivery') not in {'full', 'patches'}):
         raise ValueError('Invalid reviewed release graph')
     if metadata.get('delivery') == 'patches' and not graph_hashes:
         raise ValueError('Missing reviewed patch-only graph')
     delta_hashes = metadata.get('deltaSha256', {})
-    if 'deltaSha256' in metadata and (not isinstance(delta_hashes, dict) or DELTA_MANIFEST not in delta_hashes or not 2 <= len(delta_hashes) <= 16 or
-                        any(name != DELTA_MANIFEST and not PATCH_NAME.fullmatch(name) for name in delta_hashes)):
-        raise ValueError('Invalid reviewed delta materials')
+    if 'deltaSha256' in metadata:
+        validate_delta_names(delta_hashes, VCDIFF_FILE_NAME in graph_hashes)
     expected = (metadata['sha256'] if metadata.get('delivery', 'full') == 'full' else {}) | metadata['sourceSha256'] | delta_hashes | graph_hashes
     if any(not validate_name('numeric/' + name) or not re.fullmatch(r'[a-f0-9]{64}', digest)
            for name, digest in expected.items()):

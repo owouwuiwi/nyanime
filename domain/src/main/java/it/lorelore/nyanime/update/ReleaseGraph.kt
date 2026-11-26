@@ -71,7 +71,7 @@ data class ReleaseGraph(
     }
 
     fun validate(repository: String, expectedPackage: String, expectedVersion: String): ReleaseGraph {
-        require(schema == 2 && applicationId == expectedPackage && versionName == expectedVersion)
+        require(schema in 2..3 && applicationId == expectedPackage && versionName == expectedVersion)
         require(VERSION.matches(versionName) && versionCode > 0)
         require(packages.size in 1..MAX_PACKAGES && patches.size <= MAX_PATCHES && targets.size in 1..5)
         require(packages.map { it.sha256 }.distinct().size == packages.size && targets.distinct() == targets)
@@ -108,7 +108,7 @@ data class ReleaseGraph(
             require(from.abi == to.abi && from.versionCode < to.versionCode)
             require(compareVersions(from.versionName, to.versionName) < 0)
             require(HASH.matches(edge.sha256) && edge.size in 1..MAX_APK_SIZE)
-            require(edge.url == assetUrl(repository, to.versionName, patchName(from.sha256, to.versionName, to.abi)))
+            require(edge.url == assetUrl(repository, to.versionName, patchName(from.sha256, to.versionName, to.abi, schema)))
         }
         // Every advertised target must be installable from a retained complete base.
         selected.forEach { target ->
@@ -120,6 +120,7 @@ data class ReleaseGraph(
 
     companion object {
         const val FILE_NAME = "Nyanime-Release-v2.json"
+        const val VCDIFF_FILE_NAME = "Nyanime-Release-v3.json"
         const val MAX_BYTES = 512 * 1024
         const val MAX_APK_SIZE = 1_073_741_824L
         const val MAX_PACKAGES = 160
@@ -157,14 +158,23 @@ data class ReleaseGraph(
             return json.decodeFromString<ReleaseGraph>(text).validate(repository, expectedPackage, expectedVersion)
         }
 
-        fun descriptorVersion(url: String, repository: String): String? = runCatching {
+        data class Descriptor(val version: String, val schema: Int)
+
+        fun descriptorVersion(url: String, repository: String): String? = descriptor(url, repository)?.version
+
+        fun descriptor(url: String, repository: String): Descriptor? = runCatching {
             val uri = URI(url)
             require(uri.scheme == "https" && uri.host == "github.com" && uri.port == -1)
             require(uri.rawUserInfo == null && uri.rawQuery == null && uri.rawFragment == null)
             val parts = uri.rawPath.removePrefix("/$repository/releases/download/v").split('/')
-            require(parts.size == 2 && VERSION.matches(parts[0]) && parts[1] == FILE_NAME)
-            require(url == assetUrl(repository, parts[0], FILE_NAME))
-            parts[0]
+            require(parts.size == 2 && VERSION.matches(parts[0]))
+            val schema = when (parts[1]) {
+                VCDIFF_FILE_NAME -> 3
+                FILE_NAME -> 2
+                else -> error("Unsupported release graph")
+            }
+            require(url == assetUrl(repository, parts[0], parts[1]))
+            Descriptor(parts[0], schema)
         }.getOrNull()
 
         fun assetUrl(repository: String, version: String, name: String) =
@@ -175,7 +185,11 @@ data class ReleaseGraph(
             hash: String,
             version: String,
             abi: String,
-        ) = "Nyanime-Delta-${hash.take(16)}-$version-$abi.nyadelta"
+            schema: Int = 2,
+        ): String {
+            val extension = if (schema == 3) "vcdiff" else "nyadelta"
+            return "Nyanime-Delta-${hash.take(16)}-$version-$abi.$extension"
+        }
 
         private fun compareVersions(left: String, right: String): Int =
             left.split('.').map(String::toLong).zip(right.split('.').map(String::toLong))

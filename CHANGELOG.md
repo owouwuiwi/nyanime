@@ -9,6 +9,12 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 26 novembre 2026 — 0.81.1.8
+
+### Distribuzione
+
+- Nuovo checkpoint OTA con APK Android firmati. Il client supporta le patch VCDIFF (RFC 3284) per i prossimi aggiornamenti e verifica l’identità e la firma dell’APK ricostruito prima dell’installazione.
+
 ## 26 novembre 2026 — 0.81.1.7
 
 ### Store

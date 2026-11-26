@@ -45,6 +45,19 @@ class ReleaseGraphTest {
     private fun ReleaseGraph.valid() = validate(repository, packageName, versionName)
 
     @Test
+    fun standardGraphBindsTheVcdiffAssetAndKeepsLegacyUrlsDistinct() {
+        val a = node(1, complete = true)
+        val b = node(2)
+        val legacy = edge(a, b)
+        val patch = legacy.copy(url = legacy.url.removeSuffix(".nyadelta") + ".vcdiff")
+        val standard = graph(listOf(a, b), listOf(patch)).copy(schema = 3)
+        assertEquals(standard, standard.valid())
+        assertThrows(IllegalArgumentException::class.java) { standard.copy(patches = listOf(legacy)).valid() }
+        val url = ReleaseGraph.assetUrl(repository, b.versionName, ReleaseGraph.VCDIFF_FILE_NAME)
+        assertEquals(3, ReleaseGraph.descriptor(url, repository)?.schema)
+    }
+
+    @Test
     fun `skipped versions use cheapest exact hash route and direct patch when cheaper`() {
         val a = node(1, true)
         val b = node(2)

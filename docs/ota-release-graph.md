@@ -4,6 +4,29 @@ Nyanime installs a normal, signed Android package after every application update
 A patch changes the bytes downloaded, not Android's installation model. No code
 is loaded into a running app and no intermediate APK is installed.
 
+## VCDIFF checkpoint
+
+Nyanime 0.81.1.8 provides signed APKs for all supported architectures and starts
+a fresh closure in `Nyanime-Release-v3.json`. The full APK is the update path
+from clients that predate this checkpoint. The new client reads v2 and v3
+descriptors. A v3 patch-only release is invisible to a v2-only client, which can
+still select the latest complete checkpoint from its release feed.
+
+V3 uses the default code table of [VCDIFF (RFC 3284)](https://www.rfc-editor.org/rfc/rfc3284).
+The publisher produces raw `.vcdiff` files with xdelta3 3.2.2 and checks that
+each one reconstructs the signed target byte for byte. The supported profile
+uses separate uncompressed sections, source or literal windows, and no
+application header. The producer uses 1 MiB target windows. The decoder accepts
+up to 2 MiB per target window. Bases up to 1 MiB are read into memory and larger
+bases use a read-only file mapping. The app still checks both hashes, the expected size, the package
+identity and the installed signing certificate.
+
+Use `scripts/public_distribution.py --vcdiff` for a full release. For a
+patch-only release also pass `--patch-only`, its preceding v3 graph and the
+exact signed base APK directories. The complete v3 checkpoint must be public
+before the publisher can replay a route that depends on it. Keep the previously
+published v2 closures and their assets available for older clients.
+
 ## Compatibility comes first
 
 `Nyanime-Release-v2.json` is a bounded closure of exact APK identities, retained

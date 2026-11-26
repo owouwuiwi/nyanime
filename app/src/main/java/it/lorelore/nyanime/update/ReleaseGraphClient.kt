@@ -8,6 +8,7 @@ import eu.kanade.tachiyomi.data.updater.delta.AndroidDeltaEnvironment
 import eu.kanade.tachiyomi.data.updater.delta.DeltaPatch
 import eu.kanade.tachiyomi.data.updater.delta.DeltaRecord
 import eu.kanade.tachiyomi.data.updater.delta.DeltaUpdateEnvironment
+import eu.kanade.tachiyomi.data.updater.delta.VcdiffPatch
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -36,7 +37,7 @@ internal class ReleaseGraphClient(
         stage: suspend (UpdateScreenPhase) -> Unit,
         progress: (Int) -> Unit,
     ): File {
-        val version = requireNotNull(ReleaseGraph.descriptorVersion(url, GITHUB_REPO))
+        val descriptor = requireNotNull(ReleaseGraph.descriptor(url, GITHUB_REPO))
         require(Regex("[a-zA-Z0-9-]{1,80}").matches(id))
         val job = File(directory, "route-$id").apply { check(mkdirs() || isDirectory) }
         listOf("base.tmp", "patch.tmp", "target.tmp").forEach { File(job, it).delete() }
@@ -45,7 +46,8 @@ internal class ReleaseGraphClient(
         var finished = false
         try {
             stage(UpdateScreenPhase.PREPARING)
-            val graph = ReleaseGraph.parse(assets.text(url), GITHUB_REPO, environment.packageName, version)
+            val graph = ReleaseGraph.parse(assets.text(url), GITHUB_REPO, environment.packageName, descriptor.version)
+            require(graph.schema == descriptor.schema)
             require(graph.versionCode > environment.installedVersionCode) { "Update is not newer" }
             val byHash = graph.packages.associateBy { it.sha256 }
             val available = mutableMapOf<String, File>()
@@ -116,22 +118,20 @@ internal class ReleaseGraphClient(
                         assets.download(edge.url, patch, edge.size, progress)
                         stage(UpdateScreenPhase.REBUILDING)
                         temporary.delete()
-                        DeltaPatch.apply(
-                            requireNotNull(current),
-                            patch,
-                            temporary,
-                            DeltaRecord(
-                                from.sha256,
-                                from.size,
-                                target.sha256,
-                                target.size,
-                                edge.sha256,
-                                edge.size,
-                                edge.url.substringAfterLast('/'),
-                                ReleaseGraph.apkName(target.versionName, target.abi),
-                            ),
-                            { context.ensureActive() },
-                        ) { written, size -> progress((written * 100 / size).toInt()) }
+                        val record = DeltaRecord(
+                            from.sha256,
+                            from.size,
+                            target.sha256,
+                            target.size,
+                            edge.sha256,
+                            edge.size,
+                            edge.url.substringAfterLast('/'),
+                            ReleaseGraph.apkName(target.versionName, target.abi),
+                        )
+                        val apply = if (graph.schema == 3) VcdiffPatch::apply else DeltaPatch::apply
+                        apply(requireNotNull(current), patch, temporary, record, { context.ensureActive() }) { written, size ->
+                            progress((written * 100 / size).toInt())
+                        }
                         stage(UpdateScreenPhase.VERIFYING)
                         verify(temporary, target)
                         val ready = File(job, target.sha256)

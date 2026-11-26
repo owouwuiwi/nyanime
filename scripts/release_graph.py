@@ -41,8 +41,13 @@ def apk_name(node):
     return f'Nyanime-Production-{node["versionName"]}-{node["abi"]}.apk'
 
 
-def patch_name(base, target):
-    return f'Nyanime-Delta-{base["sha256"][:16]}-{target["versionName"]}-{target["abi"]}.nyadelta'
+VCDIFF_FILE_NAME = 'Nyanime-Release-v3.json'
+GRAPH_FILES = {2: FILE_NAME, 3: VCDIFF_FILE_NAME}
+
+
+def patch_name(base, target, schema=2):
+    extension = 'vcdiff' if schema == 3 else 'nyadelta'
+    return f'Nyanime-Delta-{base["sha256"][:16]}-{target["versionName"]}-{target["abi"]}.{extension}'
 
 
 def route(graph, supported_abis, available=(), excluded_patches=(), excluded_bases=()):
@@ -76,7 +81,7 @@ def route(graph, supported_abis, available=(), excluded_patches=(), excluded_bas
 def validate(graph, repository, application_id, version):
     if (not isinstance(graph, dict) or set(graph) != {'schema', 'applicationId', 'versionName', 'versionCode',
                                                     'targets', 'packages', 'patches'} or
-            type(graph['schema']) is not int or graph['schema'] != 2 or
+            type(graph['schema']) is not int or graph['schema'] not in GRAPH_FILES or
             graph['applicationId'] != application_id or graph['versionName'] != version or
             type(graph['versionCode']) is not int or graph['versionCode'] <= 0):
         raise ValueError('Invalid OTA graph identity')
@@ -121,7 +126,7 @@ def validate(graph, repository, application_id, version):
         base, target = nodes[edge['from']], nodes[edge['to']]
         if (base['abi'] != target['abi'] or base['versionCode'] >= target['versionCode'] or
                 version_parts(base['versionName']) >= version_parts(target['versionName']) or
-                edge['url'] != asset_url(repository, target['versionName'], patch_name(base, target))):
+                edge['url'] != asset_url(repository, target['versionName'], patch_name(base, target, graph['schema']))):
             raise ValueError('Cyclic, incompatible or untrusted patch')
         seen_hashes.add(edge['sha256'])
         seen_edges.add((edge['from'], edge['to']))
@@ -155,14 +160,15 @@ def load(path, repository, application_id, version):
     return validate(json.loads(data), repository, application_id, version)
 
 
-def prepare(directory, version, code, application_id, repository, previous=None, patch_only=False):
+def prepare(directory, version, code, application_id, repository, previous=None, patch_only=False,
+            schema=2, vcdiff_bases=()):
     directory = Path(directory)
-    graph = {'schema': 2, 'applicationId': application_id, 'versionName': version, 'versionCode': code,
+    graph = {'schema': schema, 'applicationId': application_id, 'versionName': version, 'versionCode': code,
              'targets': [], 'packages': [], 'patches': []}
     if previous is not None:
         previous = validate(copy.deepcopy(previous), repository, application_id, previous['versionName'])
-        if previous['versionCode'] >= code:
-            raise ValueError('Previous closure must be older')
+        if previous['versionCode'] >= code or previous['schema'] != schema:
+            raise ValueError('Previous closure must be older and use the selected graph format')
         graph['packages'] = previous['packages']
         graph['patches'] = previous['patches']
     for abi in sorted(ABIS):
@@ -174,7 +180,28 @@ def prepare(directory, version, code, application_id, repository, previous=None,
         graph['targets'].append(node['sha256'])
         graph['packages'].append(node)
     nodes = {node['sha256']: node for node in graph['packages']}
-    if (directory / DELTA_MANIFEST).is_file():
+    if schema == 3:
+        if (directory / DELTA_MANIFEST).exists():
+            raise ValueError('VCDIFF releases cannot include a legacy delta manifest')
+        if len(vcdiff_bases) > 3:
+            raise ValueError('Use at most three VCDIFF base releases')
+        from scripts.vcdiff import create_patch
+        bases = [node for node in graph['packages'] if node['versionCode'] < code]
+        for base_dir in vcdiff_bases:
+            matched = [node for node in bases if (Path(base_dir) / apk_name(node)).is_file()]
+            if {node['abi'] for node in matched} != ABIS or len(matched) != len(ABIS):
+                raise ValueError('Expected one complete set of signed base APKs from the previous closure')
+            for base in sorted(matched, key=lambda node: node['abi']):
+                source = Path(base_dir) / apk_name(base)
+                if source.stat().st_size != base['size'] or sha256(source) != base['sha256']:
+                    raise ValueError('VCDIFF base differs from the previous closure')
+                target, = (nodes[digest] for digest in graph['targets'] if nodes[digest]['abi'] == base['abi'])
+                patch = directory / patch_name(base, target, schema)
+                if create_patch(source, directory / apk_name(target), patch):
+                    graph['patches'].append({'from': base['sha256'], 'to': target['sha256'],
+                                             'size': patch.stat().st_size, 'sha256': sha256(patch),
+                                             'url': asset_url(repository, version, patch.name)})
+    elif (directory / DELTA_MANIFEST).is_file():
         manifest = json.loads((directory / DELTA_MANIFEST).read_text(encoding='utf-8'))
         for entry in manifest['patches']:
             if entry['baseSha256'] not in nodes:
@@ -187,7 +214,7 @@ def prepare(directory, version, code, application_id, repository, previous=None,
                 'size': entry['patchSize'], 'sha256': entry['patchSha256'],
                 'url': asset_url(repository, version, entry['patch'])})
     validate(graph, repository, application_id, version)
-    (directory / FILE_NAME).write_text(json.dumps(graph, indent=2) + '\n', encoding='utf-8', newline='\n')
+    (directory / GRAPH_FILES[schema]).write_text(json.dumps(graph, indent=2) + '\n', encoding='utf-8', newline='\n')
     return graph
 
 
@@ -238,7 +265,11 @@ def reconstruct(graph, target_hash, destination, materials, download=fetch, veri
             if patch.stat().st_size != edge['size'] or sha256(patch) != edge['sha256']:
                 raise ValueError('Patch replay hash mismatch')
             following = temp / edge['to']
-            apply_patch(current, patch, following)
+            if graph['schema'] == 3:
+                from scripts.vcdiff import apply_patch as apply_vcdiff
+                apply_vcdiff(current, patch, following, nodes[edge['to']]['size'])
+            else:
+                apply_patch(current, patch, following)
             check(following, nodes[edge['to']])
             current.unlink()
             patch.unlink()
@@ -272,22 +303,25 @@ def verify_android(file, node, package_name, certificate):
         raise ValueError('Reconstructed APK ABI differs from release declaration')
 
 
-def verify_capability(file):
+def verify_capability(file, schema=2):
     with zipfile.ZipFile(file) as apk:
-        if json.loads(apk.read('assets/ota-capabilities.json')) != {'schema': 1, 'releaseGraph': 2, 'maxSteps': MAX_STEPS}:
+        marker = json.loads(apk.read('assets/ota-capabilities.json'))
+        if marker not in ({'schema': 1, 'releaseGraph': supported, 'maxSteps': MAX_STEPS}
+                          for supported in GRAPH_FILES if supported >= schema):
             raise ValueError('Complete checkpoint does not contain the capable OTA client')
 
 
 def publication_graph(directory, metadata, repository):
     """Bind closure targets and all current patch assets to the immutable reviewed metadata."""
     hashes = metadata.get('graphSha256', {})
-    if set(hashes) != {FILE_NAME} or not re.fullmatch(HASH, hashes[FILE_NAME]):
+    if len(hashes) != 1 or not set(hashes) <= set(GRAPH_FILES.values()):
         raise ValueError('Missing pinned release graph')
-    file = Path(directory) / FILE_NAME
-    if sha256(file) != hashes[FILE_NAME]:
+    name, pinned_hash = next(iter(hashes.items()))
+    file = Path(directory) / name
+    if not re.fullmatch(HASH, pinned_hash) or sha256(file) != pinned_hash:
         raise ValueError('Release graph hash mismatch')
     graph = load(file, repository, metadata['applicationId'], metadata['versionName'])
-    if graph['versionCode'] != metadata['versionCode']:
+    if graph['versionCode'] != metadata['versionCode'] or GRAPH_FILES[graph['schema']] != name:
         raise ValueError('Release graph version code mismatch')
     nodes = {node['sha256']: node for node in graph['packages']}
     targets = [nodes[digest] for digest in graph['targets']]
@@ -301,7 +335,10 @@ def publication_graph(directory, metadata, repository):
     current_edges = {edge['url'].rsplit('/', 1)[-1]: edge['sha256'] for edge in graph['patches']
                      if nodes[edge['to']]['versionName'] == metadata['versionName']}
     delta = metadata.get('deltaSha256', {})
-    if any(delta.get(name) != digest for name, digest in current_edges.items()):
+    matches = current_edges == delta if graph['schema'] == 3 else all(
+        delta.get(name) == digest for name, digest in current_edges.items()
+    )
+    if not matches:
         raise ValueError('Release graph patch assets differ from reviewed materials')
     return graph
 
