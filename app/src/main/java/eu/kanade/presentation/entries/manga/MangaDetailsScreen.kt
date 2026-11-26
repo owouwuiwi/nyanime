@@ -88,6 +88,7 @@ internal fun MangaDetailsScreen(
     onTagSearch: (String) -> Unit,
 
     onFilterButtonClicked: () -> Unit,
+    chapterGroupControl: (@Composable () -> Unit)?,
     onRefresh: () -> Unit,
     onContinueReading: () -> Unit,
     onSearch: (query: String, global: Boolean) -> Unit,
@@ -255,7 +256,9 @@ internal fun MangaDetailsScreen(
         noticeLoading = !noticesReady,
         favorite = manga.favorite, refreshing = state.isRefreshingData,
         sourceAvailable = state.source !is StubMangaSource, hasFilters = state.filterActive,
-        filterKey = manga.chapterFlags,
+        unfilteredPartCount = maxOf(state.chapters.size, state.availableScanlators.values.sum()),
+        partControls = chapterGroupControl,
+        filterKey = manga.chapterFlags to state.excludedScanlators,
         modifier = Modifier.contentPrivacyRegion(PrivacyArea.DETAILS, manga).nsfwPrivacy(manga),
         snackbar = snackbarHostState,
         onBack = navigateUp, onContinue = {

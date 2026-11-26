@@ -1206,6 +1206,7 @@ class MangaScreenModel(
         data class Migrate(val newManga: Manga, val oldManga: Manga) : Dialog
         data class SetMangaFetchInterval(val manga: Manga) : Dialog
         data object SettingsSheet : Dialog
+        data class ChapterGroups(val fromSettings: Boolean) : Dialog
         data object TrackSheet : Dialog
         data object FullCover : Dialog
     }
@@ -1220,6 +1221,10 @@ class MangaScreenModel(
 
     fun showSettingsDialog() {
         updateSuccessState { it.copy(dialog = Dialog.SettingsSheet) }
+    }
+
+    fun showChapterGroupsDialog(fromSettings: Boolean = false) {
+        updateSuccessState { it.copy(dialog = Dialog.ChapterGroups(fromSettings)) }
     }
 
     fun showTrackDialog() {
@@ -1251,7 +1256,7 @@ class MangaScreenModel(
             val source: MangaSource,
             val isFromSource: Boolean,
             val chapters: List<ChapterList.Item>,
-            val availableScanlators: Set<String>,
+            val availableScanlators: Map<String, Int>,
             val excludedScanlators: Set<String>,
             val trackingCount: Int = 0,
             val hasLoggedInTrackers: Boolean = false,
@@ -1272,6 +1277,7 @@ class MangaScreenModel(
             }
 
             val chapterListItems by lazy {
+                if (scanlatorFilterActive) return@lazy processedChapters
                 processedChapters.insertSeparators { before, after ->
                     val (lowerChapter, higherChapter) = if (manga.sortDescending()) {
                         after to before
@@ -1299,7 +1305,10 @@ class MangaScreenModel(
             }
 
             val scanlatorFilterActive: Boolean
-                get() = excludedScanlators.intersect(availableScanlators).isNotEmpty()
+                get() = availableScanlators.keys.any { it in excludedScanlators }
+
+            val canFilterChapterGroups: Boolean
+                get() = availableScanlators.size > 1 || scanlatorFilterActive
 
             val filterActive: Boolean
                 get() = scanlatorFilterActive || manga.chaptersFiltered()

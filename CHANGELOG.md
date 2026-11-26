@@ -9,6 +9,12 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 26 novembre 2026 — 0.81.1.9
+
+### Interfaccia
+
+- Il filtro Gruppi è accessibile dall’elenco dei capitoli. Si possono cercare i gruppi per nome, controllare quanti capitoli hanno e mostrare uno o più gruppi. La selezione è salvata per titolo e si applica anche al lettore.
+
 ## 26 novembre 2026 — 0.81.1.8
 
 ### Distribuzione

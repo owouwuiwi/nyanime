@@ -173,7 +173,9 @@ internal fun TitleDetailsScreen(
     backgroundArtwork: Boolean = false,
     sourceAvailable: Boolean = true,
     hasFilters: Boolean = false,
-    filterKey: Long = 0L,
+    unfilteredPartCount: Int = totalCount,
+    partControls: (@Composable () -> Unit)? = null,
+    filterKey: Any = 0L,
     refreshing: Boolean = false,
     loading: Boolean = false,
     primaryLoading: Boolean = false,
@@ -603,7 +605,7 @@ internal fun TitleDetailsScreen(
                                                     } else {
                                                         searchedParts.size
                                                     },
-                                                    totalCount, hasFilters, query, searching,
+                                                    unfilteredPartCount, hasFilters, query, searching,
                                                     requestFocus = requestSearchFocus,
                                                     onFocusRequested = { requestSearchFocus = false },
                                                     compact = LocalConfiguration.current.screenHeightDp < 520,
@@ -632,6 +634,7 @@ internal fun TitleDetailsScreen(
                                                         managerQuery = query
                                                         manager = true
                                                     },
+                                                    partControls = partControls,
                                                 )
                                             }
                                         }
@@ -953,6 +956,7 @@ internal fun TitleDetailsScreen(
         DetailManager(
             entryId, title, if (countEpisodeSections) stringResource(R.string.detail_episodes) else plural,
             parts, currentId, onOpenPart, onFilter, partActions, download, swipe,
+            partControls = partControls,
             seasonColumns = seasonColumns,
             seasonItem = seasonItem,
             initialSelection = initialSelection,
@@ -1483,6 +1487,7 @@ private fun DetailManager(
     initialQuery: String,
     startSelecting: Boolean,
     onDismiss: () -> Unit,
+    partControls: (@Composable () -> Unit)?,
 ) {
     var filter by rememberSaveable(entryId) { mutableStateOf(initialFilter) }
     var group by rememberSaveable(entryId) {
@@ -1548,6 +1553,7 @@ private fun DetailManager(
                 DetailIcon(TitleDetailsIcons.Filter, stringResource(R.string.detail_manage), onFilter)
                 DetailIcon(TitleDetailsIcons.Close, stringResource(android.R.string.cancel), onDismiss)
             }
+            partControls?.invoke()
             val controls: @Composable () -> Unit = {
                 Row(Modifier.fillMaxWidth().padding(bottom = 14.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(

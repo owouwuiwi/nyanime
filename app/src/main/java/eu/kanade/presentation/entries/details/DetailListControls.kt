@@ -64,6 +64,7 @@ internal fun DetailListControls(
     onResume: () -> Unit,
     enabled: Boolean = true,
     onManage: (() -> Unit)? = null,
+    partControls: (@Composable () -> Unit)? = null,
 ) {
     val keyboard = LocalSoftwareKeyboardController.current
     val focus = remember { FocusRequester() }
@@ -84,6 +85,7 @@ internal fun DetailListControls(
             DetailIcon(TitleDetailsIcons.Index, stringResource(R.string.detail_index), onIndex, count > 0 && enabled)
             DetailIcon(TitleDetailsIcons.Filter, stringResource(R.string.detail_filters), onFilter, enabled)
         }
+        partControls?.invoke()
         if (!compact) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 onManage?.let {

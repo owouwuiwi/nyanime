@@ -31,6 +31,7 @@ import eu.kanade.domain.base.BasePreferences
 import eu.kanade.domain.entries.manga.model.downloadedFilter
 import eu.kanade.presentation.components.TabbedDialog
 import eu.kanade.presentation.components.TabbedDialogPaddings
+import eu.kanade.tachiyomi.R
 import kotlinx.collections.immutable.persistentListOf
 import tachiyomi.core.common.preference.TriState
 import tachiyomi.domain.entries.manga.model.Manga
@@ -44,6 +45,7 @@ import tachiyomi.presentation.core.i18n.stringResource
 import tachiyomi.presentation.core.theme.active
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
+import androidx.compose.ui.res.stringResource as androidStringResource
 
 @Composable
 fun ChapterSettingsDialog(
@@ -53,7 +55,7 @@ fun ChapterSettingsDialog(
     onUnreadFilterChanged: (TriState) -> Unit,
     onBookmarkedFilterChanged: (TriState) -> Unit,
     scanlatorFilterActive: Boolean,
-    onScanlatorFilterClicked: (() -> Unit),
+    onScanlatorFilterClicked: (() -> Unit)?,
     onSortModeChanged: (Long) -> Unit,
     onDisplayModeChanged: (Long) -> Unit,
     onSetAsDefault: (applyToExistingManga: Boolean) -> Unit,
@@ -139,7 +141,7 @@ private fun ColumnScope.FilterPage(
     bookmarkedFilter: TriState,
     onBookmarkedFilterChanged: (TriState) -> Unit,
     scanlatorFilterActive: Boolean,
-    onScanlatorFilterClicked: (() -> Unit),
+    onScanlatorFilterClicked: (() -> Unit)?,
 ) {
     TriStateItem(
         label = stringResource(MR.strings.label_downloaded),
@@ -156,14 +158,11 @@ private fun ColumnScope.FilterPage(
         state = bookmarkedFilter,
         onClick = onBookmarkedFilterChanged,
     )
-    ScanlatorFilterItem(
-        active = scanlatorFilterActive,
-        onClick = onScanlatorFilterClicked,
-    )
+    onScanlatorFilterClicked?.let { ScanlatorFilterItem(scanlatorFilterActive, it) }
 }
 
 @Composable
-fun ScanlatorFilterItem(
+private fun ScanlatorFilterItem(
     active: Boolean,
     onClick: () -> Unit,
 ) {
@@ -185,7 +184,7 @@ fun ScanlatorFilterItem(
             },
         )
         Text(
-            text = stringResource(MR.strings.scanlator),
+            text = androidStringResource(R.string.chapter_groups_title),
             style = MaterialTheme.typography.bodyMedium,
         )
     }

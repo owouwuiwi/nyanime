@@ -55,7 +55,7 @@ LEFT JOIN(
     FROM chapters
     LEFT JOIN excluded_scanlators
     ON chapters.manga_id = excluded_scanlators.manga_id
-    AND chapters.scanlator = excluded_scanlators.scanlator
+    AND coalesce(chapters.scanlator, '') = excluded_scanlators.scanlator
     WHERE excluded_scanlators.scanlator IS NULL
     AND chapters.manga_id IN (SELECT _id FROM mangas WHERE favorite = 1)
     GROUP BY chapters.manga_id
@@ -69,7 +69,7 @@ LEFT JOIN (
     AND NOT EXISTS (
         SELECT 1 FROM excluded_scanlators
         WHERE excluded_scanlators.manga_id = chapters.manga_id
-        AND excluded_scanlators.scanlator = chapters.scanlator
+        AND excluded_scanlators.scanlator = coalesce(chapters.scanlator, '')
     )
     GROUP BY chapters.manga_id
 ) AS H ON H.manga_id = M._id

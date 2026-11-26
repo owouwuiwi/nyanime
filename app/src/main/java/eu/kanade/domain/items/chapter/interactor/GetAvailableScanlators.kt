@@ -8,17 +8,14 @@ class GetAvailableScanlators(
     private val repository: ChapterRepository,
 ) {
 
-    private fun List<String>.cleanupAvailableScanlators(): Set<String> {
-        return mapNotNull { it.ifBlank { null } }.toSet()
-    }
-
-    suspend fun await(mangaId: Long): Set<String> {
+    /** The empty key counts chapters for which the source did not supply a group. */
+    suspend fun await(mangaId: Long): Map<String, Int> {
         return repository.getScanlatorsByMangaId(mangaId)
-            .cleanupAvailableScanlators()
+            .groupingBy { it }.eachCount()
     }
 
-    fun subscribe(mangaId: Long): Flow<Set<String>> {
+    fun subscribe(mangaId: Long): Flow<Map<String, Int>> {
         return repository.getScanlatorsByMangaIdAsFlow(mangaId)
-            .map { it.cleanupAvailableScanlators() }
+            .map { scanlators -> scanlators.groupingBy { it }.eachCount() }
     }
 }

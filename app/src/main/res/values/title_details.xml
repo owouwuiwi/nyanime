@@ -6,6 +6,22 @@
     <string name="detail_manage">Manage</string>
     <string name="detail_episodes">Episodes</string>
     <string name="detail_chapters">Chapters</string>
+    <string name="chapter_groups">Groups</string>
+    <string name="chapter_groups_title">Chapter groups</string>
+    <string name="chapter_groups_all">All groups</string>
+    <string name="chapter_groups_selected">%1$d of %2$d groups</string>
+    <string name="chapter_groups_single">Group · %1$s</string>
+    <string name="chapter_groups_unnamed">No group</string>
+    <string name="chapter_groups_search">Find a group</string>
+    <string name="chapter_groups_no_results">No matching groups</string>
+    <string name="chapter_groups_choose_one">Select at least one group</string>
+    <string name="chapter_groups_only">Only</string>
+    <string name="chapter_groups_only_named">Show only %1$s</string>
+    <string name="chapter_groups_apply">Apply</string>
+    <plurals name="chapter_groups_chapters">
+        <item quantity="one">%1$d chapter</item>
+        <item quantity="other">%1$d chapters</item>
+    </plurals>
     <string name="detail_progress_watch">Watched %1$d of %2$d</string>
     <string name="detail_progress_read">Read %1$d of %2$d</string>
     <string name="detail_resume_watch">Resume · Ep. %1$s</string>

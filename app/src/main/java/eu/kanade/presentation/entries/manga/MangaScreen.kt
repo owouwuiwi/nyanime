@@ -120,6 +120,7 @@ fun MangaScreen(
     onTagSearch: (String) -> Unit,
 
     onFilterButtonClicked: () -> Unit,
+    onChapterGroupsClicked: () -> Unit,
     onRefresh: () -> Unit,
     onContinueReading: () -> Unit,
     onSearch: (query: String, global: Boolean) -> Unit,
@@ -148,6 +149,18 @@ fun MangaScreen(
     onAllChapterSelected: (Boolean) -> Unit,
     onInvertSelection: () -> Unit,
 ) {
+    val chapterGroupControl: (@Composable () -> Unit)? = if (state.canFilterChapterGroups) {
+        {
+            eu.kanade.presentation.entries.manga.components.ChapterGroupChip(
+                groups = state.availableScanlators,
+                hidden = state.excludedScanlators,
+                onClick = onChapterGroupsClicked,
+                enabled = !state.isAnySelected,
+            )
+        }
+    } else {
+        null
+    }
     if (eu.kanade.presentation.theme.LocalNyanimeStyle.current) {
         MangaDetailsScreen(
             state = state,
@@ -167,6 +180,7 @@ fun MangaScreen(
             onTrackingClicked = onTrackingClicked,
             onTagSearch = onTagSearch,
             onFilterButtonClicked = onFilterButtonClicked,
+            chapterGroupControl = chapterGroupControl,
             onRefresh = onRefresh,
             onContinueReading = onContinueReading,
             onSearch = onSearch,
@@ -217,6 +231,7 @@ fun MangaScreen(
             onTagSearch = onTagSearch,
             onCopyTagToClipboard = onCopyTagToClipboard,
             onFilterClicked = onFilterButtonClicked,
+            chapterGroupControl = chapterGroupControl,
             onRefresh = onRefresh,
             onContinueReading = onContinueReading,
             onSearch = onSearch,
@@ -256,6 +271,7 @@ fun MangaScreen(
             onTagSearch = onTagSearch,
             onCopyTagToClipboard = onCopyTagToClipboard,
             onFilterButtonClicked = onFilterButtonClicked,
+            chapterGroupControl = chapterGroupControl,
             onRefresh = onRefresh,
             onContinueReading = onContinueReading,
             onSearch = onSearch,
@@ -301,6 +317,7 @@ private fun MangaScreenSmallImpl(
     onCopyTagToClipboard: (tag: String) -> Unit,
 
     onFilterClicked: () -> Unit,
+    chapterGroupControl: (@Composable () -> Unit)?,
     onRefresh: () -> Unit,
     onContinueReading: () -> Unit,
     onSearch: (query: String, global: Boolean) -> Unit,
@@ -523,16 +540,7 @@ private fun MangaScreenSmallImpl(
                         key = EntryScreenItem.ITEM_HEADER,
                         contentType = EntryScreenItem.ITEM_HEADER,
                     ) {
-                        val missingChaptersCount = remember(chapters) {
-                            chapters.map { it.chapter.chapterNumber }.missingChaptersCount()
-                        }
-                        ItemHeader(
-                            enabled = !isAnySelected,
-                            itemCount = chapters.size,
-                            missingItemsCount = missingChaptersCount,
-                            onClick = onFilterClicked,
-                            isManga = true,
-                        )
+                        MangaChapterHeader(chapters, state, isAnySelected, onFilterClicked, chapterGroupControl)
                     }
 
                     sharedChapterItems(
@@ -575,6 +583,7 @@ fun MangaScreenLargeImpl(
     onCopyTagToClipboard: (tag: String) -> Unit,
 
     onFilterButtonClicked: () -> Unit,
+    chapterGroupControl: (@Composable () -> Unit)?,
     onRefresh: () -> Unit,
     onContinueReading: () -> Unit,
     onSearch: (query: String, global: Boolean) -> Unit,
@@ -781,15 +790,8 @@ fun MangaScreenLargeImpl(
                                 key = EntryScreenItem.ITEM_HEADER,
                                 contentType = EntryScreenItem.ITEM_HEADER,
                             ) {
-                                val missingChaptersCount = remember(chapters) {
-                                    chapters.map { it.chapter.chapterNumber }.missingChaptersCount()
-                                }
-                                ItemHeader(
-                                    enabled = !isAnySelected,
-                                    itemCount = chapters.size,
-                                    missingItemsCount = missingChaptersCount,
-                                    onClick = onFilterButtonClicked,
-                                    isManga = true,
+                                MangaChapterHeader(
+                                    chapters, state, isAnySelected, onFilterButtonClicked, chapterGroupControl,
                                 )
                             }
 
@@ -808,6 +810,35 @@ fun MangaScreenLargeImpl(
                     }
                 },
             )
+        }
+    }
+}
+
+@Composable
+private fun MangaChapterHeader(
+    chapters: List<ChapterList.Item>,
+    state: MangaScreenModel.State.Success,
+    hasSelection: Boolean,
+    onFilter: () -> Unit,
+    chapterGroupControl: (@Composable () -> Unit)?,
+) {
+    val missingCount = remember(chapters, state.scanlatorFilterActive) {
+        if (state.scanlatorFilterActive) {
+            0
+        } else {
+            chapters.map { it.chapter.chapterNumber }.missingChaptersCount()
+        }
+    }
+    Column {
+        ItemHeader(
+            enabled = !hasSelection,
+            itemCount = chapters.size,
+            missingItemsCount = missingCount,
+            onClick = onFilter,
+            isManga = true,
+        )
+        chapterGroupControl?.let { control ->
+            Box(Modifier.padding(horizontal = 16.dp)) { control() }
         }
     }
 }

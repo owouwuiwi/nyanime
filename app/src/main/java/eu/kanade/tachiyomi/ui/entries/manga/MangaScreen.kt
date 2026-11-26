@@ -37,8 +37,8 @@ import eu.kanade.presentation.entries.components.SetIntervalDialog
 import eu.kanade.presentation.entries.manga.ChapterSettingsDialog
 import eu.kanade.presentation.entries.manga.DuplicateMangaDialog
 import eu.kanade.presentation.entries.manga.MangaScreen
+import eu.kanade.presentation.entries.manga.components.ChapterGroupFilterDialog
 import eu.kanade.presentation.entries.manga.components.MangaCoverDialog
-import eu.kanade.presentation.entries.manga.components.ScanlatorFilterDialog
 import eu.kanade.presentation.share.ContentShareDialog
 import eu.kanade.presentation.theme.LegacyMangaTheme
 import eu.kanade.presentation.util.AssistContentScreen
@@ -202,6 +202,7 @@ class MangaScreen(
             },
             onTagSearch = { scope.launch { performGenreSearch(navigator, it, screenModel.source!!) } },
             onFilterButtonClicked = screenModel::showSettingsDialog,
+            onChapterGroupsClicked = { screenModel.showChapterGroupsDialog() },
             onRefresh = screenModel::fetchAllFromSource,
             onContinueReading = { continueReading(context, screenModel.getNextUnreadChapter()) },
             onSearch = { query, global -> scope.launch { performSearch(navigator, query, global) } },
@@ -224,8 +225,6 @@ class MangaScreen(
             onAllChapterSelected = screenModel::toggleAllSelection,
             onInvertSelection = screenModel::invertSelection,
         )
-
-        var showScanlatorsDialog by remember { mutableStateOf(false) }
 
         val onDismissRequest = {
             screenModel.dismissDialog()
@@ -292,7 +291,17 @@ class MangaScreen(
                 onSetAsDefault = screenModel::setCurrentSettingsAsDefault,
                 onResetToDefault = screenModel::resetToDefaultSettings,
                 scanlatorFilterActive = successState.scanlatorFilterActive,
-                onScanlatorFilterClicked = { showScanlatorsDialog = true },
+                onScanlatorFilterClicked = if (successState.canFilterChapterGroups) {
+                    { screenModel.showChapterGroupsDialog(fromSettings = true) }
+                } else {
+                    null
+                },
+            )
+            is MangaScreenModel.Dialog.ChapterGroups -> ChapterGroupFilterDialog(
+                groups = successState.availableScanlators,
+                excludedScanlators = successState.excludedScanlators,
+                onDismissRequest = if (dialog.fromSettings) screenModel::showSettingsDialog else onDismissRequest,
+                onConfirm = screenModel::setExcludedScanlators,
             )
             MangaScreenModel.Dialog.TrackSheet -> {
                 NavigatorAdaptiveSheet(
@@ -343,15 +352,6 @@ class MangaScreen(
                         .takeIf { screenModel.isUpdateIntervalEnabled },
                 )
             }
-        }
-
-        if (showScanlatorsDialog) {
-            ScanlatorFilterDialog(
-                availableScanlators = successState.availableScanlators,
-                excludedScanlators = successState.excludedScanlators,
-                onDismissRequest = { showScanlatorsDialog = false },
-                onConfirm = screenModel::setExcludedScanlators,
-            )
         }
     }
 

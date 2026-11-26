@@ -252,7 +252,7 @@ class SyncChaptersWithSource(
 
             val notices = updatedToAdd.filterNot {
                 it.url in changedOrDuplicateReadUrls ||
-                    it.scanlator in excludedScanlators
+                    it.scanlator.orEmpty() in excludedScanlators
             }
             ReleaseStore().committed(
                 ReleaseMedium.MANGA,
