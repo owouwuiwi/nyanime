@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.PeopleAlt
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
@@ -40,7 +41,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import eu.kanade.presentation.entries.details.TitleDetailsIcons
 import eu.kanade.tachiyomi.R
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.i18n.stringResource as mokoStringResource
@@ -68,7 +68,7 @@ internal fun ChapterGroupChip(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier.widthIn(max = 320.dp),
-        leadingIcon = { Icon(TitleDetailsIcons.Users, null, Modifier.size(18.dp)) },
+        leadingIcon = { Icon(Icons.Outlined.PeopleAlt, null, Modifier.size(18.dp)) },
         label = { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
     )
 }

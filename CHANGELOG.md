@@ -9,6 +9,12 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 26 novembre 2026 — 0.81.1.11
+
+### Interfaccia
+
+- Ripristinato il layout della 0.81.1.9 per le schede anime e manga, con il filtro Gruppi nell’elenco dei capitoli.
+
 ## 26 novembre 2026 — 0.81.1.10
 
 ### Interfaccia

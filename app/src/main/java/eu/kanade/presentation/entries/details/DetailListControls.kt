@@ -7,7 +7,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -38,7 +37,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import eu.kanade.presentation.motion.ModernMotion
@@ -72,66 +70,41 @@ internal fun DetailListControls(
     val focus = remember { FocusRequester() }
     val motion = modernMotionEnabled()
     Column(Modifier.fillMaxWidth()) {
-        Row(
-            Modifier.fillMaxWidth().heightIn(min = 48.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(7.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        plural,
-                        Modifier.weight(1f, fill = false),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    if (!hasFilters) {
-                        Text(
-                            count.toString(),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                if (hasFilters) {
-                    Text(
-                        stringResource(R.string.detail_visible_count, count, total),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            partControls?.let { control ->
-                Box(Modifier.weight(1.2f), contentAlignment = Alignment.CenterEnd) { control() }
-            }
-        }
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            if (!compact && onManage != null) {
-                Box(Modifier.weight(1f)) {
-                    TextButton(onClick = onManage, enabled = enabled) {
-                        Text(
-                            stringResource(R.string.detail_manage),
-                            style = MaterialTheme.typography.labelMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-            } else {
-                Spacer(Modifier.weight(1f))
+            Text(plural, Modifier.weight(1f), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(count.toString(), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (compact) {
+                DetailIcon(
+                    TitleDetailsIcons.Resume,
+                    stringResource(R.string.detail_go_resume),
+                    onResume,
+                    canResume && enabled,
+                )
             }
-            DetailIcon(
-                TitleDetailsIcons.Resume,
-                stringResource(R.string.detail_go_resume),
-                onResume,
-                canResume && enabled,
-            )
             DetailIcon(TitleDetailsIcons.Search, stringResource(R.string.detail_search_items), onSearch, enabled)
             DetailIcon(TitleDetailsIcons.Index, stringResource(R.string.detail_index), onIndex, count > 0 && enabled)
             DetailIcon(TitleDetailsIcons.Filter, stringResource(R.string.detail_filters), onFilter, enabled)
+        }
+        partControls?.invoke()
+        if (!compact) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                onManage?.let {
+                    TextButton(onClick = it, enabled = enabled) {
+                        Text(stringResource(R.string.detail_manage), fontSize = 12.sp)
+                    }
+                }
+                if (hasFilters) {
+                    TextButton(onClick = onFilter, enabled = enabled, modifier = Modifier.weight(1f)) {
+                        Text(stringResource(R.string.detail_filtered, count, total), fontSize = 11.sp)
+                    }
+                } else {
+                    Spacer(Modifier.weight(1f))
+                }
+                TextButton(onClick = onResume, enabled = canResume && enabled) {
+                    Icon(TitleDetailsIcons.Resume, null, Modifier.size(16.dp))
+                    Text(stringResource(R.string.detail_go_resume), Modifier.padding(start = 6.dp), fontSize = 12.sp)
+                }
+            }
         }
         AnimatedVisibility(
             visible = searching,

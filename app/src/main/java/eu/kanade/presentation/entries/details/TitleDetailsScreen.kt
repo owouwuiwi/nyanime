@@ -10,7 +10,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.progressSemantics
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -47,6 +46,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -77,8 +77,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
@@ -93,9 +94,6 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -116,6 +114,7 @@ import eu.kanade.presentation.motion.posterDetailPreview
 import eu.kanade.presentation.motion.posterForeground
 import eu.kanade.presentation.theme.NyanimeFloatingSurface
 import eu.kanade.presentation.theme.NyanimeGlassHeader
+import eu.kanade.presentation.theme.nyanimeArtworkScrim
 import eu.kanade.presentation.theme.nyanimeBackdropSource
 import eu.kanade.presentation.theme.nyanimeBrandColors
 import eu.kanade.presentation.theme.nyanimePinnedBackdrop
@@ -205,9 +204,6 @@ internal fun TitleDetailsScreen(
         1 -> detailsState
         2 -> personalState
         else -> partsState
-    }
-    val showToolbarTitle by remember(listState) {
-        derivedStateOf { listState.firstVisibleItemIndex > DetailListSection.HERO.ordinal }
     }
     var visitedDetails by rememberSaveable(entryId) { mutableStateOf(false) }
     var visitedPersonal by rememberSaveable(entryId) { mutableStateOf(false) }
@@ -374,13 +370,7 @@ internal fun TitleDetailsScreen(
         containerColor = Color.Transparent,
         topBar = {
             NyanimeGlassHeader(backdrop) {
-                DetailTopBar(
-                    title.takeIf { showToolbarTitle },
-                    onBack,
-                    onShare.takeIf { enabled },
-                    { menu = actions },
-                    enabled,
-                )
+                DetailTopBar(title, manga, onBack, onShare.takeIf { enabled }, { menu = actions }, enabled)
             }
         },
         snackbarHost = { SnackbarHost(snackbar) },
@@ -431,32 +421,58 @@ internal fun TitleDetailsScreen(
                     detailsPrefix { section ->
                         when (section) {
                             DetailListSection.HERO -> {
-                                DetailHero(
-                                    title, kicker, subtitle, artwork, backgroundArtwork,
-                                    onCover.takeIf { enabled }, onSource.takeIf { enabled }, loading,
-                                )
+                                Column(Modifier.widthIn(max = 700.dp).fillMaxWidth()) {
+                                    DetailHero(title, kicker, subtitle, artwork, backgroundArtwork, onCover, loading)
+                                    Surface(
+                                        onClick = { onSource?.invoke() },
+                                        enabled = enabled && onSource != null,
+                                        color = Color.Transparent,
+                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                                    ) {
+                                        Row(
+                                            Modifier.padding(vertical = 12.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                        ) {
+                                            Icon(
+                                                TitleDetailsIcons.Globe,
+                                                null,
+                                                Modifier.size(18.dp),
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                            Text(
+                                                subtitle,
+                                                Modifier.weight(1f),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                            if (onSource != null) {
+                                                Icon(
+                                                    TitleDetailsIcons.Next,
+                                                    stringResource(R.string.title_details_source_open),
+                                                    Modifier.size(18.dp),
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                             }
                             DetailListSection.PROGRESS -> {
-                                Column(
-                                    Modifier.widthIn(max = 700.dp).fillMaxWidth()
-                                        .padding(horizontal = 20.dp, vertical = 14.dp),
-                                    verticalArrangement = Arrangement.spacedBy(11.dp),
-                                ) {
-                                    Row(
-                                        Modifier.fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    ) {
-                                        DetailPrimary(
-                                            primaryText,
-                                            manga,
-                                            enabled && currentId != null && !primaryLoading,
-                                            onContinue,
-                                            loading || primaryLoading,
-                                            Modifier.weight(1f),
-                                        )
-                                        DetailCompactAction(
+                                Column(Modifier.widthIn(max = 700.dp).fillMaxWidth().padding(horizontal = 20.dp)) {
+                                    Spacer(Modifier.height(16.dp))
+                                    DetailPrimary(
+                                        primaryText,
+                                        primaryInformation,
+                                        manga,
+                                        enabled && currentId != null && !primaryLoading,
+                                        onContinue,
+                                        loading || primaryLoading,
+                                    )
+                                    Spacer(Modifier.height(9.dp))
+                                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                        DetailQuickAction(
                                             libraryLabel,
+
                                             libraryIcon,
                                             onLibrary,
                                             onEditCategories,
@@ -464,18 +480,27 @@ internal fun TitleDetailsScreen(
                                             enabled = enabled,
                                         )
                                         onTracking?.let { track ->
-                                            DetailCompactAction(
+                                            DetailQuickAction(
                                                 stringResource(R.string.detail_tracking),
                                                 TitleDetailsIcons.Checks,
                                                 track,
                                                 enabled = enabled,
                                             )
                                         }
+                                        follow()
                                     }
-                                    DetailProgress(
-                                        manga, completedCount, totalCount, loading,
-                                        position = primaryInformation.takeUnless { primaryLoading }.orEmpty(),
-                                    )
+                                    Spacer(Modifier.height(14.dp))
+                                    DetailProgress(manga, completedCount, totalCount, loading)
+                                    if (onTracking != null) {
+                                        Spacer(Modifier.height(12.dp))
+                                        DetailLoadingSlot(
+                                            loading,
+                                            placeholder = { Skeleton(Modifier.matchParentSize()) },
+                                        ) {
+                                            PersonalTrackingSummary(personal, manga, onTracking)
+                                        }
+                                    }
+                                    Spacer(Modifier.height(18.dp))
                                 }
                             }
                             DetailListSection.NOTICE -> {
@@ -972,7 +997,8 @@ private fun Modifier.detailPinnedSurface(listState: LazyListState, viewportWidth
 
 @Composable
 private fun DetailTopBar(
-    title: String?,
+    title: String,
+    manga: Boolean,
     onBack: () -> Unit,
     onShare: (() -> Unit)?,
     onMenu: () -> Unit,
@@ -981,21 +1007,24 @@ private fun DetailTopBar(
     Row(
         Modifier.fillMaxWidth()
             .statusBarsPadding()
-            .heightIn(min = 52.dp)
+            .heightIn(min = 62.dp)
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         DetailIcon(TitleDetailsIcons.Back, stringResource(R.string.detail_back), onBack)
-        if (title.isNullOrBlank()) {
-            Spacer(Modifier.weight(1f))
-        } else {
+        Column(Modifier.weight(1f).padding(horizontal = 6.dp)) {
             Text(
                 title,
-                Modifier.weight(1f).padding(horizontal = 6.dp),
-                style = MaterialTheme.typography.titleSmall,
+                fontSize = 13.sp,
+                lineHeight = 16.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                stringResource(if (manga) R.string.detail_your_read else R.string.detail_your_watch),
+                fontSize = 11.sp,
+                lineHeight = 15.sp,
             )
         }
         DetailIcon(
@@ -1012,100 +1041,62 @@ private fun DetailTopBar(
 private fun DetailHero(
     title: String,
     kicker: String,
-    sourceName: String,
+    subtitle: String,
     artwork: Any?,
     background: Boolean,
-    onCover: (() -> Unit)?,
-    onSource: (() -> Unit)?,
+    onCover: () -> Unit,
     loading: Boolean,
 ) = PosterDestinationContent {
+    DetailHeroContent(title, kicker, subtitle, artwork, background, onCover, loading)
+}
+
+@Composable
+private fun DetailHeroContent(
+    title: String,
+    kicker: String,
+    subtitle: String,
+    artwork: Any?,
+    background: Boolean,
+    onCover: () -> Unit,
+    loading: Boolean,
+) {
     BoxWithConstraints(Modifier.widthIn(max = 700.dp).fillMaxWidth()) {
-        val shortScreen = LocalConfiguration.current.screenHeightDp < 520
-        val height = if (shortScreen) 172.dp else (maxWidth * 0.58f).coerceIn(208.dp, 300.dp)
-        val typography = MaterialTheme.typography
-        val titleStyle = if (shortScreen) typography.headlineMedium else typography.headlineLarge
-        val artInk = Color.White
-        val artShade = nyanimeBrandColors.artworkShade
-        val scrim = remember(artShade) {
-            Brush.verticalGradient(
-                0f to artShade.copy(alpha = .35f),
-                .28f to Color.Transparent,
-                .55f to Color.Black.copy(alpha = .57f),
-                .82f to Color.Black.copy(alpha = .87f),
-                1f to Color.Black.copy(alpha = .96f),
-            )
-        }
-        val captionScrim = remember {
-            Brush.verticalGradient(0f to Color.Transparent, .12f to Color.Black.copy(alpha = .66f))
-        }
-        Box(Modifier.fillMaxWidth().heightIn(min = height).background(artShade)) {
-            PosterDetailArtwork(
-                artwork,
-                Modifier.matchParentSize(),
-                background = background,
-                sourceArtwork = true,
-                shade = scrim,
-            )
-            Column(
-                Modifier.align(Alignment.BottomStart).fillMaxWidth().posterForeground()
-                    .padding(top = if (onCover == null) 0.dp else 52.dp)
-                    .background(captionScrim)
-                    .padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                if (title.isNotBlank()) {
-                    Text(
-                        title,
-                        Modifier.semantics { heading() },
-                        style = titleStyle,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = artInk,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
+        val compact = maxWidth < 360.dp || LocalDensity.current.fontScale > 1.3f
+        val coverWidth = if (compact) 88.dp else 104.dp
+        Box(Modifier.fillMaxWidth()) {
+            if (artwork != null && eu.kanade.presentation.motion.posterRequestsEnabled()) {
+                Box(Modifier.matchParentSize().clip(RoundedCornerShape(24.dp))) {
+                    SourceHomeArtwork(
+                        artwork,
+                        Modifier.matchParentSize().blur(24.dp).alpha(.13f),
+                        background = background,
                     )
-                } else if (loading) {
-                    Skeleton(Modifier.fillMaxWidth(.65f).height(29.dp))
-                }
-                Text(kicker, style = MaterialTheme.typography.labelLarge, color = artInk.copy(alpha = .88f))
-                if (sourceName.isNotBlank()) {
-                    val sourceAction = stringResource(R.string.title_details_source_open)
-                    Surface(
-                        onClick = { onSource?.invoke() },
-                        enabled = onSource != null,
-                        color = Color.Transparent,
-                        contentColor = artInk,
-                        shape = MaterialTheme.shapes.small,
-                    ) {
-                        Row(
-                            Modifier.heightIn(min = if (onSource == null) 26.dp else 44.dp).padding(end = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            Icon(TitleDetailsIcons.Globe, null, Modifier.size(16.dp))
-                            Text(
-                                sourceName,
-                                Modifier.weight(1f, fill = false),
-                                style = MaterialTheme.typography.labelMedium,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            if (onSource != null) Icon(TitleDetailsIcons.Next, sourceAction, Modifier.size(16.dp))
-                        }
-                    }
                 }
             }
-            onCover?.let {
-                Surface(
-                    modifier = Modifier.align(Alignment.TopEnd).posterForeground().padding(8.dp),
-                    shape = RoundedCornerShape(50),
-                    color = Color.Black.copy(alpha = .64f),
-                    contentColor = artInk,
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(18.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    Modifier.width(coverWidth).height(coverWidth * 1.5f).clip(RoundedCornerShape(15.dp))
+                        .combinedClickable(
+                            onClickLabel = stringResource(R.string.detail_cover),
+                            role = Role.Button,
+                            onClick = onCover,
+                        ),
                 ) {
-                    DetailIcon(
-                        TitleDetailsIcons.Artwork,
-                        stringResource(R.string.detail_cover),
-                        it,
+                    PosterDetailArtwork(artwork, Modifier.matchParentSize(), sourceArtwork = true)
+                }
+                Column(Modifier.weight(1f).posterForeground(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        kicker.uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Bold,
                     )
+                    Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
+                    if (loading) Skeleton(Modifier.fillMaxWidth(.65f).height(13.dp))
                 }
             }
         }
@@ -1118,9 +1109,8 @@ private fun DetailProgress(
     completed: Int,
     total: Int,
     loading: Boolean,
-    position: String = "",
 ) {
-    val fraction = if (total > 0) (completed.toFloat() / total).coerceIn(0f, 1f) else 0f
+    val fraction = if (total > 0) completed.toFloat() / total else 0f
     val progress by animateFloatAsState(
         fraction,
         tween(if (modernMotionEnabled()) ModernMotion.RESIZE_MILLIS else 0),
@@ -1132,17 +1122,8 @@ private fun DetailProgress(
                 15.sp.toDp()
             },
         ),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        if (position.isNotBlank()) {
-            Text(
-                position,
-                Modifier.weight(1f),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-        }
         DetailLoadingSlot(loading, placeholder = { Skeleton(Modifier.width(100.dp).height(13.dp)) }) {
             Text(
                 stringResource(
@@ -1150,7 +1131,16 @@ private fun DetailProgress(
                     completed,
                     total,
                 ),
-                style = MaterialTheme.typography.labelMedium,
+                fontSize = 11.sp,
+                lineHeight = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+        DetailLoadingSlot(loading, placeholder = { Skeleton(Modifier.width(24.dp).height(13.dp)) }) {
+            Text(
+                "${(fraction * 100).toInt()}%",
+                fontSize = 11.sp,
+                lineHeight = 15.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -1158,8 +1148,7 @@ private fun DetailProgress(
     Spacer(Modifier.height(8.dp))
     Box(
         Modifier.fillMaxWidth()
-            .height(4.dp)
-            .then(if (loading) Modifier else Modifier.progressSemantics(fraction))
+            .height(3.dp)
             .clip(RoundedCornerShape(2.dp))
             .background(MaterialTheme.colorScheme.outlineVariant),
     ) {
@@ -1170,7 +1159,7 @@ private fun DetailProgress(
                     1f,
                 ),
             )
-                .height(4.dp)
+                .height(3.dp)
                 .background(MaterialTheme.colorScheme.primary),
         )
     }
@@ -1179,73 +1168,54 @@ private fun DetailProgress(
 @Composable
 private fun DetailPrimary(
     label: String,
+    information: String,
     manga: Boolean,
     enabled: Boolean,
     onClick: () -> Unit,
     loading: Boolean,
-    modifier: Modifier = Modifier,
 ) {
     val brand = nyanimeBrandColors
+    val density = LocalDensity.current
+    val reservedHeight = maxOf(57.dp, 18.dp + with(density) { 18.9.sp.toDp() + 14.85.sp.toDp() })
     Surface(
         onClick = onClick,
         enabled = enabled,
-        shape = MaterialTheme.shapes.medium,
-        color = if (enabled) brand.actionBackground else MaterialTheme.colorScheme.surfaceContainerHigh,
-        contentColor = if (enabled) brand.actionText else MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier.heightIn(min = 50.dp),
+        shape = RoundedCornerShape(20.dp),
+        color = brand.actionBackground,
+        contentColor = brand.actionText,
+        modifier = Modifier.fillMaxWidth().heightIn(min = reservedHeight),
     ) {
         Row(
-            Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Icon(if (manga) TitleDetailsIcons.Book else TitleDetailsIcons.Play, null, Modifier.size(21.dp))
-            Box(Modifier.weight(1f, fill = false)) {
+            Column(Modifier.weight(1f)) {
                 DetailLoadingSlot(loading, placeholder = { Skeleton(Modifier.fillMaxWidth(0.7f).height(17.dp)) }) {
                     Text(
                         label,
-                        style = MaterialTheme.typography.titleSmall,
+                        fontSize = 16.sp,
+                        lineHeight = 22.sp,
                         fontWeight = FontWeight.Bold,
                         minLines = 1,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+                DetailLoadingSlot(loading, placeholder = {}) {
+                    Text(
+                        information,
+                        fontSize = 11.sp,
+                        lineHeight = 15.sp,
+                        minLines = 1,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = LocalContentColor.current.copy(alpha = 0.65f),
+                    )
+                }
             }
         }
-    }
-}
-
-@Composable
-private fun DetailCompactAction(
-    label: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
-    onLongClick: (() -> Unit)? = null,
-    active: Boolean = false,
-    enabled: Boolean = true,
-) {
-    val colors = MaterialTheme.colorScheme
-    val shape = MaterialTheme.shapes.medium
-    Box(
-        Modifier.size(50.dp).clip(shape)
-            .background(if (active) colors.primaryContainer else colors.surfaceContainerHigh)
-            .combinedClickable(
-                enabled = enabled,
-                role = Role.Button,
-                onClick = onClick,
-                onLongClick = onLongClick,
-            )
-            .semantics { contentDescription = label },
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            icon,
-            null,
-            Modifier.size(21.dp),
-            tint = (if (active) colors.onPrimaryContainer else colors.onSurfaceVariant)
-                .copy(alpha = if (enabled) 1f else .38f),
-        )
     }
 }
 
