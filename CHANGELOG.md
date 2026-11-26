@@ -9,6 +9,12 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 26 novembre 2026 — 0.81.1.7
+
+### Store
+
+- L’aggiornamento conserva le estensioni installate o importate, i bridge e i cataloghi già configurati. All’avvio si può entrare subito nell’app anche se il vecchio ripristino era rimasto in sospeso.
+
 ## 25 novembre 2026 — 0.81.1.6
 
 ### Compatibilità

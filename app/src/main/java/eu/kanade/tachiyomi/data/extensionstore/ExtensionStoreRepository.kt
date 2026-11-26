@@ -260,7 +260,6 @@ class ExtensionStoreRepository private constructor(private val context: Context)
 
     private suspend fun runImportedUpdateCheck(force: Boolean, catalogueRefreshed: Boolean?): Boolean = automaticLock.withLock {
         if (Injekt.get<BasePreferences>().downloadedOnly().get()) return@withLock true
-        if (CatalogueUpgradeReset(Injekt.get()).pending) return@withLock false
         val preferences = context.getSharedPreferences("extension_package_updates_v1", Context.MODE_PRIVATE)
         val checked = preferences.getLong("checked", 0)
         val now = System.currentTimeMillis()

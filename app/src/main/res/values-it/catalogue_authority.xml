@@ -15,17 +15,6 @@
     <string name="catalogue_links_incomplete">Tutti i cataloghi collegati devono superare la verifica per poterli aggiungere insieme.</string>
     <string name="catalogue_links_done">I cataloghi sono pronti. Apri lo Store per scegliere le estensioni.</string>
     <string name="catalogue_primary_trust_hint">Vale per le estensioni che scegli dal catalogo principale. Puoi gestire separatamente il consenso per quelli collegati.</string>
-    <string name="catalogue_reset_title">Ripristino delle estensioni</string>
-    <string name="catalogue_reset_description">L’aggiornamento rimuove una sola volta i vecchi cataloghi. Prima di proseguire, rimuovi le estensioni già presenti. Potrai poi aggiungere i cataloghi nello Store e reinstallare le estensioni che usi.</string>
-    <string name="catalogue_reset_preserved">La libreria, i progressi e i download vengono conservati.</string>
-    <string name="catalogue_reset_remaining">Estensioni da rimuovere (%1$d)</string>
-    <string name="catalogue_reset_cancelled">L’estensione è ancora installata. Conferma la disinstallazione per proseguire.</string>
-    <string name="catalogue_reset_failed">Il ripristino si è interrotto. Riprova per controllare cosa resta da rimuovere.</string>
-    <string name="catalogue_reset_ready">I vecchi cataloghi e le estensioni sono stati rimossi.</string>
-    <string name="catalogue_reset_exit">Chiudi app</string>
-    <string name="catalogue_reset_retry">Riprova</string>
-    <string name="catalogue_reset_continue">Continua</string>
-    <string name="catalogue_reset_remove_all">Rimuovi tutte</string>
     <string name="store_authority_title">Versioni consigliate</string>
     <string name="store_authority_count">%1$d estensioni installate hanno una firma diversa. Controlla i consigli del catalogo prima di sostituirle.</string>
     <string name="store_authority_review">Controlla</string>

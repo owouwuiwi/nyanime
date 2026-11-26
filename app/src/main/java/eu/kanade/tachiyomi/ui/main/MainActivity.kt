@@ -18,7 +18,6 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.luminance
 import androidx.core.animation.doOnEnd
 import androidx.core.net.toUri
@@ -39,9 +38,9 @@ import eu.kanade.tachiyomi.data.cache.ChapterCache
 import eu.kanade.tachiyomi.data.cast.CastController
 import eu.kanade.tachiyomi.data.download.anime.AnimeDownloadCache
 import eu.kanade.tachiyomi.data.download.manga.MangaDownloadCache
-import eu.kanade.tachiyomi.data.extensionstore.CatalogueUpgradeReset
 import eu.kanade.tachiyomi.data.player.service.HttpServerService
 import eu.kanade.tachiyomi.ui.base.activity.BaseActivity
+import eu.kanade.tachiyomi.ui.more.InitialAppSetupGate
 import eu.kanade.tachiyomi.ui.player.ExternalIntents
 import eu.kanade.tachiyomi.ui.player.PlayerActivity
 import eu.kanade.tachiyomi.ui.player.session.PlaybackHost
@@ -147,12 +146,7 @@ class MainActivity : BaseActivity() {
         }
 
         setComposeContent {
-            val catalogueReset = remember { CatalogueUpgradeReset(Injekt.get()) }
-            MainStartup(
-                catalogueReset = catalogueReset,
-                onReady = { ready = true },
-                onExit = ::finishAndRemoveTask,
-            ) {
+            InitialAppSetupGate(onReady = { ready = true }) {
                 MainNavigation(
                     preferences = preferences,
                     mangaIndexing = downloadCache.isInitializing,

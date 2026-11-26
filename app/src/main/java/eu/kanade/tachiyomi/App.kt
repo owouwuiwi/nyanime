@@ -273,7 +273,6 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
         val preferenceStore = Injekt.get<PreferenceStore>()
         val preference = preferenceStore.getInt(Preference.appStateKey("last_version_code"), 0)
         eu.kanade.tachiyomi.ui.player.settings.preserveSmartAutoStartOnUpgrade(preferenceStore, preference.get())
-        eu.kanade.tachiyomi.data.extensionstore.CatalogueUpgradeReset(preferenceStore).prepare(preference.get())
         eu.kanade.tachiyomi.ui.search.UnifiedSearchUpgradeNotice(preferenceStore).initialize(preference.get())
         logcat { "Migration from ${preference.get()} to ${BuildConfig.VERSION_CODE}" }
         Migrator.initialize(
