@@ -33,6 +33,7 @@ internal object TitleDetailsIcons {
     val Close = icon("Close", "M6 6l12 12M6 18 18 6")
     val Play = icon("Play", "M8 5l11 7-11 7Z")
     val Book = icon("Book", "M12 5v16M12 5C8 2 4 3 2 4v15c4-2 7-1 10 2 3-3 6-4 10-2V4c-2-1-6-2-10 1Z")
+    val Artwork = icon("Artwork", "M3 5h18v14H3Z", "M3 16l5-5 4 4 3-3 6 6M8 8h.01")
     val Bookmark = icon("Bookmark", "M6 21V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17l-6-4Z")
     val BookmarkCheck = icon("BookmarkCheck", "M6 21V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17l-6-4Z", "m9 9 2 2 4-4")
     val Bell = icon("Bell", "M6 8a6 6 0 0 1 12 0c0 7 3 7 3 9H3c0-2 3-2 3-9M10 21h4")

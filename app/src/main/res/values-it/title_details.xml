@@ -60,6 +60,7 @@
     <string name="detail_empty_help">Prova un altro filtro o cerca per numero o titolo.</string>
     <string name="detail_empty_parts">Non ci sono ancora voci disponibili</string>
     <string name="detail_filtered">Filtri attivi · %1$d di %2$d visibili</string>
+    <string name="detail_visible_count">%1$d di %2$d visibili</string>
     <string name="detail_next_release">Prossimo episodio</string>
     <string name="detail_next_release_time">%1$s · %2$s</string>
     <string name="detail_metadata">Informazioni sul titolo</string>

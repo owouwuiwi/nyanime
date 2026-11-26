@@ -9,6 +9,13 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 26 novembre 2026 — 0.81.1.10
+
+### Interfaccia
+
+- Le schede anime e manga adottano Panoramica, con illustrazione a tutta larghezza e ripresa, progresso, Libreria e Monitoraggio subito sotto il titolo.
+- Nei manga, Gruppi è accanto a Capitoli e mostra la selezione attiva. Segui le uscite è disponibile nella sezione Per te.
+
 ## 26 novembre 2026 — 0.81.1.9
 
 ### Interfaccia

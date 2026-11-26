@@ -60,6 +60,7 @@
     <string name="detail_empty_help">Try another filter or search by number or title.</string>
     <string name="detail_empty_parts">No items available yet</string>
     <string name="detail_filtered">Filters active · %1$d of %2$d visible</string>
+    <string name="detail_visible_count">%1$d of %2$d visible</string>
     <string name="detail_next_release">Next episode</string>
     <string name="detail_next_release_time">%1$s · %2$s</string>
     <string name="detail_metadata">About this title</string>
