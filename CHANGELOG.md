@@ -9,6 +9,12 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 27 novembre 2026 — 0.81.1.12
+
+### Interfaccia
+
+- La Y rossa e arancione sostituisce il simbolo dell’app nella schermata di avvio e nel launcher Android.
+
 ## 26 novembre 2026 — 0.81.1.11
 
 ### Interfaccia

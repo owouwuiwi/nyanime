@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1254 1254" width="1254" height="1254" role="img" aria-labelledby="title desc">
+  <title id="title">Yorumi</title>
+  <desc id="desc">A geometric Y made of folded orange and crimson ribbons.</desc>
+  <defs>
+    <linearGradient id="stem" gradientUnits="userSpaceOnUse" x1="430" y1="815" x2="780" y2="1030">
+      <stop offset="0" stop-color="#d4081b"/>
+      <stop offset=".52" stop-color="#ff1823"/>
+      <stop offset="1" stop-color="#e90029"/>
+    </linearGradient>
+    <linearGradient id="right" gradientUnits="userSpaceOnUse" x1="970" y1="310" x2="650" y2="560">
+      <stop offset="0" stop-color="#ff002b"/>
+      <stop offset=".7" stop-color="#f7002c"/>
+      <stop offset="1" stop-color="#cf0022"/>
+    </linearGradient>
+    <linearGradient id="left" gradientUnits="userSpaceOnUse" x1="124" y1="282" x2="465" y2="734">
+      <stop offset="0" stop-color="#ff7405"/>
+      <stop offset=".48" stop-color="#ff4807"/>
+      <stop offset="1" stop-color="#fa251b"/>
+    </linearGradient>
+    <linearGradient id="fold" gradientUnits="userSpaceOnUse" x1="335" y1="482" x2="623" y2="1020">
+      <stop offset="0" stop-color="#b90b06"/>
+      <stop offset=".45" stop-color="#d60020" stop-opacity=".85"/>
+      <stop offset="1" stop-color="#e70029" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="front" gradientUnits="userSpaceOnUse" x1="159" y1="237" x2="802" y2="737">
+      <stop offset="0" stop-color="#ff7910"/>
+      <stop offset=".35" stop-color="#ff3b20"/>
+      <stop offset=".78" stop-color="#ff0d27"/>
+      <stop offset="1" stop-color="#f8002c"/>
+    </linearGradient>
+    <clipPath id="silhouette">
+      <path d="M 870,88  L 1090,220
+        C 1125,241 1135,284 1106,321
+        L 778,762 C 767,777 762,788 762,801
+        L 762,1101 C 762,1136 735,1165 700,1165
+        L 514,1165 C 479,1165 452,1136 452,1101
+        L 452,786 C 452,774 448,767 440,755
+        L 147,334 C 115,290 130,251 159,234
+        L 337,161 C 371,147 404,156 427,187
+        L 646,485 Z"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#silhouette)">
+    <!-- Continuous base eliminates hairline gaps between the vector faces. -->
+    <path fill="url(#stem)" d="M0 0H1254V1254H0Z"/>
+    <!-- Right-hand ribbon. -->
+    <path fill="url(#right)" d="M870 88  L1140 213  L1140 330  L762 801  L575 612  Z"/>
+    <!-- Orange underside of the left-hand ribbon. -->
+    <path fill="url(#left)" d="M90 270  L180 220  L278 373  L452 786  L100 395 Z"/>
+    <!-- Recessed face of the fold. -->
+    <path fill="url(#fold)" d="M278 373  L762 925  L762 1254  L452 1254  L452 786 Z"/>
+    <!-- Main continuous ribbon surface. -->
+    <path fill="url(#front)" d="M159 234  L337 161
+      C371 147 404 156 427 187
+      L646 485  L815 714  L778 762
+      C767 777 762 788 762 801
+      L762 925 Z"/>
+  </g>
+</svg>
