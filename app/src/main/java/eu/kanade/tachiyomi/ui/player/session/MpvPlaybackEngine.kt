@@ -224,6 +224,9 @@ class MpvPlaybackEngine(private val context: Context) {
         MPVLib.setOptionString("tls-verify", "yes")
         MPVLib.setOptionString("tls-ca-file", "${context.filesDir.path}/${PlayerActivity.MPV_DIR}/cacert.pem")
 
+        // Apply mpv's direct HTTP resume policy to nested requests, including HLS segments.
+        MPVLib.setOptionString("stream-lavf-o", "reconnect=1,reconnect_delay_max=7")
+
         // Limit demuxer cache since the defaults are too high for mobile devices
         val cacheMegs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) 64 else 32
         MPVLib.setOptionString("demuxer-max-bytes", "${cacheMegs * 1024 * 1024}")
