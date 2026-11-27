@@ -668,7 +668,7 @@ object HomeScreen : Screen() {
     private fun FloatingNavigationBar(tabs: List<eu.kanade.presentation.util.Tab>, backdrop: Backdrop?) {
         val motion = modernMotionEnabled()
         val selectTab = LocalSelectHomeTab.current
-        FloatingNavigationSurface(translucent = backdrop != null) { compact ->
+        FloatingNavigationSurface(backdrop) { compact, railBackdrop ->
             AnimatedContent(
                 targetState = LocalTabNavigator.current.current == UnifiedSearchTab,
                 transitionSpec = { ModernMotion.transform(motion).using(null) },
@@ -699,7 +699,7 @@ object HomeScreen : Screen() {
                         )
                     }
                 } else {
-                    FloatingNavigationTabs(tabs, compact, backdrop)
+                    FloatingNavigationTabs(tabs, compact, railBackdrop)
                 }
             }
         }
@@ -739,7 +739,7 @@ object HomeScreen : Screen() {
             items = items,
             selectedIndex = selectedIndex,
             compact = compact,
-            indicatorDurationMillis = if (modernMotionEnabled()) ModernMotion.PAGE_MILLIS else 0,
+            elasticMotion = modernMotionEnabled(),
             backdrop = backdrop,
         )
     }
@@ -925,6 +925,7 @@ object HomeScreen : Screen() {
 
     private fun navigationTag(tab: cafe.adriel.voyager.navigator.tab.Tab) =
         when (tab) {
+            eu.kanade.tachiyomi.ui.explore.ExploreTab -> "explore"
             eu.kanade.tachiyomi.ui.releases.ReleasesTab -> "releases"
             LibrariesTab -> "libraries"
             AnimeLibraryTab -> "library_anime"

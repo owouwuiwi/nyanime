@@ -12,6 +12,7 @@ import dev.icerock.moko.resources.StringResource
 import eu.kanade.presentation.util.Tab
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.ui.browse.BrowseTab
+import eu.kanade.tachiyomi.ui.explore.ExploreTab
 import eu.kanade.tachiyomi.ui.history.HistoriesTab
 import eu.kanade.tachiyomi.ui.library.LibrariesTab
 import eu.kanade.tachiyomi.ui.library.anime.AnimeLibraryTab
@@ -62,10 +63,10 @@ enum class NavStyle(
         get() {
             if (this == DISCOVERY) {
                 return listOf(
+                    ExploreTab,
                     eu.kanade.tachiyomi.ui.discovery.DiscoveryTab,
                     LibrariesTab,
                     eu.kanade.tachiyomi.ui.search.UnifiedSearchTab,
-                    eu.kanade.tachiyomi.ui.releases.ReleasesTab,
                     MoreTab,
                 )
             }

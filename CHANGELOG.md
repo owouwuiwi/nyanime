@@ -9,6 +9,23 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 28 novembre 2026 — 0.82.0.6
+
+### Interfaccia
+
+- La barra inferiore rifrange le copertine e il testo che scorrono sotto il bordo. La lente mantiene il rosso sotto il vetro e si solleva al tocco anche col dito fermo. Se appoggi il dito su un’altra scheda, la lente parte subito, si allunga gradualmente e rallenta man mano che si avvicina. Durante il trascinamento mantiene una deformazione continua e si ricompatta al rilascio.
+- Nei passaggi lunghi, come da Esplora ad Altro, la lente attraversa le schede e fa un leggero rimbalzo di ritorno quando si ferma.
+- La pressione sulle schede della barra si riconosce dal movimento della lente rossa. Il contorno della scheda resta visibile quando usi la tastiera.
+- La prima scheda della barra è Esplora, prima di Home. Sostituisce Uscite nella barra e mostra «Coming soon» quando la apri.
+
+### Compatibilità
+
+- Con movimento ridotto, il selettore cambia scheda senza rimbalzo. Sui dispositivi senza rifrazione e con Privacy Display attivo, la barra usa superfici opache e conserva la risposta al tocco.
+
+### Prestazioni
+
+- Quando la lente cambia forma, Nyanime aggiorna il disegno della lente e i colori della singola scheda. Questo riduce il lavoro della barra durante i passaggi tra schede lontane.
+
 ## 27 novembre 2026 — 0.82.0.2
 
 ### Interfaccia
