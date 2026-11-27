@@ -412,12 +412,10 @@ class PlayerViewModel @JvmOverloads constructor(
 
     fun onNativePause(paused: Boolean) {
         val effective = paused || scrubCoordinator.active || watchTogether.active && watchTogether.expectsPaused
-        val becamePaused = effective && !_paused.value
         if (effective) endHoldSpeed()
         _paused.value = effective
         if (effective != paused) activity.player.paused = effective
         // A native preparation hold reports actual state; it never replaces the pending play intent.
-        if (becamePaused && !scrubCoordinator.active && !watchTogether.active) savePausedProgress()
     }
 
     fun pauseByUser() {
@@ -1282,18 +1280,8 @@ class PlayerViewModel @JvmOverloads constructor(
         if (isLoadingTracks.value && !watchTogether.active) _pausedState.value = true
         activity.player.paused = true
         _paused.update { true }
-        savePausedProgress()
         runCatching {
             activity.setPictureInPictureParams(activity.createPipParams())
-        }
-    }
-
-    private fun savePausedProgress() {
-        if (eu.kanade.tachiyomi.data.cloud.sync.CloudSyncManager.wantsProgress() &&
-            playbackLoadState.value.canSaveProgress &&
-            !isLoadingEpisode.value
-        ) {
-            saveCurrentEpisodeWatchingProgress()
         }
     }
 
@@ -2422,7 +2410,6 @@ class PlayerViewModel @JvmOverloads constructor(
 
         val seconds = position * 1000L
         val totalSeconds = duration * 1000L
-        val seekFinished = kotlin.math.abs(seconds - currentEp.last_second_seen) > 3_000
         // Save last second seen and mark as seen if needed
         currentEp.last_second_seen = seconds
         currentEp.total_seconds = totalSeconds
@@ -2437,7 +2424,7 @@ class PlayerViewModel @JvmOverloads constructor(
             }
         }
 
-        saveWatchingProgress(currentEp, urgent = paused.value || seekFinished)
+        saveWatchingProgress(currentEp)
 
         val inDownloadRange = seconds.toDouble() / totalSeconds > 0.35
         if (inDownloadRange) {
@@ -2535,13 +2522,12 @@ class PlayerViewModel @JvmOverloads constructor(
     /**
      * Called when episode is changed in player or when activity is paused.
      */
-    private fun saveWatchingProgress(episode: Episode, urgent: Boolean = true) {
+    private fun saveWatchingProgress(episode: Episode) {
         val cast = CastController.get(activity.applicationContext).state.value
         if (remoteProgressOwned || cast.active || cast.connecting) return
         viewModelScope.launchNonCancellable {
             saveEpisodeProgress(episode)
             saveEpisodeHistory(episode)
-            if (urgent && !incognitoMode) eu.kanade.tachiyomi.data.cloud.sync.CloudSyncManager.progressSaved()
         }
     }
 

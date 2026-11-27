@@ -107,20 +107,6 @@
     "notice": "licenses/download-NOTICE.txt"
   },
   {
-    "name": "TDLib — official Telegram engine",
-    "website": "https://github.com/tdlib/td",
-    "licenseName": "BSL-1.0",
-    "asset": "licenses/TDLib-LICENSE.txt",
-    "notice": "licenses/telegram-NOTICE.txt"
-  },
-  {
-    "name": "OpenSSL — Telegram native transport",
-    "website": "https://github.com/openssl/openssl",
-    "licenseName": "Apache-2.0",
-    "asset": "licenses/OpenSSL-LICENSE.txt",
-    "notice": "licenses/telegram-NOTICE.txt"
-  },
-  {
     "name": "Nyanime Player Presentation",
     "website": "https://github.com/owouwuiwi/nyanime",
     "licenseName": "Apache-2.0",

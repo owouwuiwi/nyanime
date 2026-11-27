@@ -56,7 +56,7 @@ internal object NovelSourceInventories {
     }
 }
 
-/** APK, Studio and imported-format registries share the same ordinary reader/search pipeline. */
+/** Novel source registries share the same ordinary reader/search pipeline. */
 internal class NovelSources(
     context: Context,
     private val preferences: SourcePreferences,

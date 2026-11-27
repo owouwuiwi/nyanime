@@ -4,7 +4,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -25,8 +24,6 @@ import eu.kanade.presentation.more.settings.screen.data.BackupBrowserScreen
 import eu.kanade.presentation.theme.LocalDarkTheme
 import eu.kanade.presentation.util.Screen
 import eu.kanade.tachiyomi.data.backup.restore.BackupRestoreJob
-import eu.kanade.tachiyomi.ui.cloud.CloudScreen
-import eu.kanade.tachiyomi.ui.cloud.LocalCloudSetupExit
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -105,19 +102,8 @@ class OnboardingScreen(private val initialSetup: Boolean = false) : Screen() {
             },
             onTheme = model::theme,
             onChannel = model::channel,
-            onRestoreBackup = { navigator.push(BackupBrowserScreen(onboarding = true)) },
-            onRestoreCloud = { navigator.push(WelcomeCloudScreen()) },
+            onRestoreBackup = { navigator.push(BackupBrowserScreen(restoreExtensionsByDefault = true)) },
         )
-    }
-}
-
-private class WelcomeCloudScreen : Screen() {
-    @Composable
-    override fun Content() {
-        val navigator = LocalNavigator.currentOrThrow
-        CompositionLocalProvider(LocalCloudSetupExit provides { navigator.pop() }) {
-            CloudScreen(initialSetup = true).Content()
-        }
     }
 }
 

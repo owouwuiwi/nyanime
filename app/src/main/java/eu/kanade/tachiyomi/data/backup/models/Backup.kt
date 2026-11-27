@@ -66,7 +66,7 @@ data class Backup(
     @ProtoNumber(511) val guidedReading: List<nyanime.panels.GuidedPageRecord> = emptyList(),
     @ProtoNumber(512) val readerSpreads: List<eu.kanade.tachiyomi.ui.reader.spread.SpreadRecord> = emptyList(),
     // 513 is reserved for legacy optional music state; never re-use it.
-    @ProtoNumber(514) val sourceStudioState: String? = null,
+    // 514 is reserved for Studio state in older backups.
     @ProtoNumber(515) val personalTracking: List<it.lorelore.nyanime.tracking.PersonalTrackingRecord> = emptyList(),
     @ProtoNumber(516) val novelMetadata: String? = null,
 )

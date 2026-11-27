@@ -46,13 +46,18 @@ import tachiyomi.presentation.core.components.material.Scaffold
 import tachiyomi.presentation.core.components.material.padding
 import tachiyomi.presentation.core.i18n.stringResource
 
-class RestoreBackupScreen(private val uri: String) : Screen() {
+class RestoreBackupScreen(
+    private val uri: String,
+    private val restoreExtensionsByDefault: Boolean = false,
+) : Screen() {
 
     @Composable
     override fun Content() {
         val context = LocalContext.current
         val navigator = LocalNavigator.currentOrThrow
-        val model = rememberScreenModel { RestoreBackupScreenModel(context, uri) }
+        val model = rememberScreenModel {
+            RestoreBackupScreenModel(context, uri, RestoreOptions(extensions = restoreExtensionsByDefault))
+        }
         val state by model.state.collectAsState()
 
         Scaffold(
@@ -251,7 +256,8 @@ class RestoreBackupScreen(private val uri: String) : Screen() {
 private class RestoreBackupScreenModel(
     private val context: Context,
     private val uri: String,
-) : StateScreenModel<RestoreBackupScreenModel.State>(State()) {
+    initialOptions: RestoreOptions,
+) : StateScreenModel<RestoreBackupScreenModel.State>(State(options = initialOptions)) {
 
     init {
         screenModelScope.launch { validate(uri.toUri()) }

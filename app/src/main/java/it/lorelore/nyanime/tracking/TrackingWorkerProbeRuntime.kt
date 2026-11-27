@@ -24,7 +24,7 @@ internal class TrackingWorkerProbeRuntime(
         @Volatile var current: TrackingWorkerProbeRuntime? = null
 
         private fun requireProbe(nonce: String) {
-            check(BuildConfig.ISOLATED_CLOUD_PROBE)
+            check(BuildConfig.ISOLATED_READER_PROBE)
             require(UUID.fromString(nonce).toString() == nonce)
         }
 
@@ -41,7 +41,7 @@ internal class TrackingWorkerProbeRuntime(
         }
 
         fun cleanInterruptedFixtures(context: Context) {
-            check(BuildConfig.ISOLATED_CLOUD_PROBE && current == null)
+            check(BuildConfig.ISOLATED_READER_PROBE && current == null)
             val cache = context.cacheDir.canonicalFile
             cache.listFiles().orEmpty().filter { it.name.startsWith("tracking-queue-probe-") }.forEach { root ->
                 val nonce = root.name.removePrefix("tracking-queue-probe-")

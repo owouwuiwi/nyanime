@@ -22,7 +22,7 @@ Indice, aspetto, ricerca e note sono pannelli Nyanime. L’interfaccia usa Moder
 
 La ricerca FTS4 viene costruita soltanto all’uso, un capitolo limitato per volta, con risultati progressivi e annullamento. Quote:32MiB di testo per libro,64MiB complessivi,64 libri conservati e192MiB massimi per il database derivato. Le quote includono le sovrapposizioni dei passaggi; un limite raggiunto viene mostrato esplicitamente. La rimozione dell’indice non elimina documenti, note o posizioni.
 
-La Home mostra una categoria Romanzi quando esistono libri preferiti o fonti Romanzi attive, incluse quelle dello Studio. La disponibilità usa soltanto dichiarazioni locali, senza istanziare fonti o avviare Telegram; lingue, contenuti per adulti e identità duplicate mantengono le politiche del registro condiviso. La ripresa legge fino a10 libri in corso; le copertine della raccolta provengono dall'archivio locale, senza ricerca remota vuota. Il cambio categoria ferma le letture della sezione lasciata mantenendo le schede durante la dissolvenza.
+La Home mostra una categoria Romanzi quando esistono libri preferiti o fonti Romanzi attive. La disponibilità usa soltanto dichiarazioni locali, senza istanziare le fonti; lingue, contenuti per adulti e identità duplicate mantengono le politiche del registro condiviso. La ripresa legge fino a10 libri in corso; le copertine della raccolta provengono dall'archivio locale, senza ricerca remota vuota. Il cambio categoria ferma le letture della sezione lasciata mantenendo le schede durante la dissolvenza.
 
 La cronologia contiene una scheda Romanzi con ricerca e paginazione per data d'uso, inclusi libri completati e rimossi dai preferiti. Il collegamento dalla ripresa in Home seleziona direttamente questa scheda, senza riavviare un anime alla riselezione. I filtri non trasformano percentuali EPUB in capitoli manga. L'incognito continua a impedire la registrazione di nuove posizioni.
 
@@ -48,11 +48,11 @@ La cache online è persistente e separata dagli originali e dai libri scaricati:
 
 Il contratto offre una vista distinta della sola cache: una risorsa assente fallisce senza chiamare la fonte. Il servizio della libreria ammette un opener online facoltativo, conservando i dati aggiornati e la posizione strutturale senza chiedere un file EPUB per un romanzo remoto. I documenti locali mantengono il percorso precedente.
 
-L'adattatore delle fonti conserva un indice privato dei capitoli, scritto per sostituzione atomica e distinto dai record portabili. Aggiornare i dettagli non può annullare una scelta sui preferiti fatta nel frattempo; riscrivere soltanto il percorso locale dell'indice non genera un nuovo evento Cloud. Il contenuto verifica identità del capitolo, conflitti fra immagini dichiarate e revisione della fonte prima e dopo la chiamata. Il caricamento della fonte viene rinviato al primo oggetto assente dalla cache.
+L'adattatore delle fonti conserva un indice privato dei capitoli, scritto per sostituzione atomica e distinto dai record portabili. Aggiornare i dettagli conserva le scelte sui preferiti fatte nel frattempo. Il contenuto verifica identità del capitolo, conflitti fra immagini dichiarate e revisione della fonte prima e dopo la chiamata. Il caricamento della fonte viene rinviato al primo oggetto assente dalla cache.
 
 Le immagini usano solo richieste HTTP/HTTPS dichiarate dalla fonte, limitate in byte e tempo. Non ricevono cookie, intercettori, autenticazione o log degli header dell'host. I reindirizzamenti sono limitati: a cambio origine vengono rimossi gli header della sessione e HTTPS non può diventare HTTP. Questa politica non sostituisce la gestione della sessione nella fonte: eventuali credenziali necessarie devono essere restituite esplicitamente da resourceRequest e restano transitorie.
 
-Le copertine dei risultati hanno una cache derivata distinta, di32MiB e128 voci, con hash e recupero delle scritture interrotte. Al salvataggio dei dettagli una copertina già disponibile viene collegata alla copia privata del libro, indipendentemente dalla cache in memoria di Coil. Se manca, il caricamento facoltativo dell'immagine lavora separatamente dai metadati, con due richieste simultanee e controllo della revisione della fonte. I percorsi locali non generano eventi Cloud.
+Le copertine dei risultati hanno una cache derivata distinta, di32MiB e128 voci, con hash e recupero delle scritture interrotte. Al salvataggio dei dettagli una copertina già disponibile viene collegata alla copia privata del libro, indipendentemente dalla cache in memoria di Coil. Se manca, il caricamento facoltativo dell'immagine lavora separatamente dai metadati, con due richieste simultanee e controllo della revisione della fonte.
 
 Il runtime è provato con dati e file fittizi sul vero navigator Android, incluso il caricamento di un'immagine non presente nel manifest iniziale. Una fonte fittizia esterna è stata importata dal vero Store nell'APK minificato: verificati Atlante, paginazione, scheda, preferiti, apertura diretta del capitolo2, testo e illustrazione, ricerca, segnalibro e ripresa dopo chiusura del processo. La prova ha individuato il salvataggio mancante della copertina nella Libreria: il successivo candidato13 ha verificato anche la copia privata, rileggendo hash e dimensioni dell'immagine.
 
@@ -88,7 +88,9 @@ cache temporanea e del collegamento al server di prova, il vero navigator apre t
 dalle copie durevoli. I dati di prova sono stati rimossi e il sync ripristinato. Pausa/ripresa,
 retry, selezione parziale e pagina Download richiedono ancora le prove nell'interfaccia.
 
-## Preparazione degli indici dello Studio
+## Preparazione degli indici nelle prime versioni dei romanzi
+
+Questa sezione documenta le prove delle versioni che includevano Studio. Dalla 0.82 Studio è temporaneamente ritirato.
 
 Le scansioni dello stesso titolo condividono un lavoro, mentre titoli diversi non trattengono un
 mutex di rete globale. Al massimo due scansioni lavorano insieme. La scheda mostra i metadati
@@ -110,7 +112,7 @@ Sono prove distinte dall'interfaccia completa di preparazione, ancora da collaud
 
 L’importazione [Legado è rinviata a una consegna futura](legado-roadmap.md).
 Le fondazioni sperimentali non sono collegate all’app: i file Legado non sono importabili
-e questa integrazione non blocca la consegna EPUB/TXT, NovelSource e Studio Romanzo.
+e i formati attivi restano EPUB/TXT e le estensioni NovelSource.
 
 ## Dipendenze e attribuzioni
 
@@ -122,7 +124,7 @@ Le licenze dei font rimangono distinte da quella BSD del toolkit. L’OpenDyslex
 
 ## Verifiche e limiti
 
-La suite comune comprende i test completi app/domain e i moduli Telegram, romanzi, Studio e ricerca, oltre a compilazione Preview e controllo delle classi duplicate. Le ricevute di consegna distinguono sempre revisione, APK e prove sul dispositivo: una prova di un candidato precedente non diventa automaticamente prova dei byte finali.
+La verifica originale copriva i test di app, domain, romanzi e ricerca, oltre a compilazione Preview e controllo delle classi duplicate. Le ricevute di consegna distinguono sempre revisione, APK e prove sul dispositivo: una prova di un candidato precedente non diventa automaticamente prova dei byte finali.
 
 Nei candidati minificati sul telefono USB sono stati verificati EPUB illustrati, TXT Unicode di1.8MB e Windows-1252, codifica, indice, ricerca con accenti, selezione, note, segnalibri, rotazione, chiusura e ripresa. Ripristino e ricollegamento sono stati provati con un originale errato rifiutato e il file corretto accettato conservando la nota.
 
@@ -132,8 +134,6 @@ Il ciclo di vita delle anteprime dispone anche di48 controlli Android isolati: m
 
 Sette controlli aggiuntivi verificano timeout interno, annullamento della fonte, chiusura durante una lettura, cancellazione del chiamante, ripetizione e i veri callback WebView per un’immagine scaduta o una chiusura con richiesta pendente. La versione precedente fallisce la prova della risorsa e termina il processo di test nel WebView; con la correzione tutti i casi e i48 controlli precedenti passano, senza modificare il package principale o i dati dell’utente.
 
-Sette controlli dell’adattatore Cloud fra archivi SQLite fittizi verificano roundtrip senza eco, tombstone, journal, incognito, preferenze, modifiche offline concorrenti e assenza di percorsi locali. Non equivalgono a una sincronizzazione reale fra due telefoni. I file originali e la cache restano esclusi dal trasferimento dei metadati.
-
-La pagina sulla roadmap della0.80 è stata sostituita nella0.80.0.3 dall’[avviso di fine supporto](support-status.md), proposto soltanto negli aggiornamenti. Le prime installazioni vengono escluse prima dell’onboarding o del ripristino; la conferma rimane locale ed esclusa da backup/Cloud.
+La pagina sulla roadmap della0.80 è stata sostituita nella0.80.0.3 dall’[avviso di fine supporto](support-status.md), proposto soltanto negli aggiornamenti. Le prime installazioni vengono escluse prima dell’onboarding o del ripristino; la conferma rimane locale ed esclusa dai backup.
 
 PDF, TTS, OCR, traduzione e importazione Legado non fanno parte di questa consegna. Nessun catalogo o regola di sito viene distribuito nell’app.

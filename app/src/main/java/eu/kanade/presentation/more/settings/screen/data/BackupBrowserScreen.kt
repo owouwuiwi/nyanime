@@ -44,33 +44,18 @@ import eu.kanade.presentation.util.Screen
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.backup.BackupExportStore
 import eu.kanade.tachiyomi.data.backup.create.BackupCreateJob
-import eu.kanade.tachiyomi.ui.cloud.CloudRestoreScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import tachiyomi.presentation.core.components.material.Scaffold
 import java.text.DateFormat
 import java.util.Date
 
-class BackupBrowserScreen(private val onboarding: Boolean = false) : Screen() {
+class BackupBrowserScreen(private val restoreExtensionsByDefault: Boolean = false) : Screen() {
     @Composable
     override fun Content() {
         val context = LocalContext.current
         val navigator = LocalNavigator.currentOrThrow
-        fun openBackup(uri: String) {
-            if (onboarding) {
-                navigator.push(
-                    CloudRestoreScreen(
-                        uri,
-                        context.getString(R.string.welcome_restore_file),
-                        0,
-                        0,
-                        localBackup = true,
-                    ),
-                )
-            } else {
-                navigator.push(RestoreBackupScreen(uri))
-            }
-        }
+        fun openBackup(uri: String) = navigator.push(RestoreBackupScreen(uri, restoreExtensionsByDefault))
         var backups by remember { mutableStateOf<List<BackupExportStore.Entry>>(emptyList()) }
         var loading by remember { mutableStateOf(true) }
         var loadError by remember { mutableStateOf<String?>(null) }

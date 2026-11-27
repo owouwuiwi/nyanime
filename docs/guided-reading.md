@@ -48,8 +48,6 @@ sono normalizzati, mentre gli ingrandimenti effettivi vengono conservati.
 - GuidedViewer: caricamento con i PageLoader esistenti, renderer, gesti,
   controlli ed editor. Una richiesta corrente e un solo precaricamento.
 - Backup: campo protobuf 511, facoltativo; il campo ritirato 510 rimane riservato.
-- GuidedCloudSyncPort: documenti cifrati attraverso il journal Cloud esistente.
-  Non sposta il lettore attivo. Incognito e fonti escluse non vengono esportati.
 
 Il bit 0x40 dei viewerFlags non interferisce con orientamento e direzione.
 Le correzioni sono associate a fonte, URL titolo/capitolo, indice pagina e

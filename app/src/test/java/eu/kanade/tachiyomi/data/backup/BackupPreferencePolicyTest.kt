@@ -16,9 +16,9 @@ class BackupPreferencePolicyTest {
         assertFalse(BackupPreferencePolicy.isPortable("automatically_trust_extensions"))
     }
 
-    @Test fun cloudPolicyMovesButSessionActivationAndDeviceNameDoNot() {
-        assertTrue(BackupPreferencePolicy.isPortable("cloud_backup_interval_hours"))
-        assertTrue(BackupPreferencePolicy.isPortable("cloud_backup_keep_copies"))
+    @Test fun retiredRemoteBackupSettingsStayOutOfPortableBackups() {
+        assertFalse(BackupPreferencePolicy.isPortable("cloud_backup_interval_hours"))
+        assertFalse(BackupPreferencePolicy.isPortable("cloud_backup_keep_copies"))
         assertFalse(BackupPreferencePolicy.isPortable(Preference.appStateKey("cloud_backup_enabled")))
         assertFalse(BackupPreferencePolicy.isPortable(Preference.appStateKey("cloud_backup_device_name")))
     }

@@ -7,7 +7,6 @@ import eu.kanade.domain.ui.ThemeSettingsRepository
 import eu.kanade.domain.ui.model.ThemeMode
 import eu.kanade.tachiyomi.data.addon.AddonIntroduction
 import eu.kanade.tachiyomi.data.backup.BackupPreferencePolicy
-import eu.kanade.tachiyomi.data.cloud.CloudPreferences
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
@@ -65,7 +64,6 @@ class WelcomeSetupTest {
         assertEquals(3, WelcomeSetup(store).currentStep())
         assertFalse(AddonIntroduction(store).complete.get())
         assertFalse(AppUpdatePreferences(store).choiceComplete.get())
-        assertFalse(CloudPreferences(store).introductionComplete().get())
     }
 
     @Test
@@ -93,8 +91,6 @@ class WelcomeSetupTest {
         assertTrue(base.shownOnboardingFlow().get())
         assertTrue(AddonIntroduction(store).complete.get())
         assertTrue(AppUpdatePreferences(store).choiceComplete.get())
-        assertTrue(CloudPreferences(store).introductionComplete().get())
-        assertFalse(CloudPreferences(store).enabled().get())
         assertFalse(WelcomeSetup(store).step.isSet())
         assertFalse(BackupPreferencePolicy.isPortable(base.shownOnboardingFlow().key()))
     }

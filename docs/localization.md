@@ -15,5 +15,4 @@ width are excluded from locale completion. Non-translatable identifiers and
 other resource kinds are left intact.
 
 Tests cover missing/blank entries, formatting, arrays, plural forms, regional
-languages, escaped whitespace and configuration qualifiers. Cloud uses the same
-activity base as the rest of the app so the selected application locale applies.
+languages, escaped whitespace and configuration qualifiers.

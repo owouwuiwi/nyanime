@@ -80,6 +80,9 @@
     <string name="app_update_history_end">You’ve reached the earliest available release.</string>
     <string name="app_update_github">GitHub</string>
     <string name="app_update_available_heading">An update is available</string>
+    <string name="app_update_installed_heading">Nyanime updated</string>
+    <string name="app_update_installed_continue">Continue</string>
+    <string name="app_update_installed_no_notes">No release notes were included for this version.</string>
     <plurals name="app_update_included_versions">
         <item quantity="one">%d included release</item>
         <item quantity="other">%d included releases</item>

@@ -6,8 +6,7 @@ The installation-local step resumes after process death and is excluded from
 portable backups, together with permission and introduction acknowledgements.
 
 The five steps cover storage, appearance, optional permissions, update channel,
-and restoration. The final acknowledgement completes the theme, channel, addon,
-and optional Cloud introductions so they are not repeated as separate screens.
+and restoration. The final acknowledgement also completes the theme, channel and addon introductions.
 Existing upgrade gates continue to handle explanations not previously acknowledged.
 The search navigation upgrade notice remains upgrade-only.
 
@@ -34,18 +33,17 @@ after the permission result and on resume; a denied request can open Android
 settings rather than repeatedly showing a blocked runtime prompt. App installation
 and battery permissions retain system confirmation.
 
-Local and Cloud restoration reuse the same validator, restore options, tracked
-WorkManager job and progress/result UI. Selecting a local file does not initialize
-Telegram. Cloud login begins only after the explicit Cloud action. Leaving a
-restore screen keeps its job visible in the welcome; a running restore prevents
-duplicate restoration or final setup confirmation. No downloaded media is restored.
+Restoring a local file uses the backup validator, restore options and a tracked
+WorkManager job. Leaving a restore screen keeps its job visible in the welcome.
+A running restore prevents duplicate restoration or final setup confirmation.
+Downloaded media is excluded.
 
 ## Validation
 
 Use the isolated benchmark application for fresh-install tests, never clear the
 user's main application. Check setup interruption/resumption, no second welcome
 after finishing or upgrading, permission denial/return, local invalid and valid
-backups, explicit Cloud entry, themes, narrow screens and large text. Verify the
+backups, themes, narrow screens and large text. Verify the
 production APK keeps its package ID and signer and excludes fixture activities.
 
 For 0.40.0.0, 44 targeted JVM tests and four on-device tests passed on a Galaxy
@@ -53,8 +51,7 @@ Z Flip6 (Android 16). The device tests cover resumable setup, stable header boun
 non-repeated introductions, optional notification denial, valid/invalid local
 restoration, and storage initialization before preference subscription. Additional
 device checks cover notification grant/revocation, light/dark themes, narrow layout
-with larger text and reduced motion, and Cloud entry/return. Cloud authentication
-and remote account restoration were not repeated by these welcome tests.
+with larger text and reduced motion.
 
 For 0.40.0.1, the six welcome JVM tests and two targeted device tests passed on
 the same Galaxy Z Flip6. The device regression opens the guide through

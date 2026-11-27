@@ -548,7 +548,6 @@ class GuidedViewer(
                     changedAt = timestamp,
                 ),
             )
-            eu.kanade.tachiyomi.data.cloud.sync.CloudSyncManager.progressSaved()
         }
     }
 

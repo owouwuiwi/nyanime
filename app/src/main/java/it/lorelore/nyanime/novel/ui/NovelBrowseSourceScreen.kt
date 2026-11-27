@@ -126,7 +126,7 @@ class NovelBrowseSourceScreen(private val sourceId: Long) : Screen() {
                         { query = it.take(2048) },
                         Modifier.fillMaxWidth(),
                         singleLine = true,
-                        label = { Text(stringResource(R.string.studio_search_source)) },
+                        label = { Text(stringResource(R.string.novel_search_source)) },
                     )
                 }
             },
@@ -141,7 +141,7 @@ class NovelBrowseSourceScreen(private val sourceId: Long) : Screen() {
                 if (query.isBlank()) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
                         Text(
-                            stringResource(R.string.studio_search_source_hint),
+                            stringResource(R.string.novel_search_source_hint),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -179,7 +179,7 @@ class NovelBrowseSourceScreen(private val sourceId: Long) : Screen() {
                 if (failed) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
                         Text(
-                            stringResource(R.string.studio_source_search_failed),
+                            stringResource(R.string.novel_source_search_failed),
                             color = MaterialTheme.colorScheme.error,
                         )
                     }
@@ -222,7 +222,7 @@ class NovelBrowseSourceScreen(private val sourceId: Long) : Screen() {
                             },
                             Modifier.fillMaxWidth(),
                         ) {
-                            Text(stringResource(R.string.studio_search_more))
+                            Text(stringResource(R.string.novel_search_more))
                         }
                     }
                 }

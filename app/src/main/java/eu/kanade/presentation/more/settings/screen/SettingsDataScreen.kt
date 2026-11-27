@@ -128,11 +128,6 @@ object SettingsDataScreen : SearchableSettings {
             Preference.PreferenceItem.InfoPreference(stringResource(MR.strings.pref_storage_location_info)),
 
             getBackupAndRestoreGroup(backupPreferences = backupPreferences),
-            Preference.PreferenceItem.TextPreference(
-                title = context.getString(eu.kanade.tachiyomi.R.string.cloud_title),
-                subtitle = context.getString(eu.kanade.tachiyomi.R.string.cloud_entry_summary),
-                onClick = { eu.kanade.tachiyomi.ui.cloud.CloudActivity.open(context) },
-            ),
             getDataGroup(),
             getExportGroup(),
         )
@@ -278,11 +273,6 @@ object SettingsDataScreen : SearchableSettings {
                 },
 
                 // Automatic backups
-                Preference.PreferenceItem.TextPreference(
-                    title = context.getString(eu.kanade.tachiyomi.R.string.remote_backup_title),
-                    subtitle = context.getString(eu.kanade.tachiyomi.R.string.remote_settings_summary),
-                    onClick = { navigator.push(it.lorelore.nyanime.backup.remote.RemoteBackupsScreen()) },
-                ),
                 Preference.PreferenceItem.ListPreference(
                     preference = backupPreferences.backupInterval(),
                     entries = persistentMapOf(

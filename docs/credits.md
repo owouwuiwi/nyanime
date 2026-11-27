@@ -55,7 +55,6 @@ Lo [storico AniYomi](history/aniyomi-changelog.md) rimane archiviato separatamen
 | FlexibleAdapter | Artefatto upstream conservato senza modifiche nel [mirror vincolato](../vendor/README.md), con la [licenza](../vendor/FlexibleAdapter-LICENSE). |
 | Downpour e Fetch | Controllo delle connessioni e media della velocità adattati, Apache-2.0; [revisioni, modifiche e licenze](download-components.md). |
 | AndroidX Media3, OkHttp e libarchive Android | Parser HLS, rete delle estensioni e archivi CBZ; [integrazione](download-components.md). |
-| TDLib e OpenSSL | Motore Telegram BSL-1.0 e trasporto nativo Apache-2.0; licenze, avvisi e provenienza inclusi negli asset e nella [guida nativa](../tools/native/README.md). |
 | DeepPanel | Riconoscimento dei pannelli: codice e modello con licenza Apache-2.0; [NOTICE e provenienza](../core/panels/NOTICE.md). |
 
 L'elenco orienta tra i componenti principali; non sostituisce l'elenco completo

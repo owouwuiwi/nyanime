@@ -12,6 +12,23 @@ import java.io.File
 
 internal fun isRetiredExtensionArchive(path: String): Boolean = path.startsWith("files/rin/") && path.endsWith(".rin")
 
+private val retiredRemoteFiles = setOf(
+    "preferences/telegram.session.v1.xml",
+    "preferences/telegram.runtime.v1.xml",
+    "no_backup/source-telegram-access-v1.json",
+)
+
+// Older identity archives may contain credentials and copies queued by the removed services.
+internal fun isRetiredRemoteState(path: String): Boolean =
+    path.removeSuffix(".bak") in retiredRemoteFiles ||
+        path.startsWith("no_backup/telegram/") ||
+        path.startsWith("no_backup/telegram-ipc/") ||
+        path.startsWith("no_backup/cloud/") ||
+        path == "no_backup/cloud.sqlite" ||
+        path.startsWith("no_backup/cloud.sqlite-") ||
+        path.startsWith("no_backup/cloud-sync-") ||
+        path.startsWith("no_backup/remote-backup-")
+
 internal object MigrationRestore {
     fun enoughSpace(context: Context, bytes: Long): Boolean = bytes >= 0 &&
         bytes < (Long.MAX_VALUE - 64 * 1024 * 1024) / 3 &&
@@ -45,7 +62,8 @@ internal object MigrationRestore {
             require(MigrationSharedStorage.inventory(context, storage) == shared.getString("inventory"))
         }
         val entries = manifest.files.filter {
-            it.path.substringBefore('/') !in setOf("portable", "secrets") && !isRetiredExtensionArchive(it.path)
+            it.path.substringBefore('/') !in setOf("portable", "secrets") &&
+                !isRetiredExtensionArchive(it.path) && !isRetiredRemoteState(it.path)
         }
         fun mapped(path: String) = if (path in setOf(
                 "preferences/${manifest.packageName}_preferences.xml",
@@ -58,10 +76,8 @@ internal object MigrationRestore {
         }
         val paths = entries.map { mapped(it.path).split('/').take(2).joinToString("/") }.toMutableSet()
         paths += setOf(
-            "no_backup/cloud-sync-keys",
             "no_backup/watch-room.pending",
             "preferences/anime_schedule_credentials.xml",
-            "preferences/telegram.session.v1.xml",
             "preferences/${context.packageName}_preferences.xml",
         )
         try {
@@ -93,8 +109,6 @@ internal object MigrationRestore {
                 require(MigrationArchive.hash(temporary) == entry.sha256)
                 check(temporary.renameTo(target))
             }
-            // Bound secrets are deliberately rewrapped; the old ciphertext alone is unusable.
-            File(context.noBackupFilesDir, "cloud-sync-keys").deleteRecursively()
             val extensions = RinStorage(context)
             extensions.records().forEach { record ->
                 ExtensionPackageArchive.verify(context, extensions.file(record), record)

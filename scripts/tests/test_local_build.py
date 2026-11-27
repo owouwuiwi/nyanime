@@ -41,7 +41,7 @@ class LocalBuildTest(unittest.TestCase):
             command('dev', [':app:assemblePreview'], cold=True)
 
     def test_tasks_cannot_smuggle_a_probe_or_disable_tests(self):
-        for tasks in [[], ['-x'], ['-PcloudSyncProbe=true'], [':app:assemblePreview;echo test']]:
+        for tasks in [[], ['-x'], ['-PreaderProbe=true'], [':app:assemblePreview;echo test']]:
             with self.assertRaises(ValueError):
                 command('verify', tasks)
 

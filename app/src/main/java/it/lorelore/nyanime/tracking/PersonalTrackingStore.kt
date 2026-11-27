@@ -585,7 +585,7 @@ class PersonalTrackingStore internal constructor(context: Context, databaseName:
         fun get(context: Context): PersonalTrackingStore = instance ?: synchronized(this) {
             instance ?: PersonalTrackingStore(
                 context.applicationContext,
-                if (eu.kanade.tachiyomi.BuildConfig.ISOLATED_CLOUD_PROBE) {
+                if (eu.kanade.tachiyomi.BuildConfig.ISOLATED_READER_PROBE) {
                     "personal-tracking-isolated-probe.sqlite"
                 } else {
                     "personal-tracking.sqlite"

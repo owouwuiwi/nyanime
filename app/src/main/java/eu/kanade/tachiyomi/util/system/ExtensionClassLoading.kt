@@ -24,7 +24,6 @@ internal object ExtensionClassLoading {
         "nyanime.news.api.",
         "nyanime.extension.api.",
         "it.lorelore.nyanime.source.novel.",
-        "it.lorelore.nyanime.source.telegram.",
         "it.lorelore.nyanime.source.document.",
         "eu.kanade.tachiyomi.animesource.",
         "eu.kanade.tachiyomi.source.",

@@ -65,7 +65,7 @@ class ReaderUiProbeActivity : ComponentActivity() {
         val dark = intent.getBooleanExtra("dark", true)
         val bars = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { dark }
         enableEdgeToEdge(statusBarStyle = bars, navigationBarStyle = bars)
-        check(eu.kanade.tachiyomi.BuildConfig.ISOLATED_CLOUD_PROBE)
+        check(eu.kanade.tachiyomi.BuildConfig.ISOLATED_READER_PROBE)
         if (savedInstanceState == null) preferences.setOverride(title, QualityEngineId.OFF)
         pageIndex = savedInstanceState?.getInt("page") ?: 0
         chapterIndex = savedInstanceState?.getInt("chapter") ?: 0

@@ -42,7 +42,8 @@ senza diventare una voce della categoria precedente. Lo storico incluso nell’A
 ## Consultazione offline
 
 Impostazioni → Info → Cronologia aggiornamenti apre il changelog revisionato incluso
-nell'APK, con lo stesso stile della pagina OTA. “Novità” apre la versione installata.
+nell'APK, con lo stesso stile della pagina OTA. Dal primo avvio dopo un aggiornamento,
+le note della versione installata sono già visibili nell’app, anche offline.
 Il file è generato da `CHANGELOG.md` durante la build: non esistono due copie da
 mantenere. Lo storico documenta anche revisioni che non sono state distribuite;
 il relativo avviso distingue questo archivio dalle release pubblicate su GitHub.

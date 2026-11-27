@@ -1,7 +1,7 @@
 # Legado — integrazione futura
 
 Il 23 ottobre 2026 l’integrazione Legado è stata accantonata su richiesta dell’utente.
-Non fa parte della consegna corrente di EPUB/TXT, fonti Romanzi e Studio Romanzo.
+La consegna EPUB/TXT e fonti Romanzi è separata.
 Non è disponibile un comando di importazione Legado nell’app.
 
 ## Fondazioni conservate

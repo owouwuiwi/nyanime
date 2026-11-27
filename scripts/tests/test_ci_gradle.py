@@ -59,7 +59,7 @@ class CiGradleTest(unittest.TestCase):
         self.assertIn("--max-workers=2", invocation)
         self.assertIn("--build-cache", invocation)
         self.assertIn("-Pkotlin.incremental=true", invocation)
-        self.assertIn("-PcloudSyncProbe=false", invocation)
+        self.assertIn("-PreaderProbe=false", invocation)
         self.assertIn("-Pkotlin.build.report.include_compiler_arguments=false", invocation)
         options = next(arg for arg in invocation if arg.startswith("-Dorg.gradle.jvmargs="))
         self.assertIn("-Xmx8g", options)

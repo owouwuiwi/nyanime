@@ -10,7 +10,7 @@ object TrackingLegacyMigration {
         store: PersonalTrackingStore = PersonalTrackingStore.get(context),
         allowIsolated: Boolean = false,
     ) {
-        if (eu.kanade.tachiyomi.BuildConfig.ISOLATED_CLOUD_PROBE && !allowIsolated) return
+        if (eu.kanade.tachiyomi.BuildConfig.ISOLATED_READER_PROBE && !allowIsolated) return
         val preferences = context.getSharedPreferences("tracking_queue", Context.MODE_PRIVATE)
         val original = preferences.all
         val valid = original.mapNotNull { (key, raw) ->

@@ -5,9 +5,9 @@
       "sha256": "ab16c22de3da24595a38a8e94f05ea3a5c112f63e63d4a0df12b46625737cd3b",
       "url": "https://github.com/owouwuiwi/nyanime/releases/download/v0.42.0.2/Nyanime-Native-0.42.0.2-player.tar.gz"
     },
-    "Nyanime-Native-0.42.0.2-supplemental.tar.gz": {
-      "sha256": "c822fa8fe4e81f82d4135f1b8ea944fe8f6dad1f1a311ef92e354c58a16dc210",
-      "url": "https://github.com/owouwuiwi/nyanime/releases/download/v0.42.0.2/Nyanime-Native-0.42.0.2-supplemental.tar.gz"
+    "Nyanime-Native-0.82.0.0-supplemental.tar.gz": {
+      "sha256": "222f1cdfc569c04e5b456acc5a6efdb692868830612925c8a458cfe4b8f6454a",
+      "url": "https://github.com/owouwuiwi/nyanime/releases/download/v0.82.0.0/Nyanime-Native-0.82.0.0-supplemental.tar.gz"
     },
     "Nyanime-Native-0.47.0.2-webrtc.tar.gz": {
       "sha256": "1b3cb47f9c287b8b7b88eda45bb733c2f8c829410b146a25f42d80bd19900139",
@@ -30,7 +30,7 @@
       "buildRecipe": "tools/native/player/build-linux.sh; NDK 28.2.13676358",
       "sourcePackages": [
         "Nyanime-Native-0.42.0.2-player.tar.gz",
-        "Nyanime-Native-0.42.0.2-supplemental.tar.gz"
+        "Nyanime-Native-0.82.0.0-supplemental.tar.gz"
       ],
       "libraries": {
         "lib/arm64-v8a/libass.so": "0bfcfd080b4662ce994974cd3134e3adde64005f0c15eb27ea7e20c3feea90e1",
@@ -125,7 +125,7 @@
       "sourceIdentity": "androidx.graphics:graphics-path:1.0.1",
       "buildRecipe": "AndroidX release sources; Maven published artifact unchanged",
       "sourcePackages": [
-        "Nyanime-Native-0.42.0.2-supplemental.tar.gz"
+        "Nyanime-Native-0.82.0.0-supplemental.tar.gz"
       ],
       "libraries": {
         "lib/arm64-v8a/libandroidx.graphics.path.so": "41e9a793c43a0f4fddb19e33f346bace464f30f888ba7b9eaf96294ea115bfb6",
@@ -140,7 +140,7 @@
       "sourceIdentity": "me.zhanghai.android.libarchive:library:1.1.4; source 2cd677774d88438d866b51252533b5432b18607c",
       "buildRecipe": "libarchive-android/library/build.gradle and pinned submodules",
       "sourcePackages": [
-        "Nyanime-Native-0.42.0.2-supplemental.tar.gz"
+        "Nyanime-Native-0.82.0.0-supplemental.tar.gz"
       ],
       "libraries": {
         "lib/arm64-v8a/libarchive-jni.so": "c7fb053fa75c6b051d9bfd642ca84fe536327eb988fcf6e11c48749e5e8fbdf0",
@@ -154,7 +154,7 @@
       "sourceIdentity": "org.conscrypt:conscrypt-android:2.5.3; wrapper fd209de6167201e4f3bca5b99c6db9f08d1843c6",
       "buildRecipe": "conscrypt/BUILDING.md; published Maven artifact unchanged",
       "sourcePackages": [
-        "Nyanime-Native-0.42.0.2-supplemental.tar.gz"
+        "Nyanime-Native-0.82.0.0-supplemental.tar.gz"
       ],
       "libraries": {
         "lib/arm64-v8a/libconscrypt_jni.so": "fd5a080ced130e2c2e7982cb9c82b5601fc84df61f41129dd0d3ecdbf2c96155",
@@ -169,7 +169,7 @@
       "sourceIdentity": "com.github.tachiyomiorg:image-decoder:41c059e540; source 41c059e5405c1d982c937767707270ee96c32614",
       "buildRecipe": "image-decoder/decoder/library/build.gradle; tools/native/image-decoder.sources.json",
       "sourcePackages": [
-        "Nyanime-Native-0.42.0.2-supplemental.tar.gz"
+        "Nyanime-Native-0.82.0.0-supplemental.tar.gz"
       ],
       "libraries": {
         "lib/arm64-v8a/libimagedecoder.so": "7adecfe1b881254b59c209917460c96e751ede194f50e7fa6a60fa350f86adbf",
@@ -183,7 +183,7 @@
       "sourceIdentity": "io.github.secozzi:torrserver:0.1.1; source 0b03be8e9cbd6330a5f75397d8856efc1bd35376",
       "buildRecipe": "torrserver/build-all.sh; Go 1.26.4; server/vendor; shipped-go-buildinfo.txt",
       "sourcePackages": [
-        "Nyanime-Native-0.42.0.2-supplemental.tar.gz"
+        "Nyanime-Native-0.82.0.0-supplemental.tar.gz"
       ],
       "libraries": {
         "lib/arm64-v8a/liblibrary.so": "1d8d378181e49301f506a91a1d7794800de3416dcc7865788a7169957498e6c7",
@@ -201,7 +201,7 @@
       "sourceIdentity": "app.cash.quickjs:quickjs-android:0.9.2; source 6b3f1a1deaddc41ce6c62834a97c83976b2f1ee2",
       "buildRecipe": "quickjs-java/zipline native Gradle recipe",
       "sourcePackages": [
-        "Nyanime-Native-0.42.0.2-supplemental.tar.gz"
+        "Nyanime-Native-0.82.0.0-supplemental.tar.gz"
       ],
       "libraries": {
         "lib/arm64-v8a/libquickjs.so": "b1cbb6a134d9def33e234bfc019c4c83df853435017ab5d0f066a65cb0ab8713",
@@ -215,7 +215,7 @@
       "sourceIdentity": "fr.acinq.secp256k1:secp256k1-kmp-jni-android:0.24.0; source e9d5c95f85bd326f3f6a5d4fd075ec11510de472",
       "buildRecipe": "secp256k1-kmp Gradle recipe and native/secp256k1 pinned submodule",
       "sourcePackages": [
-        "Nyanime-Native-0.42.0.2-supplemental.tar.gz"
+        "Nyanime-Native-0.82.0.0-supplemental.tar.gz"
       ],
       "libraries": {
         "lib/arm64-v8a/libsecp256k1-jni.so": "d2de0b61a954f157074a934cb7aa0ccb6ab025edf92b42c604c3f3436fdf297a",
@@ -229,7 +229,7 @@
       "sourceIdentity": "com.github.requery:sqlite-android:3.45.0; wrapper 12e9161c9c6a989922981d0ea4defd9ca1defb30",
       "buildRecipe": "SQLite Android upstream Gradle recipe",
       "sourcePackages": [
-        "Nyanime-Native-0.42.0.2-supplemental.tar.gz"
+        "Nyanime-Native-0.82.0.0-supplemental.tar.gz"
       ],
       "libraries": {
         "lib/arm64-v8a/libsqlite3x.so": "7ca96f30b9a8147f42e4a7c83b10faecb3e2a85592f075d3994af6864d6241da",
@@ -239,26 +239,12 @@
       },
       "sourceCoverage": "Unmodified published artifact identity and license notices; release-tag wrapper source where available. No claim of a recovered internal compiler/dependency revision for permissive prebuilt artifacts."
     },
-    "tdlib": {
-      "license": "BSL-1.0; Apache-2.0",
-      "sourceIdentity": "TDLib 42e6a5259551178d1dab54a22ad96d14bd906e20; OpenSSL tag d0ca66a1abe52545f14eca635c648932fcde5615 / commit 45e844fa2a14ec92d146bd8f5778ac130b6625fb",
-      "buildRecipe": "scripts/build_telegram_native.py; tools/native/telegram-artifact.json",
-      "sourcePackages": [
-        "Nyanime-Native-0.42.0.2-supplemental.tar.gz"
-      ],
-      "libraries": {
-        "lib/arm64-v8a/libtdjsonjava.so": "a832b1b4207d731cd150466ab5b00211fa113932a5de774c0158a20a9c755ca2",
-        "lib/armeabi-v7a/libtdjsonjava.so": "b129a34c27497054f2101598f9cefc01dcd9b3308d6b37040139a64844961641",
-        "lib/x86/libtdjsonjava.so": "f24ac961ac5248b36f148b79e12e83c1bd0cb4c0157d0279c21f378f1e90153b",
-        "lib/x86_64/libtdjsonjava.so": "95028a233af7cde3a972509f0f0af76b247219d3ab1c8eed085da8d5d2baf9c4"
-      }
-    },
     "litert": {
       "license": "Apache-2.0 and compatible bundled licenses",
       "sourceIdentity": "com.google.ai.edge.litert:litert:1.4.2 (unmodified published Maven artifact)",
       "buildRecipe": "Upstream LiteRT Interpreter release; published Maven artifact unchanged",
       "sourcePackages": [
-        "Nyanime-Native-0.42.0.2-supplemental.tar.gz"
+        "Nyanime-Native-0.82.0.0-supplemental.tar.gz"
       ],
       "libraries": {
         "lib/arm64-v8a/libtensorflowlite_jni.so": "e2328caf39606382a13dc08f06ed03eb0119a490208d375e3f42b80e4dabc465",
@@ -273,7 +259,7 @@
       "sourceIdentity": "com.squareup.zstd:zstd-kmp-android:0.4.0; source 4fbdf35df030888d2a0cce4a84329d107438134f",
       "buildRecipe": "okio-zstd/zstd-kmp/src/androidMain/CMakeLists.txt and pinned zstd submodule",
       "sourcePackages": [
-        "Nyanime-Native-0.42.0.2-supplemental.tar.gz"
+        "Nyanime-Native-0.82.0.0-supplemental.tar.gz"
       ],
       "libraries": {
         "lib/arm64-v8a/libzstd-kmp.so": "10ec47f13bee884450b0911066019ba7aa6b4164a4c1f8c33c9d30dd3fd8868a",

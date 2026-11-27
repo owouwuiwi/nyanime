@@ -30,8 +30,7 @@ No new extension method or mandatory API upgrade is required. Hosts that do not
 implement this optional key retain the original list. Extensions compiled against
 older APIs may use the same optional memo accessor convention as existing card
 presentation metadata. Neither `scanlator`, URL text nor title patterns are
-implicit season declarations. Sources created in Studio can opt into this same
-contract when they expose episode memo data; the host does not add site rules.
+implicit season declarations.
 
 Missing grouping in a partial update retains saved valid grouping. An explicit
 JSON `null` under this key clears it. The normal episode backup memo field already

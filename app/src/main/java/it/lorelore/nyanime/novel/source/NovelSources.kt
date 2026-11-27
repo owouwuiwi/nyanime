@@ -7,12 +7,6 @@ import eu.kanade.tachiyomi.data.rin.RinRecord
 import eu.kanade.tachiyomi.data.rin.RinRepository
 import it.lorelore.nyanime.source.document.SourceDocumentBackedSource
 import it.lorelore.nyanime.source.novel.NovelSource
-import it.lorelore.nyanime.source.telegram.TelegramBackedSource
-import it.lorelore.nyanime.studio.SourceActivationPolicy
-import it.lorelore.nyanime.studio.SourceActivationRequirements
-import it.lorelore.nyanime.studio.StudioTelegramAccess
-import it.lorelore.nyanime.studio.StudioTelegramGrantStore
-import it.lorelore.nyanime.studio.document.StudioDocumentComponents
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -20,11 +14,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
-import nyanime.telegram.TelegramAccountSessions
 
 internal data class NovelSourceRegistration(
     val source: NovelSource,
@@ -82,13 +73,12 @@ internal class NovelPackageSources(context: Context, private val preferences: So
                                 RinLoader.instantiate(app, record)
                                     .filterIsInstance<NovelSource>()
                                     .filter { it.lang in languages || it.lang == "all" }
+                                    .filterNot { source ->
+                                        (source is SourceDocumentBackedSource).also { blocked ->
+                                            if (blocked) unavailable += record.manifest.packageName
+                                        }
+                                    }
                                     .map {
-                                        if (it is TelegramBackedSource) {
-                                            StudioTelegramAccess.get(app).attach(record, it)
-                                        }
-                                        if (it is SourceDocumentBackedSource) {
-                                            StudioDocumentComponents.get(app).attach(record, it)
-                                        }
                                         NovelSourceRegistration(
                                             it,
                                             record.manifest.packageName,
@@ -98,6 +88,9 @@ internal class NovelPackageSources(context: Context, private val preferences: So
                             } catch (cancel: CancellationException) {
                                 throw cancel
                             } catch (_: Exception) {
+                                unavailable += record.manifest.packageName
+                                emptyList()
+                            } catch (_: LinkageError) {
                                 unavailable += record.manifest.packageName
                                 emptyList()
                             }
@@ -110,48 +103,6 @@ internal class NovelPackageSources(context: Context, private val preferences: So
                     unavailable,
                     true,
                 )
-            }
-            .flatMapLatest { loaded ->
-                if (loaded.sources.none { it.source is TelegramBackedSource }) {
-                    flowOf(loaded)
-                } else {
-                    val store = StudioTelegramGrantStore.get(app)
-                    combine(TelegramAccountSessions.get(app).state, store.changes) { session, _ ->
-                        val grants =
-                            try {
-                                store.snapshot().grants
-                            } catch (cancel: CancellationException) {
-                                throw cancel
-                            } catch (_: Exception) {
-                                emptyList()
-                            }
-                        val blocked = mutableSetOf<String>()
-                        val approved =
-                            loaded.sources.filter { registration ->
-                                if (registration.source !is TelegramBackedSource) return@filter true
-                                val record =
-                                    packages.installed.value.singleOrNull {
-                                        it.manifest.packageName == registration.packageName &&
-                                            it.sha256 == registration.revision &&
-                                            it.enabled
-                                    }
-                                val allowed =
-                                    record != null &&
-                                        SourceActivationPolicy.approved(
-                                            SourceActivationRequirements.declared(
-                                                record,
-                                                listOf(registration.source),
-                                            ),
-                                            session.account,
-                                            session.revision,
-                                            grants,
-                                        )
-                                if (!allowed) blocked += registration.packageName
-                                allowed
-                            }
-                        loaded.copy(sources = approved, unavailable = loaded.unavailable + blocked)
-                    }
-                }
             }
             .stateIn(scope, SharingStarted.WhileSubscribed(5_000), NovelSourceInventory())
     }
@@ -175,18 +126,6 @@ internal class NovelPackageSources(context: Context, private val preferences: So
             "Novel source changed or is no longer enabled"
         }
         check(preferences.showNsfwSource().get() || !registered.source.isNsfw)
-        check(
-            SourceActivationRequirements.proof(
-                app,
-                SourceActivationRequirements.declared(
-                    requireNotNull(current),
-                    listOf(registered.source),
-                ),
-                live = false,
-            ) != null,
-        ) {
-            "Telegram source access must be configured"
-        }
         check(
             registered.source.lang in preferences.enabledLanguages().get() ||
                 registered.source.lang == "all",

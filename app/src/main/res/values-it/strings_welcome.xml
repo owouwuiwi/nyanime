@@ -46,8 +46,6 @@
     <string name="welcome_permission_error">Non è stato possibile aprire questa impostazione. Puoi attivarla dopo dalle impostazioni dell’app in Android.</string>
     <string name="welcome_restore_file">Ripristina un file backup</string>
     <string name="welcome_restore_file_description">Trova un backup sul telefono oppure scegli un file .nyabk o .tachibk. Controlla il contenuto prima di ripristinarlo.</string>
-    <string name="welcome_restore_cloud">Ripristina da Nyanime Cloud</string>
-    <string name="welcome_restore_cloud_description">Collega il tuo account Telegram per trovare i backup salvati. L’accesso inizia solo se scegli questa opzione.</string>
     <string name="welcome_restore_later">Puoi ripristinare un backup anche dopo dalle Impostazioni.</string>
     <string name="welcome_restore_excludes">Video e pagine manga scaricati non sono inclusi nei backup. Nessun dato viene modificato prima della tua conferma.</string>
     <string name="welcome_restore_running">Ripristino del backup…</string>

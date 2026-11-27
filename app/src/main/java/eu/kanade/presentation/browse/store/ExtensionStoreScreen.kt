@@ -260,14 +260,6 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
             scope.launch {
                 try {
                     repository.rin.setEnabled(entry.packageName, !entry.enabled)
-                } catch (required: it.lorelore.nyanime.studio.SourceActivationRequired) {
-                    detail = null
-                    navigator.push(
-                        it.lorelore.nyanime.novel.source.NovelSourceSettingsScreen(
-                            required.packageName,
-                            requestActivation = true,
-                        ),
-                    )
                 } catch (cancel: CancellationException) {
                     throw cancel
                 } catch (_: Exception) {
@@ -402,7 +394,6 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                         onTrust = {
                             navigator.push(eu.kanade.presentation.more.settings.screen.browse.ExtensionCatalogueTrustScreen())
                         },
-                        onStudio = { navigator.push(it.lorelore.nyanime.studio.StudioLibraryScreen()) },
                         onMigration = { navigator.push(AdvancedBrowseScreen()) },
                         modifier = Modifier.weight(1f),
                     )

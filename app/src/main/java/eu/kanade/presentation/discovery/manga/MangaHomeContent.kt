@@ -98,7 +98,6 @@ import eu.kanade.tachiyomi.data.discovery.MangaHomeFeatured
 import eu.kanade.tachiyomi.data.discovery.MangaHomeItem
 import eu.kanade.tachiyomi.ui.discovery.manga.MangaHomeState
 import eu.kanade.tachiyomi.ui.privacy.PrivacyArea
-import eu.kanade.tachiyomi.ui.reader.ReaderActivity
 import tachiyomi.domain.discovery.SourceHomeSection
 import tachiyomi.domain.entries.manga.model.Manga
 import tachiyomi.domain.entries.manga.model.asMangaCover
@@ -249,54 +248,19 @@ fun MangaHomeContent(
                                     ) {
                                         group.forEach { history ->
                                             androidx.compose.runtime.key(history.mangaId) {
-                                                val cloudResume = eu.kanade.tachiyomi.ui.cloud.rememberCloudResume(
-                                                    "manga",
-                                                    history.mangaId,
-                                                    history.chapterId,
-                                                )
-                                                val resumeContext = androidx.compose.ui.platform.LocalContext.current
                                                 HomeResumeCard(
                                                     title = history.title,
-                                                    subtitle = (
-                                                        if (history.chapterNumber >=
-                                                            0
-                                                        ) {
-                                                            androidStringResource(
-                                                                R.string.home_content_read_chapter,
-                                                                formatChapterNumber(history.chapterNumber),
-                                                            )
-                                                        } else {
-                                                            androidStringResource(R.string.home_resume_action)
-                                                        }
-                                                        ).let { subtitle ->
-                                                        cloudResume.firstOrNull()?.let {
-                                                            "$subtitle · ${it.deviceName}"
-                                                        } ?: subtitle
+                                                    subtitle = if (history.chapterNumber >= 0) {
+                                                        androidStringResource(
+                                                            R.string.home_content_read_chapter,
+                                                            formatChapterNumber(history.chapterNumber),
+                                                        )
+                                                    } else {
+                                                        androidStringResource(R.string.home_resume_action)
                                                     },
                                                     onResume = { onResume(history) },
                                                     modifier = Modifier.nsfwPrivacy(history.coverData),
                                                     manga = true,
-                                                    menu = cloudResume.takeIf { it.isNotEmpty() }?.let { positions ->
-                                                        { close ->
-                                                            eu.kanade.tachiyomi.ui.cloud.CloudResumeMenu(
-                                                                positions,
-                                                                manga = true,
-                                                            ) { page ->
-                                                                close()
-                                                                resumeContext.startActivity(
-                                                                    ReaderActivity.newIntent(
-                                                                        resumeContext,
-                                                                        history.mangaId,
-                                                                        history.chapterId,
-                                                                        page.coerceIn(
-                                                                            0,
-                                                                            Int.MAX_VALUE.toLong(),
-                                                                        ).toInt(),
-                                                                    ),
-                                                                )
-                                                            }
-                                                        }
-                                                    },
                                                 ) { imageModifier ->
                                                     Artwork(history.coverData, history.title, imageModifier)
                                                 }

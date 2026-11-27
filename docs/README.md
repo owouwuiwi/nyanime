@@ -6,6 +6,10 @@ I documenti tecnici in inglese conservano i nomi delle API e dei componenti.
 
 ## Novità recenti
 
+Dalla 0.82 le note della nuova versione compaiono direttamente nell’app al primo
+avvio dopo un aggiornamento. I backup si gestiscono su file da Impostazioni →
+Dati e archiviazione.
+
 Con la versione 0.80.0.3 [termina il supporto a Nyanime](support-status.md).
 L’avviso nell’app è riservato agli aggiornamenti ed escluso dalle prime installazioni.
 
@@ -14,12 +18,6 @@ con ripresa, tracking personale, categorie e indice dei contenuti, e il
 [lettore manga](reader-renewal.md), con controlli compatti e miglioramento
 facoltativo delle tavole. EPUB/TXT e fonti Romanzi appartengono alla [consegna successiva in lavorazione](novel-reader.md).
 L’importazione [Legado è rinviata](legado-roadmap.md) e non fa parte di questa consegna.
-
-La versione 0.53 aggiunge il [recupero compatto su Telegram](telegram-sync-packing.md):
-contenitori cifrati, accordo fra i dispositivi e accorpamento delle modifiche già sostituite.
-
-La versione 0.52.1.0 rende visibile il [lavoro del sync e della pulizia Telegram](telegram-sync-maintenance.md),
-con progressi persistenti e meno copie complete ridondanti.
 
 La transizione 0.52.0.1 prepara i [checkpoint e le catene di patch](ota-release-graph.md),
 preservando l’accesso agli APK completi per i vecchi aggiornatori. Le misure e i
@@ -32,10 +30,7 @@ in Home quando Android blocca la consegna.
 La versione 0.50 aggiunge gli [aggiornamenti differenziali verificati](delta-updates.md),
 con download completo di ripiego e compatibilità con gli aggiornatori precedenti.
 
-- [Studio delle fonti e scambio](source-studio.md)
 - [Contratto opzionale delle fonti Romanzi](novel-sources.md)
-- [Consensi Telegram e componenti documenti delle fonti](source-telegram-access.md)
-- [Backup remoti](remote-backups.md)
 - [Compatibilità Syncplay](syncplay-compatibility.md)
 - [Attenzione alla visione](viewing-attention.md)
 - [Presentazione del player e attribuzioni](player-presentation.md)
@@ -53,10 +48,6 @@ con download completo di ripiego e compatibilità con gli aggiornatori precedent
 | [Guida di benvenuto](welcome.md) | Primo avvio, cartella automatica, permessi facoltativi e ripristino. |
 | [Versioni e aggiornamenti](versioning.md) | Numerazione a quattro componenti, scelta dei canali e compatibilità OTA. |
 | [Aggiornamenti e storico](update-history.md) | Versioni intermedie, note suddivise per categoria e cronologia completa anche offline. |
-| [Nyanime Cloud](telegram-cloud.md) | Account Telegram condiviso, backup privati, ripristino e configurazione di sviluppo. |
-| [Avanzamento e pulizia del sync](telegram-sync-maintenance.md) | Contatori verificati, attese, ripresa e conservazione dello storico. |
-| [Recupero compatto](telegram-sync-packing.md) | Formato a blocchi, migrazione dei dispositivi e verifiche della compattazione. |
-| [Sincronizzazione personale](cloud-sync-protocol.md) | Associazione dei dispositivi, dati portabili, cifratura, conflitti e verifiche. |
 | [Trasferimento del repository](repository-migration.md) | Nuovo proprietario, continuità degli aggiornamenti e dei collegamenti. |
 | [Aiuto](support.md) | Archiviazione, migrazione, tracker e risoluzione dei problemi. |
 | [Privacy](privacy.md) | Dati locali, connessioni esterne e controlli disponibili. |

@@ -7,7 +7,6 @@ import eu.kanade.domain.base.BasePreferences
 import eu.kanade.domain.ui.ThemeSettingsRepository
 import eu.kanade.domain.ui.model.ThemeMode
 import eu.kanade.tachiyomi.data.addon.AddonIntroduction
-import eu.kanade.tachiyomi.data.cloud.CloudPreferences
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -31,7 +30,6 @@ class WelcomeSetup(private val store: PreferenceStore) {
         if (saved.isFailure) return saved
         AppUpdatePreferences(store).confirm(AppUpdatePreferences(store).channel())
         AddonIntroduction(store).confirm()
-        CloudPreferences(store).introductionComplete().set(true)
         // Publish completion last: an interruption must leave a resumable welcome.
         base.shownOnboardingFlow().set(true)
         step.delete()

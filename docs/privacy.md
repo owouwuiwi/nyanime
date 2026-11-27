@@ -1,6 +1,6 @@
 # Privacy di Nyanime
 
-Nyanime è un'app Android che gestisce localmente librerie, progressi di visione e lettura, preferenze e download. Non richiede un account Nyanime e non include profili social. Backup e sincronizzazione tramite Cloud rimangono facoltativi e separati dalle stanze.
+Nyanime è un'app Android che gestisce localmente librerie, progressi di visione e lettura, preferenze e download. Non richiede un account Nyanime e non include profili social. Puoi esportare e ripristinare i tuoi dati tramite backup su file.
 
 ## Dati sul dispositivo
 
@@ -11,7 +11,7 @@ a un tracker collegato sono conservate sul dispositivo finché non vengono
 sincronizzate con quel servizio. Il collegamento di un account non trasferisce
 automaticamente le note o il record locale.
 
-La libreria, la cronologia, i punti di ripresa, le impostazioni, i file scaricati e i dati delle estensioni restano nell'archivio dell'app sul dispositivo. Backup ed esportazioni vengono creati solo quando li richiedi e sono sotto il tuo controllo. Il backup completo `.nyabk` può includere credenziali e token delle impostazioni selezionate: non è cifrato e va conservato in privato. Non include video o pagine scaricati. Disinstallare l'app o cancellarne i dati può eliminare queste informazioni; i file esportati separatamente seguono le regole della posizione in cui li salvi.
+La libreria, la cronologia, i punti di ripresa, le impostazioni, i file scaricati e i dati delle estensioni restano nell'archivio dell'app sul dispositivo. Puoi creare backup manuali o programmare copie automatiche. Il backup completo `.nyabk` può includere credenziali e token delle impostazioni selezionate. Conservalo in privato perché il file è in chiaro. I video e le pagine scaricati restano nella posizione di download. Disinstallare l'app o cancellarne i dati può eliminare le informazioni nella memoria dell'app. I file esportati separatamente seguono le regole della posizione in cui li salvi.
 
 ## Connessioni facoltative
 
@@ -49,23 +49,6 @@ informazioni sulle opere: AniList riceve un ID di catalogo verificato, senza
 progresso, note o riferimenti alle fonti. Mancando consenso o dati verificati,
 il voto personale resta disponibile senza statistiche inventate.
 
-## Backup Cloud facoltativi
-
-Se colleghi Telegram da **Nyanime Cloud**, Nyanime usa TDLib e un canale privato
-riservato al tuo account per conservare backup completi `.nyabk`. Il backup può
-contenere progressi, cronologia, preferenze private e credenziali già incluse
-nell’esportazione completa. Video e pagine scaricati, sessioni e chiavi Telegram
-sono esclusi. La cifratura è quella Cloud di Telegram, **non end-to-end**; non viene
-aggiunta una password al file.
-
-I salvataggi automatici partono soltanto dopo la configurazione esplicita. Puoi
-disattivarli, proteggere copie, eliminare singoli backup o scollegare la sessione.
-Nyanime non importa la rubrica e non rende pubblico un profilo per il collegamento
-Cloud. Cache e sessione Telegram sono locali e separate dai backup; lo scollegamento
-revoca la sessione e rimuove questi dati dopo la chiusura del motore. I backup già
-salvati su Telegram rimangono nel tuo archivio. Vedi [guida Cloud](telegram-cloud.md)
-e [privacy di Telegram](https://telegram.org/privacy).
-
 ## Dati non sincronizzati
 
 Le estensioni Notizie abilitate contattano i rispettivi editori. Preferenze,
@@ -74,21 +57,7 @@ adattamenti e seguiti, la sezione Notizie può interrogare AniList usando soltan
 ID di catalogo, senza progressi, credenziali o cronologia. Il controllo periodico
 degli articoli parte solo se si attivano gli avvisi.
 
-Il precedente sistema di profili pubblici, amicizie, chat social e sincronizzazione personale su Nostr è stato rimosso. L’app elimina gli eventuali archivi, bozze e chiavi locali appartenenti soltanto a quelle funzioni. Le stanze e il Cloud Telegram conservano i propri dati indipendenti. Download e copie Ultra restano locali.
-
-## Studio e backup remoti facoltativi
-
-Lo Studio conserva definizioni e bozze sul dispositivo. Le prove di rete partono
-su richiesta verso gli indirizzi della fonte scelta; script e cookie sono soggetti
-ai permessi e ai limiti locali. Importare una definizione non autorizza i suoi script.
-
-WebDAV e Google Drive ricevono soltanto i backup configurati volontariamente.
-Il contenuto viene cifrato prima dell’invio con una chiave di recupero da conservare;
-nome, dimensione e data del file restano metadati visibili al gestore dell’archivio.
-Drive richiede un client OAuth Nyanime proprio e il consenso del relativo account.
-Le credenziali operative WebDAV/Drive e la chiave remota restano escluse dal backup;
-il contenuto completo può invece includere altre credenziali portabili già previste. Le copie locali e
-Telegram conservano i comportamenti descritti nelle rispettive guide.
+Il precedente sistema di profili pubblici, amicizie, chat social e sincronizzazione personale su Nostr è stato rimosso. L’app elimina gli eventuali archivi, bozze e chiavi locali appartenenti soltanto a quelle funzioni. Download e copie Ultra restano locali.
 
 ## Attenzione alla visione facoltativa
 

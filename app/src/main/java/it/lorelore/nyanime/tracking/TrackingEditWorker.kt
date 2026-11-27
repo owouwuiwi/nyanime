@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit
 /** Urgent writes and the next retry wake the same durable queue; a long cooldown cannot block a new edit. */
 class TrackingEditWorker(context: Context, parameters: WorkerParameters) : CoroutineWorker(context, parameters) {
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
-        val isolated = eu.kanade.tachiyomi.BuildConfig.ISOLATED_CLOUD_PROBE
+        val isolated = eu.kanade.tachiyomi.BuildConfig.ISOLATED_READER_PROBE
         val requestedNonce = inputData.getString("probeNonce").orEmpty()
         if (!isolated && requestedNonce.isNotEmpty()) return@withContext Result.success()
         val probe = if (isolated) {
@@ -86,8 +86,8 @@ class TrackingEditWorker(context: Context, parameters: WorkerParameters) : Corou
 
         /** IO only. At most one running urgent pass and one durable successor, even under rapid taps. */
         fun schedule(context: Context, immediately: Boolean = false) = synchronized(scheduler) {
-            val probe = if (BuildConfig.ISOLATED_CLOUD_PROBE) TrackingWorkerProbeRuntime.current else null
-            if (eu.kanade.tachiyomi.BuildConfig.ISOLATED_CLOUD_PROBE && probe == null) return@synchronized
+            val probe = if (BuildConfig.ISOLATED_READER_PROBE) TrackingWorkerProbeRuntime.current else null
+            if (eu.kanade.tachiyomi.BuildConfig.ISOLATED_READER_PROBE && probe == null) return@synchronized
             val app = context.applicationContext
             val name = if (probe == null) URGENT else "$URGENT:probe:${probe.nonce}"
             val existing = app.workManager.getWorkInfosForUniqueWork(name).get(30, TimeUnit.SECONDS)
@@ -111,8 +111,8 @@ class TrackingEditWorker(context: Context, parameters: WorkerParameters) : Corou
         }
 
         private fun scheduleNext(context: Context) = synchronized(scheduler) {
-            val probe = if (BuildConfig.ISOLATED_CLOUD_PROBE) TrackingWorkerProbeRuntime.current else null
-            if (eu.kanade.tachiyomi.BuildConfig.ISOLATED_CLOUD_PROBE && probe == null) return@synchronized
+            val probe = if (BuildConfig.ISOLATED_READER_PROBE) TrackingWorkerProbeRuntime.current else null
+            if (eu.kanade.tachiyomi.BuildConfig.ISOLATED_READER_PROBE && probe == null) return@synchronized
             if (activeTimers.isNotEmpty()) return@synchronized
             val store = probe?.store ?: PersonalTrackingStore.get(context)
             val pending = store.pending().filter { it.delivery != TrackingDelivery.BLOCKED }
@@ -139,8 +139,8 @@ class TrackingEditWorker(context: Context, parameters: WorkerParameters) : Corou
         }
 
         fun resumePending(context: Context) {
-            val probe = if (BuildConfig.ISOLATED_CLOUD_PROBE) TrackingWorkerProbeRuntime.current else null
-            if (eu.kanade.tachiyomi.BuildConfig.ISOLATED_CLOUD_PROBE && probe == null) return
+            val probe = if (BuildConfig.ISOLATED_READER_PROBE) TrackingWorkerProbeRuntime.current else null
+            if (eu.kanade.tachiyomi.BuildConfig.ISOLATED_READER_PROBE && probe == null) return
             scope.launch {
                 runCatching {
                     if (probe == null) {

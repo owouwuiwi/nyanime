@@ -214,7 +214,6 @@ class BenchmarkSetupActivity : ComponentActivity() {
         base.downloadedOnly().set(false)
         // These choices belong only to the isolated fixture application. Benchmarks must reach
         // their content rather than measure the first-launch explanations or start a cloud login.
-        eu.kanade.tachiyomi.data.cloud.CloudPreferences().introductionComplete().set(true)
         eu.kanade.tachiyomi.data.addon.AddonIntroduction(Injekt.get()).confirm()
         tachiyomi.domain.release.service.AppUpdatePreferences(Injekt.get()).choiceComplete.set(true)
         Injekt.get<eu.kanade.domain.ui.ThemeSettingsRepository>().apply {

@@ -27,7 +27,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.CloudDownload
 import androidx.compose.material.icons.outlined.Extension
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Restore
@@ -84,7 +83,6 @@ fun OnboardingScreen(
     onTheme: (ThemeMode) -> Unit,
     onChannel: (UpdateChannel) -> Unit,
     onRestoreBackup: () -> Unit,
-    onRestoreCloud: () -> Unit,
 ) {
     val motion = appMotionEnabled()
     val colors = MaterialTheme.colorScheme
@@ -290,13 +288,6 @@ fun OnboardingScreen(
                                 R.string.welcome_restore_file_description,
                                 enabled = !restoring,
                                 onClick = onRestoreBackup,
-                            )
-                            WelcomeAction(
-                                Icons.Outlined.CloudDownload,
-                                R.string.welcome_restore_cloud,
-                                R.string.welcome_restore_cloud_description,
-                                enabled = !restoring,
-                                onClick = onRestoreCloud,
                             )
                             Text(
                                 stringResource(R.string.welcome_restore_excludes),

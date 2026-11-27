@@ -15,7 +15,5 @@
 -keep,allowoptimization class eu.kanade.tachiyomi.util.JsoupExtensionsKt { public protected *; }
 -keep public interface it.lorelore.nyanime.source.novel.** { *; }
 -keep public class it.lorelore.nyanime.source.novel.** { *; }
--keep public interface it.lorelore.nyanime.source.telegram.** { *; }
--keep public class it.lorelore.nyanime.source.telegram.** { *; }
 -keep public interface it.lorelore.nyanime.source.document.** { *; }
 -keep public class it.lorelore.nyanime.source.document.** { *; }

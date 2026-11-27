@@ -56,7 +56,6 @@ class BackupRestoreJob(private val context: Context, workerParams: WorkerParamet
                     setProgress(workDataOf("completed" to completed, "total" to total))
                 }
             }).restore(uri, options)
-            eu.kanade.tachiyomi.data.cloud.sync.CloudSyncManager.backupRestored()
             Result.success(
                 workDataOf(
                     "error_count" to report.errorCount,

@@ -10,7 +10,7 @@ agli utenti. Sostituisce la vecchia pagina sulla roadmap verso la versione 1.0.
 - È riservato a chi aggiorna, anche da revisioni legacy, e precede gli altri passaggi iniziali.
 - Le prime installazioni sono escluse prima dell’onboarding e di qualsiasi ripristino.
 - Dopo la conferma non ricompare. Una rotazione o la chiusura prima della conferma non consumano il messaggio.
-- Lo stato rimane locale all’installazione e non viene trasferito tramite backup o Cloud.
+- Lo stato rimane locale all’installazione ed è escluso dai backup.
 - L’avviso non disattiva lettori, player, dati, fonti personali o percorsi di aggiornamento già pubblicati.
 
 La distribuzione mantiene il checkpoint completo 0.80 e le patch necessarie

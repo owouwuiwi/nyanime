@@ -1,7 +1,8 @@
 # Nyanime 0.49.0.0 — migrazione dalla prova NyanimeB
 
-## Perimetro della versione ordinaria
+## Perimetro storico della 0.49.0.0
 
+La tabella documenta la migrazione dalla prova NyanimeB. La 0.82 introduce un nuovo perimetro per Studio e backup.
 La versione usa lo stesso pacchetto e la stessa firma delle installazioni correnti,
 con numero 0.49.0.0 e codice 280, superiori a NyanimeB 0.48.2.23 / 279.
 Non serve disinstallare o cancellare dati per aggiornare da quella prova.

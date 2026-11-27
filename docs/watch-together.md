@@ -97,7 +97,7 @@ are negotiated independently of coordination version 2 for older clients.
 Rooms expire after 24 hours. Existing crash recovery stores invitation, identity
 and reading state encrypted with Android Keystore in backup-excluded storage.
 Explicit leave, closure or expiry removes it. Chat and voice never silently resume
-after process death. Cloud backup/sync is independent of rooms.
+after process death.
 
 ## Attribution and verification
 

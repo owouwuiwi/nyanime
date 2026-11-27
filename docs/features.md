@@ -300,7 +300,7 @@ La sezione manga conserva biblioteca, dettagli e lettore indipendenti dal restyl
 - Lettura orizzontale in entrambe le direzioni, verticale, webtoon e continua.
 - [Lettura guidata](guided-reading.md) facoltativa: riconoscimento offline delle
   vignette, focus animato, pagina intera ed editor delle geometrie. Attivazione
-  ricordata per titolo, correzioni e punto guidato nei backup e nel Cloud.
+  ricordata per titolo, correzioni e punto guidato nei backup locali.
 - Modalità e orientamento per titolo, pagina corrente, passaggi tra capitoli,
   mantenimento della posizione e schermo acceso durante la lettura.
 - Zoom e punto di partenza, ritaglio bordi, separazione/inversione delle pagine

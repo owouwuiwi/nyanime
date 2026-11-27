@@ -27,7 +27,6 @@ import androidx.compose.ui.unit.dp
 import eu.kanade.presentation.components.AppBar
 import eu.kanade.presentation.more.UpdateVersionCard
 import eu.kanade.presentation.more.UpdateVersionNotes
-import eu.kanade.presentation.more.parseUpdateArchive
 import eu.kanade.presentation.util.LocalBackPress
 import eu.kanade.presentation.util.Screen
 import eu.kanade.tachiyomi.R
@@ -47,9 +46,7 @@ class UpdateHistoryScreen(private val focusVersion: String? = null) : Screen() {
         val listState = rememberLazyListState()
         LaunchedEffect(Unit) {
             notes = withContext(Dispatchers.IO) {
-                context.resources.openRawResource(R.raw.nyanime_update_history).bufferedReader().use {
-                    parseUpdateArchive(it.readText())
-                }
+                context.readUpdateArchive()
             }
             if (!initialPositionApplied) {
                 val index = notes.orEmpty().indexOfFirst { it.version == focusVersion }

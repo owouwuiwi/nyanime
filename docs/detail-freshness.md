@@ -4,8 +4,8 @@ Explicit detail opens are independent of background release eligibility. Cached 
 first; only the opened title is checked. Hidden library categories, completed works and titles outside
 the library are not exclusions for this path. Background library policies are unchanged.
 
-The host records the SHA-256 of the exact APK loaded, the verified hash of an imported package, or the
-active Studio document fingerprint. No source name, domain, selector or parsing rule is part of the
+The host records the SHA-256 of the exact APK loaded or the verified hash of an imported package.
+No source name, domain, selector or parsing rule is part of the
 policy. Extension interfaces do not gain mandatory methods. Existing title and item identifiers are
 preserved by the normal metadata/item synchronization interactors; metadata changes are not new items.
 

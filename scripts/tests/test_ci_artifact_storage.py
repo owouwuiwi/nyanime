@@ -7,22 +7,19 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class CiArtifactStorageTest(unittest.TestCase):
-    def workflows(self):
-        return ((ROOT / '.github/workflows/build_push.yml').read_text(),
-                (ROOT / '.github/workflows/build_telegram_native.yml').read_text())
-
-    def test_release_uses_reviewed_native_inputs_and_maintenance_stays_separate(self):
-        workflow, native = self.workflows()
-        self.assertIn('run: python3 -m scripts.restore_telegram_native', workflow)
-        self.assertLess(workflow.index('Restore verified Telegram engine'), workflow.index('Compile preview sources'))
-        self.assertNotIn('needs: telegram', workflow)
-        self.assertNotIn('scripts/build_telegram_native.py --abi', workflow)
-        self.assertNotIn('actions/download-artifact', workflow)
-        self.assertIn('scripts/build_telegram_native.py --abi', native)
-        self.assertNotIn('actions/upload-artifact', native)
+    def test_builds_restore_reviewed_reader_engines_before_compiling(self):
+        for filename, compile_step in (('build_push.yml', 'Compile preview sources'),
+                                       ('build_pull_request.yml', 'Build app')):
+            with self.subTest(workflow=filename):
+                workflow = (ROOT / '.github/workflows' / filename).read_text()
+                self.assertIn('python3 -m scripts.restore_reader_quality_native', workflow)
+                engine = workflow.index('      - name: Restore verified reader image engines')
+                build = workflow.index('      - name: ' + compile_step)
+                self.assertLess(engine, build)
+                self.assertNotIn('actions/download-artifact', workflow)
 
     def test_publication_does_not_depend_on_artifact_quota_and_failed_runs_keep_diagnostics(self):
-        workflow, _ = self.workflows()
+        workflow = (ROOT / '.github/workflows/build_push.yml').read_text()
         self.assertNotIn('Keep APKs available from the workflow', workflow)
         bundle = workflow.split('- name: Hand off verified public release files', 1)[1].split('- name:', 1)[0]
         self.assertIn('python3 -m scripts.stage_publication --directory dist/publication', bundle)

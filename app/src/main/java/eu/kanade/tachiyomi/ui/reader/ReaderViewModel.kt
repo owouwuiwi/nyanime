@@ -645,7 +645,6 @@ class ReaderViewModel @JvmOverloads constructor(
                     lastPageRead = readerChapter.chapter.last_page_read.toLong(),
                 ),
             )
-            eu.kanade.tachiyomi.data.cloud.sync.CloudSyncManager.progressSaved()
         }
     }
 

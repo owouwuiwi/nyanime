@@ -116,27 +116,6 @@ val englishFallback = tasks.register<EnglishFallbackResourcesTask>("prepareEngli
     baseFolder.set("values")
 }
 
-val telegramProperties = Properties().apply {
-    rootProject.file(".local/telegram.properties").takeIf { it.exists() }?.inputStream()?.use(::load)
-}
-val telegramApiId = providers.environmentVariable("TELEGRAM_API_ID").orNull
-    ?: telegramProperties.getProperty("api_id", "0")
-val telegramApiHash = providers.environmentVariable("TELEGRAM_API_HASH").orNull
-    ?: telegramProperties.getProperty("api_hash", "")
-require(
-    telegramApiId.toIntOrNull() != null &&
-        (telegramApiHash.isEmpty() || telegramApiHash.matches(Regex("[a-fA-F0-9]{32}"))),
-) {
-    "Invalid Telegram application configuration"
-}
-require((telegramApiId.toInt() == 0) == telegramApiHash.isEmpty()) {
-    "Telegram API ID and hash must be configured together"
-}
-if (providers.gradleProperty("requireTelegramConfiguration").orNull == "true") {
-    require(telegramApiId.toInt() > 0 && telegramApiHash.isNotEmpty()) {
-        "Configure the Telegram application credentials before publishing Cloud"
-    }
-}
 val publicRelease = Properties().apply {
     rootProject.file("release.properties").inputStream().use(::load)
 }
@@ -173,14 +152,11 @@ extensions.configure<com.android.build.api.dsl.ApplicationExtension>("android") 
         buildConfigField("String", "COMMIT_SHA", "\"${getGitSha()}\"")
         buildConfigField("String", "BUILD_TIME", "\"${getBuildTime(useLastCommitTime = false)}\"")
         buildConfigField("boolean", "UPDATER_ENABLED", "${Config.enableUpdater}")
-        // Real-server probes use a separate temporary archive; never run the user's cloud jobs in that build.
         buildConfigField(
             "boolean",
-            "ISOLATED_CLOUD_PROBE",
-            "${providers.gradleProperty("cloudSyncProbe").orNull == "true"}",
+            "ISOLATED_READER_PROBE",
+            "${providers.gradleProperty("readerProbe").orNull == "true"}",
         )
-        buildConfigField("int", "TELEGRAM_API_ID", telegramApiId)
-        buildConfigField("String", "TELEGRAM_API_HASH", "\"$telegramApiHash\"")
 
         // Put these fields in acra.properties
         // val acraProperties = Properties()
@@ -196,12 +172,6 @@ extensions.configure<com.android.build.api.dsl.ApplicationExtension>("android") 
 
         testInstrumentationRunner = if (providers.gradleProperty("updateProbe").orNull == "true") {
             "eu.kanade.tachiyomi.updater.UpdatePageDeviceProbe"
-        } else if (providers.gradleProperty("remoteBackupProbe").orNull == "true") {
-            "it.lorelore.nyanime.backup.remote.RemoteBackupDeviceProbe"
-        } else if (providers.gradleProperty("cloudSyncProbe").orNull == "true") {
-            "eu.kanade.tachiyomi.cloud.CloudSyncDeviceProbe"
-        } else if (providers.gradleProperty("telegramProbe").orNull == "true") {
-            "eu.kanade.tachiyomi.telegram.TelegramIpcProbe"
         } else if (providers.gradleProperty("downloadProbe").orNull == "true") {
             "eu.kanade.tachiyomi.download.DownloadDeviceProbe"
         } else if (providers.gradleProperty("rinProbe").orNull == "true") {
@@ -258,14 +228,8 @@ extensions.configure<com.android.build.api.dsl.ApplicationExtension>("android") 
                 proguardFiles("migration-probe-rules.pro")
             }
             // Device probes call these entry points from a separate test APK.
-            if (providers.gradleProperty("remoteBackupProbe").orNull == "true") {
-                proguardFiles("remote-backup-probe-rules.pro")
-            }
             if (providers.gradleProperty("downloadProbe").orNull == "true") {
                 proguardFiles("download-probe-rules.pro")
-            }
-            if (providers.gradleProperty("cloudSyncProbe").orNull == "true") {
-                proguardFiles("cloud-sync-probe-rules.pro")
             }
             if (providers.gradleProperty("updateProbe").orNull == "true") {
                 proguardFiles("update-probe-rules.pro")
@@ -292,10 +256,7 @@ extensions.configure<com.android.build.api.dsl.ApplicationExtension>("android") 
     }
 
     sourceSets {
-        if (providers.gradleProperty("remoteBackupProbe").orNull == "true") {
-            getByName("androidTest").java.setSrcDirs(listOf("src/remoteBackupProbe/java"))
-        } else if (providers.gradleProperty("cloudSyncProbe").orNull == "true") {
-            getByName("androidTest").java.setSrcDirs(listOf("src/androidTest/java/eu/kanade/tachiyomi/cloud"))
+        if (providers.gradleProperty("readerProbe").orNull == "true") {
             getByName("preview").java.srcDir("src/readerProbe/java")
             getByName("preview").manifest.srcFile("src/readerProbe/AndroidManifest.xml")
         }
@@ -308,9 +269,6 @@ extensions.configure<com.android.build.api.dsl.ApplicationExtension>("android") 
     }
     if (providers.gradleProperty("downloadProbe").orNull == "true" ||
         providers.gradleProperty("rinProbe").orNull == "true" ||
-        providers.gradleProperty("remoteBackupProbe").orNull == "true" ||
-        providers.gradleProperty("cloudSyncProbe").orNull == "true" ||
-        providers.gradleProperty("telegramProbe").orNull == "true" ||
         providers.gradleProperty("updateProbe").orNull == "true"
     ) {
         testBuildType = "preview"
@@ -421,31 +379,6 @@ kotlin {
     }
 }
 
-val verifyTelegramNativeInputs by tasks.registering {
-    val engines = rootProject.file(".local/telegram-native/jniLibs")
-    inputs.dir(engines)
-    doLast {
-        listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64").forEach { abi ->
-            val library = engines.resolve("$abi/libtdjsonjava.so")
-            val provenance = engines.resolve("$abi/provenance.json")
-            check(library.isFile && library.length() > 1_000_000 && provenance.isFile) {
-                "Missing official Telegram engine for $abi; run the Telegram native engine workflow"
-            }
-            val metadata = provenance.readText()
-            check(
-                metadata.contains("42e6a5259551178d1dab54a22ad96d14bd906e20") &&
-                    metadata.contains("d0ca66a1abe52545f14eca635c648932fcde5615") &&
-                    metadata.contains(abi),
-            ) {
-                "Unexpected Telegram native engine provenance"
-            }
-        }
-    }
-}
-tasks.configureEach {
-    if (name.startsWith("merge") && name.endsWith("NativeLibs")) dependsOn(verifyTelegramNativeInputs)
-}
-
 // Artwork is an optional test-only JAR, so renders never add pictures to application assets.
 val nyanimePreviewArtwork by tasks.registering(Jar::class) {
     archiveFileName.set("nyanime-preview-artwork.jar")
@@ -460,9 +393,7 @@ val nyanimePreviewArtwork by tasks.registering(Jar::class) {
 
 dependencies {
     implementation(projects.core.attention)
-    implementation(projects.core.sourceStudio)
     implementation(projects.core.syncplay)
-    implementation("com.google.android.gms:play-services-auth:22.0.0")
     implementation(libs.androidx.webkit)
     implementation(androidx.camera.view)
     implementation(project(":presentation-player"))
@@ -477,7 +408,6 @@ dependencies {
     implementation(projects.core.readerQuality)
     implementation(projects.core.novelReader)
     implementation(projects.core.roomVoice)
-    implementation(projects.core.telegram)
     implementation(projects.core.privacyDisplay)
     implementation(projects.coreMetadata)
     implementation(projects.sourceApi)
@@ -544,7 +474,7 @@ dependencies {
     implementation(libs.conscrypt.android) // Preserve Android 8/9 TLS support.
     implementation(libs.bundles.okhttp)
     implementation(libs.okio)
-    implementation(libs.cloud.scanner)
+    implementation(libs.zxing.core)
 
     implementation("com.android.tools.build:apksig:8.9.1")
     implementation("com.davidehrmann.vcdiff:vcdiff-core:0.1.1")

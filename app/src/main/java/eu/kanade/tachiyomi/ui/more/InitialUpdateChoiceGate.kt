@@ -76,12 +76,10 @@ fun InitialAppSetupGate(onReady: () -> Unit, content: @Composable () -> Unit) {
         }
         return
     }
-    eu.kanade.tachiyomi.ui.cloud.InitialCloudSetupGate(onReady) {
-        InitialThemeChoiceGate(onReady) {
-            InitialUpdateChoiceGate(onReady) {
-                InitialAddonIntroductionGate(onReady) {
-                    content()
-                }
+    InitialThemeChoiceGate(onReady) {
+        InitialUpdateChoiceGate(onReady) {
+            InitialAddonIntroductionGate(onReady) {
+                content()
             }
         }
     }

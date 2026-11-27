@@ -33,10 +33,8 @@ consultare, rispettando copyright, licenze e condizioni di accesso.
 | **Home ricche di contenuti** | Esplora cataloghi, stagioni, classifiche e calendario; usa le Home anime e manga definite dalle estensioni compatibili. |
 | **Le tue uscite** | Segui anime e manga dalla scheda, ricevi avvisi delle nuove disponibilita e consulta le date annunciate nel calendario. [Come funziona](docs/release-monitor.md). AnimeSchedule facoltativo e widget: [configurazione guidata](docs/animeschedule.md). |
 | **Riprendi da dove eri** | Ritrova “Continua a guardare” e “Continua a leggere”, con avanzamento locale e accesso all'episodio o capitolo. |
-| **Studio delle fonti** | Crea e collauda fonti personali video/manga con nodi, vista guidata o procedura Assistita; importa, esporta e revisiona senza cataloghi preconfigurati. [Guida](docs/source-studio.md). |
-| **Backup remoti** | WebDAV cifrato e Google Drive facoltativo con configurazione OAuth propria, oltre ai backup locali e Telegram. [Guida](docs/remote-backups.md). |
+| **Backup locali** | Esporta libreria, progressi e impostazioni in un file e ripristinalo da Impostazioni → Dati e archiviazione. |
 | **Attenzione facoltativa** | Rilevamento locale sperimentale, inizialmente spento, con pausa configurabile oppure soli intervalli stimati, senza salvare immagini. |
-| **Nyanime Cloud** | Collega Telegram per conservare backup completi in un canale privato, scegliere le copie da mantenere e ripristinarle su un altro telefono. [Configurazione e limiti](docs/telegram-cloud.md). |
 | **Anime4K Ultra offline** | Copie A+ HQ con carico dosato, pause per temperatura e ripresa dei segmenti salvati. Stato, comandi ed esportazione direttamente dagli episodi; coda in Download → Ultra. [Dettagli e requisiti](docs/anime4k-ultra.md). |
 | **Anime4K Smart** | Applica shader nel player interno con qualità adattiva, avvio automatico configurabile e modalità manuali. |
 | **Guarda insieme** | Genera un codice, invita gli amici e sincronizza episodio, play, pausa, spostamenti e velocità, ognuno con il proprio streaming. |
@@ -47,8 +45,7 @@ consultare, rispettando copyright, licenze e condizioni di accesso.
 | **Protezione laterale hardware** | Proteggi video, manga, schede e aree personali sui display compatibili. Comandi temporanei, modalità “Solo in incognito” e opzione NSFW basata sui metadati; [compatibilità e limiti](docs/privacy-display.md). |
 
 Le stanze video e manga funzionano senza un profilo: crea una stanza e condividi
-il suo codice o link. Backup e sincronizzazione personali continuano attraverso
-[Cloud](docs/cloud-sync-protocol.md), indipendentemente dalle stanze.
+il suo codice o link.
 
 La versione 0.49 conserva lo stile del player FLOW con attribuzione GPL,
 senza includere il suo motore YouTube o MELD. Il tasto Musica apre soltanto

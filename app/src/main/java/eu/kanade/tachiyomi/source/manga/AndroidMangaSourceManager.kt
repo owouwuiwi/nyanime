@@ -8,10 +8,6 @@ import eu.kanade.tachiyomi.source.MangaSource
 import eu.kanade.tachiyomi.source.online.HttpSource
 import it.lorelore.nyanime.sources.LoadedSourceRevision
 import it.lorelore.nyanime.sources.LoadedSourceRevisions
-import it.lorelore.nyanime.studio.SourceStudioRepository
-import it.lorelore.nyanime.studio.StudioDocuments
-import it.lorelore.nyanime.studio.StudioMangaSource
-import it.lorelore.nyanime.studio.StudioMedium
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -20,7 +16,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -58,47 +53,32 @@ class AndroidMangaSourceManager(
 
     init {
         scope.launch {
-            combine(extensionManager.installedExtensionsFlow, SourceStudioRepository.get(context).active) {
-                    extensions,
-                    definitions,
-                ->
-                extensions to
-                    definitions
-            }
-                .collectLatest { (extensions, definitions) ->
-                    val mutableMap = ConcurrentHashMap<Long, MangaSource>(
-                        mapOf(
-                            LocalMangaSource.ID to LocalMangaSource(
-                                context,
-                                Injekt.get(),
-                                Injekt.get(),
-                            ),
+            extensionManager.installedExtensionsFlow.collectLatest { extensions ->
+                val mutableMap = ConcurrentHashMap<Long, MangaSource>(
+                    mapOf(
+                        LocalMangaSource.ID to LocalMangaSource(
+                            context,
+                            Injekt.get(),
+                            Injekt.get(),
                         ),
-                    )
-                    val revisions = mutableMapOf<Long, String>()
-                    extensions.forEach { extension ->
-                        extension.sources.forEach {
-                            mutableMap[it.id] = it
-                            revisions[it.id] = extension.contentRevision ?: java.util.UUID.randomUUID().toString()
-                            registerStubSource(StubMangaSource.from(it))
-                        }
+                    ),
+                )
+                val revisions = mutableMapOf<Long, String>()
+                extensions.forEach { extension ->
+                    extension.sources.forEach {
+                        mutableMap[it.id] = it
+                        revisions[it.id] = extension.contentRevision ?: java.util.UUID.randomUUID().toString()
+                        registerStubSource(StubMangaSource.from(it))
                     }
-                    definitions.filter { it.medium == StudioMedium.MANGA }.forEach { definition ->
-                        if (!mutableMap.containsKey(definition.sourceId)) {
-                            val source = StudioMangaSource(definition, SourceStudioRepository.get(context))
-                            mutableMap[source.id] = source
-                            revisions[source.id] = StudioDocuments.fingerprint(definition)
-                            registerStubSource(StubMangaSource.from(source))
-                        }
-                    }
-                    LoadedSourceRevisions.registry.publish(
-                        "manga",
-                        mutableMap.map { (id, source) ->
-                            LoadedSourceRevision(id, source, revisions[id] ?: "local-v1")
-                        },
-                    ) { sourcesMapFlow.value = SourceSnapshot(mutableMap) }
-                    _isInitialized.value = true
                 }
+                LoadedSourceRevisions.registry.publish(
+                    "manga",
+                    mutableMap.map { (id, source) ->
+                        LoadedSourceRevision(id, source, revisions[id] ?: "local-v1")
+                    },
+                ) { sourcesMapFlow.value = SourceSnapshot(mutableMap) }
+                _isInitialized.value = true
+            }
         }
 
         scope.launch {

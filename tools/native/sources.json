@@ -5,7 +5,6 @@
     "playerSources": "player/sources.lock.json",
     "nativeManifest": "distribution.json",
     "imageDecoderSources": "image-decoder.sources.json",
-    "telegramArtifact": "telegram-artifact.json",
     "buildRecipe": "player/build-linux.sh"
   },
   "historicalProvenanceLimitations": [
@@ -60,20 +59,6 @@
       "revision": "0b03be8e9cbd6330a5f75397d8856efc1bd35376",
       "archive": "https://gitlab.com/Secozzi/torrserver/-/archive/0b03be8e9cbd6330a5f75397d8856efc1bd35376/torrserver-0b03be8e9cbd6330a5f75397d8856efc1bd35376.zip",
       "license": "GPL-3.0-only"
-    },
-    "tdlib": {
-      "repository": "https://github.com/tdlib/td",
-      "revision": "42e6a5259551178d1dab54a22ad96d14bd906e20",
-      "archive": "https://github.com/tdlib/td/archive/42e6a5259551178d1dab54a22ad96d14bd906e20.zip",
-      "license": "BSL-1.0",
-      "build": "../../scripts/build_telegram_native.py"
-    },
-    "openssl": {
-      "repository": "https://github.com/openssl/openssl",
-      "revision": "d0ca66a1abe52545f14eca635c648932fcde5615",
-      "archive": "https://github.com/openssl/openssl/archive/d0ca66a1abe52545f14eca635c648932fcde5615.zip",
-      "license": "Apache-2.0",
-      "build": "../../scripts/build_telegram_native.py"
     }
   }
 }

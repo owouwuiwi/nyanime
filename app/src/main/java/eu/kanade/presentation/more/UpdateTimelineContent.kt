@@ -288,15 +288,24 @@ internal fun UpdateVersionCard(
                     androidx.compose.animation.ExitTransition.None
                 },
             ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                UpdateNoteGroups(
+                    notes,
                     modifier = Modifier.padding(top = 6.dp),
-                ) {
-                    notes.groups.forEachIndexed { index, group ->
-                        UpdateNoteCard(notes.key, index, group, updateNotesDocument(notes.version))
-                    }
-                }
+                )
             }
+        }
+    }
+}
+
+@Composable
+internal fun UpdateNoteGroups(
+    notes: UpdateVersionNotes,
+    modifier: Modifier = Modifier,
+    summarize: Boolean = true,
+) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        notes.groups.forEachIndexed { index, group ->
+            UpdateNoteCard(notes.key, index, group, updateNotesDocument(notes.version), summarize)
         }
     }
 }
@@ -307,15 +316,16 @@ private fun UpdateNoteCard(
     index: Int,
     group: UpdateNoteGroup,
     documentUrl: String,
+    summarize: Boolean,
 ) {
     val colors = MaterialTheme.colorScheme
     val accent = group.category.accent()
     val motion = appMotionEnabled()
     var showAll by rememberSaveable(version, index) { mutableStateOf(false) }
-    val entries = group.entries
+    val entries = group.entries.takeIf { summarize }
     val canShorten = entries != null && entries.size > 4
     val content =
-        if (canShorten && !showAll) entries!!.take(4).joinToString("\n\n") else group.markdown
+        if (canShorten && !showAll) entries.take(4).joinToString("\n\n") else group.markdown
     Surface(
         color = colors.surfaceContainerLow,
         shape = RoundedCornerShape(18.dp),
@@ -371,7 +381,7 @@ private fun UpdateNoteCard(
                             } else {
                                 R.string.app_update_show_all
                             },
-                            entries!!.size,
+                            entries.size,
                         ),
                     )
                 }

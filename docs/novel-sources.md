@@ -41,17 +41,14 @@ are checked before use and after a response. Downloaded-only mode performs no
 source discovery, obsolete requests are cancelled, and incognito changes clear
 the in-memory cache. Source covers keep using the existing artwork broker.
 
-The Romanzi category observes local declarations from each internal registry,
-including active Studio definitions. A source does not need a library favorite
-or an unrelated APK to expose the category. This availability check never
-instantiates an APK factory, opens a chapter index or starts Telegram. Registry
+The Romanzi category observes local source declarations. An enabled source
+can expose the category without library favorites. The availability check
+uses the registry declarations without starting a source factory. Registry
 eligibility and execution authorization reuse the existing policies; metadata
 availability itself is not an execution grant. Language/adult visibility and
 duplicate identities follow the unified inventory's rules.
 
-Studio sources reuse their existing `home`, `homeFlows` and section filters.
-There is no separate graph format or provider-specific discovery path. An APK
-that chooses this capability must require host versionCode 290 or newer;
+An APK that advertises this capability must require host versionCode 290 or newer;
 existing API-1 sources without it remain compatible.
 
 `NovelChapter.group` supplies optional grouping labels for the details screen
@@ -62,6 +59,6 @@ search reveals matching chapters/groups without overwriting the user's collapsed
 state. The actual reading order, references, locators, downloads and progress
 remain unchanged. Local EPUB table-of-contents nesting remains available.
 
-The0.80 delivery connects the contract, package inspection, consent-aware loader, hosted inventory, Store family, enablement screen, Atlante, online reader, durable downloads and Studio Novel. Registry metadata is observed lazily; execution remains consent-gated. Automated tests cover identities, opaque cursors, access, preparation and stale responses. Private device candidates also exercise the real Store, reader, downloads and Studio; final APK receipts identify the exact release checks. Legado import remains deferred and is not an app dependency.
+The 0.80 delivery connects the contract, package inspection, consent-aware loader, hosted inventory, Store family, enablement screen, Atlante, online reader and durable downloads. Registry metadata is observed lazily and execution requires consent. Automated tests cover identities, opaque cursors, access and stale responses. Private device candidates also exercise the real Store, reader and downloads. Final APK receipts identify the exact release checks. Legado import remains deferred and is not an app dependency.
 
 Existing anime/manga APIs remain unchanged. Retirement cleanup matches only the old `publication` medium, with a regression test retaining `novel` records.

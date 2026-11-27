@@ -73,7 +73,7 @@ non sostituiscono la verifica dei sorgenti corrispondenti.
 
 In **Altro → Info → Licenze delle librerie** sono disponibili l'inventario
 Java/Kotlin e i testi dei componenti inclusi direttamente: player, shader,
-audio, riconoscimento dei pannelli, download, Telegram e voce nelle stanze.
+audio, riconoscimento dei pannelli, download e voce nelle stanze.
 La consultazione dei testi non richiede una connessione.
 
 L'elenco usa gli stessi registri controllati dalla verifica automatica:

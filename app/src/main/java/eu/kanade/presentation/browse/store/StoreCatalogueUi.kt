@@ -214,7 +214,6 @@ internal fun StoreCatalogueSettings(
     onVideo: () -> Unit,
     onManga: () -> Unit,
     onTrust: () -> Unit,
-    onStudio: () -> Unit,
     onMigration: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -259,7 +258,6 @@ internal fun StoreCatalogueSettings(
         HorizontalDivider(color = c.line)
         Text(stringResource(R.string.store_tools), style = MaterialTheme.typography.titleMedium, color = c.text)
         TextButton(onClick = onTrust) { Text(stringResource(R.string.package_catalogue_trust)) }
-        TextButton(onClick = onStudio) { Text(stringResource(R.string.studio_title)) }
         TextButton(onClick = onMigration) { Text(stringResource(R.string.store_sources_migration)) }
     }
 }

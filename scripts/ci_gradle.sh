@@ -10,7 +10,7 @@ diagnostics="${RUNNER_TEMP:-/tmp}/nyanime-gradle"
 mkdir -p "$diagnostics"
 
 ./gradlew "$@" --no-daemon --no-parallel --max-workers=2 --console=plain \
-  --build-cache -Pkotlin.incremental=true -PcloudSyncProbe=false \
+  --build-cache -Pkotlin.incremental=true -PreaderProbe=false \
   -Pkotlin.build.report.output=file,json \
   "-Pkotlin.build.report.json.directory=${diagnostics}/kotlin" \
   "-Pkotlin.build.report.file.output_dir=${diagnostics}/kotlin" \

@@ -5,6 +5,7 @@ import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.ByteArrayInputStream
@@ -16,6 +17,23 @@ import javax.crypto.spec.SecretKeySpec
 class MigrationArchiveTest {
     @TempDir lateinit var root: java.nio.file.Path
     private fun newFolder() = java.nio.file.Files.createTempDirectory(root, "fixture").toFile()
+
+    @Test fun excludesRetiredRemoteStateFromIdentityTransfers() {
+        listOf(
+            "preferences/telegram.session.v1.xml.bak",
+            "no_backup/telegram/td.binlog",
+            "no_backup/telegram-ipc/buffer",
+            "no_backup/source-telegram-access-v1.json.bak",
+            "no_backup/cloud/outbox/copy.nyabk",
+            "no_backup/cloud.sqlite-wal",
+            "no_backup/cloud-sync-123-space.sqlite",
+            "no_backup/remote-backup-v1/credentials",
+            "no_backup/remote-backup-files-v1/archive",
+        ).forEach { assertTrue(isRetiredRemoteState(it), it) }
+        assertFalse(isRetiredRemoteState("no_backup/watch-room.pending"))
+        assertFalse(isRetiredRemoteState("files/source-studio-v1.json"))
+        assertFalse(isRetiredRemoteState("databases/tachiyomi.db"))
+    }
 
     @Test fun preservesOpaqueReferencesAndExactProgressFiles() {
         val original = newFolder()

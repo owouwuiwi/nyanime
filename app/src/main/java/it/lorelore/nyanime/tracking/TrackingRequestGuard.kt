@@ -40,7 +40,7 @@ object TrackingRequestGuard {
 
     fun client(original: OkHttpClient, tracker: Long): OkHttpClient = original.newBuilder()
         .apply {
-            if (eu.kanade.tachiyomi.BuildConfig.ISOLATED_CLOUD_PROBE) {
+            if (eu.kanade.tachiyomi.BuildConfig.ISOLATED_READER_PROBE) {
                 // Instrumentation uses a private fake gateway; no real tracker/auth request may escape.
                 interceptors().add(0, Interceptor { throw java.net.ProtocolException("Isolated tracking probe") })
             }

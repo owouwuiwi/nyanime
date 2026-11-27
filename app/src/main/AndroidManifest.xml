@@ -529,10 +529,7 @@
             android:authorities="${applicationId}.addons.appearance" android:exported="true" />
         <activity android:name=".data.addon.RinAddonActivity" android:exported="false" />
         <service android:name=".data.addon.RinAddonForegroundService" android:exported="false" android:foregroundServiceType="dataSync" />
-        <receiver android:name="it.lorelore.nyanime.backup.remote.RemoteBackupCancelReceiver" android:exported="false" />
         <receiver android:name="it.lorelore.nyanime.novel.download.NovelDownloadCancelReceiver" android:exported="false" />
-        <activity android:name=".ui.cloud.CloudActivity" android:exported="false" />
-        <service android:name=".data.telegram.TelegramEngineService" android:exported="false" android:process=":telegram" />
     </application>
 
 </manifest>

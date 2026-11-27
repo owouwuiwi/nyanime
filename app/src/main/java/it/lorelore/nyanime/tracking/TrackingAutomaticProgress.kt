@@ -24,7 +24,7 @@ object TrackingAutomaticProgress {
         progress: Double,
         trackerId: Long?,
     ) {
-        if (eu.kanade.tachiyomi.BuildConfig.ISOLATED_CLOUD_PROBE) return
+        if (eu.kanade.tachiyomi.BuildConfig.ISOLATED_READER_PROBE) return
         if (!progress.isFinite() ||
             progress !in 0.0..1_000_000.0 ||
             Injekt.get<BasePreferences>().incognitoMode().get()

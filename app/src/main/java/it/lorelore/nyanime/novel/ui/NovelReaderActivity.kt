@@ -99,7 +99,6 @@ class NovelReaderActivity : BaseActivity() {
     companion object {
         private const val BOOK = "novel_book_id"
         private const val START_AT = "novel_start_href"
-        private const val PREVIEW = "novel_preview_token"
 
         fun intent(context: Context, bookId: String, startHref: String? = null) =
             Intent(context, NovelReaderActivity::class.java)
@@ -110,28 +109,18 @@ class NovelReaderActivity : BaseActivity() {
             Intent(context, NovelReaderActivity::class.java)
                 .setData(uri)
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-
-        internal fun previewIntent(context: Context, bookId: String, token: String) =
-            intent(context, bookId).putExtra(PREVIEW, token)
     }
 
-    private val previewSession by lazy {
-        intent.getStringExtra(PREVIEW)?.let(NovelReaderPreview::find)
-    }
-    private val library by lazy { previewSession?.library ?: Injekt.get<NovelLibrary>() }
+    private val library by lazy { Injekt.get<NovelLibrary>() }
     private var readerStarted = false
     private val model by
         viewModels<NovelReaderViewModel> {
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    previewSession?.let(NovelReaderPreview::claim)
                     return NovelReaderViewModel(
                         library,
                         { Injekt.get<BasePreferences>().incognitoMode().get() },
-                        { pending ->
-                            previewSession?.let { NovelReaderPreview.release(it, pending) }
-                        },
                     )
                         as T
                 }
@@ -162,14 +151,6 @@ class NovelReaderActivity : BaseActivity() {
         enableEdgeToEdge()
         if (eu.kanade.tachiyomi.data.migration.MigrationState.deferredStartup(this)) {
             startActivity(Intent(this, eu.kanade.tachiyomi.ui.main.MainActivity::class.java))
-            finish()
-            return
-        }
-        if (
-            intent.hasExtra(PREVIEW) &&
-            (previewSession == null || intent.getStringExtra(BOOK) != previewSession?.bookId)
-        ) {
-            Toast.makeText(this, R.string.novel_preview_expired, Toast.LENGTH_LONG).show()
             finish()
             return
         }
@@ -476,11 +457,7 @@ class NovelReaderActivity : BaseActivity() {
             when {
                 state is NovelReaderState.Failure ->
                     NovelFailure((state as NovelReaderState.Failure).cause, ::finish) {
-                        if (
-                            previewSession != null ||
-                            (state as NovelReaderState.Failure).cause is
-                                NovelLibrary.OnlineDocumentException
-                        ) {
+                        if ((state as NovelReaderState.Failure).cause is NovelLibrary.OnlineDocumentException) {
                             (restoredBook ?: intent.getStringExtra(BOOK))?.let { model.load(it) }
                         } else {
                             documentPicker.launch(arrayOf("application/epub+zip", "text/plain"))
@@ -502,14 +479,7 @@ class NovelReaderActivity : BaseActivity() {
                     }
                 session != null -> {
                     NovelReaderChrome(
-                        if (previewSession == null) {
-                            session.book.title
-                        } else {
-                            stringResource(
-                                R.string.novel_preview_heading,
-                                session.book.title,
-                            )
-                        },
+                        session.book.title,
                         locator?.title.orEmpty(),
                         locator?.locations?.totalProgression,
                         chrome,
@@ -836,9 +806,6 @@ class NovelReaderActivity : BaseActivity() {
         renderGeneration++
         locatorJob?.cancel()
         pageDeadline?.cancel()
-        if (isFinishing && !readerStarted) {
-            previewSession?.let { NovelReaderPreview.release(it, emptyList()) }
-        }
         super.onDestroy()
     }
 

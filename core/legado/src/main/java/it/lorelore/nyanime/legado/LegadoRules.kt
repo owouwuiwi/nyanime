@@ -1,7 +1,6 @@
 package it.lorelore.nyanime.legado
 
 import com.google.re2j.Pattern
-import it.lorelore.nyanime.studio.StudioJsonPath
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonNull
 import org.jsoup.Jsoup
@@ -146,7 +145,7 @@ object LegadoRules {
         if (text.startsWith("@json:", true) || text.startsWith("$")) {
             val path = if (text.startsWith("@json:", true)) text.substring(6) else text
             try {
-                StudioJsonPath.select(JsonNull, path)
+                LegadoJsonPath.select(JsonNull, path)
             } catch (_: Exception) {
                 fail("json_path")
             }

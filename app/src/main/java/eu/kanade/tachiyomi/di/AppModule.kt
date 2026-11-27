@@ -91,9 +91,6 @@ class AppModule(
             it.lorelore.nyanime.novel.source.NovelSources(
                 app,
                 get(),
-                extraProviders = {
-                    listOf(it.lorelore.nyanime.studio.StudioNovelSourceProvider(app))
-                },
             )
         }
         addSingletonFactory { it.lorelore.nyanime.novel.NovelDownloadStore(app) }

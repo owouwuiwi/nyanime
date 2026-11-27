@@ -34,6 +34,9 @@ object BackupPreferencePolicy {
     )
 
     private val deviceSpecificPrefixes = listOf(
+        "cloud_backup_",
+        "cloud_sync_",
+        "remote_backup_",
         Preference.privateKey("anime4k_episode_profile_"),
         Preference.privateKey("anime4k_calibration_"),
     )

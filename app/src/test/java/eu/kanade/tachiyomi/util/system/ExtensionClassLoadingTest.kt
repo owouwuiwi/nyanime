@@ -23,8 +23,6 @@ class ExtensionClassLoadingTest {
             "nyanime.extension.api.SourceCapabilitiesFactory",
             "it.lorelore.nyanime.source.novel.NovelSource",
             "it.lorelore.nyanime.source.novel.NovelChapter",
-            "it.lorelore.nyanime.source.telegram.TelegramBackedSource",
-            "it.lorelore.nyanime.source.telegram.TelegramSourceReader",
             "it.lorelore.nyanime.source.document.SourceDocumentDescriptor",
             "it.lorelore.nyanime.source.document.SourceStreamingDocumentResolver",
         ).forEach { assertTrue(ExtensionClassLoading.hostFirst(it), it) }
@@ -36,7 +34,6 @@ class ExtensionClassLoadingTest {
             "eu.kanade.tachiyomi.extension.example.Source",
             "kotlinx.serialization.json.Json",
             "example.privatehelper.Utility",
-            "it.lorelore.nyanime.source.telegramish.PrivateHelper",
             "it.lorelore.nyanime.source.documentary.PrivateHelper",
             "androidx.compose.runtime.Composer",
             "androidx.lifecycle.compose.FlowExtKt",

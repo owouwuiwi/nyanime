@@ -241,11 +241,6 @@ internal fun HomeAnimeRow(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     items(entries, key = { it.anime.id }) { item ->
-                        val cloudResume = eu.kanade.tachiyomi.ui.cloud.rememberCloudResume(
-                            "anime",
-                            item.anime.id,
-                            item.episode.id,
-                        )
                         val poster =
                             rememberPosterSource(item.anime, RoundedCornerShape(topStart = 18.dp, bottomStart = 18.dp))
                         val openDetails = posterOpen(poster, item.anime.title) { onOpen(item) }
@@ -258,18 +253,12 @@ internal fun HomeAnimeRow(
                                     homeResumeTime(item.episode.lastSecondSeen.coerceIn(0L, total)),
                                     homeResumeTime(total),
                                 )
-                            }?.let { timing ->
-                                cloudResume.firstOrNull()?.let { "$timing · ${it.deviceName}" } ?: timing
                             },
                             onResume = { onPlay(item) },
                             modifier = Modifier.width(cardWidth).nsfwPrivacy(item.anime),
                             foregroundModifier = Modifier.posterForeground(poster),
                             progress = item.progress,
                             menu = { close ->
-                                eu.kanade.tachiyomi.ui.cloud.CloudResumeMenu(cloudResume, manga = false) { position ->
-                                    close()
-                                    onPlay(item.copy(forcedStartPositionMs = position))
-                                }
                                 DropdownMenuItem(text = {
                                     Text(androidStringResource(R.string.home_resume_action))
                                 }, onClick = {

@@ -45,7 +45,7 @@ def command(mode, tasks, workers=2, cold=False, archive_class_outputs=False):
              ['--daemon', '--build-cache', '-Pkotlin.incremental=true'])
     flags += ['-Pkotlin.compiler.execution.strategy=in-process']
     wrapper = str(ROOT / ('gradlew.bat' if os.name == 'nt' else 'gradlew'))
-    result = [wrapper, *tasks, *flags, '-Penable-updater', '-PcloudSyncProbe=false', '-Pkotlin.build.report.output=file,json',
+    result = [wrapper, *tasks, *flags, '-Penable-updater', '-PreaderProbe=false', '-Pkotlin.build.report.output=file,json',
             '-Pkotlin.build.report.json.directory=' + (ROOT / '.local/kotlin-build-reports').as_posix(),
             '-Pkotlin.build.report.file.output_dir=' + (ROOT / '.local/kotlin-build-reports').as_posix(),
             '--profile', '--console=plain', f'--max-workers={workers}']

@@ -24,8 +24,8 @@ No production key or personal data is required to build your own version.
   erased or treated as identical to the ARM sources.
 - **Supplemental:** original image decoder and static codec sources (including
   MPL/LGPL components), archive libraries, the original player Java API,
-  TorrServer and its full Go vendor closure, QuickJS, secp256k1, Zstandard,
-  TDLib and OpenSSL. Upstream copyrights and full notices are retained.
+  TorrServer and its full Go vendor closure, QuickJS, secp256k1 and Zstandard.
+  The 0.82.0.0 archive preserves those trees and their upstream notices.
 - **Camera/inference (0.49):** unmodified CameraX and MediaPipe native Maven bytes,
   original AAR/POMs, published AndroidX sources, CameraX embedded notices and the
   associated complete MediaPipe public release sources. Source-JAR availability
@@ -107,13 +107,6 @@ provided in the supplemental archive; its source index is
 `build-all.sh`, Go 1.26.4 build metadata, `go.mod`, `go.sum` and `server/vendor`.
 Use `-mod=vendor` when rebuilding its Android Go libraries. The original Android
 JNI wrapper and upstream build scripts are included.
-
-TDLib uses [the pinned recipe](../../scripts/build_telegram_native.py). The
-[reviewed artifact](telegram-artifact.json) is mirrored in `vendor/native`;
-`python3 -m scripts.restore_telegram_native` restores and verifies it. This
-avoids compiler/path variation changing published native bytes on unrelated
-app builds. Native maintenance builds remain available separately; a new
-native output must be reviewed before replacing the mirror and manifest.
 
 ## Publication checks
 

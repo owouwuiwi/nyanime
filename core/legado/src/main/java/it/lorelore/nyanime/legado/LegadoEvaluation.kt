@@ -1,7 +1,6 @@
 package it.lorelore.nyanime.legado
 
 import com.google.re2j.Pattern
-import it.lorelore.nyanime.studio.StudioJsonPath
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -220,7 +219,7 @@ class LegadoEvaluation(private val scripts: LegadoScript? = null) {
                                 } catch (_: Exception) {
                                     fail("json_input")
                                 }
-                        val selected = StudioJsonPath.select(root, rule.steps.single().selector)
+                        val selected = LegadoJsonPath.select(root, rule.steps.single().selector)
                         val rows =
                             if (rule.attribute == "all") {
                                 selected.flatMap { if (it is JsonArray) it else listOf(it) }

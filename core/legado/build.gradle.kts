@@ -7,7 +7,6 @@ extensions.configure<com.android.build.api.dsl.LibraryExtension>("android") {
     namespace = "it.lorelore.nyanime.legado"
 }
 dependencies {
-    implementation(projects.core.sourceStudio)
     implementation(platform(kotlinx.coroutines.bom))
     implementation(kotlinx.bundles.coroutines)
     api(kotlinx.bundles.serialization)

@@ -28,7 +28,7 @@ download must also pass cryptographic signature, package and version checks.
 Patches are selected only when they save **at least 20% and at least 1 MiB**.
 Actual savings depend on which ZIP entries changed; there is no promised patch size.
 
-Remote backups, downloaded media, source definitions and library data are unrelated
+Backups, downloaded media and library data are unrelated
 to this feature. No new permission, user upload, telemetry service, native library
 or third-party codec is introduced.
 

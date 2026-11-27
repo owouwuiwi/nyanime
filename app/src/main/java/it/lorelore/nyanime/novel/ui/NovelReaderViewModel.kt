@@ -40,7 +40,6 @@ internal sealed interface NovelReaderState {
 internal class NovelReaderViewModel(
     private val library: NovelLibrary,
     private val incognito: () -> Boolean,
-    private val onClosed: (List<Job>) -> Unit = {},
 ) : ViewModel() {
     private val _state = MutableStateFlow<NovelReaderState>(NovelReaderState.Preparing())
     val state = _state.asStateFlow()
@@ -457,16 +456,6 @@ internal class NovelReaderViewModel(
     override fun onCleared() {
         generation++
         closeCurrent()
-        onClosed(
-            listOfNotNull(
-                loadJob,
-                annotationsJob,
-                chapterVersionsJob,
-                indexJob,
-                queryJob,
-                positionJob,
-            ),
-        )
         super.onCleared()
     }
 }

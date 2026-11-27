@@ -107,7 +107,6 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
         }
         if (recoveryProcess?.startsWith("$packageName:panels") == true) return
         if (recoveryProcess == packageName) eu.kanade.tachiyomi.data.recovery.RecoveryJournal.record(this, "starting")
-        if (eu.kanade.tachiyomi.data.telegram.TelegramEngineService.isEngineProcess(this)) return
         patchInjekt()
 
         val mainProcess = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -147,11 +146,8 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
 
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
         ProcessLifecycleOwner.get().lifecycle.addObserver(eu.kanade.tachiyomi.data.recovery.RecoveryHealthMonitor(this))
-        eu.kanade.tachiyomi.data.cloud.sync.CloudSyncManager.startIfConfigured(this)
 
         val scope = ProcessLifecycleOwner.get().lifecycleScope
-        scope.launch(Dispatchers.IO) { eu.kanade.tachiyomi.data.cloud.CloudBackupWorker.schedule(this@App) }
-        scope.launch(Dispatchers.IO) { eu.kanade.tachiyomi.data.cloud.sync.CloudSyncWorker.schedule(this@App) }
         scope.launch(Dispatchers.IO) {
             try {
                 Injekt.get<eu.kanade.tachiyomi.data.news.NewsRepository>().initialize()
@@ -335,7 +331,7 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
                 logcat(LogPriority.WARN, error) { "Unable to schedule release reminders" }
             }
         }
-        if (!BuildConfig.ISOLATED_CLOUD_PROBE) {
+        if (!BuildConfig.ISOLATED_READER_PROBE) {
             RetroactiveTracking.onForeground()
             it.lorelore.nyanime.tracking.TrackingEditWorker.resumePending(this)
             LibraryAutoTracking.onForeground()
@@ -349,8 +345,6 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        // Android also sends rotation, locale and night-mode changes to the isolated Telegram
-        // process. That process deliberately skips the UI dependency graph in onCreate.
         if (uiDependenciesInitialized) Injekt.get<eu.kanade.domain.ui.ThemeController>().reconcile()
     }
 

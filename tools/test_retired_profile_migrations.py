@@ -51,9 +51,9 @@ class RetiredProfileMigrationsTest(unittest.TestCase):
                 db, _ = self.database(anime)
                 with db:
                     self.assertEqual(0, db.execute("SELECT count(*) FROM sqlite_master WHERE name LIKE 'community_%'").fetchone()[0])
-                    self.assertGreater(db.execute("SELECT count(*) FROM sqlite_master WHERE name LIKE 'cloud_sync_%'").fetchone()[0], 0)
+                    self.assertEqual(0, db.execute("SELECT count(*) FROM sqlite_master WHERE name LIKE 'cloud_sync_%'").fetchone()[0])
 
-    def test_upgrade_preserves_library_history_categories_and_cloud_updates(self):
+    def test_upgrade_retires_sync_without_touching_library_history_or_categories(self):
         for anime in (True, False):
             with self.subTest(anime=anime):
                 db, base = self.database(anime)
@@ -67,6 +67,9 @@ class RetiredProfileMigrationsTest(unittest.TestCase):
                 self.insert(db, 'categories', {'_id': 7, 'name': 'My category', 'sort': 1})
                 self.insert(db, history, {'_id': 3, history_item: 2})
                 db.executescript((base / 'migrations' / ('139.sqm' if anime else '33.sqm')).read_text())
+                old_migrations = ('148.sqm', '149.sqm') if anime else ('38.sqm', '39.sqm')
+                for file in old_migrations:
+                    db.executescript((base / 'migrations' / file).read_text())
                 db.execute('UPDATE community_capture SET enabled=1')
                 db.execute('UPDATE cloud_sync_control SET enabled=1')
                 db.execute(f'UPDATE {item} SET {position}=124 WHERE _id=2')
@@ -81,8 +84,14 @@ class RetiredProfileMigrationsTest(unittest.TestCase):
                     self.assertEqual(rows, [tuple(row) for row in db.execute('SELECT * FROM '+table)])
                 self.assertEqual(cloud_before, [tuple(row) for row in db.execute('SELECT * FROM cloud_sync_dirty ORDER BY revision')])
                 self.assertEqual(1, db.execute('SELECT enabled FROM cloud_sync_control').fetchone()[0])
+                retire_sync = base / 'migrations' / ('151.sqm' if anime else '41.sqm')
+                for _ in range(2):
+                    db.executescript(retire_sync.read_text())
+                self.assertEqual(0, db.execute("SELECT count(*) FROM sqlite_master WHERE name LIKE 'cloud_sync_%'").fetchone()[0])
+                for table, rows in before.items():
+                    self.assertEqual(rows, [tuple(row) for row in db.execute('SELECT * FROM '+table)])
                 db.execute(f'UPDATE {item} SET {position}=125 WHERE _id=2')
-                self.assertGreater(db.execute('SELECT max(revision) FROM cloud_sync_dirty').fetchone()[0], max(row[0] for row in cloud_before))
+                self.assertEqual(125, db.execute(f'SELECT {position} FROM {item} WHERE _id=2').fetchone()[0])
                 self.insert(db, 'categories', {'_id': 8, 'name': 'Another category', 'sort': 2})
                 self.assertEqual(2, db.execute('SELECT count(*) FROM categories WHERE _id IN (7,8)').fetchone()[0])
                 db.close()

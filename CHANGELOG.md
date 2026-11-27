@@ -9,6 +9,18 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 27 novembre 2026 — 0.82.0.0
+
+### Limitazioni
+
+- Nyanime Cloud, Telegram e i backup remoti sono stati rimossi temporaneamente. I backup locali restano disponibili.
+- Lo Studio delle sorgenti è stato rimosso in attesa di una riprogettazione.
+
+### Interfaccia
+
+- Torna il logo N di Nyanime.
+- Dopo un aggiornamento, le novità della versione sono visibili direttamente nell’app, anche offline.
+
 ## 27 novembre 2026 — 0.81.1.12
 
 ### Interfaccia

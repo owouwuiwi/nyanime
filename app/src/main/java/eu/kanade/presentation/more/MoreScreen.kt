@@ -6,7 +6,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.outlined.CloudOff
-import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material.icons.outlined.GetApp
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.PeopleOutline
@@ -67,14 +66,6 @@ fun MoreScreen(
             }
             item(key = "ready-app-update") {
                 ReadyAppUpdateSurface(allowDismiss = false)
-            }
-            item(key = "nyanime-cloud") {
-                TextPreferenceWidget(
-                    title = context.getString(R.string.cloud_title),
-                    subtitle = context.getString(R.string.cloud_entry_summary),
-                    icon = Icons.Outlined.CloudSync,
-                    onPreferenceClick = { eu.kanade.tachiyomi.ui.cloud.CloudActivity.open(context) },
-                )
             }
             item {
                 TextPreferenceWidget(
