@@ -34,6 +34,7 @@ import tachiyomi.domain.entries.anime.model.AnimeCover
 import tachiyomi.domain.source.anime.service.AnimeSourceManager
 import uy.kohesive.injekt.injectLazy
 import java.io.File
+import java.io.IOException
 
 /**
  * A [Fetcher] that fetches cover image for [Anime] object.
@@ -120,6 +121,11 @@ class AnimeImageFetcher(
                 val snapshotCoverCache = moveSnapshotToCoverCache(snapshot, libraryCoverCacheFile)
                 if (snapshotCoverCache != null) {
                     // Read from cover cache after added to library
+                    try {
+                        snapshot.close()
+                    } catch (error: IOException) {
+                        logcat(LogPriority.WARN, error) { "Failed to release promoted cover snapshot" }
+                    }
                     return fileLoader(snapshotCoverCache)
                 }
 

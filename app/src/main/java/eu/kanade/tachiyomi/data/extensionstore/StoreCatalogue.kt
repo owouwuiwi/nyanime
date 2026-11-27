@@ -13,6 +13,13 @@ import eu.kanade.tachiyomi.extension.manga.util.MangaExtensionLoader
 enum class StoreMedium { ANIME, MANGA, NEWS, TV, GUIDE, ADDON, NOVEL, MANGA_LAYER }
 enum class StoreAction { INSTALL, OPEN, UPDATE, TRUST, MANAGE }
 
+// A blank query matches everything, while a query made only of commas matches nothing.
+internal fun storeQueryTerms(query: String): List<String>? = if (query.isBlank()) {
+    null
+} else {
+    query.split(',').mapNotNull { it.trim().takeIf(String::isNotEmpty) }
+}
+
 /** Presentation data comes exclusively from configured catalogues and inspected packages. */
 data class StoreEntry(
     val id: String,
@@ -104,11 +111,10 @@ data class StoreEntry(
         }
     }
 
-    fun matchesQuery(query: String): Boolean = query.isBlank() ||
-        query.split(',').any { part ->
-            val term = part.trim()
-            term.isNotEmpty() && searchTerms.any { it.contains(term, ignoreCase = true) }
-        }
+    fun matchesQuery(query: String): Boolean = matchesQuery(storeQueryTerms(query))
+
+    internal fun matchesQuery(terms: List<String>?): Boolean = terms == null ||
+        terms.any { term -> searchTerms.any { it.contains(term, ignoreCase = true) } }
 
     fun matchesLanguages(enabled: Set<String>): Boolean =
         installed ||

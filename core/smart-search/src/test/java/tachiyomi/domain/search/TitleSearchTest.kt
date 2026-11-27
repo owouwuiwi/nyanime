@@ -26,6 +26,46 @@ class TitleSearchTest {
     }
 
     @Test
+    fun `reused distance rows match full transposition distance at the band edges`() {
+        val terms = (0..5).flatMap { length ->
+            (0 until (1 shl length)).map { bits ->
+                (0 until length).joinToString("") { if ((bits and (1 shl it)) == 0) "a" else "b" }
+            }
+        } + listOf("cafè", "café", "日本語", "日語本")
+        for (first in terms) {
+            for (second in terms) {
+                val distance = fullTranspositionDistance(first, second)
+                for (limit in 0..3) {
+                    LexicalTitleMatcher.editDistance(first, second, limit) shouldBe minOf(distance, limit + 1)
+                }
+            }
+        }
+    }
+
+    private fun fullTranspositionDistance(first: String, second: String): Int {
+        val matrix = Array(first.length + 1) { IntArray(second.length + 1) }
+        first.indices.forEach { matrix[it + 1][0] = it + 1 }
+        second.indices.forEach { matrix[0][it + 1] = it + 1 }
+        for (i in first.indices) {
+            for (j in second.indices) {
+                val replacement = if (first[i] == second[j]) 0 else 1
+                val transposition = if (i > 0 && j > 0 && first[i - 1] == second[j] && first[i] == second[j - 1]) {
+                    matrix[i - 1][j - 1] + 1
+                } else {
+                    Int.MAX_VALUE
+                }
+                matrix[i + 1][j + 1] = minOf(
+                    matrix[i + 1][j] + 1,
+                    matrix[i][j + 1] + 1,
+                    matrix[i][j] + replacement,
+                    transposition,
+                )
+            }
+        }
+        return matrix[first.length][second.length]
+    }
+
+    @Test
     fun `numbers belonging to names survive additional season or part suffixes`() {
         matcher.score("Synthetic Protocol 47", "Synthetic Protocol 48") shouldBe 0
         (matcher.score("Synthetic Protocol 47", "Synthetic Protocol 47 Season 2") >= 75) shouldBe true

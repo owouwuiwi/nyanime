@@ -120,6 +120,11 @@ class MangaCoverFetcher(
                 val snapshotCoverCache = moveSnapshotToCoverCache(snapshot, libraryCoverCacheFile)
                 if (snapshotCoverCache != null) {
                     // Read from cover cache after added to library
+                    try {
+                        snapshot.close()
+                    } catch (error: IOException) {
+                        logcat(LogPriority.WARN, error) { "Failed to release promoted cover snapshot" }
+                    }
                     return fileLoader(snapshotCoverCache)
                 }
 

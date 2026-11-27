@@ -9,6 +9,22 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 27 novembre 2026 — 0.82.0.2
+
+### Interfaccia
+
+- Nella barra inferiore, una lente trasparente scorre tra le schede e rifrange lo sfondo lungo il bordo. Il rosso sta sotto il vetro. Le etichette restano leggibili durante lo spostamento.
+
+### Prestazioni
+
+- La schermata di avvio si chiude appena la prima schermata è pronta. La libreria mantiene l'ordinamento scelto mentre restringe l'elenco durante la digitazione.
+- Ricerca titoli e Store riusano i dati già preparati durante la digitazione. In Home, il carosello controlla la visibilità per l'autoplay quando lo scorrimento si ferma.
+- Nyanime rilascia prima la cache delle copertine trasferite in Libreria. All'avvio evita di interrogare lo storico dei download Ultra quando la coda è vuota o in pausa.
+
+### Compatibilità
+
+- La rifrazione è disponibile da Android 13 sui dispositivi con accelerazione grafica. Il selettore rosso resta disponibile nelle altre modalità e quando è abilitato Privacy Display.
+
 ## 27 novembre 2026 — 0.82.0.1
 
 ### Riproduzione

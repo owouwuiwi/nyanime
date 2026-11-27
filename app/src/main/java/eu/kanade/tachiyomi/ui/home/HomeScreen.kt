@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.ui.home
 
+import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -59,6 +60,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -72,6 +74,9 @@ import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import cafe.adriel.voyager.navigator.tab.LocalTabNavigator
 import cafe.adriel.voyager.navigator.tab.TabNavigator
+import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.domain.ui.UiPreferences
 import eu.kanade.presentation.discovery.DiscoveryHeaderHost
@@ -84,6 +89,7 @@ import eu.kanade.presentation.discovery.SourceHomeWordmark
 import eu.kanade.presentation.motion.ModernMotion
 import eu.kanade.presentation.motion.modernMotionEnabled
 import eu.kanade.presentation.motion.posterForeground
+import eu.kanade.presentation.privacy.baseActivity
 import eu.kanade.presentation.theme.LocalNyanimeStyle
 import eu.kanade.presentation.theme.MangaSectionTheme
 import eu.kanade.presentation.util.Screen
@@ -112,6 +118,7 @@ import eu.kanade.tachiyomi.ui.search.UnifiedSearchTab
 import eu.kanade.tachiyomi.ui.search.UnifiedSearchUpgradeDialog
 import eu.kanade.tachiyomi.ui.search.UnifiedSearchUpgradeNotice
 import eu.kanade.tachiyomi.ui.updates.UpdatesTab
+import eu.kanade.tachiyomi.util.system.DeviceUtil
 import it.lorelore.nyanime.navigation.FloatingNavigationItem
 import it.lorelore.nyanime.navigation.FloatingNavigationItems
 import it.lorelore.nyanime.navigation.FloatingNavigationLayout
@@ -253,6 +260,24 @@ object HomeScreen : Screen() {
                                 tabNavigator.current !in navStyle.overflowTabs ||
                                     tabNavigator.current == BrowseTab
                                 )
+                    val context = LocalContext.current
+                    val supportsGlass = remember(context) {
+                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !DeviceUtil.isLowRamDevice(context)
+                    }
+                    val privacy = context.baseActivity()?.privacyDisplayController?.configuration?.collectAsState()?.value
+                    val privacyRequested = privacy?.let { it.enabled || true in it.temporaryOverrides.values } == true
+                    val navigationBackdrop = if (
+                        modern && showNavigation && !searching && supportsGlass && !privacyRequested &&
+                        navigator.lastItem == HomeScreen && LocalView.current.isHardwareAccelerated
+                    ) {
+                        val background = MaterialTheme.colorScheme.background
+                        rememberLayerBackdrop {
+                            drawRect(background)
+                            drawContent()
+                        }
+                    } else {
+                        null
+                    }
                     BoxWithConstraints(Modifier.fillMaxSize()) {
                         val compactNavigation =
                             maxWidth - 24.dp < 350.dp || LocalDensity.current.fontScale > 1.3f
@@ -315,6 +340,11 @@ object HomeScreen : Screen() {
                             ) {
                                 AnimatedContent(
                                     targetState = tabNavigator.current,
+                                    modifier = if (navigationBackdrop == null) {
+                                        Modifier
+                                    } else {
+                                        Modifier.layerBackdrop(navigationBackdrop)
+                                    },
                                     transitionSpec = {
                                         if (modern) {
                                             ModernMotion.transform(motion).using(null)
@@ -390,6 +420,7 @@ object HomeScreen : Screen() {
                                 tabNavigator.current,
                                 navStyle.visibleTabs,
                                 ownsMiniControllers = ownsMiniControllers,
+                                backdrop = navigationBackdrop,
                                 modifier =
                                 Modifier.align(Alignment.BottomCenter).onSizeChanged {
                                     measuredFooter = with(density) { it.height.toDp() }
@@ -547,6 +578,7 @@ object HomeScreen : Screen() {
         tabs: List<eu.kanade.presentation.util.Tab>,
         ownsMiniControllers: Boolean,
         modifier: Modifier = Modifier,
+        backdrop: Backdrop? = null,
     ) {
         val searching = currentTab == UnifiedSearchTab
         val unifiedSearch = LocalUnifiedSearch.current
@@ -618,7 +650,7 @@ object HomeScreen : Screen() {
                                 }
                             }
                         }
-                        FloatingNavigationBar(tabs)
+                        FloatingNavigationBar(tabs, backdrop)
                     }
                 } else {
                     NavigationBar(
@@ -633,10 +665,10 @@ object HomeScreen : Screen() {
     }
 
     @Composable
-    private fun FloatingNavigationBar(tabs: List<eu.kanade.presentation.util.Tab>) {
+    private fun FloatingNavigationBar(tabs: List<eu.kanade.presentation.util.Tab>, backdrop: Backdrop?) {
         val motion = modernMotionEnabled()
         val selectTab = LocalSelectHomeTab.current
-        FloatingNavigationSurface { compact ->
+        FloatingNavigationSurface(translucent = backdrop != null) { compact ->
             AnimatedContent(
                 targetState = LocalTabNavigator.current.current == UnifiedSearchTab,
                 transitionSpec = { ModernMotion.transform(motion).using(null) },
@@ -667,14 +699,18 @@ object HomeScreen : Screen() {
                         )
                     }
                 } else {
-                    FloatingNavigationTabs(tabs, compact)
+                    FloatingNavigationTabs(tabs, compact, backdrop)
                 }
             }
         }
     }
 
     @Composable
-    private fun FloatingNavigationTabs(tabs: List<eu.kanade.presentation.util.Tab>, compact: Boolean) {
+    private fun FloatingNavigationTabs(
+        tabs: List<eu.kanade.presentation.util.Tab>,
+        compact: Boolean,
+        backdrop: Backdrop?,
+    ) {
         val navigator = LocalNavigator.currentOrThrow
         val scope = rememberCoroutineScope()
         val selectTab = LocalSelectHomeTab.current
@@ -704,6 +740,7 @@ object HomeScreen : Screen() {
             selectedIndex = selectedIndex,
             compact = compact,
             indicatorDurationMillis = if (modernMotionEnabled()) ModernMotion.PAGE_MILLIS else 0,
+            backdrop = backdrop,
         )
     }
 

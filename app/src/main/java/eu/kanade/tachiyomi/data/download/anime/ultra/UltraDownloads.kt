@@ -247,6 +247,7 @@ internal object UltraDownloads {
     suspend fun refreshPolicy(context: Context) = withContext(Dispatchers.IO) {
         val store = UltraTaskStore.get(context)
         store.load()
+        if (store.tasks.value.values.none { it.active && it.workId.isNotEmpty() }) return@withContext
         val workManager = WorkManager.getInstance(context)
         for (job in workManager.getWorkInfosByTag(UltraDownloadWorker.TAG).await()) {
             val task = store.tasks.value.values.firstOrNull { it.workId == job.id.toString() } ?: continue

@@ -470,20 +470,20 @@ private fun rememberShelfAccent(key: String, image: Image?): Color? {
 
 private fun extractAccent(bitmap: android.graphics.Bitmap): Int? {
     val bins = Array(12) { FloatArray(4) }
+    val pixelHsv = FloatArray(3)
     val stepX = (bitmap.width / 10).coerceAtLeast(1)
     val stepY = (bitmap.height / 10).coerceAtLeast(1)
     for (y in stepY / 2 until bitmap.height step stepY) {
         for (x in stepX / 2 until bitmap.width step stepX) {
             val argb = bitmap[x, y]
             if (AndroidColor.alpha(argb) < 160) continue
-            val hsv = FloatArray(3)
-            AndroidColor.colorToHSV(argb, hsv)
-            if (hsv[2] < .10f || hsv[2] > .94f || hsv[1] < .12f) continue
-            val weight = hsv[1] * (.55f + hsv[2] * .45f)
-            val bin = ((hsv[0] / 30f).toInt()).coerceIn(0, bins.lastIndex)
-            bins[bin][0] += hsv[0] * weight
-            bins[bin][1] += hsv[1] * weight
-            bins[bin][2] += hsv[2] * weight
+            AndroidColor.colorToHSV(argb, pixelHsv)
+            if (pixelHsv[2] < .10f || pixelHsv[2] > .94f || pixelHsv[1] < .12f) continue
+            val weight = pixelHsv[1] * (.55f + pixelHsv[2] * .45f)
+            val bin = ((pixelHsv[0] / 30f).toInt()).coerceIn(0, bins.lastIndex)
+            bins[bin][0] += pixelHsv[0] * weight
+            bins[bin][1] += pixelHsv[1] * weight
+            bins[bin][2] += pixelHsv[2] * weight
             bins[bin][3] += weight
         }
     }

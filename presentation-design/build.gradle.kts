@@ -14,6 +14,7 @@ dependencies {
     api(compose.foundation)
     api(compose.material3.core)
     api(compose.haze)
+    api(compose.backdrop)
 
     implementation(androidx.corektx)
     implementation(libs.material)

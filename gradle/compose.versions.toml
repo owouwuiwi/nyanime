@@ -12,6 +12,7 @@ ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
 ui-util = { module = "androidx.compose.ui:ui-util" }
 haze = "dev.chrisbanes.haze:haze:1.6.10"
+backdrop = "io.github.kyant0:backdrop:2.0.1"
 
 material3-core = { module = "androidx.compose.material3:material3" }
 material-icons = { module = "androidx.compose.material:material-icons-extended" }

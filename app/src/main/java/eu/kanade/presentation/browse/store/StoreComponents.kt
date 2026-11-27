@@ -260,14 +260,17 @@ internal fun StoreList(
     val availableBridges = remember(entries) { entries.filter { !it.installed && it.privateOnly } }
     val available = remember(entries, locale, multilingual, unspecified) {
         val collation = Collator.getInstance(locale)
+        val languageNames = mutableMapOf<String, String>()
         entries.filterNot { it.installed || it.privateOnly }.groupBy { entry ->
             when {
                 entry.languages.isEmpty() -> unspecified
                 entry.languages.size > 1 || "all" in entry.languages -> multilingual
                 else -> {
                     val language = entry.languages.single()
-                    Locale.forLanguageTag(language).getDisplayLanguage(locale).ifBlank { language }
-                        .replaceFirstChar { it.titlecase(locale) }
+                    languageNames.getOrPut(language) {
+                        Locale.forLanguageTag(language).getDisplayLanguage(locale).ifBlank { language }
+                            .replaceFirstChar { it.titlecase(locale) }
+                    }
                 }
             }
         }.toSortedMap(Comparator { left, right ->

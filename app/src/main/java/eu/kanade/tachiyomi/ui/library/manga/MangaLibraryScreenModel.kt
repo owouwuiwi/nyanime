@@ -112,26 +112,26 @@ class MangaLibraryScreenModel(
 
     init {
         screenModelScope.launchIO {
-            combine(
-                state.map { it.searchQuery }.distinctUntilChanged().debounce(SEARCH_DEBOUNCE_MILLIS),
+            val sortedLibrary = combine(
                 getLibraryFlow(),
                 getTracksPerManga.subscribe(),
                 getTrackingFilterFlow(),
                 downloadCache.changes,
-            ) { searchQuery, library, tracks, trackingFilter, _ ->
+                libraryPreferences.randomMangaSortSeed().changes(),
+            ) { library, tracks, trackingFilter, _, randomSeed ->
+                library.applyFilters(tracks, trackingFilter)
+                    .applySort(tracks, trackingFilter.keys, randomSeed)
+            }
+            combine(
+                state.map { it.searchQuery }.distinctUntilChanged().debounce(SEARCH_DEBOUNCE_MILLIS),
+                sortedLibrary,
+            ) { searchQuery, library ->
                 if (!searchQuery.isNullOrBlank()) {
                     Injekt.get<eu.kanade.tachiyomi.data.search.SmartTitleSearch>().prepareLibrary()
                 }
-                library
-                    .applyFilters(tracks, trackingFilter)
-                    .applySort(tracks, trackingFilter.keys)
-                    .mapValues { (_, value) ->
-                        if (searchQuery != null) {
-                            value.filter { it.matches(searchQuery) }
-                        } else {
-                            value
-                        }
-                    }
+                if (searchQuery == null) library else library.mapValues { (_, items) ->
+                    items.filter { it.matches(searchQuery) }
+                }
             }
                 .collectLatest {
                     mutableState.update { state ->
@@ -265,6 +265,7 @@ class MangaLibraryScreenModel(
     private fun MangaLibraryMap.applySort(
         trackMap: Map<Long, List<MangaTrack>>,
         loggedInTrackerIds: Set<Long>,
+        randomSeed: Int,
     ): MangaLibraryMap {
         val sortAlphabetically: (MangaLibraryItem, MangaLibraryItem) -> Int = { i1, i2 ->
             i1.libraryManga.manga.title.lowercase().compareToWithCollator(i2.libraryManga.manga.title.lowercase())
@@ -327,7 +328,7 @@ class MangaLibraryScreenModel(
 
         return mapValues { (key, value) ->
             if (key.sort.type == MangaLibrarySort.Type.Random) {
-                return@mapValues value.shuffled(Random(libraryPreferences.randomMangaSortSeed().get()))
+                return@mapValues value.shuffled(Random(randomSeed))
             }
 
             val comparator = key.sort.comparator()

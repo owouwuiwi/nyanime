@@ -9,6 +9,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import android.view.KeyEvent
 import android.view.View
 import androidx.activity.SystemBarStyle
@@ -169,10 +170,11 @@ class MainActivity : BaseActivity() {
             }
         }
 
-        val startTime = System.currentTimeMillis()
-        splashScreen?.setKeepOnScreenCondition {
-            val elapsed = System.currentTimeMillis() - startTime
-            elapsed <= SPLASH_MIN_DURATION || !ready && elapsed <= SPLASH_MAX_DURATION
+        splashScreen?.let { splash ->
+            val startedAt = SystemClock.elapsedRealtime()
+            splash.setKeepOnScreenCondition {
+                !ready && SystemClock.elapsedRealtime() - startedAt <= SPLASH_MAX_DURATION
+            }
         }
         setSplashScreenExitAnimation(splashScreen)
 
@@ -398,6 +400,5 @@ class MainActivity : BaseActivity() {
 }
 
 // Splash screen
-private const val SPLASH_MIN_DURATION = 500 // ms
 private const val SPLASH_MAX_DURATION = 5000 // ms
 private const val SPLASH_EXIT_ANIM_DURATION = 400L // ms

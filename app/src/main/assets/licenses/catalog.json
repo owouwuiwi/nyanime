@@ -66,6 +66,18 @@
     "asset": "licenses/Transitions-dev-LICENSE.txt"
   },
   {
+    "name": "AndroidLiquidGlass (Backdrop) 2.0.1",
+    "website": "https://github.com/Kyant0/AndroidLiquidGlass",
+    "licenseName": "Apache-2.0",
+    "asset": "licenses/Backdrop-LICENSE.txt"
+  },
+  {
+    "name": "Kyant Shapes 1.2.1",
+    "website": "https://github.com/Kyant0/Shapes",
+    "licenseName": "Apache-2.0",
+    "asset": "licenses/Kyant-Shapes-LICENSE.txt"
+  },
+  {
     "name": "DeepPanel — panel recognition model",
     "website": "https://github.com/pedrovgs/DeepPanelAndroid",
     "licenseName": "Apache-2.0",

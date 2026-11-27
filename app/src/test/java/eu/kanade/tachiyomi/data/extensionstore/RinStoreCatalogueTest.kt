@@ -326,6 +326,9 @@ class RinStoreCatalogueTest {
             adult: Boolean = false,
         ) = StorePresentation.select(all, shelf, medium, status, query, languages, adult)
         assertEquals(listOf(owned), select(StoreShelf.OWNED))
+        assertEquals(listOf(owned), select(StoreShelf.OWNED, query = " \t "))
+        assertTrue(select(StoreShelf.OWNED, query = " , , ").isEmpty())
+        assertEquals(listOf(owned), select(StoreShelf.OWNED, query = "absent, , eXaMPle EDITION "))
         assertEquals(listOf(owned), select(StoreShelf.OWNED, StoreMedium.ANIME, StoreActivation.INACTIVE, "901"))
         assertTrue(select(StoreShelf.OWNED, StoreMedium.MANGA).isEmpty())
         assertTrue(select(StoreShelf.OWNED, status = StoreActivation.ACTIVE).isEmpty())

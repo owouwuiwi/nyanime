@@ -117,12 +117,15 @@ internal suspend fun runFeaturedAutoplay(scrolling: Flow<Boolean>, advance: susp
     }
 }
 
+private const val AUTOPLAY_MIN_VISIBLE_FRACTION = 0.60f
+
 /** The body decides visibility; scrolling never launches or restarts a network request. */
 @Composable
 internal fun featuredCarouselAutoplay(listState: LazyListState, key: String, active: Boolean = true): Boolean {
     val inset = with(androidx.compose.ui.platform.LocalDensity.current) { LocalHomeContentInset.current.roundToPx() }
     val visible by remember(listState, key, active, inset) {
         derivedStateOf {
+            if (!active || listState.isScrollInProgress) return@derivedStateOf false
             val layout = listState.layoutInfo
             val item = layout.visibleItemsInfo.firstOrNull { it.key == key }
             val shown = item?.let {
@@ -132,7 +135,7 @@ internal fun featuredCarouselAutoplay(listState: LazyListState, key: String, act
                     )
                     .coerceAtLeast(0)
             } ?: 0
-            active && !listState.isScrollInProgress && item != null && shown >= item.size * .6f
+            item != null && shown >= item.size * AUTOPLAY_MIN_VISIBLE_FRACTION
         }
     }
     return visible

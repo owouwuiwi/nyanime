@@ -116,26 +116,26 @@ class AnimeLibraryScreenModel(
 
     init {
         screenModelScope.launchIO {
-            combine(
-                state.map { it.searchQuery }.distinctUntilChanged().debounce(SEARCH_DEBOUNCE_MILLIS),
+            val sortedLibrary = combine(
                 getLibraryFlow(),
                 getTracksPerAnime.subscribe(),
                 getTrackingFilterFlow(),
                 downloadCache.changes,
-            ) { searchQuery, library, tracks, trackingFilter, _ ->
+                libraryPreferences.randomAnimeSortSeed().changes(),
+            ) { library, tracks, trackingFilter, _, randomSeed ->
+                library.applyFilters(tracks, trackingFilter)
+                    .applySort(tracks, trackingFilter.keys, randomSeed)
+            }
+            combine(
+                state.map { it.searchQuery }.distinctUntilChanged().debounce(SEARCH_DEBOUNCE_MILLIS),
+                sortedLibrary,
+            ) { searchQuery, library ->
                 if (!searchQuery.isNullOrBlank()) {
                     Injekt.get<eu.kanade.tachiyomi.data.search.SmartTitleSearch>().prepareLibrary()
                 }
-                library
-                    .applyFilters(tracks, trackingFilter)
-                    .applySort(tracks, trackingFilter.keys)
-                    .mapValues { (_, value) ->
-                        if (searchQuery != null) {
-                            value.filter { it.matches(searchQuery) }
-                        } else {
-                            value
-                        }
-                    }
+                if (searchQuery == null) library else library.mapValues { (_, items) ->
+                    items.filter { it.matches(searchQuery) }
+                }
             }
                 .collectLatest {
                     mutableState.update { state ->
@@ -269,6 +269,7 @@ class AnimeLibraryScreenModel(
     private fun AnimeLibraryMap.applySort(
         trackMap: Map<Long, List<AnimeTrack>>,
         loggedInTrackerIds: Set<Long>,
+        randomSeed: Int,
     ): AnimeLibraryMap {
         val sortAlphabetically: (AnimeLibraryItem, AnimeLibraryItem) -> Int = { i1, i2 ->
             i1.libraryAnime.anime.title.lowercase().compareToWithCollator(i2.libraryAnime.anime.title.lowercase())
@@ -341,7 +342,7 @@ class AnimeLibraryScreenModel(
 
         return mapValues { (key, value) ->
             if (key.sort.type == AnimeLibrarySort.Type.Random) {
-                return@mapValues value.shuffled(Random(libraryPreferences.randomAnimeSortSeed().get()))
+                return@mapValues value.shuffled(Random(randomSeed))
             }
 
             val comparator = key.sort.comparator()

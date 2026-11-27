@@ -4,6 +4,8 @@ import com.darkrockstudios.symspellkt.common.SpellCheckSettings
 import com.darkrockstudios.symspellkt.common.Verbosity
 import com.darkrockstudios.symspellkt.impl.SymSpell
 
+private const val COMPACT_PREFIX_LENGTH = 7
+
 /** Only names actually observed at runtime enter this bounded index. No language word lists. */
 class SymSpellTitleIndex(private val capacity: Int = 5_000) {
     private var dictionary = spellChecker()
@@ -44,9 +46,10 @@ class SymSpellTitleIndex(private val capacity: Int = 5_000) {
 
     @Synchronized
     fun candidates(query: String, medium: SearchMedium): List<SearchTitle> {
-        val words = TitleNormalizer.words(query).split(' ').filter { it.isNotBlank() }
-        val numbers = TitleNormalizer.numericParts(query)
-        val baseNumbers = TitleNormalizer.trailingNumberBase(query)?.let(TitleNormalizer::numericParts)
+        val normalized = TitleNormalizer.words(query)
+        val words = normalized.split(' ').filter { it.isNotBlank() }
+        val numbers = TitleNormalizer.numbersIn(normalized)
+        val baseNumbers = TitleNormalizer.trailingNumberBaseOfWords(normalized)?.let(TitleNormalizer::numericParts)
         val eligible = if (numbers.isEmpty()) {
             null
         } else {
@@ -62,28 +65,21 @@ class SymSpellTitleIndex(private val capacity: Int = 5_000) {
             }
         }
         eligible?.let { record(it, 2) }
-        val compact = TitleNormalizer.compact(query)
-        (words + compact + compact.take(7)).distinct().forEach { word ->
-            terms[word]?.let { record(it, if (word == TitleNormalizer.compact(query)) 30 else 6) }
+        val compact = normalized.replace(" ", "")
+        val compactPrefix = compact.take(COMPACT_PREFIX_LENGTH)
+        (words + compact + compactPrefix).distinct().forEach { word ->
+            terms[word]?.let { record(it, if (word == compact) 30 else 6) }
             if (word.length >= 3) prefixes[word.take(3)]?.let { record(it.take(600), 1) }
             if (word.length in 4..32 && word.none(Char::isDigit) && (word != compact || words.size == 1)) {
-                val distance = if (word == compact.take(7) || word.length >= 8) 2.0 else 1.0
+                val distance = if (word == compactPrefix || word.length >= 8) 2.0 else 1.0
                 dictionary.lookup(word, Verbosity.All, distance).take(20).forEach {
                     terms[it.term]?.let { matches -> record(matches, 3) }
                 }
             }
         }
+        // Every recorded key already passed the edition filter, across all of its indexed names.
         return evidence.entries.sortedByDescending { it.value }.asSequence().mapNotNull { records[it.key] }
-            .filter { item ->
-                item.medium == medium &&
-                    (
-                        numbers.isEmpty() ||
-                            item.names.any { name ->
-                                val actual = TitleNormalizer.numericParts(name)
-                                TitleNormalizer.preservesNumbers(numbers, actual) || actual == baseNumbers
-                            }
-                        )
-            }.take(600).toList()
+            .filter { it.medium == medium }.take(600).toList()
     }
 
     @Synchronized
@@ -105,16 +101,18 @@ class SymSpellTitleIndex(private val capacity: Int = 5_000) {
 
     private fun index(item: SearchTitle) {
         item.names.forEach { name ->
-            editions.getOrPut(TitleNormalizer.numericParts(name)) { linkedSetOf() }.add(item.key)
-            val words = TitleNormalizer.words(name).split(' ')
-            val compact = TitleNormalizer.compact(name)
-            val values = words + compact.take(7) + compact
+            val normalized = TitleNormalizer.words(name)
+            editions.getOrPut(TitleNormalizer.numbersIn(normalized)) { linkedSetOf() }.add(item.key)
+            val words = normalized.split(' ')
+            val compact = normalized.replace(" ", "")
+            val compactPrefix = compact.take(COMPACT_PREFIX_LENGTH)
+            val values = words + compactPrefix + compact
             values.filter { it.length in 1..128 }.distinct().forEach { term ->
                 if (terms.getOrPut(term) { linkedSetOf() }.add(item.key)) {
                     termAssociations++
                     // Full joined titles remain exact keys. Short lexical prefixes avoid enormous
                     // SymSpell deletion buckets for titles sharing a long introduction.
-                    if (term.length <= 32 && term.none(Char::isDigit) && (term in words || term == compact.take(7))) {
+                    if (term.length <= 32 && term.none(Char::isDigit) && (term in words || term == compactPrefix)) {
                         dictionary.createDictionaryEntry(term, 1)
                     }
                     if (term.length >= 3) prefixes.getOrPut(term.take(3)) { linkedSetOf() }.add(item.key)

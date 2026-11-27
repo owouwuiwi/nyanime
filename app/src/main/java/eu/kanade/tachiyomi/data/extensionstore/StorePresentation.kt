@@ -17,6 +17,7 @@ internal object StorePresentation {
         adult: Boolean,
         bridges: Map<String, List<StoreBridge>> = emptyMap(),
     ): List<StoreEntry> {
+        val terms = storeQueryTerms(query)
         val matching = entries.filter {
             (shelf == StoreShelf.CATALOGUE || it.installed == (shelf == StoreShelf.OWNED)) &&
                 (medium == null || it.medium == medium) &&
@@ -27,7 +28,7 @@ internal object StorePresentation {
                     ) &&
                 (it.installed || adult || !it.nsfw) &&
                 it.matchesLanguages(languages) &&
-                (it.matchesQuery(query) || bridges[it.id].orEmpty().any { bridge -> bridge.entry.matchesQuery(query) })
+                (it.matchesQuery(terms) || bridges[it.id].orEmpty().any { bridge -> bridge.entry.matchesQuery(terms) })
         }
         val attached = matching.flatMap { bridges[it.id].orEmpty() }.map { it.entry.id }.toSet()
         return matching.filter {

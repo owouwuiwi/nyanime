@@ -8,5 +8,5 @@ object LibraryTitleSearch {
         !query.contains(',') &&
         !query.startsWith("id:", true) &&
         !query.contains("://") &&
-        matcher.score(query, title) >= 75
+        matcher.score(query, title) >= MIN_TITLE_MATCH_SCORE
 }
