@@ -52,6 +52,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -200,7 +201,9 @@ private fun ExploreFeed(
     val cards = remember(clips, saved.hidden, unsupported) {
         clips.filterNot { it.key in saved.hidden || it.youtubeId in unsupported }
     }
-    val pager = rememberPagerState { cards.size }
+    // Compose can keep a key callback from the previous layout while the feed changes.
+    val pagerCards by rememberUpdatedState(cards)
+    val pager = rememberPagerState { pagerCards.size }
     var showSaved by rememberSaveable { mutableStateOf(false) }
     var menu by remember { mutableStateOf(false) }
     var showLicense by remember { mutableStateOf(false) }
@@ -305,9 +308,10 @@ private fun ExploreFeed(
                 state = pager,
                 modifier = Modifier.fillMaxSize(),
                 flingBehavior = PagerDefaults.flingBehavior(pager, snapPositionalThreshold = TRAILER_SWIPE_THRESHOLD),
-                key = { cards[it].key },
+                key = { index -> pagerCards.getOrNull(index)?.key ?: index },
             ) { index ->
-                val clip = cards[index]
+                val visibleCards = pagerCards
+                val clip = visibleCards.getOrNull(index) ?: return@VerticalPager
                 ExplorePageContent(
                     clip = clip,
                     stageWidth = maxWidth.coerceAtMost(900.dp),
@@ -323,7 +327,7 @@ private fun ExploreFeed(
                     },
                     retryTrailer = { blocked = blocked - clip.youtubeId },
                     onUpdate = ::update,
-                    loadMore = if (index == cards.lastIndex && failed && hasMore) {
+                    loadMore = if (index == visibleCards.lastIndex && failed && hasMore) {
                         { retry++ }
                     } else {
                         null

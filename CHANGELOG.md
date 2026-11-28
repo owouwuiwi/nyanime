@@ -9,6 +9,12 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 28 novembre 2026 — 0.83.0.1
+
+### Correzioni
+
+- In Esplora, l’app resta aperta quando scorri dalla fine delle schede già caricate ai trailer della pagina successiva.
+
 ## 28 novembre 2026 — 0.83.0.0
 
 ### Novità
