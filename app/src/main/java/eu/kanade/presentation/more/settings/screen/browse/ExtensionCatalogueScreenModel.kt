@@ -45,9 +45,9 @@ class ExtensionCatalogueScreenModel(private val url: String) :
                 val network: NetworkHelper = Injekt.get()
                 val indexUrl = when (val validatedLink = requireNotNull(link)) {
                     is ExtensionCatalogueLink.Index -> validatedLink.url
-                    is ExtensionCatalogueLink.DriveFolder -> DriveCatalogueResolver.resolve(validatedLink, network.client)
+                    is ExtensionCatalogueLink.DriveFolder -> DriveCatalogueResolver.resolve(validatedLink, network.catalogueClient)
                 }
-                val catalogue = network.client.newCall(catalogueRequest(indexUrl)).awaitSuccess().use { response ->
+                val catalogue = network.catalogueClient.newCall(catalogueRequest(indexUrl)).awaitSuccess().use { response ->
                     val source = response.body.source()
                     require(!source.request(UnifiedExtensionCatalogue.MAX_BYTES + 1))
                     UnifiedExtensionCatalogue.parse(source.readUtf8())

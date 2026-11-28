@@ -76,6 +76,7 @@ import cafe.adriel.voyager.navigator.tab.LocalTabNavigator
 import cafe.adriel.voyager.navigator.tab.TabNavigator
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberCanvasBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.domain.ui.UiPreferences
@@ -266,7 +267,8 @@ object HomeScreen : Screen() {
                     }
                     val privacy = context.baseActivity()?.privacyDisplayController?.configuration?.collectAsState()?.value
                     val privacyRequested = privacy?.let { it.enabled || true in it.temporaryOverrides.values } == true
-                    val navigationBackdrop = if (
+                    val explores = tabNavigator.current == eu.kanade.tachiyomi.ui.explore.ExploreTab
+                    val contentBackdrop = if (
                         modern && showNavigation && !searching && supportsGlass && !privacyRequested &&
                         navigator.lastItem == HomeScreen && LocalView.current.isHardwareAccelerated
                     ) {
@@ -340,10 +342,11 @@ object HomeScreen : Screen() {
                             ) {
                                 AnimatedContent(
                                     targetState = tabNavigator.current,
-                                    modifier = if (navigationBackdrop == null) {
+                                    // Android video surfaces must be composited directly into the window.
+                                    modifier = if (contentBackdrop == null || explores) {
                                         Modifier
                                     } else {
-                                        Modifier.layerBackdrop(navigationBackdrop)
+                                        Modifier.layerBackdrop(contentBackdrop)
                                     },
                                     transitionSpec = {
                                         if (modern) {
@@ -420,7 +423,12 @@ object HomeScreen : Screen() {
                                 tabNavigator.current,
                                 navStyle.visibleTabs,
                                 ownsMiniControllers = ownsMiniControllers,
-                                backdrop = navigationBackdrop,
+                                backdrop = if (contentBackdrop != null && explores) {
+                                    val fill = MaterialTheme.colorScheme.background
+                                    rememberCanvasBackdrop { drawRect(fill) }
+                                } else {
+                                    contentBackdrop
+                                },
                                 modifier =
                                 Modifier.align(Alignment.BottomCenter).onSizeChanged {
                                     measuredFooter = with(density) { it.height.toDp() }
@@ -465,6 +473,7 @@ object HomeScreen : Screen() {
                         tabNavigator.current =
                             when (it) {
                                 is Tab.Home -> eu.kanade.tachiyomi.ui.discovery.DiscoveryTab
+                                is Tab.Explore -> eu.kanade.tachiyomi.ui.explore.ExploreTab
                                 is Tab.AnimeLib -> LibrariesTab.also { LibrariesTab.showAnime() }
                                 is Tab.Library -> LibrariesTab.also { LibrariesTab.showManga() }
                                 is Tab.Releases -> eu.kanade.tachiyomi.ui.releases.ReleasesTab
@@ -951,6 +960,8 @@ object HomeScreen : Screen() {
 
     sealed interface Tab {
         data object Home : Tab
+
+        data object Explore : Tab
 
         data class AnimeLib(val animeIdToOpen: Long? = null) : Tab
 

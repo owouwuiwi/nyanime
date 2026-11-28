@@ -42,6 +42,10 @@ data object BrowseTab : Tab {
         requests.trySend(StoreMedium.ANIME)
     }
 
+    fun showAddons() {
+        requests.trySend(StoreMedium.ADDON)
+    }
+
     @Composable
     override fun Content() {
         var medium by rememberSaveable { mutableStateOf(StoreMedium.ANIME) }

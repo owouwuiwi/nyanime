@@ -51,6 +51,7 @@ import eu.kanade.presentation.theme.nyanimeBrandColors
 import eu.kanade.presentation.util.Screen
 import eu.kanade.tachiyomi.ui.browse.anime.source.browse.BrowseAnimeSourceScreen
 import eu.kanade.tachiyomi.ui.entries.anime.AnimeScreen
+import eu.kanade.tachiyomi.ui.explore.exploreJson
 import eu.kanade.tachiyomi.ui.main.MainActivity
 import eu.kanade.tachiyomi.ui.player.settings.PlayerPreferences
 import tachiyomi.domain.discovery.CatalogId
@@ -58,12 +59,24 @@ import tachiyomi.domain.entries.anime.model.asAnimeCover
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 
-class CatalogDetailScreen(private val catalogId: Long, private val provider: String = "anilist") :
-    Screen(), PosterDetailsScreen {
+class CatalogDetailScreen(
+    private val catalogId: Long,
+    private val provider: String = "anilist",
+    private val explorePreview: String? = null,
+    private val openEpisodes: Boolean = false,
+) : Screen(), PosterDetailsScreen {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
-        val model = rememberScreenModel { CatalogDetailScreenModel(CatalogId(provider, catalogId)) }
+        val model = rememberScreenModel {
+            CatalogDetailScreenModel(
+                CatalogId(provider, catalogId),
+                explorePreview = explorePreview?.let {
+                    exploreJson.decodeFromString<tachiyomi.domain.discovery.CatalogAnime>(it)
+                },
+                openEpisodes = openEpisodes,
+            )
+        }
         val state by model.state.collectAsState()
         val navigator = LocalNavigator.currentOrThrow
         val context = LocalContext.current
@@ -190,7 +203,7 @@ class CatalogDetailScreen(private val catalogId: Long, private val provider: Str
                                 Modifier.fillMaxWidth(),
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                if (state.next != null) {
+                                if (explorePreview == null && state.next != null) {
                                     Button(
                                         onClick = { model.open(CatalogDetailScreenModel.Action.RESUME) },
                                         enabled = !state.busy,

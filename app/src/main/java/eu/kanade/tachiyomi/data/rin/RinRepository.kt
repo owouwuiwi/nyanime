@@ -285,7 +285,7 @@ class RinRepository private constructor(private val context: Context) {
                         } else {
                             "${repository.trimEnd('/')}/index.json"
                         }
-                        network.apiClient.newCall(catalogueRequest(url)).awaitSuccess().use { response ->
+                        network.catalogueClient.newCall(catalogueRequest(url)).awaitSuccess().use { response ->
                             val bytes = response.body.byteStream().use { boundedRead(it, 4 * 1024 * 1024) }
                             val root = RinArchive.json.parseToJsonElement(bytes.decodeToString()).jsonObject
                             (
@@ -379,7 +379,7 @@ class RinRepository private constructor(private val context: Context) {
         val file = File.createTempFile("rin-download-", ".tmp", context.cacheDir)
         mutableProgress.value = entry.manifest.packageName to null
         try {
-            network.apiClient.newCall(GET(entry.url)).awaitSuccess().use { response ->
+            network.catalogueClient.newCall(GET(entry.url)).awaitSuccess().use { response ->
                 val total = response.body.contentLength()
                 require(total <= eu.kanade.tachiyomi.extension.ExtensionPackageArchive.MAX_BYTES)
                 response.body.byteStream().use { input ->
@@ -718,6 +718,12 @@ class RinRepository private constructor(private val context: Context) {
         }
     }
 
+    private val removedExploreProviders by lazy {
+        context.getSharedPreferences("removed_explore_providers", Context.MODE_PRIVATE)
+    }
+
+    fun exploreProviderRemoved(packageName: String) = removedExploreProviders.getBoolean(packageName, false)
+
     fun remove(packageName: String) {
         if (RinSessions.busy.value || eu.kanade.tachiyomi.data.addon.RinAddonRuntime.busy.value) return
         if (storage.record(packageName)?.manifest?.medium ==
@@ -725,7 +731,11 @@ class RinRepository private constructor(private val context: Context) {
         ) {
             eu.kanade.tachiyomi.data.addon.RinAddonRuntime.stop(context, packageName)
         }
-        val medium = storage.record(packageName)?.manifest?.medium
+        val manifest = storage.record(packageName)?.manifest
+        if (manifest?.addon?.isExploreFeed == true) {
+            removedExploreProviders.edit().putBoolean(packageName, true).apply()
+        }
+        val medium = manifest?.medium
         storage.remove(packageName)
         mutableActiveMangaLayers.value = mutableActiveMangaLayers.value.filterNot {
             it.manifest.packageName == packageName

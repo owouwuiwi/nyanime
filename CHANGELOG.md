@@ -9,6 +9,20 @@ Le vecchie revisioni `rNNNN` restano riconosciute dal sistema OTA. Gli hash qui 
 identificano modifiche nel repository, non garantiscono che ogni commit sia stato
 distribuito come APK.
 
+## 28 novembre 2026 — 0.83.0.0
+
+### Novità
+
+- Esplora mostra un feed verticale di trailer. Uno swipe breve cambia titolo e avvia il prossimo trailer in silenzioso. Il trailer riparte da capo quando finisce e il comando audio è sotto il video.
+- Puoi mettere un cuore, salvare nei preferiti o nella watchlist e nascondere i titoli che non ti interessano. I tuoi salvataggi restano sul dispositivo. I voti e la popolarità indicano i dati remoti riportati dal feed.
+- Apri scheda mostra i dettagli del titolo. Episodi cerca una corrispondenza nelle fonti attive, verifica la stagione e ti fa scegliere quando ci sono più risultati plausibili.
+- Al primo avvio online Nyanime aggiunge il catalogo predefinito indicato dal progetto e importa l’add-on di Esplora dopo il controllo della firma e dell’impronta. Puoi disattivarlo o rimuoverlo dallo Store.
+
+### Correzioni
+
+- Durante lo swipe Esplora mantiene stabile la vista del trailer, evitando la chiusura dell’app osservata mentre il video era in riproduzione.
+- Se un trailer non può essere incorporato, Esplora prosegue al successivo. In caso di errore di rete puoi riprovare.
+
 ## 28 novembre 2026 — 0.82.0.6
 
 ### Interfaccia

@@ -1,6 +1,5 @@
 package it.lorelore.nyanime.navigation
 
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.snap
@@ -31,7 +30,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -40,7 +38,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -88,8 +85,6 @@ import com.kyant.backdrop.shadow.InnerShadow
 import com.kyant.backdrop.shadow.Shadow
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.launch
 
 private const val ACTIVE_COLOR_MAX_OFFSET = .48f
 private const val LIGHT_GLASS_TINT_OPACITY = .68f
@@ -141,7 +136,6 @@ private val solidTint = Brush.verticalGradient(listOf(lensRed, deepRed))
 private val fingerTracking = spring<Float>(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 820f)
 private val lensRelease = spring<Float>(dampingRatio = .84f, stiffness = Spring.StiffnessMediumLow)
 private val lensLift = spring<Float>(dampingRatio = .85f, stiffness = Spring.StiffnessMediumLow)
-private val lensStretch = spring<Float>(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessLow)
 
 class FloatingNavigationItem(
     val label: String,
@@ -235,16 +229,6 @@ fun FloatingNavigationItems(
             (distance / FULL_STRETCH_DISTANCE_IN_TABS).coerceIn(-1f, 1f)
         }
     }
-    val stretch = remember { Animatable(0f) }
-    LaunchedEffect(rawTension, elasticMotion) {
-        if (elasticMotion) {
-            snapshotFlow { rawTension.value }.collect { tension ->
-                launch { stretch.animateTo(tension, lensStretch) }
-            }
-        } else {
-            stretch.snapTo(0f)
-        }
-    }
     val traveling by remember(rawTension) { derivedStateOf { rawTension.value.absoluteValue > LIFT_RELEASE_TENSION } }
     val lift = animateFloatAsState(
         targetValue = when {
@@ -256,6 +240,8 @@ fun FloatingNavigationItems(
         animationSpec = if (elasticMotion) lensLift else snap(),
         label = "navigationLensLift",
     )
+    // Both inputs are already animated, so the lens can deform without restarting a spring per frame.
+    val stretch = remember(rawTension, lift) { derivedStateOf { rawTension.value * lift.value } }
     val press = Modifier.pointerInput(step, direction, items.size) {
         if (step <= 0f) return@pointerInput
         awaitEachGesture {
@@ -326,7 +312,7 @@ fun FloatingNavigationItems(
                             indicator.placeRelative((position * (cellWidth + gap)).roundToInt(), 0)
                         }
                     }
-                    .redGlassIndicator(lensBackdrop, lift, stretch.asState()),
+                    .redGlassIndicator(lensBackdrop, lift, stretch),
             )
         }
         Row(

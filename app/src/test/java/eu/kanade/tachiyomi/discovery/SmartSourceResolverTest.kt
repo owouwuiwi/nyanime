@@ -114,6 +114,15 @@ class SmartSourceResolverTest {
     }
 
     @Test
+    fun `explore rejects a combined entry even when home remembered it`() = runBlocking {
+        prepare(24)
+        coEvery { sources.resolve(target) } returns local
+        assertNull(resolver.resolveExplore(target))
+        assertNull(resolver.verifyExplore(target, local))
+        coVerify(exactly = 0) { sources.remember(any(), any()) }
+    }
+
+    @Test
     fun `first season alone is not claimed as a combined second season`() = runBlocking {
         prepare(13)
         assertNull(resolver.resolve(target) {})

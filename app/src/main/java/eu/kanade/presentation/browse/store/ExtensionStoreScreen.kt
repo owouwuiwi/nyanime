@@ -354,6 +354,12 @@ fun ExtensionStoreScreen(medium: StoreMedium, onMedium: (StoreMedium) -> Unit, o
                         StoreMedium.NOVEL,
                         StoreMedium.MANGA_LAYER,
                     ) -> manage(entry)
+                    entry.rinRecord?.manifest?.addon?.isExploreFeed == true -> {
+                        detail = null
+                        scope.launch {
+                            eu.kanade.tachiyomi.ui.home.HomeScreen.openTab(eu.kanade.tachiyomi.ui.home.HomeScreen.Tab.Explore)
+                        }
+                    }
                     entry.medium == eu.kanade.tachiyomi.data.extensionstore.StoreMedium.ADDON &&
                         entry.rinRecord != null ->
                         eu.kanade.tachiyomi.data.addon.RinAddonRuntime.open(context, entry.packageName)

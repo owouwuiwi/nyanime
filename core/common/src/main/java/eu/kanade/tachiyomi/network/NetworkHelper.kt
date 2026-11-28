@@ -5,9 +5,11 @@ import eu.kanade.tachiyomi.network.interceptor.CloudflareInterceptor
 import eu.kanade.tachiyomi.network.interceptor.UncaughtExceptionInterceptor
 import eu.kanade.tachiyomi.network.interceptor.UserAgentInterceptor
 import okhttp3.Cache
+import okhttp3.Dns
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import java.io.File
+import java.net.UnknownHostException
 import java.util.concurrent.TimeUnit
 
 class NetworkHelper(
@@ -59,6 +61,27 @@ class NetworkHelper(
 
     /** JSON APIs report HTTP errors directly; they must never launch an HTML challenge WebView. */
     val apiClient = clientBuilder.build()
+
+    val catalogueClient: OkHttpClient by lazy {
+        if (preferences.dohProvider().get() == PREF_DOH_CLOUDFLARE) {
+            apiClient
+        } else {
+            val secondary = apiClient.newBuilder().dohCloudflare().build().dns
+            apiClient.newBuilder().dns(Dns { hostname ->
+                val addresses = try {
+                    apiClient.dns.lookup(hostname)
+                } catch (primaryFailure: UnknownHostException) {
+                    return@Dns try {
+                        secondary.lookup(hostname)
+                    } catch (fallbackFailure: UnknownHostException) {
+                        fallbackFailure.addSuppressed(primaryFailure)
+                        throw fallbackFailure
+                    }
+                }
+                addresses.ifEmpty { secondary.lookup(hostname) }
+            }).build()
+        }
+    }
 
     val client = clientBuilder
         .addInterceptor(

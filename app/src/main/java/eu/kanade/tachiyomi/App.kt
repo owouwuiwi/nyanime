@@ -331,6 +331,17 @@ class App : Application(), DefaultLifecycleObserver, SingletonImageLoader.Factor
                 logcat(LogPriority.WARN, error) { "Unable to schedule release reminders" }
             }
         }
+        owner.lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                if (eu.kanade.tachiyomi.data.extensionstore.DefaultExtensionCatalogue.addOnce(this@App)) {
+                    eu.kanade.tachiyomi.data.extensionstore.ExtensionStoreRepository.get(this@App).onCataloguesChanged()
+                }
+            } catch (cancel: kotlinx.coroutines.CancellationException) {
+                throw cancel
+            } catch (error: Exception) {
+                logcat(LogPriority.WARN, error) { "Unable to configure the default extension catalogue" }
+            }
+        }
         if (!BuildConfig.ISOLATED_READER_PROBE) {
             RetroactiveTracking.onForeground()
             it.lorelore.nyanime.tracking.TrackingEditWorker.resumePending(this)

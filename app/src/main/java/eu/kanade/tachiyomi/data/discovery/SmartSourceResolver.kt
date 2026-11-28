@@ -37,20 +37,32 @@ class SmartSourceResolver(
     private val series: CatalogSeriesEvidence,
 ) {
     suspend fun resolve(catalog: CatalogAnime, status: (String) -> Unit): Anime? {
-        val result = withTimeoutOrNull(60_000) { resolveAvailable(catalog, status) }
+        val result = withTimeoutOrNull(60_000) { resolveAvailable(catalog, status, allowCombined = true) }
         if (result == null) status("Nessuna versione verificabile al momento. Puoi riprovare o cambiare fonte.")
         return result
     }
 
-    private suspend fun resolveAvailable(catalog: CatalogAnime, status: (String) -> Unit): Anime? = withContext(
-        Dispatchers.IO,
-    ) {
+    suspend fun resolveExplore(catalog: CatalogAnime): Anime? =
+        withTimeoutOrNull(30_000) { resolveAvailable(catalog, {}, allowCombined = false) }
+
+    suspend fun verifyExplore(catalog: CatalogAnime, candidate: Anime): Anime? = withContext(Dispatchers.IO) {
+        withTimeoutOrNull(15_000) {
+            verify(catalog, candidate, allowCombined = false)?.also { sources.remember(catalog, it) }
+        }
+    }
+
+    private suspend fun resolveAvailable(
+        catalog: CatalogAnime,
+        status: (String) -> Unit,
+        allowCombined: Boolean,
+    ): Anime? = withContext(Dispatchers.IO) {
         val linked = sources.resolve(catalog)
         if (linked != null) {
             if (base.downloadedOnly().get()) return@withContext linked
             try {
                 status("Verifico la fonte già collegata…")
-                withTimeout(15_000) { verify(catalog, linked, trusted = true) }?.let { return@withContext it }
+                withTimeout(15_000) { verify(catalog, linked, trusted = allowCombined, allowCombined = allowCombined) }
+                    ?.let { return@withContext it }
             } catch (_: kotlinx.coroutines.TimeoutCancellationException) {
                 // Try another source below.
             } catch (e: CancellationException) {
@@ -74,7 +86,7 @@ class SmartSourceResolver(
                     val sourceName = manager.get(candidate.source)?.name ?: "la fonte"
                     status("Verifico $sourceName e la struttura degli episodi…")
                     try {
-                        val verified = withTimeout(15_000) { verify(catalog, candidate) }
+                        val verified = withTimeout(15_000) { verify(catalog, candidate, allowCombined = allowCombined) }
                         if (verified != null) {
                             sources.remember(catalog, verified)
                             status("Fonte scelta automaticamente: ${manager.get(verified.source)?.name}")
@@ -96,7 +108,12 @@ class SmartSourceResolver(
         null
     }
 
-    private suspend fun verify(catalog: CatalogAnime, candidate: Anime, trusted: Boolean = false): Anime? {
+    private suspend fun verify(
+        catalog: CatalogAnime,
+        candidate: Anime,
+        trusted: Boolean = false,
+        allowCombined: Boolean = true,
+    ): Anime? {
         val source = manager.get(candidate.source)?.takeIf(sources::isEnabled) ?: return null
         val requested = candidate.toSAnime()
         val details = if (candidate.fetchType == FetchType.Seasons) {
@@ -135,7 +152,7 @@ class SmartSourceResolver(
         ).episodes
         if (episodes.isEmpty()) return null
         val titleScore = SmartTitleMatcher.score(catalog, resolvedDetails.title)
-        val isCombined = if (!trusted &&
+        val isCombined = if (allowCombined && !trusted &&
             titleScore < 95 &&
             SmartTitleMatcher.season(details.title) == null &&
             SmartTitleMatcher.score(catalog, details.title, collection = true) >= 85

@@ -52,7 +52,7 @@ fun AddonMoreActions() {
             it.enabled &&
                 it.trusted &&
                 it.manifest.medium == "addon" &&
-                it.manifest.addon?.isLogoHold != true &&
+                it.manifest.addon?.let { declaration -> !declaration.isLogoHold && !declaration.isExploreFeed } == true &&
                 eu.kanade.tachiyomi.data.rin.RinRepository.compatible(it.manifest)
         }.forEach { record ->
             key(record.sha256) {

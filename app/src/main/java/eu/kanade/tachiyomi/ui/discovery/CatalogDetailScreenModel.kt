@@ -32,7 +32,9 @@ class CatalogDetailScreenModel(
     private val playback: DiscoveryPlaybackService = Injekt.get(),
     private val updateAnime: UpdateAnime = Injekt.get(),
     private val base: BasePreferences = Injekt.get(),
-) : StateScreenModel<CatalogDetailScreenModel.State>(State()) {
+    private val explorePreview: CatalogAnime? = null,
+    openEpisodes: Boolean = false,
+) : StateScreenModel<CatalogDetailScreenModel.State>(State(details = SectionState(data = explorePreview))) {
     private val eventChannel = Channel<Event>(Channel.BUFFERED)
     val events = eventChannel.receiveAsFlow()
     private var loadJob: Job? = null
@@ -41,14 +43,16 @@ class CatalogDetailScreenModel(
 
     init {
         load()
+        if (openEpisodes && explorePreview != null) open()
     }
 
     fun load(refresh: Boolean = false) {
         loadJob?.cancel()
         loadJob = screenModelScope.launch {
             catalog.observeDetails(id, refresh, base.downloadedOnly().get()).collect { result ->
-                mutableState.update { it.copy(details = result) }
-                result.data?.let { anime ->
+                val details = if (result.data == null) result.copy(data = explorePreview) else result
+                mutableState.update { it.copy(details = details) }
+                details.data?.let { anime ->
                     try {
                         val linked = sources.resolve(anime)
                         val episode = linked?.let { playback.nextEpisode(it) }
@@ -74,10 +78,16 @@ class CatalogDetailScreenModel(
                     mutableState.update { it.copy(resolver = true) }
                     search(anime.title)
                 } else {
-                    val linked = smartResolver.resolve(anime) { message ->
-                        mutableState.update { it.copy(message = message) }
+                    val linked = if (explorePreview != null) {
+                        smartResolver.resolveExplore(anime)
+                    } else {
+                        smartResolver.resolve(anime) { message -> mutableState.update { it.copy(message = message) } }
                     }
-                    if (linked != null) finish(linked)
+                    if (linked != null) {
+                        finish(linked)
+                    } else if (explorePreview != null) {
+                        mutableState.update { it.copy(message = "Nessuna versione verificata. Cerca nelle tue fonti.") }
+                    }
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -126,9 +136,18 @@ class CatalogDetailScreenModel(
         screenModelScope.launch {
             mutableState.update { it.copy(busy = true) }
             try {
-                sources.remember(catalogAnime, anime)
-                closeResolver()
-                finish(anime)
+                val verified = if (explorePreview != null) {
+                    smartResolver.verifyExplore(catalogAnime, anime)
+                } else {
+                    sources.remember(catalogAnime, anime)
+                    anime
+                }
+                if (verified != null) {
+                    closeResolver()
+                    finish(verified)
+                } else {
+                    mutableState.update { it.copy(message = "La versione non corrisponde al titolo o alla stagione.") }
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

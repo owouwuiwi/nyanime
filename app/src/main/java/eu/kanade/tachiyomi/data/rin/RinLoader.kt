@@ -83,13 +83,15 @@ object RinLoader {
             return@guard emptyList()
         }
         if (manifest.medium == "addon") {
-            require(
-                Class.forName(
-                    manifest.entryPoints.single(),
-                    false,
-                    loader,
-                ).getDeclaredConstructor().newInstance() is nyanime.addon.api.RinAddon,
-            )
+            val instance = Class.forName(
+                manifest.entryPoints.single(),
+                false,
+                loader,
+            ).getDeclaredConstructor().newInstance()
+            require(instance is nyanime.addon.api.RinAddon)
+            if (manifest.addon?.isExploreFeed == true) {
+                require(instance is nyanime.addon.api.ExploreFeedV1)
+            }
             return@guard emptyList()
         }
         if (manifest.medium == "novel") {

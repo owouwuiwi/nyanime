@@ -223,6 +223,11 @@ class ExtensionStoreRepository private constructor(private val context: Context)
     val entries = inventory.stateIn(scope, SharingStarted.Eagerly, emptyList())
 
     init {
+        scope.launch {
+            eu.kanade.domain.extension.ExtensionCatalogueTrust(Injekt.get()).changes.collect {
+                if (it.isNotEmpty()) scheduleImportedUpdates()
+            }
+        }
         scope.launch(Dispatchers.IO) {
             listOf(
                 java.io.File(context.filesDir, "extension-store/prepared.apk"),
@@ -264,7 +269,9 @@ class ExtensionStoreRepository private constructor(private val context: Context)
         val checked = preferences.getLong("checked", 0)
         val now = System.currentTimeMillis()
         val cached = inventory.first()
-        val plan = RinUpdateSchedule.plan(now, checked, cached.any(::canAutomaticallyUpdate), force, catalogueRefreshed)
+        val plan = RinUpdateSchedule.plan(
+            now, checked, cached.any { canAutomaticallyUpdate(it) || canProvisionExplore(it) }, force, catalogueRefreshed,
+        )
         if (plan == RinUpdateSchedule.Plan.IDLE) return@withLock true
         if (updatesDeferred()) return@withLock false
 
@@ -277,13 +284,14 @@ class ExtensionStoreRepository private constructor(private val context: Context)
             cached
         }
         var complete = snapshot.none { ImportedExtensionUpdates.updatesEnabled(it) && allCataloguesUnavailable(it) }
-        for (entry in snapshot.filter(::canAutomaticallyUpdate).sortedBy { it.privateOnly }) {
+        for (entry in snapshot.filter { canAutomaticallyUpdate(it) || canProvisionExplore(it) }.sortedBy { it.privateOnly }) {
             if (updatesDeferred()) return@withLock false
             if (catalogueUnavailable(entry)) {
                 complete = false
                 continue
             }
-            val operation = install(entry, StoreInstallMode.PRIVATE, automatic = true)
+            val provision = canProvisionExplore(entry)
+            val operation = install(entry, StoreInstallMode.PRIVATE, automatic = !provision, provisionExplore = provision)
             if (operation == null) {
                 complete = false
                 continue
@@ -297,6 +305,14 @@ class ExtensionStoreRepository private constructor(private val context: Context)
 
     private fun canAutomaticallyUpdate(entry: StoreEntry): Boolean =
         ImportedExtensionUpdates.eligible(entry) && androidRequired.value[entry.packageName]?.matches(entry) != true
+
+    private fun canProvisionExplore(entry: StoreEntry): Boolean {
+        val candidate = entry.rinCandidate ?: return false
+        return entry.medium == StoreMedium.ADDON && entry.action == StoreAction.INSTALL && !entry.installed &&
+            entry.addonHostCompatible && entry.canImport && candidate.manifest.addon?.isExploreFeed == true &&
+            !candidate.requiresAndroid && !rin.exploreProviderRemoved(entry.packageName) &&
+            (catalogueConsent(entry) == candidate.signer || DefaultExtensionCatalogue.permitsExplore(context, candidate))
+    }
 
     private fun updatesDeferred() = RinSessions.busy.value || RinAddonRuntime.busy.value
 
@@ -489,6 +505,7 @@ class ExtensionStoreRepository private constructor(private val context: Context)
         approvedBridges: List<StoreEntry> = emptyList(),
         reviewedBridgeUpdate: RinEntry? = null,
         automatic: Boolean = false,
+        provisionExplore: Boolean = false,
     ): Job? {
         val packageName = entry.packageName
         if (steps.value[packageName] == InstallStep.Installing) return null
@@ -506,6 +523,9 @@ class ExtensionStoreRepository private constructor(private val context: Context)
             ) return null
         }
         if (automatic && (mode != StoreInstallMode.PRIVATE || !canAutomaticallyUpdate(current))) return null
+        if (provisionExplore && (automatic || individualConsent || mode != StoreInstallMode.PRIVATE ||
+                current.rinCandidate != entry.rinCandidate || !canProvisionExplore(current))
+        ) return null
         if (current.privateOnly && (mode != StoreInstallMode.PRIVATE || !current.installed && !individualConsent)) {
             return null
         }
@@ -522,7 +542,7 @@ class ExtensionStoreRepository private constructor(private val context: Context)
             return null
         }
         val consent = if (individualConsent) null else current.rinRecord?.catalogueConsent ?: catalogueConsent(current)
-        if (!individualConsent &&
+        if (!individualConsent && !provisionExplore &&
             (!current.installed || current.action == StoreAction.TRUST) &&
             consent == null
         ) {
@@ -566,8 +586,9 @@ class ExtensionStoreRepository private constructor(private val context: Context)
                     reviewedBridgeUpdate = reviewedBridgeUpdate,
                     beforeActivation = { plan?.let(status::approveBridges) },
                     automatic = automatic,
+                    provisionExplore = provisionExplore,
                 )
-                if (!current.privateOnly && !automatic) modes.edit().putString("mode", mode.name).apply()
+                if (!current.privateOnly && !automatic && !provisionExplore) modes.edit().putString("mode", mode.name).apply()
                 if (!done) {
                     awaitingNews.update {
                         it + (packageName to (packageName to requireNotNull(current.candidateVersion)))

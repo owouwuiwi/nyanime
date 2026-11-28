@@ -63,7 +63,11 @@ class RinAddonSettingsScreen(private val packageName: String) : Screen() {
                         Column(Modifier.weight(1f)) {
                             Text(stringResource(R.string.addon_enabled), style = MaterialTheme.typography.titleMedium)
                             declaration?.let {
-                                Text(stringResource(R.string.addon_more_hint, it.text(it.actionLabel, locale)))
+                                if (it.isExploreFeed) {
+                                    Text(stringResource(R.string.explore_navigation))
+                                } else {
+                                    Text(stringResource(R.string.addon_more_hint, it.text(it.actionLabel, locale)))
+                                }
                             }
                         }
                         Switch(
@@ -97,13 +101,14 @@ class RinAddonSettingsScreen(private val packageName: String) : Screen() {
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
-                Button(
-                    onClick = { RinAddonRuntime.open(context, packageName) },
-                    enabled =
-                    record?.enabled == true && RinRepository.compatible(record.manifest),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(stringResource(R.string.addon_open))
+                if (declaration?.isExploreFeed != true) {
+                    Button(
+                        onClick = { RinAddonRuntime.open(context, packageName) },
+                        enabled = record?.enabled == true && RinRepository.compatible(record.manifest),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.addon_open))
+                    }
                 }
                 declaration?.sourceUrl?.let { url ->
                     TextButton(onClick = {

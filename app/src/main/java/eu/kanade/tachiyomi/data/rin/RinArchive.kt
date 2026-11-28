@@ -142,8 +142,9 @@ data class RinAddonDeclaration(
     val holdMillis: Long = 0,
 ) {
     val isLogoHold get() = activation == "hold_logo" && holdMillis in 500L..3_000L
+    val isExploreFeed get() = api == 2 && activation == "explore_feed" && holdMillis == 0L
     fun valid(): Boolean = api in 1..2 &&
-        (activation == "more_action" && holdMillis == 0L || isLogoHold) &&
+        (activation == "more_action" && holdMillis == 0L || isLogoHold || isExploreFeed) &&
         texts(actionLabel, 128) &&
         texts(actionSummary, 256) &&
         texts(descriptions, 4096) &&

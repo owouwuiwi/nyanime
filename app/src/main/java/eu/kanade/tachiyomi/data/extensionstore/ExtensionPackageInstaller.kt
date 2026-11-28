@@ -39,6 +39,7 @@ internal class ExtensionPackageInstaller(private val context: Context, private v
         reviewedBridgeUpdate: RinEntry? = null,
         beforeActivation: () -> Unit = {},
         automatic: Boolean = false,
+        provisionExplore: Boolean = false,
     ): Boolean = withContext(Dispatchers.IO) {
         check(!Injekt.get<BasePreferences>().downloadedOnly().get())
         require(mode == StoreInstallMode.SYSTEM || entry.canImport)
@@ -61,7 +62,13 @@ internal class ExtensionPackageInstaller(private val context: Context, private v
         val file = File.createTempFile("extension-", ".apk", context.cacheDir)
         var handedToAndroid = false
         try {
-            Injekt.get<NetworkHelper>().client.newCall(GET(url)).awaitSuccess().use { response ->
+            val network = Injekt.get<NetworkHelper>()
+            val client = if (provisionExplore || entry.rinCandidate?.manifest?.addon?.isExploreFeed == true) {
+                network.catalogueClient
+            } else {
+                network.client
+            }
+            client.newCall(GET(url)).awaitSuccess().use { response ->
                 val total = response.body.contentLength()
                 require(total <= ExtensionPackageArchive.MAX_BYTES)
                 response.body.byteStream().use { input ->
@@ -156,6 +163,18 @@ internal class ExtensionPackageInstaller(private val context: Context, private v
                 return@withContext true
             }
             if (mode == StoreInstallMode.PRIVATE && inspected.requiresAndroid) throw AndroidInstallRequired()
+            if (provisionExplore) {
+                val candidate = requireNotNull(entry.rinCandidate)
+                require(previous == null && originalSystem == null && !inspected.requiresAndroid)
+                require(inspected.manifest == candidate.manifest && inspected.manifest.addon?.isExploreFeed == true)
+                require(metadata.signers == setOf(candidate.signer))
+                require(
+                    catalogueConsent == candidate.signer &&
+                        eu.kanade.domain.extension.ExtensionCatalogueTrust(Injekt.get()).permits(entry.repository, catalogueConsent) ||
+                        DefaultExtensionCatalogue.permitsExplore(context, candidate),
+                )
+                check(!rin.exploreProviderRemoved(entry.packageName))
+            }
             if (!automatic) {
                 ExtensionExecutionTrust(Injekt.get()).approve(
                     entry.packageName,
